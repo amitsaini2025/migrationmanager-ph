@@ -23,11 +23,13 @@
         text-align: center;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     }
+    .popuploader.crm-global-popuploader .popuploader__panel svg.lucide,
     .popuploader.crm-global-popuploader .popuploader__panel i.fa-spinner {
-        font-size: 32px;
+        width: 32px;
+        height: 32px;
         color: #667eea;
         display: block;
-        margin-bottom: 15px;
+        margin: 0 auto 15px;
     }
     .popuploader.crm-global-popuploader .popuploader__panel p {
         margin: 0;
@@ -37,7 +39,7 @@
 </style>
 <div class="popuploader crm-global-popuploader" style="display: none;" aria-hidden="true" id="crmGlobalPopuploader">
     <div class="popuploader__panel">
-        <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+        @icon('fa-spinner', ['class' => 'icon-spin'])
         <p>Processing...</p>
     </div>
 </div>

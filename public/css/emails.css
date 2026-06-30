@@ -675,8 +675,10 @@
 }
 
 /* Loading spinner for email list */
-.email-list .fa-spinner {
-    font-size: 24px;
+.email-list .fa-spinner,
+.email-list svg.lucide.icon-spin {
+    width: 24px;
+    height: 24px;
     color: #007bff;
 }
 
@@ -703,8 +705,10 @@
     background: #4f46e5;
 }
 
+.create-label-btn svg.lucide,
 .create-label-btn i {
-    font-size: 12px;
+    width: 12px;
+    height: 12px;
 }
 
 /* Email Badges Container */
@@ -1124,8 +1128,13 @@
 }
 
 .download-btn .fa-spinner,
+.download-btn svg.lucide.icon-spin,
 .download-all-btn .fa-spinner,
-.preview-btn .fa-spinner {
+.download-all-btn svg.lucide.icon-spin,
+.preview-btn .fa-spinner,
+.preview-btn svg.lucide.icon-spin {
+    width: 14px;
+    height: 14px;
     animation: spin 1s linear infinite;
 }
 

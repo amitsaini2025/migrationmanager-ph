@@ -7,7 +7,6 @@
 --}}
 @if(!empty($spam_reported_at))
     <span class="email-engagement-icons ml-1">
-        <i class="fas fa-exclamation-triangle text-danger" data-toggle="tooltip"
-           title="Marked as spam {{ \Carbon\Carbon::parse($spam_reported_at)->format('d M Y, H:i') }}"></i>
+        @icon('fa-exclamation-triangle', ['class' => 'text-danger', 'data-toggle' => 'tooltip', 'title' => 'Marked as spam ' . \Carbon\Carbon::parse($spam_reported_at)->format('d M Y, H:i')])
     </span>
 @endif

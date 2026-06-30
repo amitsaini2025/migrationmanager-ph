@@ -21,7 +21,7 @@
 <div class="kpi-card-modern">
     <div class="kpi-card-inner">
         <div class="kpi-icon-wrapper" style="background: {{ $gradient['icon-bg'] }};">
-            <i class="{{ $icon }}" style="color: {{ $gradient['from'] }};"></i>
+            {!! \App\Helpers\IconHelper::fromLegacy($icon, ['style' => 'color: ' . $gradient['from'] . ';']) !!}
         </div>
         <div class="kpi-content">
             <h3 class="kpi-title">{{ $title }}</h3>
@@ -96,8 +96,10 @@
     transform: scale(1.1) rotate(5deg);
 }
 
+.kpi-icon-wrapper svg.lucide,
 .kpi-icon-wrapper i {
-    font-size: 1.8em;
+    width: 1.8em;
+    height: 1.8em;
     transition: all 0.3s ease;
 }
 
@@ -184,8 +186,10 @@
         height: 50px;
     }
     
+    .kpi-icon-wrapper svg.lucide,
     .kpi-icon-wrapper i {
-        font-size: 1.5em;
+        width: 1.5em;
+        height: 1.5em;
     }
     
     .kpi-count-number,

@@ -109,6 +109,7 @@
             background: #f8f9fb !important;
             width: 100% !important;
         }
+        .topbar-center .topbar-search svg.lucide,
         .topbar-center .topbar-search i { color: #868e96 !important; flex-shrink: 0 !important; }
         .topbar-center .topbar-search .form-control,
         .topbar-center .topbar-search .ts-wrapper {
@@ -352,9 +353,11 @@
             align-items: center;
         }
         
+        .teams-notification-title svg.lucide,
         .teams-notification-title i {
             margin-right: 8px;
-            font-size: 16px;
+            width: 16px;
+            height: 16px;
         }
         
         .teams-notification-controls {
@@ -622,9 +625,11 @@
             margin: 0;
         }
 
+        .broadcast-banner__header-title svg.lucide,
         .broadcast-banner__header-title i {
             margin-right: 10px;
-            font-size: 18px;
+            width: 18px;
+            height: 18px;
         }
 
         .broadcast-banner__close-btn {
@@ -679,6 +684,7 @@
             gap: 6px;
         }
 
+        .broadcast-banner__meta svg.lucide,
         .broadcast-banner__meta i {
             font-size: 11px;
         }
@@ -750,18 +756,18 @@
     <div class="broadcast-banner" data-broadcast-banner>
         <div class="broadcast-banner__header">
             <h5 class="broadcast-banner__header-title">
-                <i class="fas fa-bullhorn"></i>
+                @icon('fa-bullhorn')
                 Broadcast Message
             </h5>
             <button type="button" class="broadcast-banner__close-btn" data-action="dismiss" aria-label="Close">
-                <i class="fas fa-times"></i>
+                @icon('fa-times')
             </button>
         </div>
         <div class="broadcast-banner__content">
             <div class="broadcast-banner__title" data-broadcast-title></div>
             <div class="broadcast-banner__message" data-broadcast-message></div>
             <div class="broadcast-banner__meta" data-broadcast-meta>
-                <i class="fas fa-info-circle"></i>
+                @icon('fa-info-circle')
                 <span data-broadcast-meta-text></span>
             </div>
             <div class="broadcast-banner__actions">
@@ -1685,15 +1691,15 @@
                     <div class="teams-notification" id="teams-notification-${notification.id}">
                         <div class="teams-notification-header">
                             <div class="teams-notification-title">
-                                <i class="fas fa-users"></i>
+                                ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-users') : '<i class="fas fa-users"></i>'}
                                 Office Visit Assignment
                             </div>
                             <div class="teams-notification-controls">
                                 <button class="teams-notification-btn" onclick="minimizeNotification(${notification.id})">
-                                    <i class="fas fa-minus"></i>
+                                    ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-minus') : '<i class="fas fa-minus"></i>'}
                                 </button>
                                 <button class="teams-notification-btn" onclick="closeNotification(${notification.id})">
-                                    <i class="fas fa-times"></i>
+                                    ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-times') : '<i class="fas fa-times"></i>'}
                                 </button>
                             </div>
                         </div>

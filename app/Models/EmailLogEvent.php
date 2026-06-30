@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\IconHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -60,5 +61,18 @@ class EmailLogEvent extends Model
             'group_resubscribe' => 'fas fa-check text-success',
             default       => 'fas fa-circle text-muted',
         };
+    }
+
+    public function iconHtml(): string
+    {
+        $legacy = $this->iconClass();
+        $colorClass = '';
+
+        if (preg_match('/\b(text-\S+|text-muted)\b/', $legacy, $matches)) {
+            $colorClass = $matches[1];
+            $legacy = trim(preg_replace('/\b(text-\S+|text-muted)\b/', '', $legacy) ?? $legacy);
+        }
+
+        return IconHelper::fromLegacy($legacy, ['class' => trim($colorClass)]);
     }
 }

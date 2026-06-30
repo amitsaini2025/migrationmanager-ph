@@ -1,6 +1,6 @@
 # Icon migration — Font Awesome → Lucide
 
-**Status:** Phase 1 complete (infrastructure) · Phase 2+ pending  
+**Status:** Phase 2 complete (global shell) · Phase 3+ pending  
 **Related:** [TECH_UPDATE.md](TECH_UPDATE.md) Track 3 · [ICON-AUDIT.md](ICON-AUDIT.md) (generated)
 
 ---
@@ -17,7 +17,7 @@ Replace Font Awesome 5 font icons with [Lucide](https://lucide.dev/) SVG icons a
 |-------|--------|--------|
 | **0 — Prep** | npm package, `config/icons.php`, audit script, docs | **Done** |
 | **1 — Infrastructure** | `IconHelper`, `@icon`, `lucide-init.js`, `crmIcon()` | **Done** |
-| 2 — High visibility | Navbar, dashboard, emails, sortable | Pending |
+| **2 — Global shell** | Navbar, layouts, sortable, email partials, dashboard shell, emails.css | **Done** |
 | 3 — Core screens | Client detail/edit, accounts, leads, AdminConsole | Pending |
 | 4 — Dynamic sources | DB icons, controllers, JS templates | Pending |
 | 5 — Edge pages | EOI sheets, exception page | Pending |
@@ -138,7 +138,23 @@ Lucide pattern (Phase 1):
 
 Update `@sortablelink` / helper in Phase 2 to emit Lucide markup.
 
+**Done in Phase 2:** `SortableHelper::linkWithIcon()` uses `IconHelper::fromLegacy()`.
+
 ---
+
+## Phase 2 file inventory
+
+| Area | Files migrated |
+|------|----------------|
+| Navbar | `resources/views/Elements/CRM/header_client_detail.blade.php` |
+| Layouts | `crm_client_detail.blade.php`, `crm_client_detail_dashboard.blade.php` (broadcast banner, topbar CSS, office-visit notification JS) |
+| Sortable | `app/Helpers/SortableHelper.php` |
+| Email partials | `email-engagement-icons.blade.php`, `email-event-timeline.blade.php`, `EmailLogEvent::iconHtml()` |
+| Dashboard | `dashboard-optimized.blade.php`, `dashboard-optimized.js`, `kpi-card`, `column-toggle`, `filter-form`, `access-approvals-dashboard` |
+| Loader | `components/crm-popuploader.blade.php` |
+| CSS | `public/css/emails.css` (Lucide spinner + attachment selectors alongside FA) |
+
+Font Awesome CSS remains loaded in layouts during parallel migration.
 
 ## Audit workflow
 
@@ -170,5 +186,6 @@ Review `docs/ICON-AUDIT.md` for **unmapped** tokens and add them to `config/icon
 
 | Date | Change |
 |------|--------|
+| 2026-06-30 | Phase 2: navbar, layouts, SortableHelper, email partials, dashboard shell, popuploader, emails.css Lucide selectors |
 | 2026-06-30 | Phase 1: IconHelper, @icon, lucide-init.js, icons.css, layout wiring, dashboard nav proof icon |
 | 2026-06-30 | Phase 1 review: fix loader-2 spin bug, crmIcon PascalCase lookup, Vite module init timing, fa-google legacy map |

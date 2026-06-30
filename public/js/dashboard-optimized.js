@@ -644,15 +644,17 @@ function updateTaskCount() {
     if (count === 0) {
         $('.todo-task-list').hide();
         if ($('.todo-empty-state').length === 0) {
+            const checkIcon = typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-check-circle') : '<i class="fas fa-check-circle"></i>';
+            const plusIcon = typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-plus') : '<i class="fas fa-plus"></i>';
             $('.todo-task-list-container').html(`
                 <div class="todo-empty-state">
                     <div class="todo-empty-icon">
-                        <i class="fas fa-check-circle"></i>
+                        ${checkIcon}
                     </div>
                     <h4>All caught up!</h4>
                     <p>You have no tasks at the moment.</p>
                     <button type="button" class="todo-empty-add-btn" onclick="openCreateTaskModal()">
-                        <i class="fas fa-plus"></i>
+                        ${plusIcon}
                         Add a task
                     </button>
                 </div>

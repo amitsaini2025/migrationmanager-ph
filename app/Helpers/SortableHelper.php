@@ -99,25 +99,27 @@ class SortableHelper
             }
         }
         
-        // Add sort indicator class and icon
+        // Sort indicator icon (Lucide via IconHelper)
         $class = $attributes['class'] ?? '';
-        $icon = 'fa fa-sort';
-        
+        $legacyIcon = 'fa fa-sort';
+
         if ($currentDirection === 'asc') {
-            $icon = 'fa fa-sort-up';
+            $legacyIcon = 'fa fa-sort-up';
             $class .= ' sort-asc';
         } elseif ($currentDirection === 'desc') {
-            $icon = 'fa fa-sort-down';
+            $legacyIcon = 'fa fa-sort-down';
             $class .= ' sort-desc';
         }
-        
+
         if ($class) {
             $htmlAttributes = ' class="' . trim($class) . '"' . $htmlAttributes;
         }
-        
+
         // Use column name as title if not provided
         $displayTitle = $title ?: ucfirst(str_replace('_', ' ', $column));
-        
-        return '<a href="' . $url . '"' . $htmlAttributes . '>' . $displayTitle . ' <i class="' . $icon . '"></i></a>';
+
+        $iconHtml = IconHelper::fromLegacy($legacyIcon, ['class' => 'sort-icon']);
+
+        return '<a href="' . $url . '"' . $htmlAttributes . '>' . $displayTitle . ' ' . $iconHtml . '</a>';
     }
 } 

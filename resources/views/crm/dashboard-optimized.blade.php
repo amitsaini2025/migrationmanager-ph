@@ -8,7 +8,7 @@
             </div>
             <div class="header-actions">
                 <button type="button" class="action-btn action-btn-secondary" id="refreshDashboard" title="Refresh Dashboard (Alt+R)">
-                    <i class="fas fa-sync-alt"></i> Refresh
+                    @icon('fa-sync-alt') Refresh
                 </button>
             </div>
         </header>
@@ -47,14 +47,14 @@
                 <div class="todo-header">
                     <div class="todo-header-left">
                         <h3>
-                            <i class="fas fa-tasks" style="color: #2564cf;"></i> 
+                            @icon('fa-tasks', ['style' => 'color: #2564cf;']) 
                             My Actions
                         </h3>
                         <span class="todo-count-badge">{{ $count_note_deadline }}</span>
                     </div>
                     @include('components.crm.add-my-task-popover-template')
                     <button type="button" class="todo-add-btn add_my_task" title="Add New Task">
-                        <i class="fas fa-plus"></i>
+                        @icon('fa-plus')
                     </button>
                 </div>
                 
@@ -74,12 +74,12 @@
                     @else
                         <div class="todo-empty-state">
                             <div class="todo-empty-icon">
-                                <i class="fas fa-check-circle"></i>
+                                @icon('fa-check-circle')
                             </div>
                             <h4>All caught up!</h4>
                             <p>You have no actions at the moment.</p>
                             <button type="button" class="todo-empty-add-btn add_my_task" title="Add New Task">
-                                <i class="fas fa-plus"></i>
+                                @icon('fa-plus')
                                 Add an action
                             </button>
                         </div>
@@ -91,7 +91,7 @@
             <div class="focus-container">
                 <div class="focus-header">
                     <h3>
-                        <i class="fas fa-exclamation-circle" style="color: var(--warning-color);"></i> 
+                        @icon('fa-exclamation-circle', ['style' => 'color: var(--warning-color);']) 
                         Cases Requiring Attention
                     </h3>
                     <span class="badge-count">{{ count($cases_requiring_attention_data) }}</span>
@@ -105,7 +105,7 @@
                         </ul>
                     @else
                         <div class="empty-state-modern">
-                            <i class="fas fa-thumbs-up fa-3x"></i>
+                            @icon('fa-thumbs-up', ['class' => 'empty-state-icon'])
                             <h4>Great Work!</h4>
                             <p>No cases requiring immediate attention.</p>
                         </div>
@@ -119,7 +119,7 @@
             <div class="cases-overview-header">
                 <div class="header-left">
                     <h3>
-                        <i class="fas fa-table"></i> 
+                        @icon('fa-table') 
                         Client Matters 
                         <span class="total-count">({{ $data->total() }} total)</span>
                     </h3>
@@ -457,9 +457,12 @@
     color: #999;
 }
 
+.empty-state-modern svg.lucide.empty-state-icon,
 .empty-state-modern i {
     color: #cbd5e0;
     margin-bottom: 15px;
+    width: 3em;
+    height: 3em;
 }
 
 .empty-state-modern h4 {
@@ -1027,7 +1030,7 @@ $(function () {
                 placement: 'top',
                 container: 'body',
                 customClass: 'add-my-task-popover',
-                title: '<i class="fa fa-plus-circle"></i> Add New Task',
+                title: (typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-plus-circle') + ' ' : '<i class="fa fa-plus-circle"></i> ') + 'Add New Task',
                 content: getDashboardAddTaskPopoverHtml
             });
         });
@@ -1269,9 +1272,13 @@ window.showToast = function(message, type = 'info') {
         warning: 'fa-exclamation-triangle',
         info: 'fa-info-circle'
     }[type] || 'fa-info-circle';
+
+    const iconHtml = typeof crmIconLegacy === 'function'
+        ? crmIconLegacy('fas ' + icon)
+        : '<i class="fas ' + icon + '"></i>';
     
     toast.innerHTML = `
-        <i class="fas ${icon}"></i>
+        ${iconHtml}
         <span class="toast-message">${message}</span>
         <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
     `;

@@ -5,7 +5,7 @@
 <div class="email-event-timeline">
     <div class="email-event-item">
         <div class="email-event-icon email-event-icon--sent">
-            <i class="fas fa-paper-plane"></i>
+            @icon('fa-paper-plane')
         </div>
         <div class="email-event-body">
             <div class="email-event-label">Sent</div>
@@ -22,7 +22,7 @@
         @endphp
         <div class="email-event-item">
             <div class="email-event-icon">
-                <i class="{{ $event->iconClass() }}"></i>
+                {!! $event->iconHtml() !!}
             </div>
             <div class="email-event-body">
                 <div class="email-event-label">{{ $event->label() }}</div>
