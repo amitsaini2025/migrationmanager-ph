@@ -627,6 +627,25 @@
             remainingSeconds: 0,
         };
 
+        function hydrateBroadcastIcons(root) {
+            if (typeof refreshLucideIcons === 'function') {
+                refreshLucideIcons(root || document);
+            }
+        }
+
+        function setActiveStaffSortIcon(sortIcon, legacyClass) {
+            if (!sortIcon || !sortIcon.parentElement) {
+                return null;
+            }
+            const parent = sortIcon.parentElement;
+            if (typeof crmIconLegacy === 'function') {
+                sortIcon.outerHTML = crmIconLegacy(legacyClass, { class: 'sort-icon' });
+                return parent.querySelector('.sort-icon');
+            }
+            sortIcon.className = legacyClass + ' sort-icon';
+            return sortIcon;
+        }
+
         // Helper function to truncate HTML message for display
         function truncateMessage(html, maxLength = 150) {
             const temp = document.createElement('div');
@@ -760,6 +779,7 @@
                     </td>
                 </tr>`;
                 historyCount.textContent = '0 broadcasts';
+                hydrateBroadcastIcons(historyBody);
                 return;
             }
 
@@ -798,6 +818,7 @@
                 `;
                 historyBody.appendChild(row);
             });
+            hydrateBroadcastIcons(historyBody);
         }
 
         function renderMySentTable(items, isSuperAdmin = false) {
@@ -811,6 +832,7 @@
                         <div>You haven't sent any broadcasts yet.</div>
                     </td>
                 </tr>`;
+                hydrateBroadcastIcons(mySentBody);
                 return;
             }
 
@@ -843,6 +865,7 @@
                 `;
                 mySentBody.appendChild(row);
             });
+            hydrateBroadcastIcons(mySentBody);
         }
 
         function renderMyReadTable(items) {
@@ -856,6 +879,7 @@
                         <div>No read broadcasts yet.</div>
                     </td>
                 </tr>`;
+                hydrateBroadcastIcons(myReadBody);
                 return;
             }
 
@@ -878,6 +902,7 @@
                 `;
                 myReadBody.appendChild(row);
             });
+            hydrateBroadcastIcons(myReadBody);
         }
 
         function formatTimeAgo(dateString) {
@@ -945,6 +970,7 @@
                 activeStaffCount.className = 'badge badge-pill active-staff-count-badge';
                 activeStaffEmptyMessage.textContent = 'No active staff detected in the last few minutes.';
                 renderPagination(null);
+                hydrateBroadcastIcons(activeStaffBody);
                 return;
             }
 
@@ -1005,6 +1031,7 @@
 
             renderPagination(meta);
             updateSortIcons();
+            hydrateBroadcastIcons(activeStaffBody);
         }
 
         function renderPagination(meta) {
@@ -1073,16 +1100,21 @@
             document.querySelectorAll('.sortable').forEach(th => {
                 const sortIcon = th.querySelector('.sort-icon');
                 if (!sortIcon) return;
-                
+
                 const sortValue = th.getAttribute('data-sort');
                 if (sortValue === activeStaffState.sortBy) {
                     th.classList.add('active');
-                    sortIcon.className = `fas fa-sort-${activeStaffState.sortDir === 'asc' ? 'up' : 'down'} sort-icon`;
-                    sortIcon.style.color = '#005792';
+                    const legacy = activeStaffState.sortDir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                    const updated = setActiveStaffSortIcon(sortIcon, legacy);
+                    if (updated) {
+                        updated.style.color = '#005792';
+                    }
                 } else {
                     th.classList.remove('active');
-                    sortIcon.className = 'fas fa-sort sort-icon';
-                    sortIcon.style.color = '';
+                    const updated = setActiveStaffSortIcon(sortIcon, 'fas fa-sort');
+                    if (updated) {
+                        updated.style.color = '';
+                    }
                 }
             });
         }
@@ -1329,6 +1361,7 @@
                     if (retryBtn) {
                         retryBtn.addEventListener('click', () => loadActiveStaff(true));
                     }
+                    hydrateBroadcastIcons(activeStaffBody);
                 });
         }
 

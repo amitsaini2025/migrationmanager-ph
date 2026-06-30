@@ -256,9 +256,11 @@
     }
 
     /* Modern Icons */
-    .listing-container [data-lucide="circle-check"] {
+    .listing-container .Validate_Receipt svg.lucide {
         color: #10b981;
-        font-size: 16px;
+        stroke: #10b981;
+        width: 16px;
+        height: 16px;
         margin-right: 6px;
     }
 
@@ -376,28 +378,33 @@
         opacity: 0.6;
     }
 
-    .listing-container .sort-icon i {
-        font-size: 8px;
-        line-height: 1;
+    .listing-container .sort-icon svg.lucide {
+        width: 8px;
+        height: 8px;
         color: #475569;
+        stroke: #475569;
     }
 
     .listing-container .sortable-header.sort-asc .sort-icon {
         opacity: 1;
     }
 
-    .listing-container .sortable-header.sort-asc .sort-icon [data-lucide="chevron-up"] {
+    .listing-container .sortable-header.sort-asc .sort-icon svg.lucide:first-of-type {
         color: #667eea;
-        font-size: 10px;
+        stroke: #667eea;
+        width: 10px;
+        height: 10px;
     }
 
     .listing-container .sortable-header.sort-desc .sort-icon {
         opacity: 1;
     }
 
-    .listing-container .sortable-header.sort-desc .sort-icon [data-lucide="chevron-down"] {
+    .listing-container .sortable-header.sort-desc .sort-icon svg.lucide:last-of-type {
         color: #667eea;
-        font-size: 10px;
+        stroke: #667eea;
+        width: 10px;
+        height: 10px;
     }
 
     /* Responsive Design */

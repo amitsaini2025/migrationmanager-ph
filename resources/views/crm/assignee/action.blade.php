@@ -1109,6 +1109,10 @@ $(function () {
 
             // Update badge counts
             updateBadgeCounts();
+
+            if (typeof refreshLucideIcons === 'function') {
+                refreshLucideIcons(document.querySelector('.yajra-datatable'));
+            }
         },
         "bAutoWidth": false,
         "scrollX": true,
@@ -1239,7 +1243,7 @@ $(function () {
                 '<input id="assign_client_id" type="hidden" value="' + safeClientId + '">' +
                 '<div class="text-center">' +
                     '<button class="btn btn-primary" id="updateTask">' +
-                        '' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-save') : '<i class="fa fa-save"></i>') + ' Update Task' +
+                        (typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-save') : '<i class="fa fa-save"></i>') + ' Update Task' +
                     '</button>' +
                 '</div>' +
             '</div>'

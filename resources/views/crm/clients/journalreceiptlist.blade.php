@@ -144,8 +144,9 @@
         transform: translateY(0);
     }
 
-    .btn-primary.Validate_Receipt i {
-        font-size: 14px;
+    .btn-primary.Validate_Receipt svg.lucide {
+        width: 14px;
+        height: 14px;
     }
 
     /* Modern Status Badges */
@@ -174,9 +175,11 @@
     }
 
     /* Modern Icons */
-    [data-lucide="circle-check"] {
+    .Validate_Receipt svg.lucide {
         color: #10b981;
-        font-size: 16px;
+        stroke: #10b981;
+        width: 16px;
+        height: 16px;
         margin-right: 6px;
     }
 
@@ -254,28 +257,33 @@
         opacity: 0.6;
     }
 
-    .sort-icon i {
-        font-size: 8px;
-        line-height: 1;
+    .sort-icon svg.lucide {
+        width: 8px;
+        height: 8px;
         color: #475569;
+        stroke: #475569;
     }
 
     .sortable-header.sort-asc .sort-icon {
         opacity: 1;
     }
 
-    .sortable-header.sort-asc .sort-icon [data-lucide="chevron-up"] {
+    .sortable-header.sort-asc .sort-icon svg.lucide:first-of-type {
         color: #667eea;
-        font-size: 10px;
+        stroke: #667eea;
+        width: 10px;
+        height: 10px;
     }
 
     .sortable-header.sort-desc .sort-icon {
         opacity: 1;
     }
 
-    .sortable-header.sort-desc .sort-icon [data-lucide="chevron-down"] {
+    .sortable-header.sort-desc .sort-icon svg.lucide:last-of-type {
         color: #667eea;
-        font-size: 10px;
+        stroke: #667eea;
+        width: 10px;
+        height: 10px;
     }
 
     /* No Records State */
