@@ -1469,7 +1469,7 @@ $(document).ready(function() {
                         var subjectLower = subject.toLowerCase();
 
                         if (activityType === 'sms') {
-                            subjectIcon = '@icon('fa-sms')';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sms') : '<i class="fas fa-sms"></i>');
                             iconClass = 'feed-icon-sms';
                         } else if (activityType === 'note') {
                             var noteIcon = 'fa-sticky-note';
@@ -1478,40 +1478,40 @@ $(document).ready(function() {
                             else if (subjectLower.indexOf('in-person') !== -1) { noteIcon = 'fa-user-friends'; noteSubtypeClass = ' activity-type-note-in-person'; }
                             else if (subjectLower.indexOf('attention') !== -1) { noteIcon = 'fa-exclamation-triangle'; noteSubtypeClass = ' activity-type-note-attention'; }
                             else if (subjectLower.indexOf('others') !== -1) { noteIcon = 'fa-ellipsis-h'; noteSubtypeClass = ' activity-type-note-others'; }
-                            subjectIcon = '<i class="fas ' + noteIcon + '"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas ' + noteIcon) : '<i class="fas ' + noteIcon + '"></i>');
                             iconClass = 'feed-icon-note';
                         } else if (activityType === 'activity') {
-                            subjectIcon = '@icon('fa-bolt')';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-bolt') : '<i class="fas fa-bolt"></i>');
                             iconClass = 'feed-icon-activity';
                         } else if (activityType === 'stage') {
-                            subjectIcon = '@icon('fa-route')';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-route') : '<i class="fas fa-route"></i>');
                             iconClass = 'feed-icon-stage';
                         } else if (activityType === 'financial') {
-                            subjectIcon = '@icon('fa-dollar-sign')';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-dollar-sign') : '<i class="fas fa-dollar-sign"></i>');
                             iconClass = 'feed-icon-financial';
                         } else if (activityType === 'email') {
-                            subjectIcon = '@icon('fa-envelope')';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : '<i class="fas fa-envelope"></i>');
                             iconClass = 'feed-icon-email';
                         } else if (activityType === 'signature') {
-                            subjectIcon = '@icon('fa-file-signature')';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-signature') : '<i class="fas fa-file-signature"></i>');
                             iconClass = 'feed-icon-signature';
                         } else if (activityType === 'document') {
-                            subjectIcon = '@icon('fa-file-alt')';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : '<i class="fas fa-file-alt"></i>');
                             iconClass = '';
                         } else if (/uploaded email:/i.test(subjectLower)) {
-                            subjectIcon = '@icon('fa-envelope')';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : '<i class="fas fa-envelope"></i>');
                             iconClass = 'feed-icon-email';
                         } else if (subjectLower.includes('invoice') || subjectLower.includes('receipt') || subjectLower.includes('ledger') || subjectLower.includes('payment') || subjectLower.includes('account')) {
-                            subjectIcon = '@icon('fa-dollar-sign')';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-dollar-sign') : '<i class="fas fa-dollar-sign"></i>');
                             iconClass = 'feed-icon-financial';
                         } else if (subjectLower.includes('document') && !/(receipt document|journal receipt document|client receipt document|office receipt document)/i.test(subjectLower)) {
-                            subjectIcon = '@icon('fa-file-alt')';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : '<i class="fas fa-file-alt"></i>');
                             iconClass = '';
                         } else if (subjectLower.includes('document')) {
-                            subjectIcon = '@icon('fa-file-alt')';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : '<i class="fas fa-file-alt"></i>');
                             iconClass = '';
                         } else {
-                            subjectIcon = '@icon('fa-sticky-note')';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sticky-note') : '<i class="fas fa-sticky-note"></i>');
                             iconClass = '';
                         }
 
@@ -1815,7 +1815,7 @@ $('#sendSmsForm').on('submit', function(e) {
     const submitBtn = $('#sendSmsBtn');
     const originalText = submitBtn.html();
     
-    submitBtn.prop('disabled', true).html('@icon('fa-spinner', ['spin' => true]) Sending...');
+    submitBtn.prop('disabled', true).html(crmI('fas fa-spinner fa-spin') + ' Sending...');
     
     const formData = {
         _token: '{{ csrf_token() }}',

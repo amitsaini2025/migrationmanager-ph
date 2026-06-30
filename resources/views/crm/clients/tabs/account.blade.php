@@ -813,9 +813,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update modal title based on receipt type
         const modalTitles = {
-            '1': '@icon('fa-wallet', ['style' => 'color: #28a745;']) Create Client Funds Ledger Entry',
-            '2': '@icon('fa-hand-holding-usd', ['style' => 'color: #007bff;']) Create Direct Office Receipt',
-            '3': '@icon('fa-file-invoice-dollar', ['style' => 'color: #17a2b8;']) Create Invoice'
+            '1': crmI('fas fa-wallet') + ' Create Client Funds Ledger Entry',
+            '2': crmI('fas fa-hand-holding-usd') + ' Create Direct Office Receipt',
+            '3': crmI('fas fa-file-invoice-dollar') + ' Create Invoice'
         };
         
         $modal.find('.modal-title').html(modalTitles[receiptType] || 'Create Receipt');
@@ -948,7 +948,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(reference).then(() => {
                 // Show success feedback
-                $item.html('@icon('fa-check') Copied!');
+                $item.html(crmI('fas fa-check') + ' Copied!');
                 $item.css({'background-color': '#d4edda', 'color': '#155724'});
                 
                 // Reset after 1.5 seconds
@@ -960,7 +960,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('✅ Copied to clipboard:', reference);
             }).catch(err => {
                 console.error('Failed to copy:', err);
-                $item.html('@icon('fa-times') Failed');
+                $item.html(crmI('fas fa-times') + ' Failed');
                 $item.css({'background-color': '#f8d7da', 'color': '#721c24'});
                 setTimeout(() => {
                     $item.html(originalHtml);
@@ -978,7 +978,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 $temp.remove();
                 
                 // Show success feedback
-                $item.html('@icon('fa-check') Copied!');
+                $item.html(crmI('fas fa-check') + ' Copied!');
                 $item.css({'background-color': '#d4edda', 'color': '#155724'});
                 
                 setTimeout(() => {
@@ -989,7 +989,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('✅ Copied to clipboard (fallback):', reference);
             } catch(err) {
                 $temp.remove();
-                $item.html('@icon('fa-times') Failed');
+                $item.html(crmI('fas fa-times') + ' Failed');
                 $item.css({'background-color': '#f8d7da', 'color': '#721c24'});
                 setTimeout(() => {
                     $item.html(originalHtml);
@@ -1143,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $('input[name="receipt_type"][value="office_receipt"]').prop('checked', true).trigger('change');
         
         // Update modal title
-        $modal.find('.modal-title').html('@icon('fa-money-bill-wave', ['style' => 'color: #28a745;']) Quick Receipt for ' + invoiceData.invoiceNo);
+        $modal.find('.modal-title').html(crmI('fas fa-money-bill-wave') + ' Quick Receipt for ' + invoiceData.invoiceNo);
         
         // Wait briefly for the form to render, then populate fields
         if (typeof window.populateQuickReceiptOfficeForm === 'function') {
@@ -1157,7 +1157,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add a badge to indicate this is from Quick Receipt
         // FIX: Remove ALL existing badges first to prevent duplication
         $modal.find('.modal-header .badge').remove();
-        $modal.find('.modal-header').prepend('<span class="badge badge-success" style="margin-right: 10px;">@icon('fa-bolt') QUICK RECEIPT</span>');
+        $modal.find('.modal-header').prepend('<span class="badge badge-success" style="margin-right: 10px;">' + crmI('fas fa-bolt') + ' QUICK RECEIPT</span>');
         
         // SOLUTION 5: Validate modal is available before opening
         if (typeof $modal.modal !== 'function') {
@@ -1376,7 +1376,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🔗 Quick Allocate clicked:', {receiptId, receiptAmount, matterId, clientId});
 
         const originalHtml = $btn.html();
-        $btn.html('@icon('fa-spinner', ['spin' => true]) Finding matches...');
+        $btn.html(crmI('fas fa-spinner fa-spin') + ' Finding matches...');
 
         $.ajax({
             url: '{{ route("clients.getInvoicesByMatter") }}',
@@ -1475,7 +1475,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🔗 Quick Allocate Ledger clicked:', {receiptId, receiptAmount, matterId, clientId});
 
         const originalHtml = $btn.html();
-        $btn.html('@icon('fa-spinner', ['spin' => true]) Finding matches...');
+        $btn.html(crmI('fas fa-spinner fa-spin') + ' Finding matches...');
 
         $.ajax({
             url: '{{ route("clients.getInvoicesByMatter") }}',
@@ -1680,6 +1680,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add to body and show
         $('body').append(modalHtml);
+        if (typeof refreshLucideIcons === 'function') {
+            refreshLucideIcons(document.getElementById('quickAllocateLedgerModal'));
+        }
         $('#quickAllocateLedgerModal').modal('show');
     }
     
@@ -1692,7 +1695,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const $btn = $(this);
         const originalHtml = $btn.html();
-        $btn.prop('disabled', true).html('@icon('fa-spinner', ['spin' => true]) Allocating...');
+        $btn.prop('disabled', true).html(crmI('fas fa-spinner fa-spin') + ' Allocating...');
         
         console.log('🔗 Allocating ledger entry:', receiptId, 'to invoice:', invoiceNo);
         
@@ -1872,6 +1875,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add to body and show
         $('body').append(modalHtml);
+        if (typeof refreshLucideIcons === 'function') {
+            refreshLucideIcons(document.getElementById('quickAllocateModal'));
+        }
         $('#quickAllocateModal').modal('show');
     }
     
@@ -1915,7 +1921,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const $btn = $(this);
         const originalHtml = $btn.html();
-        $btn.prop('disabled', true).html('@icon('fa-spinner', ['spin' => true]) Allocating...');
+        $btn.prop('disabled', true).html(crmI('fas fa-spinner fa-spin') + ' Allocating...');
         
         console.log('🔗 Allocating receipt:', receiptId, 'to invoice:', invoiceNo);
         
@@ -2784,7 +2790,7 @@ $(document).ready(function() {
             
             // Show current document if exists
             if(uploadedDocId && uploadedDocId != '') {
-                $('#current_document_display').html('<p class="text-info">@icon('fa-file-pdf') Document attached (ID: ' + uploadedDocId + ')</p>');
+                $('#current_document_display').html('<p class="text-info">' + crmI('fas fa-file-pdf') + ' Document attached (ID: ' + uploadedDocId + ')</p>');
             } else {
                 $('#current_document_display').html('');
             }
@@ -3076,7 +3082,7 @@ $(document).ready(function() {
         // Show loading state on submit button
         let submitBtn = $(this).find('button[type="submit"]');
         let originalText = submitBtn.html();
-        submitBtn.prop('disabled', true).html('@icon('fa-spinner', ['spin' => true]) Uploading...');
+        submitBtn.prop('disabled', true).html(crmI('fas fa-spinner fa-spin') + ' Uploading...');
         
         $.ajax({
             url: uploadUrl,
