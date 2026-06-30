@@ -1,0 +1,241 @@
+# Font Awesome icon audit
+
+Generated: 2026-06-30
+
+Run `npm run audit:icons` to regenerate this file.
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| Files scanned | 1084 |
+| Files with FA icons | 238 |
+| Unique `fa-*` icon tokens | 216 |
+| Total references | 2470 |
+| Mapped in `config/icons.php` | 216 |
+| Unmapped (need review) | 0 |
+
+## Icons by usage (descending)
+
+| Token | Count | Lucide (config) |
+|-------|-------|-----------------|
+| `fa-check-circle` | 102 | `circle-check` |
+| `fa-plus` | 85 | `plus` |
+| `fa-times` | 85 | `x` |
+| `fa-info-circle` | 83 | `info` |
+| `fa-trash` | 83 | `trash-2` |
+| `fa-arrow-left` | 72 | `arrow-left` |
+| `fa-check` | 69 | `check` |
+| `fa-edit` | 68 | `pencil` |
+| `fa-exclamation-triangle` | 68 | `triangle-alert` |
+| `fa-spinner` | 66 | `loader-2` |
+| `fa-pen` | 51 | `pencil` |
+| `fa-envelope` | 47 | `mail` |
+| `fa-caret-down` | 46 | `chevron-down` |
+| `fa-caret-up` | 43 | `chevron-up` |
+| `fa-clock` | 42 | `clock` |
+| `fa-file-alt` | 41 | `file-text` |
+| `fa-plus-circle` | 38 | `circle-plus` |
+| `fa-times-circle` | 37 | `circle-x` |
+| `fa-eye` | 35 | `eye` |
+| `fa-file-image` | 34 | `file-image` |
+| `fa-paper-plane` | 34 | `send` |
+| `fa-filter` | 30 | `filter` |
+| `fa-save` | 30 | `save` |
+| `fa-calendar-alt` | 28 | `calendar` |
+| `fa-circle` | 27 | `circle` |
+| `fa-search` | 26 | `search` |
+| `fa-user` | 25 | `user` |
+| `fa-building` | 23 | `building-2` |
+| `fa-dollar-sign` | 23 | `dollar-sign` |
+| `fa-inbox` | 23 | `inbox` |
+| `fa-sticky-note` | 23 | `sticky-note` |
+| `fa-tag` | 23 | `tag` |
+| `fa-users` | 23 | `users` |
+| `fa-list` | 21 | `list` |
+| `fa-calendar` | 20 | `calendar` |
+| `fa-chart-line` | 20 | `chart-line` |
+| `fa-cloud-upload-alt` | 20 | `cloud-upload` |
+| `fa-download` | 20 | `download` |
+| `fa-redo` | 20 | `rotate-cw` |
+| `fa-upload` | 19 | `upload` |
+| `fa-briefcase` | 17 | `briefcase` |
+| `fa-sms` | 17 | `message-square-text` |
+| `fa-calendar-check` | 16 | `calendar-check` |
+| `fa-file-pdf` | 16 | `file-text` |
+| `fa-paperclip` | 16 | `paperclip` |
+| `fa-sync-alt` | 16 | `refresh-cw` |
+| `fa-ellipsis-v` | 15 | `ellipsis-vertical` |
+| `fa-link` | 15 | `link` |
+| `fa-user-check` | 15 | `user-check` |
+| `fa-bolt` | 14 | `zap` |
+| `fa-star` | 14 | `star` |
+| `fa-tasks` | 14 | `list-todo` |
+| `fa-exclamation-circle` | 13 | `circle-alert` |
+| `fa-phone` | 13 | `phone` |
+| `fa-user-plus` | 13 | `user-plus` |
+| `fa-arrow-right-from-bracket` | 12 | `log-out` |
+| `fa-history` | 12 | `history` |
+| `fa-chart-bar` | 11 | `chart-column` |
+| `fa-sort` | 11 | `arrow-up-down` |
+| `fa-undo` | 11 | `undo-2` |
+| `fa-bell` | 10 | `bell` |
+| `fa-calendar-plus` | 10 | `calendar-plus` |
+| `fa-graduation-cap` | 10 | `graduation-cap` |
+| `fa-trash-alt` | 10 | `trash-2` |
+| `fa-user-tie` | 10 | `user-round` |
+| `fa-file` | 9 | `file` |
+| `fa-file-invoice-dollar` | 9 | `receipt` |
+| `fa-folder-open` | 9 | `folder-open` |
+| `fa-lock` | 9 | `lock` |
+| `fa-user-circle` | 9 | `circle-user` |
+| `fa-ban` | 8 | `ban` |
+| `fa-external-link-alt` | 8 | `external-link` |
+| `fa-file-signature` | 8 | `file-signature` |
+| `fa-globe` | 8 | `globe` |
+| `fa-arrow-down` | 7 | `arrow-down` |
+| `fa-clock-o` | 7 | `clock` |
+| `fa-comment` | 7 | `message-circle` |
+| `fa-file-contract` | 7 | `file-text` |
+| `fa-id-card` | 7 | `id-card` |
+| `fa-route` | 7 | `route` |
+| `fa-sync` | 7 | `refresh-cw` |
+| `fa-arrows-alt` | 6 | `move` |
+| `fa-bullhorn` | 6 | `megaphone` |
+| `fa-calendar-minus` | 6 | `calendar-minus` |
+| `fa-calendar-week` | 6 | `calendar-range` |
+| `fa-copy` | 6 | `copy` |
+| `fa-ellipsis-h` | 6 | `ellipsis` |
+| `fa-exchange-alt` | 6 | `arrow-left-right` |
+| `fa-eye-slash` | 6 | `eye-off` |
+| `fa-language` | 6 | `languages` |
+| `fa-mobile-alt` | 6 | `smartphone` |
+| `fa-passport` | 6 | `book-user` |
+| `fa-user-friends` | 6 | `users` |
+| `fa-align-left` | 5 | `align-left` |
+| `fa-arrow-up` | 5 | `arrow-up` |
+| `fa-bars` | 5 | `menu` |
+| `fa-map-marker-alt` | 5 | `map-pin` |
+| `fa-minus` | 5 | `minus` |
+| `fa-receipt` | 5 | `receipt` |
+| `fa-address-card` | 4 | `id-card` |
+| `fa-arrow-right` | 4 | `arrow-right` |
+| `fa-book` | 4 | `book` |
+| `fa-calendar-day` | 4 | `calendar-days` |
+| `fa-calendar-times` | 4 | `calendar-x` |
+| `fa-chevron-right` | 4 | `chevron-right` |
+| `fa-cogs` | 4 | `settings` |
+| `fa-plane-departure` | 4 | `plane-takeoff` |
+| `fa-robot` | 4 | `bot` |
+| `fa-stream` | 4 | `align-justify` |
+| `fa-user-shield` | 4 | `shield-user` |
+| `fa-users-cog` | 4 | `users-round` |
+| `fa-archive` | 3 | `archive` |
+| `fa-arrows-alt-h` | 3 | `move-horizontal` |
+| `fa-check-double` | 3 | `check-check` |
+| `fa-chevron-left` | 3 | `chevron-left` |
+| `fa-chevron-up` | 3 | `chevron-up` |
+| `fa-clipboard-check` | 3 | `clipboard-check` |
+| `fa-cog` | 3 | `settings` |
+| `fa-file-text` | 3 | `file-text` |
+| `fa-flag` | 3 | `flag` |
+| `fa-folder-minus` | 3 | `folder-minus` |
+| `fa-hand-holding-usd` | 3 | `hand-coins` |
+| `fa-hourglass-half` | 3 | `hourglass` |
+| `fa-image` | 3 | `image` |
+| `fa-magic` | 3 | `wand-sparkles` |
+| `fa-money-bill` | 3 | `banknote` |
+| `fa-plane` | 3 | `plane` |
+| `fa-shield-alt` | 3 | `shield` |
+| `fa-sort-down` | 3 | `arrow-down` |
+| `fa-sort-up` | 3 | `arrow-up` |
+| `fa-table` | 3 | `table` |
+| `fa-trophy` | 3 | `trophy` |
+| `fa-unlink` | 3 | `unlink` |
+| `fa-user-edit` | 3 | `user-pen` |
+| `fa-user-tag` | 3 | `user-round` |
+| `fa-wallet` | 3 | `wallet` |
+| `fa-angle-left` | 2 | `chevron-left` |
+| `fa-angle-right` | 2 | `chevron-right` |
+| `fa-arrow` | 2 | `arrow-right` |
+| `fa-at` | 2 | `at-sign` |
+| `fa-bullseye` | 2 | `target` |
+| `fa-calculator` | 2 | `calculator` |
+| `fa-chevron-down` | 2 | `chevron-down` |
+| `fa-child` | 2 | `baby` |
+| `fa-city` | 2 | `building` |
+| `fa-code` | 2 | `code` |
+| `fa-envelope-open` | 2 | `mail-open` |
+| `fa-envelope-open-text` | 2 | `mail-open` |
+| `fa-file-import` | 2 | `file-input` |
+| `fa-file-invoice` | 2 | `file-text` |
+| `fa-file-word` | 2 | `file-text` |
+| `fa-folder` | 2 | `folder` |
+| `fa-gavel` | 2 | `gavel` |
+| `fa-google` | 2 | `brand:google` |
+| `fa-heart` | 2 | `heart` |
+| `fa-home` | 2 | `house` |
+| `fa-key` | 2 | `key` |
+| `fa-list-alt` | 2 | `list` |
+| `fa-mail-bulk` | 2 | `mails` |
+| `fa-pen-fancy` | 2 | `pen-line` |
+| `fa-pen-nib` | 2 | `pen-tool` |
+| `fa-pencil-alt` | 2 | `pencil` |
+| `fa-reply` | 2 | `reply` |
+| `fa-share` | 2 | `share-2` |
+| `fa-sign-in-alt` | 2 | `log-in` |
+| `fa-signature` | 2 | `signature` |
+| `fa-sun` | 2 | `sun` |
+| `fa-thumb-tack` | 2 | `pin` |
+| `fa-ticket` | 2 | `ticket` |
+| `fa-tools` | 2 | `wrench` |
+| `fa-user-slash` | 2 | `user-x` |
+| `fa-award` | 1 | `award` |
+| `fa-calendar-check-o` | 1 | `calendar-check` |
+| `fa-calendar-clock` | 1 | `calendar-clock` |
+| `fa-chart-pie` | 1 | `chart-pie` |
+| `fa-chevron` | 1 | `chevron-right` |
+| `fa-clipboard` | 1 | `clipboard` |
+| `fa-clipboard-list` | 1 | `clipboard-list` |
+| `fa-columns` | 1 | `columns-3` |
+| `fa-compress` | 1 | `shrink` |
+| `fa-credit-card` | 1 | `credit-card` |
+| `fa-expand` | 1 | `expand` |
+| `fa-file-archive` | 1 | `file-archive` |
+| `fa-file-code` | 1 | `file-code` |
+| `fa-file-excel` | 1 | `file-spreadsheet` |
+| `fa-file-export` | 1 | `file-output` |
+| `fa-file-plus` | 1 | `file-plus` |
+| `fa-file-powerpoint` | 1 | `file-chart-column` |
+| `fa-hand-paper` | 1 | `hand` |
+| `fa-hand-point-left` | 1 | `hand-helping` |
+| `fa-heartbeat` | 1 | `heart-pulse` |
+| `fa-infinity` | 1 | `infinity` |
+| `fa-list-ul` | 1 | `list` |
+| `fa-map-marked-alt` | 1 | `map` |
+| `fa-medal` | 1 | `medal` |
+| `fa-mobile` | 1 | `smartphone` |
+| `fa-money-bill-wave` | 1 | `banknote` |
+| `fa-mouse-pointer` | 1 | `mouse-pointer` |
+| `fa-person-booth` | 1 | `store` |
+| `fa-plug` | 1 | `plug` |
+| `fa-print` | 1 | `printer` |
+| `fa-question` | 1 | `circle-question-mark` |
+| `fa-question-circle` | 1 | `circle-question-mark` |
+| `fa-sign-out-alt` | 1 | `log-out` |
+| `fa-smile` | 1 | `smile` |
+| `fa-sort-alpha` | 1 | `arrow-up-a-z` |
+| `fa-sort-amount` | 1 | `arrow-up-wide-narrow` |
+| `fa-sort-numeric` | 1 | `arrow-up-1-0` |
+| `fa-stamp` | 1 | `stamp` |
+| `fa-tachometer-alt` | 1 | `gauge` |
+| `fa-tags` | 1 | `tags` |
+| `fa-thumbs-up` | 1 | `thumbs-up` |
+| `fa-traffic-light` | 1 | `traffic-cone` |
+| `fa-unlock-alt` | 1 | `lock-open` |
+| `fa-user-times` | 1 | `user-x` |
+| `fa-vial` | 1 | `test-tube` |
+
+## Brand icons
+
+- `fa-google`: 2 reference(s) — see `config/icons.php` → `brands`

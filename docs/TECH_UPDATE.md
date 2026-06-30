@@ -17,7 +17,7 @@ What **is** live today:
 | Select2 → Tom Select | **Largely complete** (core migration ~18 May 2026) |
 | Vite | **Minimal** — 3 entries only (`app.css`, `fullcalendar-v6.css`, `app.js`) |
 | Font Awesome | **FA 5.11.2** — local copy, heavy use across templates |
-| Lucide / IconHelper | **Not started** |
+| Lucide / IconHelper | **Phase 0 done** — npm package, `config/icons.php`, audit script; IconHelper not started |
 | Phase 2 asset bundling | **Not started** |
 | Central toast/confirm helpers | **Not started** |
 
@@ -178,7 +178,7 @@ The following were described as done on 26–27 Jun but are **not present** on `
 
 ## Track 3: Icon system modernisation
 
-**Status:** Not started  
+**Status:** Phase 0 complete (prep); Phase 3a infrastructure pending  
 **Priority:** Medium — large surface area; do incrementally
 
 ### Current state
@@ -199,7 +199,10 @@ The following were described as done on 26–27 Jun but are **not present** on `
 
 #### Phase 3a — Infrastructure
 
-- [ ] Add `lucide` npm package
+- [x] Add `lucide` npm package *(2026-06-30)*
+- [x] Create `config/icons.php` FA → Lucide mapping *(2026-06-30)*
+- [x] Add `npm run audit:icons` + `docs/ICON-AUDIT.md` *(2026-06-30)*
+- [x] Add `docs/ICON-MIGRATION.md` *(2026-06-30)*
 - [ ] Create `app/Helpers/IconHelper.php` (or `app/Support/IconHelper.php`)
 - [ ] Register `@icon('name')` Blade directive
 - [ ] Add `resources/js/lucide-init.js` Vite entry + `crmIcon(name, options)` in shared JS
@@ -361,3 +364,4 @@ When applying each phase:
 | Date | Change |
 |------|--------|
 | 2026-06-27 | Initial audit and plan created from workspace inspection vs modernisation summary |
+| 2026-06-30 | Icon migration Phase 0: lucide npm, config/icons.php, audit script, ICON-MIGRATION.md |

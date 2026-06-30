@@ -8,7 +8,8 @@
         "copy:flatpickr": "node -e \"const fs=require('fs');const p='node_modules/flatpickr/dist/';fs.copyFileSync(p+'flatpickr.min.js','public/js/flatpickr.min.js');fs.copyFileSync(p+'flatpickr.min.css','public/css/flatpickr.min.css')\"",
         "copy:datatables": "node scripts/copy-datatables.cjs",
         "copy:inputmask": "node -e \"const fs=require('fs');const p='node_modules/inputmask/dist/';fs.copyFileSync(p+'inputmask.min.js','public/js/inputmask.min.js');\"",
-        "copy:tom-select": "node scripts/copy-tom-select.cjs"
+        "copy:tom-select": "node scripts/copy-tom-select.cjs",
+        "audit:icons": "node scripts/audit-icons.cjs"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",
@@ -36,6 +37,7 @@
         "flatpickr": "^4.6.13",
         "inputmask": "^5.0.9",
         "laravel-echo": "^2.2.4",
+        "lucide": "^0.575.0",
         "pusher-js": "^8.4.0",
         "signature_pad": "^5.1.1",
         "tom-select": "^2.6.1"
