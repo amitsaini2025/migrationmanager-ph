@@ -443,7 +443,7 @@
         <div class="modal-content">
             <div class="modal-header" style="background-color: #3498db; color: white;">
                 <h5 class="modal-title" id="completionNotesModalLabel">
-                    <i class="fa fa-check-circle"></i> Complete Task
+                    @icon('fa-check-circle') Complete Task
                 </h5>
                 <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close" style="color: white; opacity: 0.8;">
                     <span aria-hidden="true">&times;</span>
@@ -452,7 +452,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label for="completionNotes" class="font-weight-bold">
-                        <i class="fa fa-comment"></i> Completion Notes/Feedback
+                        @icon('fa-comment') Completion Notes/Feedback
                     </label>
                     <textarea 
                         class="form-control" 
@@ -462,16 +462,16 @@
                         style="resize: vertical; border: 2px solid #e9ecef; border-radius: 8px; padding: 12px;"
                     ></textarea>
                     <small class="form-text text-muted">
-                        <i class="fa fa-info-circle"></i> These notes will be saved in the activity log.
+                        @icon('fa-info-circle') These notes will be saved in the activity log.
                     </small>
                 </div>
             </div>
             <div class="modal-footer" style="background-color: #f8f9fa;">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fa fa-times"></i> Cancel
+                    @icon('fa-times') Cancel
                 </button>
                 <button type="button" class="btn btn-success" id="confirmTaskCompletion">
-                    <i class="fa fa-check"></i> Complete Task
+                    @icon('fa-check') Complete Task
                 </button>
             </div>
         </div>
@@ -541,7 +541,7 @@
         
         // Disable button to prevent double submission
         var $button = $(this);
-        $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Completing...');
+        $button.prop('disabled', true).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-spinner fa-spin') : '<i class="fa fa-spinner fa-spin"></i>') + ' Completing...');
         
         $.ajax({
             type: 'post',
@@ -557,7 +557,7 @@
                 $('#completionNotesModal').modal('hide');
                 
                 // Reset button
-                $button.prop('disabled', false).html('<i class="fa fa-check"></i> Complete Task');
+                $button.prop('disabled', false).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-check') : '<i class="fa fa-check"></i>') + ' Complete Task');
                 
                 // Clear stored IDs
                 currentTaskId = null;
@@ -571,7 +571,7 @@
                 alert('An error occurred while completing the task.');
                 
                 // Reset button
-                $button.prop('disabled', false).html('<i class="fa fa-check"></i> Complete Task');
+                $button.prop('disabled', false).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-check') : '<i class="fa fa-check"></i>') + ' Complete Task');
             }
         });
     });

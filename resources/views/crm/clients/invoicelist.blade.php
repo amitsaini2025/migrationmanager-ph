@@ -438,7 +438,7 @@
     }
 
     /* Modern Icons */
-    .listing-container .fas.fa-check-circle {
+    .listing-container [data-lucide="circle-check"] {
         color: #10b981;
         font-size: 16px;
         margin-right: 6px;
@@ -554,7 +554,7 @@
         opacity: 1;
     }
 
-    .listing-container .sortable-header.sort-asc .sort-icon .fa-caret-up {
+    .listing-container .sortable-header.sort-asc .sort-icon [data-lucide="chevron-up"] {
         color: #667eea;
         font-size: 10px;
     }
@@ -563,7 +563,7 @@
         opacity: 1;
     }
 
-    .listing-container .sortable-header.sort-desc .sort-icon .fa-caret-down {
+    .listing-container .sortable-header.sort-desc .sort-icon [data-lucide="chevron-down"] {
         color: #667eea;
         font-size: 10px;
     }
@@ -845,7 +845,7 @@
 
                         <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
                             @if(Auth::user() && in_array(Auth::user()->role, [1, 12]))
-                            <a href="{{ route('clients.analytics-dashboard') }}" class="btn btn-theme btn-theme-sm" title="View Financial Analytics Dashboard"><i class="fas fa-chart-line"></i> Analytics</a>
+                            <a href="{{ route('clients.analytics-dashboard') }}" class="btn btn-theme btn-theme-sm" title="View Financial Analytics Dashboard">@icon('fa-chart-line') Analytics</a>
                             @endif
                             <label for="per_page" class="sr-only">Items per page</label>
                             <select name="per_page" id="per_page" class="form-control per-page-select">
@@ -856,9 +856,9 @@
                                 <option value="200" {{ $perPage == 200 ? 'selected' : '' }}>200</option>
                                 <option value="500" {{ $perPage == 500 ? 'selected' : '' }}>500</option>
                             </select>
-                            <a href="javascript:;" style="background: #394eea;color: white;"  class="btn btn-theme btn-theme-sm filter_btn"><i class="fas fa-filter"></i> Filter</a>
+                            <a href="javascript:;" style="background: #394eea;color: white;"  class="btn btn-theme btn-theme-sm filter_btn">@icon('fa-filter') Filter</a>
                             <button class="btn btn-primary is_checked_client_void_invoice" style="background-color: #394eea !important;">
-                                <i class="fas fa-check-circle"></i>
+                                @icon('fa-check-circle')
                                 Void Invoice
                             </button>
                         </div>
@@ -915,7 +915,7 @@
                              title="Click to filter Current invoices (0-30 days)">
                             <div class="aging-card-header">
                                 <div class="aging-icon">
-                                    <i class="fas fa-check-circle"></i>
+                                    @icon('fa-check-circle')
                                 </div>
                                 <div class="aging-card-title">
                                     <h5>Current</h5>
@@ -932,7 +932,7 @@
                              title="Click to filter Warning invoices (30-60 days overdue)">
                             <div class="aging-card-header">
                                 <div class="aging-icon">
-                                    <i class="fas fa-exclamation-triangle"></i>
+                                    @icon('fa-exclamation-triangle')
                                 </div>
                                 <div class="aging-card-title">
                                     <h5>Warning</h5>
@@ -949,7 +949,7 @@
                              title="Click to filter Urgent invoices (60-90 days overdue)">
                             <div class="aging-card-header">
                                 <div class="aging-icon">
-                                    <i class="fas fa-exclamation-circle"></i>
+                                    @icon('fa-exclamation-circle')
                                 </div>
                                 <div class="aging-card-title">
                                     <h5>Urgent</h5>
@@ -966,7 +966,7 @@
                              title="Click to filter Critical invoices (90+ days overdue)">
                             <div class="aging-card-header">
                                 <div class="aging-icon">
-                                    <i class="fas fa-times-circle"></i>
+                                    @icon('fa-times-circle')
                                 </div>
                                 <div class="aging-card-title">
                                     <h5>Critical</h5>
@@ -983,7 +983,7 @@
                             Search By Details
                             @if(request()->hasAny(['client_id', 'client_matter_id', 'amount', 'hubdoc_status', 'aging_category', 'date_filter_type', 'from_date', 'to_date', 'financial_year']))
                                 <span class="active-filters-badge">
-                                    <i class="fas fa-filter"></i>
+                                    @icon('fa-filter')
                                     {{ collect([request('client_id'), request('client_matter_id'), request('amount'), request('hubdoc_status'), request('aging_category'), request('date_filter_type'), request('from_date'), request('to_date'), request('financial_year')])->filter()->count() }} Active
                                 </span>
                             @endif
@@ -994,7 +994,7 @@
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="client_id" class="col-form-label" style="color:#4a5568 !important;">
-                                            <i class="fas fa-user"></i> Client ID
+                                            @icon('fa-user') Client ID
                                         </label>
                                         <select name="client_id" id="client_id" class="form-control mm-select">
                                             <option value="">Select Client</option>
@@ -1010,7 +1010,7 @@
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="client_matter_id" class="col-form-label" style="color:#4a5568 !important;">
-                                            <i class="fas fa-briefcase"></i> Client Matter ID
+                                            @icon('fa-briefcase') Client Matter ID
                                         </label>
                                         <select name="client_matter_id" id="client_matter_id" class="form-control mm-select">
                                             <option value="">Select Matter</option>
@@ -1026,7 +1026,7 @@
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="amount" class="col-form-label" style="color:#4a5568 !important;">
-                                            <i class="fas fa-dollar-sign"></i> Amount
+                                            @icon('fa-dollar-sign') Amount
                                         </label>
                                         <input type="number" name="amount" id="amount" value="{{ old('amount', Request::get('amount')) }}" class="form-control" placeholder="Enter amount" step="0.01" min="0">
                                     </div>
@@ -1035,7 +1035,7 @@
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="hubdoc_status" class="col-form-label" style="color:#4a5568 !important;">
-                                            <i class="fas fa-cloud-upload-alt"></i> Hubdoc Status
+                                            @icon('fa-cloud-upload-alt') Hubdoc Status
                                         </label>
                                         <select name="hubdoc_status" id="hubdoc_status" class="form-control">
                                             <option value="">All Invoices</option>
@@ -1051,7 +1051,7 @@
                                 <div class="col-md-12">
                                     <div class="form-group">
                                         <label for="aging_category" class="col-form-label" style="color:#4a5568 !important;">
-                                            <i class="fas fa-clock"></i> Aging Category
+                                            @icon('fa-clock') Aging Category
                                         </label>
                                         <select name="aging_category" id="aging_category" class="form-control">
                                             <option value="">All Aging Categories</option>
@@ -1066,7 +1066,7 @@
 
                             <!-- Enhanced Date Filter Section -->
                             <div class="date-filter-section">
-                                <h5><i class="fas fa-calendar-alt"></i> Date Filter</h5>
+                                <h5>@icon('fa-calendar-alt') Date Filter</h5>
                                 
                                 <!-- Hidden field to track filter type -->
                                 <input type="hidden" name="date_filter_type" id="date_filter_type" value="{{ request('date_filter_type', '') }}">
@@ -1074,28 +1074,28 @@
                                 <!-- Quick Filter Chips -->
                                 <div class="quick-filters">
                                     <span class="quick-filter-chip {{ request('date_filter_type') == 'today' ? 'active' : '' }}" data-filter="today">
-                                        <i class="fas fa-calendar-day"></i> Today
+                                        @icon('fa-calendar-day') Today
                                     </span>
                                     <span class="quick-filter-chip {{ request('date_filter_type') == 'this_week' ? 'active' : '' }}" data-filter="this_week">
-                                        <i class="fas fa-calendar-week"></i> This Week
+                                        @icon('fa-calendar-week') This Week
                                     </span>
                                     <span class="quick-filter-chip {{ request('date_filter_type') == 'this_month' ? 'active' : '' }}" data-filter="this_month">
-                                        <i class="fas fa-calendar"></i> This Month
+                                        @icon('fa-calendar') This Month
                                     </span>
                                     <span class="quick-filter-chip {{ request('date_filter_type') == 'this_quarter' ? 'active' : '' }}" data-filter="this_quarter">
-                                        <i class="fas fa-calendar-check"></i> This Quarter
+                                        @icon('fa-calendar-check') This Quarter
                                     </span>
                                     <span class="quick-filter-chip {{ request('date_filter_type') == 'this_year' ? 'active' : '' }}" data-filter="this_year">
-                                        <i class="fas fa-calendar-alt"></i> This Year
+                                        @icon('fa-calendar-alt') This Year
                                     </span>
                                     <span class="quick-filter-chip {{ request('date_filter_type') == 'last_month' ? 'active' : '' }}" data-filter="last_month">
-                                        <i class="fas fa-calendar-minus"></i> Last Month
+                                        @icon('fa-calendar-minus') Last Month
                                     </span>
                                     <span class="quick-filter-chip {{ request('date_filter_type') == 'last_quarter' ? 'active' : '' }}" data-filter="last_quarter">
-                                        <i class="fas fa-calendar-minus"></i> Last Quarter
+                                        @icon('fa-calendar-minus') Last Quarter
                                     </span>
                                     <span class="quick-filter-chip {{ request('date_filter_type') == 'last_year' ? 'active' : '' }}" data-filter="last_year">
-                                        <i class="fas fa-calendar-minus"></i> Last Year
+                                        @icon('fa-calendar-minus') Last Year
                                     </span>
                                 </div>
 
@@ -1105,7 +1105,7 @@
                                 <div class="date-range-wrapper">
                                     <div class="form-group">
                                         <label for="from_date" class="col-form-label" style="color:#4a5568 !important;">
-                                            <i class="fas fa-calendar-plus"></i> From Date
+                                            @icon('fa-calendar-plus') From Date
                                         </label>
                                         <input type="text" name="from_date" id="from_date" value="{{ old('from_date', Request::get('from_date')) }}" class="form-control datepicker" autocomplete="off" placeholder="Select start date">
                                     </div>
@@ -1114,7 +1114,7 @@
                                     
                                     <div class="form-group">
                                         <label for="to_date" class="col-form-label" style="color:#4a5568 !important;">
-                                            <i class="fas fa-calendar-check"></i> To Date
+                                            @icon('fa-calendar-check') To Date
                                         </label>
                                         <input type="text" name="to_date" id="to_date" value="{{ old('to_date', Request::get('to_date')) }}" class="form-control datepicker" autocomplete="off" placeholder="Select end date">
                                     </div>
@@ -1125,7 +1125,7 @@
                                 <!-- Financial Year Selector -->
                                 <div class="fy-selector">
                                     <label for="financial_year" class="col-form-label" style="color:#4a5568 !important;">
-                                        <i class="fas fa-chart-line"></i> Financial Year:
+                                        @icon('fa-chart-line') Financial Year:
                                     </label>
                                     <select name="financial_year" id="financial_year" class="form-control">
                                         <option value="">Select Financial Year</option>
@@ -1154,14 +1154,14 @@
                                 <div class="col-md-12 text-center">
                                     <div class="filter-buttons-container">
                                         <button type="submit" class="btn btn-primary btn-theme-lg mr-3">
-                                            <i class="fas fa-search"></i> Search
+                                            @icon('fa-search') Search
                                         </button>
                                         <a class="btn btn-info" href="{{URL::to('/clients/invoicelist')}}">
-                                            <i class="fas fa-redo"></i> Reset All
+                                            @icon('fa-redo') Reset All
                                         </a>
                                         @if(request()->hasAny(['client_id', 'client_matter_id', 'amount', 'hubdoc_status', 'aging_category', 'date_filter_type', 'from_date', 'to_date', 'financial_year']))
                                             <button type="button" class="clear-filter-btn ml-2" id="clearDateFilters">
-                                                <i class="fas fa-times-circle"></i> Clear Date Filters
+                                                @icon('fa-times-circle') Clear Date Filters
                                             </button>
                                         @endif
                                     </div>
@@ -1183,64 +1183,64 @@
                                     <th class="sortable-header {{ request('sort_by') == 'client_id' ? (request('sort_order') == 'desc' ? 'sort-desc' : 'sort-asc') : '' }}" data-sort="client_id">
                                         Client Id
                                         <span class="sort-icon">
-                                            <i class="fas fa-caret-up"></i>
-                                            <i class="fas fa-caret-down"></i>
+                                            @icon('fa-caret-up')
+                                            @icon('fa-caret-down')
                                         </span>
                                     </th>
                                     <th class="sortable-header {{ request('sort_by') == 'client_matter' ? (request('sort_order') == 'desc' ? 'sort-desc' : 'sort-asc') : '' }}" data-sort="client_matter">
                                         Client Matter
                                         <span class="sort-icon">
-                                            <i class="fas fa-caret-up"></i>
-                                            <i class="fas fa-caret-down"></i>
+                                            @icon('fa-caret-up')
+                                            @icon('fa-caret-down')
                                         </span>
                                     </th>
                                     <th class="sortable-header {{ request('sort_by') == 'name' ? (request('sort_order') == 'desc' ? 'sort-desc' : 'sort-asc') : '' }}" data-sort="name">
                                         Name
                                         <span class="sort-icon">
-                                            <i class="fas fa-caret-up"></i>
-                                            <i class="fas fa-caret-down"></i>
+                                            @icon('fa-caret-up')
+                                            @icon('fa-caret-down')
                                         </span>
                                     </th>
                                     <th class="sortable-header {{ request('sort_by') == 'reference' ? (request('sort_order') == 'desc' ? 'sort-desc' : 'sort-asc') : '' }}" data-sort="reference">
                                         Reference
                                         <span class="sort-icon">
-                                            <i class="fas fa-caret-up"></i>
-                                            <i class="fas fa-caret-down"></i>
+                                            @icon('fa-caret-up')
+                                            @icon('fa-caret-down')
                                         </span>
                                     </th>
                                     <th class="sortable-header {{ request('sort_by') == 'trans_date' ? (request('sort_order') == 'desc' ? 'sort-desc' : 'sort-asc') : '' }}" data-sort="trans_date">
                                         Trans. Date
                                         <span class="sort-icon">
-                                            <i class="fas fa-caret-up"></i>
-                                            <i class="fas fa-caret-down"></i>
+                                            @icon('fa-caret-up')
+                                            @icon('fa-caret-down')
                                         </span>
                                     </th>
                                     <th class="sortable-header {{ request('sort_by') == 'amount' ? (request('sort_order') == 'desc' ? 'sort-desc' : 'sort-asc') : '' }}" data-sort="amount">
                                         Amount
                                         <span class="sort-icon">
-                                            <i class="fas fa-caret-up"></i>
-                                            <i class="fas fa-caret-down"></i>
+                                            @icon('fa-caret-up')
+                                            @icon('fa-caret-down')
                                         </span>
                                     </th>
                                     <th class="sortable-header {{ request('sort_by') == 'hubdoc_status' ? (request('sort_order') == 'desc' ? 'sort-desc' : 'sort-asc') : '' }}" data-sort="hubdoc_status" style="text-align: center;">
-                                        <i class="fas fa-cloud-upload-alt" style="color: #667eea; margin-right: 4px;"></i>Hubdoc
+                                        @icon('fa-cloud-upload-alt', ['style' => 'color: #667eea; margin-right: 4px;'])Hubdoc
                                         <span class="sort-icon">
-                                            <i class="fas fa-caret-up"></i>
-                                            <i class="fas fa-caret-down"></i>
+                                            @icon('fa-caret-up')
+                                            @icon('fa-caret-down')
                                         </span>
                                     </th>
                                     <th class="sortable-header {{ request('sort_by') == 'aging' ? (request('sort_order') == 'desc' ? 'sort-desc' : 'sort-asc') : '' }}" data-sort="aging">
                                         Aging Status
                                         <span class="sort-icon">
-                                            <i class="fas fa-caret-up"></i>
-                                            <i class="fas fa-caret-down"></i>
+                                            @icon('fa-caret-up')
+                                            @icon('fa-caret-down')
                                         </span>
                                     </th>
                                     <th class="sortable-header {{ request('sort_by') == 'voided_by' ? (request('sort_order') == 'desc' ? 'sort-desc' : 'sort-asc') : '' }}" data-sort="voided_by">
                                         Voided By
                                         <span class="sort-icon">
-                                            <i class="fas fa-caret-up"></i>
-                                            <i class="fas fa-caret-down"></i>
+                                            @icon('fa-caret-up')
+                                            @icon('fa-caret-down')
                                         </span>
                                     </th>
                                 </tr>
@@ -1302,13 +1302,13 @@
                                                         if(isset($list->hubdoc_sent) && $list->hubdoc_sent == 1) {
                                                             ?>
                                                             <div class="hubdoc-tick sent">
-                                                                <i class="fas fa-check"></i>
+                                                                @icon('fa-check')
                                                             </div>
                                                             <?php
                                                         } else {
                                                             ?>
                                                             <div class="hubdoc-tick not-sent">
-                                                                <i class="fas fa-minus"></i>
+                                                                @icon('fa-minus')
                                                             </div>
                                                             <?php
                                                         }
@@ -1362,7 +1362,7 @@
                                                 }
                                                 ?>
                                                 <span class="aging-badge <?php echo $agingClass; ?>">
-                                                    <i class="fas <?php echo $agingIcon; ?>"></i>
+                                                    <?php echo \App\Helpers\IconHelper::fromLegacy('fas ' . $agingIcon); ?>
                                                     <?php echo $agingLabel; ?>
                                                     <?php if (!empty($agingDays)) { ?>
                                                         <span class="aging-days"><?php echo $agingDays; ?></span>
@@ -1377,7 +1377,7 @@
                                     <tr>
                                         <td colspan="10" style="text-align: center; padding: 60px 20px;">
                                             <div style="opacity: 0.5;">
-                                                <i class="fas fa-inbox" style="font-size: 48px; color: #cbd5e1; margin-bottom: 16px;"></i>
+                                                @icon('fa-inbox', ['style' => 'font-size: 48px; color: #cbd5e1; margin-bottom: 16px;'])
                                                 <div style="font-size: 18px; font-weight: 600; color: #64748b;">No Records Found</div>
                                                 <div style="font-size: 14px; color: #94a3b8; margin-top: 8px;">Try adjusting your filters to find what you're looking for</div>
                                             </div>

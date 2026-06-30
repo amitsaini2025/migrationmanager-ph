@@ -519,7 +519,7 @@
                     @include('components.crm.add-my-task-popover-template')
                     {{-- Must NOT use class "tab-button": global handler binds $('.tab-button') and reloads the DataTable / toggles filter "active". --}}
                     <button type="button" class="btn btn-primary add_my_task" title="Add New Task">
-                        <i class="fas fa-plus"></i> Add My Task
+                        @icon('fa-plus') Add My Task
                     </button>
                 </div>
             </div>
@@ -581,7 +581,7 @@
         <div class="modal-content">
             <div class="modal-header" style="background-color: #3498db; color: white;">
                 <h5 class="modal-title" id="completionNotesModalLabel">
-                    <i class="fa fa-check-circle"></i> Complete Task
+                    @icon('fa-check-circle') Complete Task
                 </h5>
                 <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close" style="color: white; opacity: 0.8;">
                     <span aria-hidden="true">&times;</span>
@@ -590,7 +590,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label for="completionNotes" class="font-weight-bold">
-                        <i class="fa fa-comment"></i> Completion Notes/Feedback
+                        @icon('fa-comment') Completion Notes/Feedback
                     </label>
                     <textarea 
                         class="form-control" 
@@ -600,16 +600,16 @@
                         style="resize: vertical; border: 2px solid #e9ecef; border-radius: 8px; padding: 12px;"
                     ></textarea>
                     <small class="form-text text-muted">
-                        <i class="fa fa-info-circle"></i> These notes will be saved in the activity log.
+                        @icon('fa-info-circle') These notes will be saved in the activity log.
                     </small>
                 </div>
             </div>
             <div class="modal-footer" style="background-color: #f8f9fa;">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fa fa-times"></i> Cancel
+                    @icon('fa-times') Cancel
                 </button>
                 <button type="button" class="btn btn-success" id="confirmTaskCompletion">
-                    <i class="fa fa-check"></i> Complete Task
+                    @icon('fa-check') Complete Task
                 </button>
             </div>
         </div>
@@ -1057,7 +1057,7 @@ $(function () {
                 placement: 'top',
                 container: 'body',
                 customClass: 'add-my-task-popover',
-                title: '<i class="fa fa-plus-circle"></i> Add New Task',
+                title: (typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-plus-circle') : '<i class="fa fa-plus-circle"></i>') + ' Add New Task',
                 content: getActionAddTaskPopoverHtml
             });
         });
@@ -1206,7 +1206,7 @@ $(function () {
         return (
             '<div id="popover-content" class="modern-popover-content update-task-layout">' +
                 '<div class="form-group">' +
-                    '<label class="control-label"><i class="fa fa-user"></i> Select Assignee</label>' +
+                    '<label class="control-label">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-user') : '<i class="fa fa-user"></i>') + ' Select Assignee</label>' +
                     '<select class="assignee-mm-select form-control" id="rem_cat" name="rem_cat">' +
                         '<option value="">Select Assignee...</option>' +
                         @foreach(\App\Models\Staff::where('status',1)->orderby('first_name','ASC')->get() as $admin)
@@ -1219,19 +1219,19 @@ $(function () {
                     '<div id="assignee-error" class="error-message"></div>' +
                 '</div>' +
                 '<div class="form-group">' +
-                    '<label class="control-label"><i class="fa fa-tag"></i> Task Group</label>' +
+                    '<label class="control-label">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-tag') : '<i class="fa fa-tag"></i>') + ' Task Group</label>' +
                     '<select class="assignee-mm-select form-control" id="task_group" name="task_group">' +
                         taskGroupOptions +
                     '</select>' +
                     '<div id="task-group-error" class="error-message"></div>' +
                 '</div>' +
                 '<div class="form-group form-group-full-width">' +
-                    '<label class="control-label"><i class="fa fa-comment"></i> Task Description</label>' +
+                    '<label class="control-label">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-comment') : '<i class="fa fa-comment"></i>') + ' Task Description</label>' +
                     '<textarea id="assignnote" class="form-control" rows="3" placeholder="Enter task description...">' + safeNote + '</textarea>' +
                     '<div id="note-error" class="error-message"></div>' +
                 '</div>' +
                 '<div class="form-group form-group-full-width">' +
-                    '<label class="control-label"><i class="fa fa-calendar"></i> Follow-up date</label>' +
+                    '<label class="control-label">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-calendar') : '<i class="fa fa-calendar"></i>') + ' Follow-up date</label>' +
                     '<input type="date" class="form-control" id="popoverdatetime" name="popoverdate" value="' + followupDateVal + '">' +
                     '<div id="date-error" class="error-message"></div>' +
                 '</div>' +
@@ -1239,7 +1239,7 @@ $(function () {
                 '<input id="assign_client_id" type="hidden" value="' + safeClientId + '">' +
                 '<div class="text-center">' +
                     '<button class="btn btn-primary" id="updateTask">' +
-                        '<i class="fa fa-save"></i> Update Task' +
+                        '' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-save') : '<i class="fa fa-save"></i>') + ' Update Task' +
                     '</button>' +
                 '</div>' +
             '</div>'
@@ -1675,7 +1675,7 @@ $(function () {
         
         // Disable button to prevent double submission
         var $button = $(this);
-        $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Completing...');
+        $button.prop('disabled', true).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-spinner fa-spin') : '<i class="fa fa-spinner fa-spin"></i>') + ' Completing...');
         
         $.ajax({
             type: 'post',
@@ -1691,7 +1691,7 @@ $(function () {
                 $('#completionNotesModal').modal('hide');
                 
                 // Reset button
-                $button.prop('disabled', false).html('<i class="fa fa-check"></i> Complete Task');
+                $button.prop('disabled', false).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-check') : '<i class="fa fa-check"></i>') + ' Complete Task');
                 
                 // Clear stored IDs
                 currentTaskId = null;
@@ -1711,7 +1711,7 @@ $(function () {
                 alert('An error occurred while completing the task.');
                 
                 // Reset button
-                $button.prop('disabled', false).html('<i class="fa fa-check"></i> Complete Task');
+                $button.prop('disabled', false).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-check') : '<i class="fa fa-check"></i>') + ' Complete Task');
             }
         });
     });

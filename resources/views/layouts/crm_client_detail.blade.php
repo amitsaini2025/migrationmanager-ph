@@ -1671,7 +1671,7 @@
     </style>
     @yield('styles')
 </head>
-<body class="sidebar-mini">
+<body class="sidebar-mini" data-crm-layout="detail">
     <div class="broadcast-banner" data-broadcast-banner>
         <div class="broadcast-banner__header">
             <h5 class="broadcast-banner__header-title">
@@ -1731,75 +1731,18 @@
     @vite(['resources/js/vendor-libs.js', 'resources/js/vendor-pdfmake.js'])
     <!-- TinyMCE is self-hosted and loaded per page as needed -->
     <script src="{{asset('js/tinymce/js/tinymce/tinymce.min.js')}}"></script>
-    <script src="{{asset('js/crm-flatpickr.js')}}"></script>
     <script src="{{asset('js/custom-form-validation.js')}}"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{asset('js/bootstrap5-jquery-compat.js')}}"></script>
     <script src="{{asset('js/scripts.js')}}"></script>
     <script src="{{asset('js/custom.js')}}"></script>
+    @vite(['resources/js/layouts/crm-layout-shared.js'])
     @auth('admin')
     <script>window.crmLoginUrl = {!! json_encode(route('crm.login')) !!};</script>
     <script src="{{asset('js/cross-tab-logout.js')}}"></script>
     @endauth
     <script>
-        // Hide header on scroll down; show on scroll up or at top
-        (function(){
-            var lastY = window.pageYOffset || document.documentElement.scrollTop || 0;
-            var ticking = false;
-            var $topbar = $('.main-topbar');
-
-            function update() {
-                var currentY = window.pageYOffset || document.documentElement.scrollTop || 0;
-                var atTop = currentY <= 0;
-                var scrollingDown = currentY > lastY && !atTop;
-
-                if (scrollingDown) {
-                    if (!$topbar.hasClass('is-hidden')) {
-                        $topbar.addClass('is-hidden');
-                        document.body.classList.add('topbar-hidden');
-                    }
-                } else {
-                    if ($topbar.hasClass('is-hidden') || atTop) {
-                        $topbar.removeClass('is-hidden');
-                        document.body.classList.remove('topbar-hidden');
-                    }
-                }
-
-                lastY = currentY;
-                ticking = false;
-            }
-
-            function requestTick() {
-                if (!ticking) {
-                    ticking = true;
-                    window.requestAnimationFrame(update);
-                }
-            }
-
-            // Initial state: hide if not at top
-            $(function(){
-                if ((window.pageYOffset || document.documentElement.scrollTop || 0) > 0) {
-                    $topbar.addClass('is-hidden');
-                    document.body.classList.add('topbar-hidden');
-                }
-            });
-
-            window.addEventListener('scroll', requestTick, { passive: true });
-        })();
-    </script>
-    <script>
         $(document).ready(function () {
-            // Setup CSRF token for all AJAX requests
-            $.ajaxSetup({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                }
-            });
-            
-            $(".tel_input").on("blur", function() {
-                this.value =  this.value;
-            });
-
             $('.js-data-example-ajaxccsearch').mmSelect({
                 closeOnSelect: true,
                 minimumInputLength: 2,
@@ -2801,69 +2744,6 @@
         loadOfficeVisitNotifications();
     });
     </script>
-    <script>
-    $(document).ready(function () {
-        // Sidebar functionality - Always keep collapsed
-        $('.collapse-btn').on('click', function(e) {
-            e.preventDefault();
-            // Prevent expansion - always keep collapsed
-            $('body').addClass('sidebar-mini');
-            $('.main-sidebar').removeClass('sidebar-expanded');
-            $('.main-content').css('margin-left', '80px');
-            localStorage.setItem('sidebarState', 'collapsed');
-        });
-
-        // Always set initial state to collapsed
-        $('body').addClass('sidebar-mini');
-        $('.main-sidebar').removeClass('sidebar-expanded');
-        $('.main-content').css('margin-left', '80px');
-        localStorage.setItem('sidebarState', 'collapsed');
-        
-        // Ensure sidebar stays fixed
-        $('.main-sidebar').css({
-            'position': 'fixed',
-            'top': '70px',
-            'left': '0',
-            'z-index': '999'
-        });
-        
-        // Simple fix for dropdown menus - let CSS handle the hover
-        // Remove any conflicting JavaScript that might interfere with the existing theme
-    });
-    </script>
-    <script>
-        // Topbar interactions: keep expanded and click-to-open dropdowns
-    $(document).ready(function(){
-        var $topbar = $('.main-topbar');
-            // Always expanded; ignore previous collapsed state
-            $topbar.removeClass('is-collapsed');
-            localStorage.removeItem('topbarCollapsed');
-            // Disable toggle control when present
-            $(document).off('click', '.topbar-toggle');
-
-        // Click to open icon dropdowns
-        $(document).on('click', '.js-dropdown > .icon-btn', function(e){
-            e.preventDefault();
-            e.stopPropagation();
-            var $menu = $(this).siblings('.icon-dropdown-menu');
-            $('.icon-dropdown-menu').not($menu).removeClass('show');
-            $menu.toggleClass('show');
-        });
-        // Profile dropdown click
-        $(document).on('click', '.js-dropdown-right > .profile-trigger', function(e){
-            e.preventDefault();
-            e.stopPropagation();
-            var $menu = $(this).siblings('.profile-menu');
-            $('.profile-menu').not($menu).removeClass('show');
-            $menu.toggleClass('show');
-        });
-        // Close on outside click
-        $(document).on('click', function(){
-            $('.icon-dropdown-menu').removeClass('show');
-            $('.profile-menu').removeClass('show');
-        });
-    });
-    </script>
 
     <div id="checkinmodal"  data-backdrop="static" data-keyboard="false" class="modal fade custom_modal" tabindex="-1" role="dialog" aria-labelledby="clientModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -2996,38 +2876,8 @@
     {{-- Vite: Load Laravel Echo with Reverb for real-time WebSocket notifications --}}
     {{-- Must load BEFORE broadcasts.js so window.Echo is available --}}
     @vite(['resources/js/app.js', 'resources/js/lucide-init.js'])
-    
-    {{-- Wait for Echo to be available before loading broadcasts.js --}}
-    <script>
-        // Poll for window.Echo to be available (Vite modules load asynchronously)
-        let echoCheckAttempts = 0;
-        const maxAttempts = 50; // 5 seconds max wait
-        
-        const waitForEcho = setInterval(() => {
-            echoCheckAttempts++;
-            
-            if (typeof window.Echo !== 'undefined') {
-                console.log('✅ window.Echo detected, loading broadcasts.js...');
-                clearInterval(waitForEcho);
-                
-                // Dynamically load broadcasts.js now that Echo is ready
-                const script = document.createElement('script');
-                script.src = '{{ asset('js/broadcasts.js') }}?v={{ @filemtime(public_path('js/broadcasts.js')) }}';
-                document.body.appendChild(script);
-            } else if (echoCheckAttempts >= maxAttempts) {
-                // Only show warning if Echo was expected but failed (not if intentionally disabled)
-                if (!window.EchoDisabled) {
-                    console.warn('⚠️ window.Echo not available after waiting, broadcasts.js will use polling fallback');
-                }
-                clearInterval(waitForEcho);
-                
-                // Load broadcasts.js anyway (it has fallback to polling)
-                const script = document.createElement('script');
-                script.src = '{{ asset('js/broadcasts.js') }}?v={{ @filemtime(public_path('js/broadcasts.js')) }}';
-                document.body.appendChild(script);
-            }
-        }, 100); // Check every 100ms
-    </script>
+    @include('components.crm-layout-vite-config')
+    @vite(['resources/js/layouts/crm-echo-broadcasts.js'])
 
     @include('partials.email-from-sendgrid-script')
     @yield('scripts')

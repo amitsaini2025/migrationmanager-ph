@@ -49,7 +49,7 @@ Prefer npm imports for vendor libraries once bundled. Use `@legacy` only for pro
 | File / area | Notes |
 |-------------|-------|
 | `resources/js/vendor/mm-tomselect-jquery.js` | jQuery bridge; imported by `vendor-libs.js` |
-| `crm-flatpickr.js` | CRM flatpickr init wrapper |
+| `crm-flatpickr.js` | Removed — `resources/js/vendor/crm-flatpickr.js` via vendor-libs |
 | `scripts.js`, `custom.js` | Global CRM helpers |
 | `crm/clients/detail-main.js` + modules | Largest page surface; migrate last |
 | `tinymce/` | Self-hosted editor tree; Phase 2e |
@@ -94,7 +94,10 @@ Options:
 | `resources/css/vendor-libs.css` | flatpickr, tom-select, datatables, iziToast CSS | ✅ Live |
 | `resources/js/vendor-libs.js` | flatpickr, tom-select, datatables, iziToast JS + mm-tomselect bridge | ✅ Live |
 | `resources/js/vendor-pdfmake.js` | pdfmake + vfs for DataTables PDF export | ✅ Live |
-| `resources/js/layouts/crm-client-detail.js` | Layout inline scripts (Phase 2c) | Pending |
+| `resources/js/vendor/crm-flatpickr.js` | CRM flatpickr helpers + auto-init | ✅ Live (via vendor-libs) |
+| `resources/js/layouts/crm-layout-shared.js` | CSRF, topbar, sidebar, dropdowns | ✅ Live |
+| `resources/js/layouts/crm-echo-broadcasts.js` | Load broadcasts.js after Echo | ✅ Live |
+| `resources/js/layouts/crm-client-detail-boot.js` | Global search, check-in modal, office visits (inline Blade routes) | Pending |
 | `resources/js/app.js` | Echo, Alpine, FullCalendar | ✅ Live |
 
 CRM layouts: `@vite(['resources/css/vendor-libs.css'])` in `<head>` and `@vite(['resources/js/vendor-libs.js', 'resources/js/vendor-pdfmake.js'])` after `app.min.js`.

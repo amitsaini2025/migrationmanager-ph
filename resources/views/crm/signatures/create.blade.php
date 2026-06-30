@@ -607,7 +607,7 @@
     <!-- Match Alert Banner -->
     <div id="matchAlert" class="match-alert">
         <div class="match-alert-icon">
-            <i class="fas fa-user-check"></i>
+            @icon('fa-user-check')
         </div>
         <div class="match-alert-content">
             <div class="match-alert-title" id="matchAlertTitle">Found matching client!</div>
@@ -615,10 +615,10 @@
         </div>
         <div class="match-alert-actions">
             <button type="button" class="btn-match-accept" onclick="acceptMatch()">
-                <i class="fas fa-link"></i> Link Document
+                @icon('fa-link') Link Document
             </button>
             <button type="button" class="btn-match-dismiss" onclick="dismissMatch()">
-                <i class="fas fa-times"></i> Dismiss
+                @icon('fa-times') Dismiss
             </button>
         </div>
     </div>
@@ -636,7 +636,7 @@
             <!-- Step 1: Email Input & Search -->
             <div id="emailStep" class="step-container active">
                 <h3 class="form-section-title">
-                    <i class="fas fa-envelope"></i>
+                    @icon('fa-envelope')
                     Find Signer
                 </h3>
                 
@@ -655,7 +655,7 @@
                 
                 <div id="noMatchesMessage" class="no-matches" style="display: none;">
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> No existing clients or leads found with this email address.
+                        @icon('fa-info-circle') No existing clients or leads found with this email address.
                     </div>
                 </div>
             </div>
@@ -663,7 +663,7 @@
             <!-- Step 2: Client/Lead Selection or Manual Name Entry -->
             <div id="selectionStep" class="step-container">
                 <h3 class="form-section-title">
-                    <i class="fas fa-user-check"></i>
+                    @icon('fa-user-check')
                     Select Signer
                 </h3>
                 
@@ -673,7 +673,7 @@
             <!-- Step 2: Signer Information -->
             <div id="nameStep" class="step-container">
                 <h3 class="form-section-title">
-                    <i class="fas fa-user-edit"></i>
+                    @icon('fa-user-edit')
                     Signer Information
                 </h3>
                 
@@ -707,13 +707,13 @@
                 </div>
                 <div class="btn-group">
                     <button type="button" class="btn btn-secondary" id="backBtn" onclick="goBackStep()" style="display: none;">
-                        <i class="fas fa-arrow-left"></i> Back
+                        @icon('fa-arrow-left') Back
                     </button>
                     <button type="button" class="btn btn-primary" id="nextBtn" onclick="goNextStep()" style="display: none;">
-                        Next <i class="fas fa-arrow-right"></i>
+                        Next @icon('fa-arrow-right')
                     </button>
                     <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
-                        <i class="fas fa-user-plus"></i> Add Signer
+                        @icon('fa-user-plus') Add Signer
                     </button>
                 </div>
             </div>
@@ -727,7 +727,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="emailPreviewModalLabel">
-                    <i class="fas fa-eye"></i> Email Preview
+                    @icon('fa-eye') Email Preview
                 </h5>
                 <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
@@ -735,14 +735,14 @@
             </div>
             <div class="modal-body" id="emailPreviewContent" style="padding: 0; max-height: 70vh; overflow-y: auto;">
                 <div style="text-align: center; padding: 40px;">
-                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    @icon('fa-spinner', ['spin' => true, 'class' => 'fa-2x'])
                     <p style="margin-top: 15px;">Loading preview...</p>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-primary" onclick="$('#emailPreviewModal').modal('hide')">
-                    <i class="fas fa-check"></i> Looks Good
+                    @icon('fa-check') Looks Good
                 </button>
             </div>
         </div>
@@ -904,7 +904,7 @@ function selectMatter(clientId, matterId, matterLabel) {
     if (confirmationDiv) {
         confirmationDiv.innerHTML = `
             <div class="alert alert-success" style="margin-top: 10px;">
-                <i class="fas fa-check-circle"></i> Selected matter: <strong>${matterLabel}</strong>
+                ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-check-circle') : '<i class="fas fa-check-circle"></i>'} Selected matter: <strong>${matterLabel}</strong>
             </div>
         `;
     }
@@ -1051,7 +1051,7 @@ function previewEmail() {
     // Reset content
     document.getElementById('emailPreviewContent').innerHTML = `
         <div style="text-align: center; padding: 40px;">
-            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-spinner fa-spin fa-2x') : '<i class="fas fa-spinner fa-spin fa-2x"></i>'}
             <p style="margin-top: 15px;">Loading preview...</p>
         </div>
     `;
@@ -1077,7 +1077,7 @@ function previewEmail() {
         } else {
             document.getElementById('emailPreviewContent').innerHTML = `
                 <div style="text-align: center; padding: 40px; color: #dc3545;">
-                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-exclamation-triangle fa-2x') : '<i class="fas fa-exclamation-triangle fa-2x"></i>'}
                     <p style="margin-top: 15px;">Failed to load preview</p>
                     <small>${data.error || 'Unknown error'}</small>
                 </div>
@@ -1087,7 +1087,7 @@ function previewEmail() {
     .catch(error => {
         document.getElementById('emailPreviewContent').innerHTML = `
             <div style="text-align: center; padding: 40px; color: #dc3545;">
-                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-exclamation-triangle fa-2x') : '<i class="fas fa-exclamation-triangle fa-2x"></i>'}
                 <p style="margin-top: 15px;">Failed to load preview</p>
                 <small>${error.message}</small>
             </div>

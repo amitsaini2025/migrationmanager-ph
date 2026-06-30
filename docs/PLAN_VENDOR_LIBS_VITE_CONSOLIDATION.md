@@ -1,6 +1,6 @@
 # Plan: Vendor Library Vite Consolidation (Phase 2)
 
-**Status:** Phase 2f applied (2026-06-30) — build is `vite build` only  
+**Status:** Phase 2c partial — large inline boot scripts still in Blade  
 **Created:** 2026-06-30  
 **Scope:** Move copied `public/js` vendor assets (Tom Select, DataTables, flatpickr, iziToast, inputmask) into Vite bundles; retire copy scripts when stable.  
 **Parent doc:** `docs/TECH_UPDATE.md` — Track 1 (Phase 2) + Track 2 consolidation + Track 5
@@ -181,12 +181,17 @@ Kept: `datatables-pdfmake.min.js`, `crm-flatpickr.js`, `tom-select-layout-compat
 
 ### Phase 2c — Layout entries (follow-on, not blocking 2b)
 
-**Partial (2026-06-30):** `mm-tomselect-jquery.js` moved to `resources/js/vendor/`.
+**Partial (2026-06-30):**
+
+- [x] `mm-tomselect-jquery.js` → `resources/js/vendor/`
+- [x] `crm-flatpickr.js` → `resources/js/vendor/` (imported by `vendor-libs.js`)
+- [x] `crm-layout-shared.js` — CSRF setup, topbar scroll, sidebar, dropdowns
+- [x] `crm-echo-broadcasts.js` — load `broadcasts.js` after Echo
+- [x] `components/crm-layout-vite-config.blade.php` — runtime URL config
 
 **Pending:**
 
-- Move `crm-flatpickr.js` into vendor or layout entry.
-- Extract layout inline scripts into `resources/js/layouts/crm-client-detail.js`.
+- Extract remaining layout inline scripts (~1000 lines, Blade routes) → `resources/js/layouts/crm-client-detail-boot.js`
 
 ---
 

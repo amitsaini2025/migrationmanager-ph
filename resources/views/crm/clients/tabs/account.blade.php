@@ -138,16 +138,21 @@
                                 <?php
                                 if($rec_val->client_fund_ledger_type == 'Deposit' ){
                                     $type_icon = 'fa-arrow-down';
+                                    $type_slug = 'deposit';
                                 } else if($rec_val->client_fund_ledger_type == 'Fee Transfer' ){
                                     $type_icon = 'fa-arrow-right-from-bracket';
+                                    $type_slug = 'fee-transfer';
                                 } else if($rec_val->client_fund_ledger_type == 'Disbursement' ){
                                     $type_icon = 'fa-arrow-up';
+                                    $type_slug = 'disbursement';
                                 } else if($rec_val->client_fund_ledger_type == 'Refund' ){
                                     $type_icon = 'fa-arrow-up';
+                                    $type_slug = 'refund';
                                 } else {
                                     $type_icon = 'fa-arrow-up';
+                                    $type_slug = strtolower(str_replace(' ', '-', $rec_val->client_fund_ledger_type));
                                 }?>
-                                {!! \App\Helpers\IconHelper::fromLegacy('fas ' . $type_icon, ['class' => 'type-icon', 'title' => $rec_val->client_fund_ledger_type]) !!}
+                                {!! \App\Helpers\IconHelper::fromLegacy('fas ' . $type_icon, ['class' => 'type-icon', 'data-type' => $type_slug, 'title' => $rec_val->client_fund_ledger_type]) !!}
                                 <span>
                                     {{$rec_val->client_fund_ledger_type}}
                                     <?php

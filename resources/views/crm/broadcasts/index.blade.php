@@ -15,12 +15,12 @@
             <ul class="nav nav-tabs" id="broadcastTabs" role="tablist">
                 <li class="nav-item">
                     <a class="nav-link active" id="broadcasts-tab" data-bs-toggle="tab" href="#broadcasts" role="tab" aria-controls="broadcasts" aria-selected="true">
-                        <i class="fas fa-bullhorn mr-1"></i> Broadcasts
+                        @icon('fa-bullhorn', ['class' => 'mr-1']) Broadcasts
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" id="active-staff-tab" data-bs-toggle="tab" href="#active-staff" role="tab" aria-controls="active-staff" aria-selected="false">
-                        <i class="fas fa-users mr-1"></i> Active Staff
+                        @icon('fa-users', ['class' => 'mr-1']) Active Staff
                     </a>
                 </li>
             </ul>
@@ -89,7 +89,7 @@
                                         <div class="d-flex align-items-center gap-2">
                                             <span class="badge badge-light broadcast-count-badge" id="broadcast-history-count">0 broadcasts</span>
                                             <button type="button" class="btn btn-outline-light btn-sm broadcast-refresh-btn" id="broadcast-refresh-history">
-                                                <i class="fas fa-sync-alt mr-1"></i> Refresh
+                                                @icon('fa-sync-alt', ['class' => 'mr-1']) Refresh
                                             </button>
                                         </div>
                                     </div>
@@ -98,17 +98,17 @@
                                     <ul class="nav nav-pills nav-fill" id="history-tabs" role="tablist">
                                         <li class="nav-item" role="presentation">
                                             <button class="nav-link active" id="all-broadcasts-tab" data-bs-toggle="pill" data-bs-target="#all-broadcasts" type="button" role="tab">
-                                                <i class="fas fa-globe mr-1"></i> All Broadcasts
+                                                @icon('fa-globe', ['class' => 'mr-1']) All Broadcasts
                                             </button>
                                         </li>
                                         <li class="nav-item" role="presentation">
                                             <button class="nav-link" id="my-sent-tab" data-bs-toggle="pill" data-bs-target="#my-sent" type="button" role="tab">
-                                                <i class="fas fa-paper-plane mr-1"></i> My Sent
+                                                @icon('fa-paper-plane', ['class' => 'mr-1']) My Sent
                                             </button>
                                         </li>
                                         <li class="nav-item" role="presentation">
                                             <button class="nav-link" id="my-read-tab" data-bs-toggle="pill" data-bs-target="#my-read" type="button" role="tab">
-                                                <i class="fas fa-check-circle mr-1"></i> My Read
+                                                @icon('fa-check-circle', ['class' => 'mr-1']) My Read
                                             </button>
                                         </li>
                                     </ul>
@@ -132,7 +132,7 @@
                                                     <tbody id="broadcast-history-body">
                                                         <tr>
                                                             <td colspan="6" class="text-center text-muted py-4">
-                                                                <i class="fas fa-bullhorn mb-2" style="font-size: 28px;"></i>
+                                                                @icon('fa-bullhorn', ['class' => 'mb-2', 'style' => 'font-size: 28px;'])
                                                                 <div>No broadcasts yet. Send your first announcement!</div>
                                                             </td>
                                                         </tr>
@@ -157,7 +157,7 @@
                                                     <tbody id="my-sent-body">
                                                         <tr>
                                                             <td colspan="5" class="text-center text-muted py-4">
-                                                                <i class="fas fa-paper-plane mb-2" style="font-size: 28px;"></i>
+                                                                @icon('fa-paper-plane', ['class' => 'mb-2', 'style' => 'font-size: 28px;'])
                                                                 <div>You haven't sent any broadcasts yet.</div>
                                                             </td>
                                                         </tr>
@@ -181,7 +181,7 @@
                                                     <tbody id="my-read-body">
                                                         <tr>
                                                             <td colspan="4" class="text-center text-muted py-4">
-                                                                <i class="fas fa-check-circle mb-2" style="font-size: 28px;"></i>
+                                                                @icon('fa-check-circle', ['class' => 'mb-2', 'style' => 'font-size: 28px;'])
                                                                 <div>No read broadcasts yet.</div>
                                                             </td>
                                                         </tr>
@@ -192,7 +192,7 @@
                                     </div>
                                 </div>
                                 <div class="card-footer text-muted small">
-                                    <i class="fas fa-info-circle"></i> All staff can view broadcast history. Only super admins can delete broadcasts.
+                                    @icon('fa-info-circle') All staff can view broadcast history. Only super admins can delete broadcasts.
                                 </div>
                             </div>
                         </div>
@@ -210,7 +210,7 @@
                                         <div class="flex-grow-1">
                                             <div class="d-flex align-items-center gap-3 mb-2">
                                                 <div class="active-staff-icon-wrapper">
-                                                    <i class="fas fa-users"></i>
+                                                    @icon('fa-users')
                                                 </div>
                                                 <div>
                                                     <h4 class="mb-1 active-staff-title">Active Staff</h4>
@@ -219,23 +219,23 @@
                                             </div>
                                             <div class="active-staff-stats">
                                                 <span class="badge badge-pill active-staff-count-badge" id="active-staff-count">
-                                                    <i class="fas fa-circle status-dot-online"></i>
+                                                    @icon('fa-circle', ['class' => 'status-dot-online'])
                                                     <span class="count-text">1</span> online
                                                 </span>
                                                 <small class="text-muted ml-3">
-                                                    <i class="fas fa-info-circle"></i> Presence calculated from active sessions within the last 5 minutes
+                                                    @icon('fa-info-circle') Presence calculated from active sessions within the last 5 minutes
                                                 </small>
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2 flex-shrink-0">
                                             @if(Auth::user() && in_array(Auth::user()->role, [1, 12]))
                                             <a href="{{ route('staff-login-analytics.index') }}" class="btn btn-light btn-sm active-staff-action-btn">
-                                                <i class="fas fa-chart-line"></i>
+                                                @icon('fa-chart-line')
                                                 <span class="d-none d-md-inline">Analytics</span>
                                             </a>
                                             @endif
                                             <button type="button" class="btn btn-sm active-staff-refresh-btn" id="active-staff-refresh">
-                                                <i class="fas fa-sync-alt"></i>
+                                                @icon('fa-sync-alt')
                                                 <span class="d-none d-md-inline">Refresh</span>
                                             </button>
                                         </div>
@@ -248,7 +248,7 @@
                                                 <div class="input-group input-group-sm">
                                                     <div class="input-group-prepend">
                                                         <span class="input-group-text bg-white border-right-0">
-                                                            <i class="fas fa-search text-muted"></i>
+                                                            @icon('fa-search', ['class' => 'text-muted'])
                                                         </span>
                                                     </div>
                                                     <input type="text" 
@@ -278,7 +278,7 @@
                                                         class="btn btn-outline-secondary btn-sm btn-block active-staff-clear-btn" 
                                                         id="active-staff-clear-filters"
                                                         title="Clear filters">
-                                                    <i class="fas fa-times"></i>
+                                                    @icon('fa-times')
                                                 </button>
                                             </div>
                                         </div>
@@ -293,41 +293,41 @@
                                                 <tr>
                                                     <th class="sortable" data-sort="name">
                                                         <span class="th-content">
-                                                            <i class="fas fa-user"></i>
+                                                            @icon('fa-user')
                                                             <span>Staff</span>
-                                                            <i class="fas fa-sort sort-icon"></i>
+                                                            @icon('fa-sort', ['class' => 'sort-icon'])
                                                         </span>
                                                     </th>
                                                     <th class="text-center sortable" data-sort="status" style="width: 100px;">
                                                         <span class="th-content">
-                                                            <i class="fas fa-circle"></i>
+                                                            @icon('fa-circle')
                                                             <span>Status</span>
                                                         </span>
                                                     </th>
                                                     <th class="sortable" data-sort="role">
                                                         <span class="th-content">
-                                                            <i class="fas fa-user-tag"></i>
+                                                            @icon('fa-user-tag')
                                                             <span>Role</span>
-                                                            <i class="fas fa-sort sort-icon"></i>
+                                                            @icon('fa-sort', ['class' => 'sort-icon'])
                                                         </span>
                                                     </th>
                                                     <th class="sortable" data-sort="team">
                                                         <span class="th-content">
-                                                            <i class="fas fa-users-cog"></i>
+                                                            @icon('fa-users-cog')
                                                             <span>Team</span>
-                                                            <i class="fas fa-sort sort-icon"></i>
+                                                            @icon('fa-sort', ['class' => 'sort-icon'])
                                                         </span>
                                                     </th>
                                                     <th class="sortable" data-sort="last_activity">
                                                         <span class="th-content">
-                                                            <i class="fas fa-clock"></i>
+                                                            @icon('fa-clock')
                                                             <span>Last Activity</span>
-                                                            <i class="fas fa-sort sort-icon"></i>
+                                                            @icon('fa-sort', ['class' => 'sort-icon'])
                                                         </span>
                                                     </th>
                                                     <th>
                                                         <span class="th-content">
-                                                            <i class="fas fa-sign-in-alt"></i>
+                                                            @icon('fa-sign-in-alt')
                                                             <span>Last Login</span>
                                                         </span>
                                                     </th>
@@ -340,7 +340,7 @@
                                                             <div class="spinner-border spinner-border-sm text-primary mb-3" role="status" id="active-staff-loading" style="display: none;">
                                                                 <span class="sr-only">Loading...</span>
                                                             </div>
-                                                            <i class="fas fa-users mb-3 empty-state-icon"></i>
+                                                            @icon('fa-users', ['class' => 'mb-3 empty-state-icon'])
                                                             <div id="active-staff-empty-message" class="empty-state-message">Click the tab to load active staff.</div>
                                                         </div>
                                                     </td>
@@ -354,7 +354,7 @@
                                 <div class="card-footer bg-white border-top active-staff-footer">
                                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                                         <div class="text-muted small">
-                                            <i class="fas fa-info-circle text-primary"></i>
+                                            @icon('fa-info-circle', ['class' => 'text-primary'])
                                             <span id="active-staff-info">Refreshing manually will recalculate active sessions in real time.</span>
                                             <span id="active-staff-last-refresh" class="ml-2"></span>
                                         </div>
@@ -755,7 +755,7 @@
             if (!items.length) {
                 historyBody.innerHTML = `<tr>
                     <td colspan="6" class="text-center text-muted py-4">
-                        <i class="fas fa-bullhorn mb-2" style="font-size: 28px;"></i>
+                        @icon('fa-bullhorn', ['class' => 'mb-2', 'style' => 'font-size: 28px;'])
                         <div>No broadcasts yet. Send your first announcement!</div>
                     </td>
                 </tr>`;
@@ -769,7 +769,7 @@
                 const row = document.createElement('tr');
                 const deleteBtn = isSuperAdmin 
                     ? `<button type="button" class="btn btn-outline-danger btn-sm ml-1" data-action="delete-broadcast" data-batch="${item.batch_uuid}" title="Delete broadcast">
-                           <i class="fas fa-trash"></i>
+                           @icon('fa-trash')
                        </button>`
                     : '';
                 
@@ -791,7 +791,7 @@
                     </td>
                     <td class="text-right">
                         <button type="button" class="btn btn-outline-primary btn-sm" data-action="view-broadcast" data-batch="${item.batch_uuid}">
-                            <i class="fas fa-eye"></i> Details
+                            @icon('fa-eye') Details
                         </button>
                         ${deleteBtn}
                     </td>
@@ -807,7 +807,7 @@
             if (!items.length) {
                 mySentBody.innerHTML = `<tr>
                     <td colspan="5" class="text-center text-muted py-4">
-                        <i class="fas fa-paper-plane mb-2" style="font-size: 28px;"></i>
+                        @icon('fa-paper-plane', ['class' => 'mb-2', 'style' => 'font-size: 28px;'])
                         <div>You haven't sent any broadcasts yet.</div>
                     </td>
                 </tr>`;
@@ -818,7 +818,7 @@
                 const row = document.createElement('tr');
                 const deleteBtn = isSuperAdmin 
                     ? `<button type="button" class="btn btn-outline-danger btn-sm ml-1" data-action="delete-broadcast" data-batch="${item.batch_uuid}" title="Delete broadcast">
-                           <i class="fas fa-trash"></i>
+                           @icon('fa-trash')
                        </button>`
                     : '';
                 
@@ -836,7 +836,7 @@
                     </td>
                     <td class="text-right">
                         <button type="button" class="btn btn-outline-primary btn-sm" data-action="view-broadcast" data-batch="${item.batch_uuid}">
-                            <i class="fas fa-eye"></i> Details
+                            @icon('fa-eye') Details
                         </button>
                         ${deleteBtn}
                     </td>
@@ -852,7 +852,7 @@
             if (!items.length) {
                 myReadBody.innerHTML = `<tr>
                     <td colspan="4" class="text-center text-muted py-4">
-                        <i class="fas fa-check-circle mb-2" style="font-size: 28px;"></i>
+                        @icon('fa-check-circle', ['class' => 'mb-2', 'style' => 'font-size: 28px;'])
                         <div>No read broadcasts yet.</div>
                     </td>
                 </tr>`;
@@ -872,7 +872,7 @@
                     </td>
                     <td>
                         <span class="text-success">
-                            <i class="fas fa-check mr-1"></i>${formatDate(item.read_at)}
+                            ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-check mr-1') : '<i class="fas fa-check mr-1"></i>'}${formatDate(item.read_at)}
                         </span>
                     </td>
                 `;
@@ -931,7 +931,7 @@
                 activeStaffBody.innerHTML = `<tr>
                     <td colspan="6" class="text-center py-5">
                         <div class="active-staff-empty-state">
-                            <i class="fas fa-users mb-3 empty-state-icon"></i>
+                            @icon('fa-users', ['class' => 'mb-3 empty-state-icon'])
                             <div class="empty-state-message">No active staff detected in the last few minutes.</div>
                         </div>
                     </td>
@@ -940,7 +940,7 @@
                 if (countBadge.tagName === 'SPAN') {
                     countBadge.textContent = '0';
                 } else {
-                    activeStaffCount.innerHTML = `<i class="fas fa-circle status-dot-online"></i><span class="count-text">0</span> online`;
+                    activeStaffCount.innerHTML = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-circle status-dot-online') : '<i class="fas fa-circle status-dot-online"></i>') + '<span class="count-text">0</span> online';
                 }
                 activeStaffCount.className = 'badge badge-pill active-staff-count-badge';
                 activeStaffEmptyMessage.textContent = 'No active staff detected in the last few minutes.';
@@ -953,7 +953,7 @@
             if (countBadge) {
                 countBadge.textContent = total;
             } else {
-                activeStaffCount.innerHTML = `<i class="fas fa-circle status-dot-online"></i><span class="count-text">${total}</span> online`;
+                activeStaffCount.innerHTML = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-circle status-dot-online') : '<i class="fas fa-circle status-dot-online"></i>') + `<span class="count-text">${total}</span> online`;
             }
             activeStaffCount.className = 'badge badge-pill active-staff-count-badge';
             activeStaffEmptyMessage.textContent = '';
@@ -972,7 +972,7 @@
                     : '<span class="text-muted">—</span>';
                 
                 const roleName = staff.role_name || `Role #${staff.role_id || '—'}`;
-                const officeInfo = staff.office_name ? `<br><small class="text-muted"><i class="fas fa-building mr-1"></i>${staff.office_name}</small>` : '';
+                const officeInfo = staff.office_name ? `<br><small class="text-muted">${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-building mr-1') : '<i class="fas fa-building mr-1"></i>'}${staff.office_name}</small>` : '';
 
                 row.innerHTML = `
                     <td>
@@ -1018,7 +1018,7 @@
             // Previous button
             html += `<li class="page-item ${meta.current_page === 1 ? 'disabled' : ''}">
                 <a class="page-link" href="#" data-page="${meta.current_page - 1}" ${meta.current_page === 1 ? 'tabindex="-1"' : ''}>
-                    <i class="fas fa-chevron-left"></i>
+                    @icon('fa-chevron-left')
                 </a>
             </li>`;
 
@@ -1049,7 +1049,7 @@
             // Next button
             html += `<li class="page-item ${meta.current_page === meta.last_page ? 'disabled' : ''}">
                 <a class="page-link" href="#" data-page="${meta.current_page + 1}" ${meta.current_page === meta.last_page ? 'tabindex="-1"' : ''}>
-                    <i class="fas fa-chevron-right"></i>
+                    @icon('fa-chevron-right')
                 </a>
             </li>`;
 
@@ -1310,18 +1310,18 @@
                     activeStaffBody.innerHTML = `<tr>
                         <td colspan="6" class="text-center py-5">
                             <div class="active-staff-empty-state">
-                                <i class="fas fa-exclamation-triangle mb-3 empty-state-icon text-warning"></i>
+                                @icon('fa-exclamation-triangle', ['class' => 'mb-3 empty-state-icon text-warning'])
                                 <div class="empty-state-message">
                                     <strong class="text-danger d-block mb-2">Failed to load active staff</strong>
                                     <span class="text-muted">${error.message || 'Please try again or refresh the page.'}</span>
                                 </div>
                                 <button class="btn btn-sm mt-3" id="active-staff-retry-btn">
-                                    <i class="fas fa-redo mr-1"></i> Retry
+                                    @icon('fa-redo', ['class' => 'mr-1']) Retry
                                 </button>
                             </div>
                         </td>
                     </tr>`;
-                    activeStaffCount.innerHTML = `<i class="fas fa-circle status-dot-online"></i><span class="count-text">—</span> unavailable`;
+                    activeStaffCount.innerHTML = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-circle status-dot-online') : '<i class="fas fa-circle status-dot-online"></i>') + '<span class="count-text">—</span> unavailable';
                     activeStaffCount.className = 'badge badge-pill active-staff-count-badge';
                     
                     // Add retry button handler

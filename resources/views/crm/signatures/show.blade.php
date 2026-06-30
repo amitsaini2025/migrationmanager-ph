@@ -685,7 +685,7 @@
         </div>
         <div class="header-actions">
             <a href="{{ route('signatures.index') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back
+                @icon('fa-arrow-left') Back
             </a>
         </div>
     </div>
@@ -714,7 +714,7 @@
     <div class="association-info">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <strong><i class="fas fa-link"></i> Associated with:</strong>
+                <strong>@icon('fa-link') Associated with:</strong>
                 @if($document->client_id && $document->client)
                 <a href="{{ route('clients.detail', $document->client_id) }}">
                     Client: {{ $document->client->first_name }} {{ $document->client->last_name }}
@@ -727,7 +727,7 @@
             </div>
             @if(auth('admin')->user()->role === 1)
             <button type="button" class="btn btn-sm btn-danger" onclick="confirmDetach()">
-                <i class="fas fa-unlink"></i> Detach
+                @icon('fa-unlink') Detach
             </button>
             @endif
         </div>
@@ -736,14 +736,14 @@
     <div class="association-info" style="background: #fff3cd; border-left: 4px solid #ffc107;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <strong><i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i> Not Associated</strong>
+                <strong>@icon('fa-exclamation-triangle', ['style' => 'color: #ffc107;']) Not Associated</strong>
                 <p style="margin: 5px 0 0 0; font-size: 13px; color: #856404;">
                     This signed document is not associated with any client or lead
                 </p>
             </div>
             <div style="display: flex; gap: 10px; align-items: center;">
                 <button type="button" class="btn btn-sm btn-primary" onclick="openAttachModal()">
-                    <i class="fas fa-link"></i> Attach Document
+                    @icon('fa-link') Attach Document
                 </button>
             </div>
         </div>
@@ -758,7 +758,7 @@
                     @csrf
                     <div class="modal-header">
                         <h5 class="modal-title">
-                            <i class="fas fa-link"></i> Attach Document to Client/Lead
+                            @icon('fa-link') Attach Document to Client/Lead
                         </h5>
                         <button type="button" class="close" data-bs-dismiss="modal">
                             <span>&times;</span>
@@ -776,7 +776,7 @@
                                 <input type="email" class="form-control" id="signerEmail" placeholder="Enter signer email address" value="{{ $document->signers->first()->email ?? '' }}" onkeypress="if(event.key==='Enter') lookupSigner()">
                                 <div class="input-group-append">
                                     <button type="button" class="btn btn-outline-primary" onclick="lookupSigner()" id="lookupBtn">
-                                        <i class="fas fa-search"></i> Lookup
+                                        @icon('fa-search') Lookup
                                     </button>
                                 </div>
                             </div>
@@ -826,7 +826,7 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary" id="attachBtn" disabled>
-                            <i class="fas fa-check"></i> Attach Document
+                            @icon('fa-check') Attach Document
                         </button>
                     </div>
                 </form>
@@ -840,7 +840,7 @@
             <!-- Document Info Card -->
             <div class="main-content-card">
                 <h2 class="section-title">
-                    <i class="fas fa-file-alt"></i>
+                    @icon('fa-file-alt')
                     Document Information
                 </h2>
 
@@ -879,7 +879,7 @@
                 @if($document->status === 'signed' && $document->signed_doc_link)
                 <div style="margin-top: 20px; text-align: center;">
                     <a href="{{ route('documents.download.signed', $document->id) }}" class="btn btn-success btn-lg">
-                        <i class="fas fa-download"></i> Download Signed Document
+                        @icon('fa-download') Download Signed Document
                     </a>
                 </div>
                 @endif
@@ -888,7 +888,7 @@
             <!-- Signers Card -->
             <div class="main-content-card" style="margin-top: 20px;">
                 <h2 class="section-title">
-                    <i class="fas fa-users"></i>
+                    @icon('fa-users')
                     Signers ({{ $document->signers->count() }})
                 </h2>
 
@@ -902,32 +902,32 @@
                             </div>
                             <span class="signer-status {{ $signer->opened_at && $signer->status === 'pending' ? 'opened' : $signer->status }}">
                                 @if($signer->status === 'signed')
-                                    <i class="fas fa-check-circle"></i> Signed
+                                    @icon('fa-check-circle') Signed
                                 @elseif($signer->status === 'cancelled')
-                                    <i class="fas fa-times-circle"></i> Cancelled
+                                    @icon('fa-times-circle') Cancelled
                                 @elseif($signer->opened_at && $signer->status === 'pending')
-                                    <i class="fas fa-eye"></i> Opened - Not Signed
+                                    @icon('fa-eye') Opened - Not Signed
                                 @else
-                                    <i class="fas fa-clock"></i> Pending
+                                    @icon('fa-clock') Pending
                                 @endif
                             </span>
                         </div>
 
                         @if($signer->opened_at)
                         <div style="margin-top: 10px; font-size: 13px; color: #6c757d;">
-                            <i class="fas fa-eye"></i> Opened: {{ $signer->opened_at->format('M d, Y g:i A') }}
+                            @icon('fa-eye') Opened: {{ $signer->opened_at->format('M d, Y g:i A') }}
                         </div>
                         @endif
 
                         @if($signer->signed_at)
                         <div style="margin-top: 5px; font-size: 13px; color: #6c757d;">
-                            <i class="fas fa-check"></i> Signed: {{ $signer->signed_at->format('M d, Y g:i A') }}
+                            @icon('fa-check') Signed: {{ $signer->signed_at->format('M d, Y g:i A') }}
                         </div>
                         @endif
 
                         @if($signer->cancelled_at)
                         <div style="margin-top: 5px; font-size: 13px; color: #dc3545;">
-                            <i class="fas fa-times"></i> Cancelled: {{ $signer->cancelled_at->format('M d, Y g:i A') }}
+                            @icon('fa-times') Cancelled: {{ $signer->cancelled_at->format('M d, Y g:i A') }}
                         </div>
                         @endif
 
@@ -938,42 +938,42 @@
                                 <input type="hidden" name="signer_id" value="{{ $signer->id }}">
                                 <button type="submit" class="btn btn-warning" 
                                         {{ $signer->reminder_count >= 3 ? 'disabled' : '' }}>
-                                    <i class="fas fa-bell"></i> 
+                                    @icon('fa-bell') 
                                     Send Reminder ({{ $signer->reminder_count }}/3)
                                 </button>
                             </form>
                             
                             <button type="button" class="btn btn-secondary" onclick="copySigningLink('{{ url("/sign/{$document->id}/{$signer->token}") }}')">
-                                <i class="fas fa-copy"></i> Copy Link
+                                @icon('fa-copy') Copy Link
                             </button>
 
                             <form action="{{ route('signatures.cancel', $document->id) }}" method="POST" style="display: inline;" onsubmit="return confirmCancelSignature()">
                                 @csrf
                                 <input type="hidden" name="signer_id" value="{{ $signer->id }}">
                                 <button type="submit" class="btn btn-danger">
-                                    <i class="fas fa-times"></i> Cancel Signature
+                                    @icon('fa-times') Cancel Signature
                                 </button>
                             </form>
                         </div>
                         
                         <div style="margin-top: 10px; font-size: 12px; color: #6c757d;">
                             @if($signer->last_reminder_sent_at)
-                                <i class="fas fa-clock"></i> Last reminder sent: 
+                                @icon('fa-clock') Last reminder sent: 
                                 <strong>{{ $signer->last_reminder_sent_at->format('M d, Y g:i A') }}</strong>
                                 <span style="color: #9ca3af;">({{ $signer->last_reminder_sent_at->diffForHumans() }})</span>
                             @else
-                                <i class="fas fa-info-circle"></i> No reminders sent yet
+                                @icon('fa-info-circle') No reminders sent yet
                             @endif
                         </div>
                         @endif
                     </div>
                     @empty
                     <div style="text-align: center; padding: 40px; color: #6c757d;">
-                        <i class="fas fa-user-slash" style="font-size: 32px; margin-bottom: 10px;"></i>
+                        @icon('fa-user-slash', ['style' => 'font-size: 32px; margin-bottom: 10px;'])
                         <p>No signers added yet</p>
                         <div style="margin-top: 20px;">
                             <button type="button" class="btn btn-primary" onclick="openAddSignerModal()">
-                                <i class="fas fa-user-plus"></i> Add Signer
+                                @icon('fa-user-plus') Add Signer
                             </button>
                         </div>
                     </div>
@@ -984,7 +984,7 @@
                 @if($document->signers->count() > 0)
                 <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e9ecef;">
                     <button type="button" class="btn btn-outline-primary" onclick="openAddSignerModal()">
-                        <i class="fas fa-user-plus"></i> Add Another Signer
+                        @icon('fa-user-plus') Add Another Signer
                     </button>
                 </div>
                 @endif
@@ -996,25 +996,25 @@
             <!-- Quick Actions Card -->
             <div class="sidebar-card">
                 <h3 class="section-title" style="font-size: 16px;">
-                    <i class="fas fa-bolt"></i>
+                    @icon('fa-bolt')
                     Quick Actions
                 </h3>
 
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                     @if($document->status === 'signed')
                     <a href="{{ route('documents.download.signed', $document->id) }}" class="btn btn-success btn-block">
-                        <i class="fas fa-download"></i> Download
+                        @icon('fa-download') Download
                     </a>
                     @endif
                     
                     <a href="{{ route('documents.edit', $document->id) }}" class="btn btn-primary btn-block">
-                        <i class="fas fa-edit"></i> Edit Signature Placement
+                        @icon('fa-edit') Edit Signature Placement
                     </a>
                     
                     @if($document->signers()->where('status', 'pending')->count() > 0)
                         @if($document->status === 'sent')
                         <div style="display: flex; align-items: center; padding: 8px 16px; background: #e8f5e9; border-radius: 6px; color: #2e7d32; font-size: 14px; text-align: center;">
-                            <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
+                            @icon('fa-check-circle', ['style' => 'margin-right: 8px;'])
                             Document sent for signature
                         </div>
                         @else
@@ -1022,13 +1022,13 @@
                             @csrf
                             <button type="submit" class="btn btn-success btn-block" 
                                     onclick="return confirm('Are you sure you want to send this document for signature? This will send signing links to all pending signers.')">
-                                <i class="fas fa-paper-plane"></i> Send for Signature
+                                @icon('fa-paper-plane') Send for Signature
                             </button>
                         </form>
                         @endif
                     @else
                     <div style="display: flex; align-items: center; padding: 8px 16px; background: #f8f9fa; border-radius: 6px; color: #6c757d; font-size: 14px; text-align: center;">
-                        <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
+                        @icon('fa-info-circle', ['style' => 'margin-right: 8px;'])
                         No pending signers to send to
                     </div>
                     @endif
@@ -1038,7 +1038,7 @@
             <!-- Activity Timeline Card -->
             <div class="sidebar-card" style="margin-top: 20px;">
                 <h3 class="section-title" style="font-size: 16px;">
-                    <i class="fas fa-history"></i>
+                    @icon('fa-history')
                     Activity Timeline
                 </h3>
 
@@ -1182,7 +1182,7 @@
                         @foreach($activities as $activity)
                         <div class="timeline-item {{ $activity['type'] }}" style="{{ $activity['type'] === 'email_failed' || $activity['type'] === 'signature_cancelled' ? 'border-left: 3px solid #dc3545;' : ($activity['type'] === 'email_sent' ? 'border-left: 3px solid #28a745;' : ($activity['type'] === 'email_delivered' ? 'border-left: 3px solid #17a2b8;' : '')) }}">
                             <div class="timeline-icon" style="{{ $activity['type'] === 'email_failed' || $activity['type'] === 'signature_cancelled' ? 'background-color: #dc3545;' : ($activity['type'] === 'email_sent' ? 'background-color: #28a745;' : ($activity['type'] === 'email_delivered' ? 'background-color: #17a2b8;' : '')) }}">
-                                <i class="{{ $activity['icon'] }}"></i>
+                                {!! \App\Helpers\IconHelper::fromLegacy($activity['icon']) !!}
                             </div>
                             <div class="timeline-content">
                                 <div class="timeline-date">{{ $activity['date']->format('M d, Y g:i A') }}</div>
@@ -1222,7 +1222,7 @@
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        <i class="fas fa-user-plus"></i> Add Signer
+                        @icon('fa-user-plus') Add Signer
                     </h5>
                     <button type="button" class="close" data-bs-dismiss="modal">
                         <span>&times;</span>
@@ -1251,7 +1251,7 @@
                         
                         <div id="noMatchesMessage" class="no-matches" style="display: none;">
                             <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i> No existing clients or leads found with this email address.
+                                @icon('fa-info-circle') No existing clients or leads found with this email address.
                             </div>
                         </div>
                     </div>
@@ -1307,13 +1307,13 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-secondary" id="backBtn" onclick="goBackStep()" style="display: none;">
-                        <i class="fas fa-arrow-left"></i> Back
+                        @icon('fa-arrow-left') Back
                     </button>
                     <button type="button" class="btn btn-primary" id="nextBtn" onclick="goNextStep()" style="display: none;">
-                        Next <i class="fas fa-arrow-right"></i>
+                        Next @icon('fa-arrow-right')
                     </button>
                     <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
-                        <i class="fas fa-user-plus"></i> Add Signer
+                        @icon('fa-user-plus') Add Signer
                     </button>
                 </div>
             </form>
@@ -1329,7 +1329,7 @@
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        <i class="fas fa-unlink"></i> Detach Document
+                        @icon('fa-unlink') Detach Document
                     </h5>
                     <button type="button" class="close" data-bs-dismiss="modal">
                         <span>&times;</span>
@@ -1337,7 +1337,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
+                        @icon('fa-exclamation-triangle')
                         <strong>Are you sure?</strong>
                         <p style="margin: 10px 0 0 0;">This will remove the association between this document and the client/lead.</p>
                     </div>
@@ -1350,7 +1350,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-unlink"></i> Detach Document
+                        @icon('fa-unlink') Detach Document
                     </button>
                 </div>
             </form>
@@ -1396,7 +1396,7 @@ function lookupSigner() {
     // Show loading
     const lookupBtn = document.getElementById('lookupBtn');
     const originalText = lookupBtn.innerHTML;
-    lookupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+    lookupBtn.innerHTML = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-spinner fa-spin') : '<i class="fa fa-spinner fa-spin"></i>') + ' Searching...';
     lookupBtn.disabled = true;
     
     // Search in clients and leads
@@ -1783,7 +1783,7 @@ function selectMatter(clientId, matterId, matterLabel) {
     if (confirmationDiv) {
         confirmationDiv.innerHTML = `
             <div class="alert alert-success" style="margin-top: 10px;">
-                <i class="fas fa-check-circle"></i> Selected matter: <strong>${matterLabel}</strong>
+                ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-check-circle') : '<i class="fas fa-check-circle"></i>'} Selected matter: <strong>${matterLabel}</strong>
             </div>
         `;
     }
@@ -1942,7 +1942,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show loading state
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding Signer...';
+            submitBtn.innerHTML = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-spinner fa-spin') : '<i class="fa fa-spinner fa-spin"></i>') + ' Adding Signer...';
             submitBtn.disabled = true;
             
             // Submit form

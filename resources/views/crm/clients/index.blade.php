@@ -261,7 +261,7 @@
                     <div class="card-header-actions">
                         @if(Auth::user() && in_array(Auth::user()->role, [1, 12]))
                         <a href="{{ route('clients.insights', ['section' => 'clients']) }}" class="btn btn-theme btn-theme-sm" title="View Insights">
-                            <i class="fas fa-chart-line"></i> Insights
+                            @icon('fa-chart-line') Insights
                         </a>
                         @endif
                         <select name="per_page" id="per_page" class="form-control per-page-select">
@@ -272,7 +272,7 @@
                             @endforeach
                         </select>
                         <a href="javascript:;" class="btn btn-theme btn-theme-sm filter_btn">
-                            <i class="fas fa-filter"></i> Filter
+                            @icon('fa-filter') Filter
                         </a>
                     </div>
                 </div>
@@ -325,13 +325,13 @@
                                 Search By Details
                                 @if($activeFilterCount > 0)
                                     <span class="active-filters-badge">
-                                        <i class="fas fa-filter"></i> {{ $activeFilterCount }} Active
+                                        @icon('fa-filter') {{ $activeFilterCount }} Active
                                     </span>
                                 @endif
                             </h4>
                             @if($activeFilterCount > 0)
                                 <button type="button" class="clear-filter-btn" id="clearFilters">
-                                    <i class="fas fa-undo"></i> Clear Filters
+                                    @icon('fa-undo') Clear Filters
                                 </button>
                             @endif
                         </div>
@@ -389,7 +389,7 @@
                                 <div class="row">
                                     <div class="col-md-4">
                                         <div class="form-group">
-                                            <label for="date_filter_field"><i class="fas fa-calendar-alt"></i> Date Field</label>
+                                            <label for="date_filter_field">@icon('fa-calendar-alt') Date Field</label>
                                             <select name="date_filter_field" id="date_filter_field" class="form-control">
                                                 <option value="created_at" {{ request('date_filter_field', 'created_at') === 'created_at' ? 'selected' : '' }}>Created Date</option>
                                                 <option value="updated_at" {{ request('date_filter_field') === 'updated_at' ? 'selected' : '' }}>Last Updated</option>
@@ -413,7 +413,7 @@
                                     @endphp
                                     @foreach($quickFilters as $key => $label)
                                         <span class="quick-filter-chip {{ request('quick_date_range') === $key ? 'active' : '' }}" data-filter="{{ $key }}">
-                                            <i class="fas fa-calendar"></i> {{ $label }}
+                                            @icon('fa-calendar') {{ $label }}
                                         </span>
                                     @endforeach
                                 </div>
@@ -490,7 +490,7 @@
                                                     $isActiveClient = (string) @$list->status === '1';
                                                 @endphp
                                                 <span class="status-badge {{ $isActiveClient ? 'active' : 'inactive' }}">
-                                                    <i class="fas fa-circle"></i> {{ $isActiveClient ? 'Active' : 'Inactive' }}
+                                                    @icon('fa-circle') {{ $isActiveClient ? 'Active' : 'Inactive' }}
                                                 </span>
                                             </td>
                                             <td style="white-space: initial;">
@@ -507,18 +507,18 @@
                                                     </button>
                                                     <div class="dropdown-menu">
                                                         <a class="dropdown-item has-icon clientemail" data-id="{{@$list->id}}" data-email="{{@$list->email}}" data-name="{{@$list->first_name}} {{@$list->last_name}}" href="javascript:;">
-                                                            <i class="far fa-envelope"></i> Email
+                                                            @icon('fa-envelope') Email
                                                         </a>
                                                         <a class="dropdown-item has-icon" href="{{URL::to('/clients/edit/'.base64_encode(convert_uuencode(@$list->id)))}}">
-                                                            <i class="far fa-edit"></i> Edit
+                                                            @icon('fa-edit') Edit
                                                         </a>
                                                         <a class="dropdown-item has-icon" href="{{URL::to('/clients/export/'.base64_encode(convert_uuencode(@$list->id)))}}" title="Export Client Data">
-                                                            <i class="fas fa-download"></i> Export
+                                                            @icon('fa-download') Export
                                                         </a>
                                                         <form action="{{ route('clients.archive', base64_encode(convert_uuencode(@$list->id))) }}" method="POST" class="archive-client-form" style="display: inline-block;">
                                                             @csrf
                                                             <a class="dropdown-item has-icon" href="javascript:;" onclick='archiveClientAction(event, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))))'>
-                                                                <i class="fas fa-archive"></i> Archive
+                                                                @icon('fa-archive') Archive
                                                             </a>
                                                         </form>
                                                     </div>

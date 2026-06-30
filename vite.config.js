@@ -24,6 +24,8 @@ export default defineConfig({
                 'resources/js/lucide-init.js',
                 'resources/js/vendor-libs.js',
                 'resources/js/vendor-pdfmake.js',
+                'resources/js/layouts/crm-layout-shared.js',
+                'resources/js/layouts/crm-echo-broadcasts.js',
             ],
             refresh: true,
         }),

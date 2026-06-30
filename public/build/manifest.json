@@ -48,6 +48,18 @@
       "_rolldown-runtime-aKtaBQYM.js"
     ]
   },
+  "resources/js/layouts/crm-echo-broadcasts.js": {
+    "file": "assets/crm-echo-broadcasts-C_9Ejswc.js",
+    "name": "crm-echo-broadcasts",
+    "src": "resources/js/layouts/crm-echo-broadcasts.js",
+    "isEntry": true
+  },
+  "resources/js/layouts/crm-layout-shared.js": {
+    "file": "assets/crm-layout-shared-BEOfK_p7.js",
+    "name": "crm-layout-shared",
+    "src": "resources/js/layouts/crm-layout-shared.js",
+    "isEntry": true
+  },
   "resources/js/lucide-init.js": {
     "file": "assets/lucide-init-1PMHR4tx.js",
     "name": "lucide-init",
@@ -61,7 +73,7 @@
     ]
   },
   "resources/js/vendor-libs.js": {
-    "file": "assets/vendor-libs-BZrloOU5.js",
+    "file": "assets/vendor-libs-H80hOrag.js",
     "name": "vendor-libs",
     "src": "resources/js/vendor-libs.js",
     "isEntry": true,

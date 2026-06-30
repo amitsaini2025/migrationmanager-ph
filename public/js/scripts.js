@@ -670,7 +670,7 @@ $(function () {
 
   // Date/time inputs: Flatpickr only. CSS classes (.datepicker, .datetimepicker, etc.) are legacy markup hooks — not jQuery plugins.
   if (typeof flatpickr !== 'undefined') {
-    // Client detail layout loads crm-flatpickr.js before this file — skip duplicate .datepicker init there.
+    // CRM layouts load CRM_Flatpickr via Vite vendor-libs — skip duplicate .datepicker init there.
     var isClientDetailPage = $('.report_date_fields').length > 0 ||
                              $('.client-navigation-sidebar').length > 0;
 
