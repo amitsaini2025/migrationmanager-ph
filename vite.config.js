@@ -23,6 +23,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/lucide-init.js',
                 'resources/js/vendor-libs.js',
+                'resources/js/vendor-pdfmake.js',
             ],
             refresh: true,
         }),

@@ -1,4 +1,7 @@
 /**
+ * DEPRECATED — Phase 2f: CRM uses Vite vendor-libs.js. Kept for emergency rollback only.
+ * Run manually: npm run copy:tom-select
+ *
  * Copies Tom Select (complete bundle + Bootstrap 5 theme) from node_modules to public/.
  * Re-run after changing tom-select version: npm run copy:tom-select
  */

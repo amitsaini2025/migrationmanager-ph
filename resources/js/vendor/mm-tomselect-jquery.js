@@ -1,5 +1,5 @@
 /**
- * jQuery bridge for Tom Select (window.TomSelect from tom-select.complete.min.js).
+ * jQuery bridge for Tom Select (window.TomSelect from vendor-libs.js).
  * Use $('.mm-select').mmSelect({ ... }); options mirror the legacy plugin shape (ajax, templateResult, etc.).
  *
  * Canonical Custom events on the original <select> (listen with .on(...) / off):

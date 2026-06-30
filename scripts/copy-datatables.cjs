@@ -1,4 +1,7 @@
 /**
+ * DEPRECATED — Phase 2f: CRM uses Vite vendor-libs.js + vendor-pdfmake.js. Kept for emergency rollback only.
+ * Run manually: npm run copy:datatables
+ *
  * Syncs DataTables core + Bootstrap 5 + Buttons + HTML5 exports from node_modules into public/.
  * Main: datatables.min.js (JSZip + buttons.html5 for Excel/HTML5).
  * pdfHtml5: datatables-pdfmake.min.js (pdfmake + vfs_fonts load after main).

@@ -3,7 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "npm run copy:datatables && npm run copy:tom-select && vite build",
+        "build": "vite build",
         "dev": "vite",
         "copy:flatpickr": "node -e \"const fs=require('fs');const p='node_modules/flatpickr/dist/';fs.copyFileSync(p+'flatpickr.min.js','public/js/flatpickr.min.js');fs.copyFileSync(p+'flatpickr.min.css','public/css/flatpickr.min.css')\"",
         "copy:datatables": "node scripts/copy-datatables.cjs",

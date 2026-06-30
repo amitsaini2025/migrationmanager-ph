@@ -1728,8 +1728,7 @@
     var dataformat = '{{$dataformat}}';
     </script>
     <script src="{{asset('js/app.min.js')}}"></script>
-    @vite(['resources/js/vendor-libs.js'])
-    <script src="{{asset('js/datatables-pdfmake.min.js')}}"></script>
+    @vite(['resources/js/vendor-libs.js', 'resources/js/vendor-pdfmake.js'])
     <!-- TinyMCE is self-hosted and loaded per page as needed -->
     <script src="{{asset('js/tinymce/js/tinymce/tinymce.min.js')}}"></script>
     <script src="{{asset('js/crm-flatpickr.js')}}"></script>

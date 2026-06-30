@@ -68,5 +68,14 @@
     "imports": [
       "_rolldown-runtime-aKtaBQYM.js"
     ]
+  },
+  "resources/js/vendor-pdfmake.js": {
+    "file": "assets/vendor-pdfmake-CvjoT4JL.js",
+    "name": "vendor-pdfmake",
+    "src": "resources/js/vendor-pdfmake.js",
+    "isEntry": true,
+    "imports": [
+      "_rolldown-runtime-aKtaBQYM.js"
+    ]
   }
 }

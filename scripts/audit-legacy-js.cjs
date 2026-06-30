@@ -36,11 +36,8 @@ const SKIP_DIRS = new Set([
 
 const SCAN_EXTENSIONS = new Set(['.blade.php', '.php', '.js', '.vue', '.ts', '.tsx', '.jsx', '.cjs', '.mjs']);
 
-/** Vendor bundles built by copy scripts — always treated as referenced until Phase 2f */
+/** Legacy vendor copies removed in Phase 2f — still referenced via flatpickr component or @legacy import */
 const VENDOR_ALWAYS_REFERENCED = new Set([
-    'tom-select.complete.min.js',
-    'datatables.min.js',
-    'datatables-pdfmake.min.js',
     'flatpickr.min.js',
     'inputmask.min.js',
     'iziToast.min.js',

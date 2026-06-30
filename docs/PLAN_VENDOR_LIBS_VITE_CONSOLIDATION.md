@@ -1,6 +1,6 @@
 # Plan: Vendor Library Vite Consolidation (Phase 2)
 
-**Status:** Phase 2b applied — Phase 2f (copy script retirement) pending soak + QA  
+**Status:** Phase 2f applied (2026-06-30) — build is `vite build` only  
 **Created:** 2026-06-30  
 **Scope:** Move copied `public/js` vendor assets (Tom Select, DataTables, flatpickr, iziToast, inputmask) into Vite bundles; retire copy scripts when stable.  
 **Parent doc:** `docs/TECH_UPDATE.md` — Track 1 (Phase 2) + Track 2 consolidation + Track 5
@@ -163,19 +163,28 @@ Kept: `datatables-pdfmake.min.js`, `crm-flatpickr.js`, `tom-select-layout-compat
 
 #### Step 2b.4 — Update `package.json` build script
 
-**Pending** — remove copy steps after soak period (Phase 2f gate).
+**Done:** `"build": "vite build"` — copy scripts remain as manual rollback (`npm run copy:tom-select`, `npm run copy:datatables`).
 
 #### Step 2b.5 — Retire copy scripts (Phase 2f gate)
 
-**Pending** — see criteria below.
+**Done (2026-06-30):**
 
-**Exit criteria:** Client detail loads with ≤2 vendor Vite tags; Tom Select / DataTables / flatpickr / iziToast work; build has no copy steps.
+- [x] `vendor-pdfmake.js` Vite entry replaces `datatables-pdfmake.min.js`
+- [x] Documents index pages use `@vite` vendor bundles
+- [x] Removed obsolete `public/` copies (tom-select, datatables, pdfmake, related CSS)
+- [x] Moved `mm-tomselect-jquery.js` → `resources/js/vendor/`
+- [x] Copy scripts marked deprecated; not run on build
+
+**Exit criteria:** Client detail loads with ≤2 vendor Vite tags; Tom Select / DataTables / flatpickr / iziToast work; build has no copy steps. ✅
 
 ---
 
 ### Phase 2c — Layout entries (follow-on, not blocking 2b)
 
-- Move `mm-tomselect-jquery.js` → `resources/js/vendor/mm-tomselect-jquery.js`; import at end of `vendor-libs.js`.
+**Partial (2026-06-30):** `mm-tomselect-jquery.js` moved to `resources/js/vendor/`.
+
+**Pending:**
+
 - Move `crm-flatpickr.js` into vendor or layout entry.
 - Extract layout inline scripts into `resources/js/layouts/crm-client-detail.js`.
 

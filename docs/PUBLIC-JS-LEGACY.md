@@ -33,22 +33,22 @@ Prefer npm imports for vendor libraries once bundled. Use `@legacy` only for pro
 
 ## What stays in `public/js/` (for now)
 
-### Vendor copies (Phase 2b target — bundle via Vite)
+### Vendor copies (Phase 2f — bundled via Vite)
 
-| File | Source | Loaded by |
-|------|--------|-----------|
-| `tom-select.complete.min.js` | `npm run copy:tom-select` | CRM layouts |
-| `datatables.min.js` | `npm run copy:datatables` | CRM layouts |
-| `datatables-pdfmake.min.js` | `npm run copy:datatables` | CRM layouts |
-| `flatpickr.min.js` | `npm run copy:flatpickr` | `components/flatpickr-scripts` |
-| `inputmask.min.js` | `npm run copy:inputmask` | Page-specific |
-| `iziToast.min.js` | Legacy (no npm copy) | CRM layouts |
+| File | Status |
+|------|--------|
+| `tom-select.complete.min.js` | Removed — `vendor-libs.js` |
+| `datatables.min.js` | Removed — `vendor-libs.js` |
+| `datatables-pdfmake.min.js` | Removed — `vendor-pdfmake.js` |
+| `flatpickr.min.js` | Legacy — `components/flatpickr-scripts` only |
+| `inputmask.min.js` | Page-specific — `npm run copy:inputmask` |
+| `iziToast.min.js` | Imported via `@legacy` in `vendor-libs.js` |
 
 ### Project scripts (Phase 2c–2d migration)
 
 | File / area | Notes |
 |-------------|-------|
-| `mm-tomselect-jquery.js` | jQuery bridge for Tom Select; load after `TomSelect` global |
+| `resources/js/vendor/mm-tomselect-jquery.js` | jQuery bridge; imported by `vendor-libs.js` |
 | `crm-flatpickr.js` | CRM flatpickr init wrapper |
 | `scripts.js`, `custom.js` | Global CRM helpers |
 | `crm/clients/detail-main.js` + modules | Largest page surface; migrate last |
@@ -91,22 +91,23 @@ Options:
 
 | Vite entry | Replaces | Status |
 |------------|----------|--------|
-| `resources/css/vendor-libs.css` | flatpickr, tom-select, datatables, iziToast CSS in CRM layouts | ✅ Live |
-| `resources/js/vendor-libs.js` | flatpickr, tom-select, datatables, iziToast JS + mm-tomselect bridge in CRM layouts | ✅ Live |
+| `resources/css/vendor-libs.css` | flatpickr, tom-select, datatables, iziToast CSS | ✅ Live |
+| `resources/js/vendor-libs.js` | flatpickr, tom-select, datatables, iziToast JS + mm-tomselect bridge | ✅ Live |
+| `resources/js/vendor-pdfmake.js` | pdfmake + vfs for DataTables PDF export | ✅ Live |
 | `resources/js/layouts/crm-client-detail.js` | Layout inline scripts (Phase 2c) | Pending |
-| `resources/js/app.js` | Already live — Echo, Alpine, FullCalendar | ✅ Live |
+| `resources/js/app.js` | Echo, Alpine, FullCalendar | ✅ Live |
 
-CRM layouts load `@vite(['resources/css/vendor-libs.css'])` in `<head>` and `@vite(['resources/js/vendor-libs.js'])` after `app.min.js`. PDF export still uses `public/js/datatables-pdfmake.min.js` (sync, ~1MB).
+CRM layouts: `@vite(['resources/css/vendor-libs.css'])` in `<head>` and `@vite(['resources/js/vendor-libs.js', 'resources/js/vendor-pdfmake.js'])` after `app.min.js`.
 
 ---
 
-## Copy scripts (transition)
+## Copy scripts (rollback only)
 
-| Script | Produces | Retire when |
-|--------|----------|-------------|
-| `npm run copy:tom-select` | `public/js/tom-select.complete.min.js`, CSS | Phase 2f — vendor-libs stable |
-| `npm run copy:datatables` | `public/js/datatables*.min.js`, CSS | Phase 2f |
-| `npm run copy:flatpickr` | `public/js/flatpickr.min.js`, CSS | Phase 2f |
-| `npm run copy:inputmask` | `public/js/inputmask.min.js` | Phase 2f or page entry migration |
+| Script | Status |
+|--------|--------|
+| `npm run copy:tom-select` | Deprecated — manual rollback only |
+| `npm run copy:datatables` | Deprecated — manual rollback only |
+| `npm run copy:flatpickr` | Active for `flatpickr-scripts` component |
+| `npm run copy:inputmask` | Active for page-specific use |
 
-Until Phase 2f, `npm run build` continues to run copy steps before `vite build`.
+`npm run build` = `vite build` only.
