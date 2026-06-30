@@ -10,6 +10,7 @@
         "copy:inputmask": "node -e \"const fs=require('fs');const p='node_modules/inputmask/dist/';fs.copyFileSync(p+'inputmask.min.js','public/js/inputmask.min.js');\"",
         "copy:tom-select": "node scripts/copy-tom-select.cjs",
         "audit:icons": "node scripts/audit-icons.cjs",
+        "audit:icons:strict": "node scripts/audit-icons.cjs --strict",
         "audit:legacy-js": "node scripts/audit-legacy-js.cjs"
     },
     "devDependencies": {

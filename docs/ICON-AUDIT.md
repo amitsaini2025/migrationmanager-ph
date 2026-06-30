@@ -9,9 +9,9 @@ Run `npm run audit:icons` to regenerate this file.
 | Metric | Value |
 |--------|-------|
 | Files scanned | 1092 |
-| Files with FA icons | 202 |
+| Files with FA icons | 200 |
 | Unique `fa-*` icon tokens | 214 |
-| Total references | 2509 |
+| Total references | 2499 |
 | Mapped in `config/icons.php` | 214 |
 | Unmapped (need review) | 0 |
 
@@ -19,8 +19,8 @@ Run `npm run audit:icons` to regenerate this file.
 
 | Token | Count | Lucide (config) |
 |-------|-------|-----------------|
-| `fa-check-circle` | 103 | `circle-check` |
-| `fa-spinner` | 99 | `loader-2` |
+| `fa-check-circle` | 102 | `circle-check` |
+| `fa-spinner` | 95 | `loader-2` |
 | `fa-info-circle` | 89 | `info` |
 | `fa-plus` | 87 | `plus` |
 | `fa-exclamation-triangle` | 84 | `triangle-alert` |
@@ -31,7 +31,7 @@ Run `npm run audit:icons` to regenerate this file.
 | `fa-edit` | 69 | `pencil` |
 | `fa-envelope` | 51 | `mail` |
 | `fa-pen` | 51 | `pencil` |
-| `fa-file-alt` | 44 | `file-text` |
+| `fa-file-alt` | 43 | `file-text` |
 | `fa-caret-down` | 42 | `chevron-down` |
 | `fa-clock` | 41 | `clock` |
 | `fa-caret-up` | 39 | `chevron-up` |
@@ -41,7 +41,7 @@ Run `npm run audit:icons` to regenerate this file.
 | `fa-file-image` | 34 | `file-image` |
 | `fa-save` | 34 | `save` |
 | `fa-times-circle` | 33 | `circle-x` |
-| `fa-circle` | 30 | `circle` |
+| `fa-circle` | 29 | `circle` |
 | `fa-filter` | 29 | `filter` |
 | `fa-search` | 25 | `search` |
 | `fa-building` | 24 | `building-2` |
@@ -60,11 +60,11 @@ Run `npm run audit:icons` to regenerate this file.
 | `fa-calendar` | 18 | `calendar` |
 | `fa-sms` | 18 | `message-square-text` |
 | `fa-briefcase` | 17 | `briefcase` |
-| `fa-paperclip` | 17 | `paperclip` |
-| `fa-file-pdf` | 16 | `file-text` |
+| `fa-paperclip` | 16 | `paperclip` |
 | `fa-sync-alt` | 16 | `refresh-cw` |
 | `fa-bolt` | 15 | `zap` |
 | `fa-ellipsis-v` | 15 | `ellipsis-vertical` |
+| `fa-file-pdf` | 15 | `file-text` |
 | `fa-link` | 15 | `link` |
 | `fa-user-check` | 15 | `user-check` |
 | `fa-calendar-check` | 13 | `calendar-check` |
@@ -146,7 +146,6 @@ Run `npm run audit:icons` to regenerate this file.
 | `fa-gavel` | 3 | `gavel` |
 | `fa-google` | 3 | `google` |
 | `fa-hand-holding-usd` | 3 | `hand-coins` |
-| `fa-image` | 3 | `image` |
 | `fa-magic` | 3 | `wand-sparkles` |
 | `fa-money-bill` | 3 | `banknote` |
 | `fa-plane` | 3 | `plane` |
@@ -174,6 +173,7 @@ Run `npm run audit:icons` to regenerate this file.
 | `fa-heart` | 2 | `heart` |
 | `fa-home` | 2 | `house` |
 | `fa-hourglass-half` | 2 | `hourglass` |
+| `fa-image` | 2 | `image` |
 | `fa-key` | 2 | `key` |
 | `fa-list-alt` | 2 | `list` |
 | `fa-mail-bulk` | 2 | `mails` |

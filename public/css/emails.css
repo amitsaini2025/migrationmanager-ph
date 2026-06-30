@@ -675,7 +675,6 @@
 }
 
 /* Loading spinner for email list */
-.email-list .fa-spinner,
 .email-list svg.lucide.icon-spin {
     width: 24px;
     height: 24px;
@@ -1086,22 +1085,6 @@
     text-align: center;
 }
 
-.attachment-icon.fa-image {
-    color: #3b82f6;
-}
-
-.attachment-icon.fa-file-pdf {
-    color: #ef4444;
-}
-
-.attachment-icon.fa-file-alt {
-    color: #6b7280;
-}
-
-.attachment-icon.fa-paperclip {
-    color: #9ca3af;
-}
-
 /* Colored attachment icons */
 .attachment-icon-image {
     color: #3b82f6;
@@ -1127,11 +1110,8 @@
     cursor: not-allowed;
 }
 
-.download-btn .fa-spinner,
 .download-btn svg.lucide.icon-spin,
-.download-all-btn .fa-spinner,
 .download-all-btn svg.lucide.icon-spin,
-.preview-btn .fa-spinner,
 .preview-btn svg.lucide.icon-spin {
     width: 14px;
     height: 14px;

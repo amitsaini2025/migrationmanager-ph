@@ -124,11 +124,11 @@
                 <div class="info-label">Status:</div>
                 <div class="info-value">
                     @if($eoi->client_confirmation_status === 'confirmed')
-                        <span class="badge badge-success">Confirmed</span>
+                        <span class="badge bg-success">Confirmed</span>
                     @elseif($eoi->client_confirmation_status === 'amendment_requested')
-                        <span class="badge badge-warning">Amendment Requested</span>
+                        <span class="badge bg-warning text-dark">Amendment Requested</span>
                     @else
-                        <span class="badge badge-secondary">Pending</span>
+                        <span class="badge bg-secondary">Pending</span>
                     @endif
                 </div>
             </div>

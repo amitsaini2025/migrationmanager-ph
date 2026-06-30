@@ -214,7 +214,7 @@
                 <div class="detail-row">
                     <div class="detail-label">Status:</div>
                     <div class="detail-value">
-                        <span class="badge badge-{{ $eoi->eoi_status == 'invited' ? 'success' : ($eoi->eoi_status == 'submitted' ? 'primary' : 'secondary') }}">
+                        <span class="badge bg-{{ $eoi->eoi_status == 'invited' ? 'success' : ($eoi->eoi_status == 'submitted' ? 'primary' : 'secondary') }}">
                             {{ ucfirst($eoi->eoi_status ?? 'Draft') }}
                         </span>
                     </div>

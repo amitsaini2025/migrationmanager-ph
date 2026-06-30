@@ -244,6 +244,43 @@ function main() {
     fs.writeFileSync(outPath, lines.join('\n') + '\n', 'utf8');
     console.log(`Wrote ${path.relative(ROOT, outPath)}`);
     console.log(`  ${summary.uniqueIconTokens} unique tokens, ${summary.unmappedCount} unmapped`);
+
+    if (process.argv.includes('--strict')) {
+        const rawFaRe = /<i\s+class="fa[srb]?\s+fa-/g;
+        const strictRoots = [
+            path.join(ROOT, 'resources'),
+            path.join(ROOT, 'app'),
+        ];
+        const rawHits = [];
+        for (const dir of strictRoots) {
+            if (!fs.existsSync(dir)) {
+                continue;
+            }
+            for (const file of walk(dir)) {
+                const content = fs.readFileSync(file, 'utf8');
+                const matches = content.match(rawFaRe);
+                if (matches && matches.length > 0) {
+                    rawHits.push({
+                        file: path.relative(ROOT, file).replace(/\\/g, '/'),
+                        count: matches.length,
+                    });
+                }
+            }
+        }
+        if (rawHits.length > 0) {
+            console.error('');
+            console.error('Strict mode: raw <i class="fas fa-*"> HTML found (use @icon / crmIcon / IconHelper):');
+            for (const hit of rawHits) {
+                console.error(`  ${hit.file} (${hit.count})`);
+            }
+            process.exit(2);
+        }
+        console.log('  strict: 0 raw FA <i> tags in resources/ and app/');
+    }
+
+    if (summary.unmappedCount > 0) {
+        process.exit(1);
+    }
 }
 
 main();

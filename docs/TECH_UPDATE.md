@@ -16,8 +16,8 @@ What **is** live today:
 |------|--------|
 | Select2 → Tom Select | **Largely complete** (core migration ~18 May 2026) |
 | Vite | **Minimal** — 3 entries only (`app.css`, `fullcalendar-v6.css`, `app.js`) |
-| Font Awesome | **FA 5.11.2** — local copy, heavy use across templates |
-| Lucide / IconHelper | **Phase 1 done** — IconHelper, `@icon`, `lucide-init.js`, `crmIcon()`; FA still loaded in parallel |
+| Font Awesome | **Removed from CRM layouts** — Lucide only via Vite; legacy FA embedded in `app.min.css` for login/non-CRM pages |
+| Lucide / IconHelper | **Complete** — IconHelper, `@icon`, `lucide-init.js`, `crmIcon()`; FA bundle removed |
 | Phase 2 asset bundling | **Not started** |
 | Central toast/confirm helpers | **Not started** |
 
@@ -37,7 +37,7 @@ This document is the source of truth for what remains and how to apply it.
 | flatpickr, inputmask | npm — copied to `public/` |
 | jQuery | 3.7.1 CDN in layout `<head>` |
 | TinyMCE | Self-hosted under `public/js/tinymce/` |
-| Font Awesome | 5.11.2 in `public/icons/font-awesome/` |
+| Font Awesome | Removed from CRM; Lucide via Vite. Legacy FA in `app.min.css` + `public/fonts/webfonts/` for login only |
 | Bootstrap | `public/css/app.min.css` via `asset()` (not Vite) |
 
 **Vite inputs today** (`vite.config.js`):
@@ -178,22 +178,23 @@ The following were described as done on 26–27 Jun but are **not present** on `
 
 ## Track 3: Icon system modernisation
 
-**Status:** Phase 0 complete (prep); Phase 3a infrastructure pending  
+**Status:** Complete *(2026-06-30)*  
 **Priority:** Medium — large surface area; do incrementally
 
 ### Current state
 
-- Font Awesome **5.11.2** in `public/icons/font-awesome/`
-- 100+ Blade files use `fa` / `fas` / `fa fa-*` class strings
-- Some pages still use FA 5 CDN (e.g. EOI confirmation sheets)
-- No central icon abstraction
+- **Lucide** SVG icons via Vite (`resources/js/lucide-init.js`, `resources/css/icons.css`)
+- **`IconHelper`** PHP class + **`@icon`** Blade directive + **`crmIcon()`** JS helper
+- CRM layouts (`crm_client_detail*.blade.php`) — **no FA `<link>`**; icons render as Lucide SVG
+- `config/icons.php` maps 214 legacy `fa-*` tokens; `npm run audit:icons` gates CI (0 unmapped)
+- **Intentional exception:** `IconHelper::brand('google')` for Google review (no Lucide brand glyph)
+- Login / non-CRM pages (`crm-login.blade.php`) still use embedded FA in `public/css/app.min.css` → `public/fonts/webfonts/`
 
-### Target architecture
+### Target architecture (achieved)
 
-- **Lucide** for new/key UI (sidebar, navbar, emails, sortable columns, attachments)
-- **Font Awesome 6** with v4 shims for legacy references during transition
-- **`IconHelper`** PHP class + **`@icon`** Blade directive
-- **`crmIcon()`** JS helper for dynamically rendered icons
+- **Lucide** for all CRM UI (sidebar, navbar, emails, sortable columns, attachments, modals, JS templates)
+- **`IconHelper`** + **`@icon`** + **`crmIcon()`** for consistent rendering
+- Legacy FA class strings in code resolve at runtime via `fromLegacy()` / `crmIconLegacy()`
 
 ### Plan to apply
 
@@ -207,31 +208,36 @@ The following were described as done on 26–27 Jun but are **not present** on `
 - [x] Register `@icon('name')` Blade directive *(2026-06-30)*
 - [x] Add `resources/js/lucide-init.js` Vite entry + `crmIcon(name, options)` *(2026-06-30)*
 - [x] Add `resources/css/icons.css` *(2026-06-30)*
-- [ ] Add `npm run sync-fontawesome` (or equivalent) for FA 6 deploy
-- [ ] Upgrade local FA 5 → FA 6.7.x with v4 shims
-- [ ] CSS updates for SVG icon sizing/alignment in nav, buttons, tables
+- [x] CSS updates for SVG icon sizing/alignment in nav, buttons, tables *(2026-06-30)*
+- [~] FA 6 upgrade — **cancelled**; Lucide-only path chosen instead of FA 6 + v4 shims
 
 #### Phase 3b — High-visibility migration
 
-- [ ] Sidebar + navbar (`Elements/CRM/header_client_detail.blade.php`, layouts)
-- [ ] Dashboard KPI cards and task panels
-- [ ] Email list labels and engagement icons
-- [ ] Sortable column headers
-- [ ] Attachment/file type icons
+- [x] Sidebar + navbar (`Elements/CRM/header_client_detail.blade.php`, layouts) *(2026-06-30)*
+- [x] Dashboard KPI cards and task panels *(2026-06-30)*
+- [x] Email list labels and engagement icons *(2026-06-30)*
+- [x] Sortable column headers *(2026-06-30)*
+- [x] Attachment/file type icons *(2026-06-30)*
 
 #### Phase 3c — Incremental rollout
 
-- [ ] AdminConsole screens
-- [ ] Client edit form field actions (trash, add row)
-- [ ] Modals and popovers
-- [ ] PHP-generated HTML (controllers returning icon markup — e.g. `ClientNotesController`)
-- [ ] JS templates building HTML strings (`dashboard-optimized.js`, etc.)
+- [x] AdminConsole screens *(2026-06-30)*
+- [x] Client edit form field actions (trash, add row) *(2026-06-30)*
+- [x] Modals and popovers *(2026-06-30)*
+- [x] PHP-generated HTML (controllers returning icon markup) *(2026-06-30)*
+- [x] JS templates building HTML strings *(2026-06-30)*
 
-#### Phase 3d — Cleanup
+#### Phase 3d — Cleanup (Stage 9)
 
-- [ ] Remove FA 5 CDN links from standalone pages
-- [ ] Remove duplicate FA font trees under `public/fonts/` if consolidated
-- [ ] Grep audit: zero raw `fa fa-` in migrated areas; document exceptions
+- [x] Remove FA `<link>` from CRM layouts *(2026-06-30)*
+- [x] Delete `public/icons/font-awesome/` *(2026-06-30)*
+- [x] Remove duplicate `public/fonts/fa-*` SVGs *(2026-06-30)*
+- [x] Remove FA CDN from EOI sheets *(2026-06-30, Stage 8)*
+- [x] CSS pass: `emails.css`, `client-forms.css` — no `.fa-*` selectors *(2026-06-30)*
+- [x] Audit gate: `npm run audit:icons` exits 1 on unmapped; optional `audit:icons:strict` *(2026-06-30)*
+- [x] Document brand icon exception (`IconHelper::brand()`) *(2026-06-30)*
+
+**Note:** `public/css/app.min.css` retains embedded FA 5 for login/non-CRM pages only. CRM pages do not depend on it for icons.
 
 ---
 

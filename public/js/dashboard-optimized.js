@@ -144,6 +144,9 @@ function loadDashboardMattersFragmentForHistory(state) {
             frag.innerHTML = html;
             syncDashboardMattersTotalFromFragment(frag);
             applyInitialColumnVisibility();
+            if (typeof refreshLucideIcons === 'function') {
+                refreshLucideIcons(frag);
+            }
         })
         .catch(function() {
             window.location.reload();
@@ -197,6 +200,9 @@ function loadDashboardMattersFragment(dashboardAbsoluteUrl, pushHistory) {
                 );
             }
             applyInitialColumnVisibility();
+            if (typeof refreshLucideIcons === 'function') {
+                refreshLucideIcons(frag);
+            }
         })
         .catch(function() {
             window.location.href = u.pathname + u.search;

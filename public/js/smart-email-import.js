@@ -114,7 +114,7 @@
             const size = (f.size / 1024).toFixed(1);
             $selectedFilesUl.append(
                 `<li class="list-group-item py-1 px-2">
-                    ${typeof crmIconAny === 'function' ? crmIconAny('far fa-envelope mr-2 text-muted') : '<i class="far fa-envelope mr-2 text-muted"></i>'}
+                    ${typeof crmIconAny === 'function' ? crmIconAny('far fa-envelope', { class: 'mr-2 text-muted' }) : '<i class="far fa-envelope mr-2 text-muted"></i>'}
                     <span>${escHtml(f.name)}</span>
                     <span class="text-muted ml-2 small">(${size} KB)</span>
                 </li>`

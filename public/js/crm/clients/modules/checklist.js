@@ -7,6 +7,12 @@
     'use strict';
     if (!$) return;
 
+    function hydrateIcons(root) {
+        if (typeof refreshLucideIcons === 'function' && root && root.length) {
+            refreshLucideIcons(root[0]);
+        }
+    }
+
     // uploadFormData, file_explorer, .openfileupload, .opendocnote, #ddArea handlers REMOVED - workflow checklist upload flow dead
 
     $(document).ready(function() {
@@ -95,6 +101,7 @@
                             .data('id', obj.Id)
                             .data('personalchecklistname', obj.checklist)
                             .html(obj.html || '<span style="flex: 1;">' + obj.checklist + '</span>');
+                        hydrateIcons(parent);
                         if ($('#grid_'+obj.Id).length) {
                             $('#grid_'+obj.Id).html(obj.checklist);
                         }
@@ -172,6 +179,7 @@
                             .data('id', obj.Id)
                             .data('visachecklistname', obj.checklist)
                             .html(obj.html || '<span style="flex: 1;">' + obj.checklist + '</span>');
+                        hydrateIcons(parent);
                         if ($('#grid_'+obj.Id).length) {
                             $('#grid_'+obj.Id).html(obj.checklist);
                         }

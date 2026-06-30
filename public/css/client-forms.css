@@ -134,15 +134,6 @@
     margin-left: 8px;
 }
 
-/* Personal details email verification styling */
-.fa-check-circle.verified-icon {
-    color: #28a745 !important;
-}
-
-.fa-circle.unverified-icon {
-    color: #6c757d !important;
-}
-
 /* OTP Modal Styles */
 .otp-modal {
     max-width: 450px;

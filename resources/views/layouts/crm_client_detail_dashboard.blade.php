@@ -17,7 +17,6 @@
     <link rel="stylesheet" href="{{asset('css/style.css')}}">
     <link rel="stylesheet" href="{{asset('css/components.css')}}">
     <link rel="stylesheet" href="{{asset('css/custom.css')}}">
-    <link rel="stylesheet" href="{{asset('icons/font-awesome/css/all.min.css')}}">
     @vite(['resources/css/icons.css'])
     @include('components.icons.config-script')
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
