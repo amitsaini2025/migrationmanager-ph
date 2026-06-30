@@ -13,7 +13,7 @@
         </div>
         @endif
         <button type="button" class="remove-item-btn" title="Remove Experience" onclick="removeExperienceField(this)">
-            <i class="fas fa-times-circle"></i>
+            @icon('circle-x', ['class' => 'icon-sm'])
         </button>
     </div>
     

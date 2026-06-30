@@ -3,7 +3,7 @@
 
 <div class="repeatable-section">
     <button type="button" class="remove-item-btn" title="Remove Test" onclick="removeTestScoreField(this)">
-        <i class="fas fa-trash"></i>
+        @icon('trash-2', ['class' => 'icon-sm'])
     </button>
     
     <input type="hidden" name="test_score_id[{{ $index }}]" value="{{ $testScore->id ?? '' }}">

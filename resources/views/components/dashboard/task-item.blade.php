@@ -85,7 +85,7 @@
         </div>
         <div class="todo-task-meta">
             <span class="task-client-info">
-                <i class="fas fa-user"></i>
+                @icon('user', ['class' => 'icon-sm'])
                 {{ $clientName }}
                 @if($clientCode)
                     <span class="task-client-code">({{ $clientCode }})</span>
@@ -98,12 +98,12 @@
         <span class="todo-task-due {{ $urgencyClass }}">
             @if($note->note_deadline)
                 @if($isOverdue)
-                    <i class="fas fa-exclamation-circle"></i>
+                    @icon('circle-alert', ['class' => 'icon-sm'])
                 @else
-                    <i class="far fa-calendar"></i>
+                    @icon('calendar', ['class' => 'icon-sm'])
                 @endif
             @else
-                <i class="fas fa-infinity"></i>
+                @icon('infinity', ['class' => 'icon-sm'])
             @endif
             {{ $daysLeftText }}
         </span>
@@ -112,13 +112,13 @@
                 <button class="todo-action-btn"
                         onclick="event.stopPropagation(); openExtendModal({{ $note->id }})"
                         title="Extend Deadline">
-                    <i class="fas fa-calendar-plus"></i>
+                    @icon('calendar-plus', ['class' => 'icon-sm'])
                 </button>
             @else
                 <button class="todo-action-btn"
                         onclick="event.stopPropagation(); openAddDeadlineModal({{ $note->id }})"
                         title="Add Deadline">
-                    <i class="fas fa-calendar-plus"></i>
+                    @icon('calendar-plus', ['class' => 'icon-sm'])
                 </button>
             @endif
         </div>
@@ -214,7 +214,8 @@
     gap: 6px;
 }
 
-.task-client-info i {
+.task-client-info i,
+.task-client-info svg.lucide {
     color: #999;
     font-size: 11px;
 }
@@ -242,7 +243,8 @@
     white-space: nowrap;
 }
 
-.todo-task-due i {
+.todo-task-due i,
+.todo-task-due svg.lucide {
     font-size: 11px;
 }
 

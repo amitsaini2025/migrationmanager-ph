@@ -2,7 +2,7 @@
 
 <div class="column-toggle-container">
     <button class="column-toggle-btn" type="button" id="columnToggleBtn">
-        @icon('fa-columns')
+        @icon('columns')
         <span class="visible-count">{{ count($visibleColumns) }}</span>
     </button>
     <div class="column-dropdown" id="columnDropdown">

@@ -32,7 +32,7 @@
                             @endphp
                             @if($emailCount > 0)
                                 <span class="badge badge-email" title="{{ $emailCount }} unread emails">
-                                    <i class="fas fa-envelope"></i> {{ $emailCount }}
+                                    @icon('mail', ['class' => 'icon-sm']) {{ $emailCount }}
                                 </span>
                             @endif
                         </td>
@@ -113,12 +113,12 @@
                 <tr>
                     <td colspan="8" class="empty-state">
                         <div class="empty-state-modern">
-                            <i class="fas fa-inbox fa-3x"></i>
+                            @icon('inbox', ['class' => 'empty-state-icon'])
                             <h4>No Records Found</h4>
                             <p>Try adjusting your filters or search criteria.</p>
                             @if(isset($filters['client_name']) || isset($filters['client_stage']))
                                 <a href="{{ route('dashboard') }}" class="btn btn-primary mt-3">
-                                    <i class="fas fa-times"></i> Clear All Filters
+                                    @icon('x', ['class' => 'icon-sm']) Clear All Filters
                                 </a>
                             @endif
                         </div>

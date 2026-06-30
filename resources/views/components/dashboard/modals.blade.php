@@ -17,7 +17,7 @@
                     
                     <div class="simple-form-group">
                         <label class="simple-form-label">
-                            <i class="fas fa-user text-primary"></i> Client
+                            @icon('user', ['class' => 'text-primary']) Client
                         </label>
                         <select class="simple-form-control" id="dashboard_client_select" name="client_id" required>
                             <option value="">Search client...</option>
@@ -30,12 +30,12 @@
 
                     <div class="simple-form-group">
                         <label class="simple-form-label">
-                            <i class="fas fa-users text-primary"></i> Assignees
+                            @icon('users', ['class' => 'text-primary']) Assignees
                         </label>
                         <div class="dropdown-multi-select modern-dropdown">
                             <button type="button" class="btn btn-default dropdown-toggle simple-dropdown-btn" id="dashboard_dropdownMenuButton" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <span id="dashboard-selected-users-text">SELECT ASSIGNEES</span>
-                                <i class="fas fa-chevron-down"></i>
+                                @icon('chevron-down', ['class' => 'icon-sm'])
                             </button>
                             <div class="dropdown-menu modern-dropdown-menu" aria-labelledby="dashboard_dropdownMenuButton">
                                 <div class="dropdown-search">
@@ -52,7 +52,7 @@
                                     <div class="staff-item modern-staff-item" data-name="{{ strtolower($admin->first_name.' '.$admin->last_name.' '.@$branchname->office_name) }}">
                                         <label class="modern-staff-label">
                                             <input type="checkbox" class="checkbox-item modern-checkbox dashboard-checkbox-item" value="{{ $admin->id }}" data-name="{{ $admin->first_name }} {{ $admin->last_name }} ({{ @$branchname->office_name }})">
-                                            <i class="fas fa-user-circle mr-2 text-muted"></i>
+                                            @icon('circle-user', ['class' => 'mr-2 text-muted icon-sm'])
                                             <span class="staff-name">{{ $admin->first_name }} {{ $admin->last_name }}</span>
                                             <span class="staff-branch text-muted">({{ @$branchname->office_name }})</span>
                                         </label>
@@ -72,7 +72,7 @@
 
                     <div class="simple-form-group">
                         <label class="simple-form-label">
-                            <i class="fas fa-align-left text-primary"></i> Task Description
+                            @icon('align-left', ['class' => 'text-primary']) Task Description
                         </label>
                         <textarea class="simple-form-control simple-textarea" id="dashboard_assignnote" name="description" placeholder="Enter task description..." rows="4"></textarea>
                         <span class="custom-error note_error" role="alert" style="display: none;"></span>
@@ -80,7 +80,7 @@
 
                     <div class="simple-form-group">
                         <label class="simple-form-label">
-                            <i class="fas fa-calendar-alt text-primary"></i> Date <span class="text-danger">*</span>
+                            @icon('calendar', ['class' => 'text-primary']) Date <span class="text-danger">*</span>
                         </label>
                         <input type="date" id="dashboard_popoverdatetime" name="followup_datetime" class="simple-form-control" required value="{{ date('Y-m-d') }}">
                         <span class="custom-error date_error" role="alert" style="display: none;"></span>
@@ -88,7 +88,7 @@
 
                     <div class="simple-form-group">
                         <label class="simple-form-label">
-                            <i class="fas fa-tag text-primary"></i> Group <span class="text-danger">*</span>
+                            @icon('tag', ['class' => 'text-primary']) Group <span class="text-danger">*</span>
                         </label>
                         <select class="simple-form-control" id="dashboard_task_group" name="task_group" required>
                             <option value="">Select Group</option>
@@ -104,14 +104,14 @@
                     <div class="simple-form-group">
                         <label class="simple-form-label d-flex align-items-center">
                             <input class="note_deadline_checkbox mr-2" type="checkbox" id="dashboard_note_deadline_checkbox" name="note_deadline_checkbox" value="">
-                            <i class="fas fa-clock text-primary"></i> Note Deadline
+                            @icon('clock', ['class' => 'text-primary']) Note Deadline
                         </label>
                         <input type="date" class="simple-form-control" id="dashboard_note_deadline" name="note_deadline" value="{{ date('Y-m-d', strtotime('+1 day')) }}" disabled>
                     </div>
 
                     <div class="simple-modal-footer">
                         <button type="button" class="btn btn-primary simple-submit-btn-action" id="dashboard_assignStaff">
-                            <i class="fas fa-plus"></i> ADD MY TASK
+                            @icon('plus', ['class' => 'icon-sm']) ADD MY TASK
                         </button>
                     </div>
                 </form>
@@ -382,7 +382,7 @@
         <div class="modal-content">
             <div class="modal-header" style="background-color: #3498db; color: white;">
                 <h5 class="modal-title" id="dashboardCompletionNotesModalLabel">
-                    <i class="fa fa-check-circle"></i> Complete Task
+                    @icon('circle-check', ['class' => 'icon-sm']) Complete Task
                 </h5>
                 <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close" style="color: white; opacity: 0.8;">
                     <span aria-hidden="true">&times;</span>
@@ -391,7 +391,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label for="dashboardCompletionNotes" class="font-weight-bold">
-                        <i class="fa fa-comment"></i> Completion Notes (optional)
+                        @icon('message-circle', ['class' => 'icon-sm']) Completion Notes (optional)
                     </label>
                     <textarea
                         class="form-control"
@@ -401,16 +401,16 @@
                         style="resize: vertical; border: 2px solid #e9ecef; border-radius: 8px; padding: 12px;"
                     ></textarea>
                     <small class="form-text text-muted">
-                        <i class="fa fa-info-circle"></i> These notes will be saved in the activity log.
+                        @icon('info', ['class' => 'icon-sm']) These notes will be saved in the activity log.
                     </small>
                 </div>
             </div>
             <div class="modal-footer" style="background-color: #f8f9fa;">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fa fa-times"></i> Cancel
+                    @icon('x', ['class' => 'icon-sm']) Cancel
                 </button>
                 <button type="button" class="btn btn-success" id="dashboardConfirmTaskCompletion">
-                    <i class="fa fa-check"></i> Complete Task
+                    @icon('check', ['class' => 'icon-sm']) Complete Task
                 </button>
             </div>
         </div>

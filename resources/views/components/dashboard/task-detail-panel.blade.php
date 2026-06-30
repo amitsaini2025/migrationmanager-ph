@@ -5,7 +5,7 @@
     <div class="task-detail-content">
         <div class="task-detail-header">
             <button class="task-detail-close" onclick="closeTaskDetail()">
-                <i class="fas fa-times"></i>
+                @icon('x', ['class' => 'icon-sm'])
             </button>
         </div>
         
@@ -21,7 +21,7 @@
             
             <div class="task-detail-section">
                 <div class="task-detail-row">
-                    <i class="fas fa-user detail-icon"></i>
+                    @icon('user', ['class' => 'detail-icon icon-sm'])
                     <div class="task-detail-info">
                         <div class="task-detail-label">Client</div>
                         <div class="task-detail-value">
@@ -36,7 +36,7 @@
             
             <div class="task-detail-section">
                 <div class="task-detail-row">
-                    <i class="far fa-calendar detail-icon"></i>
+                    @icon('calendar', ['class' => 'detail-icon icon-sm'])
                     <div class="task-detail-info">
                         <div class="task-detail-label">Due Date</div>
                         <div class="task-detail-value" id="taskDetailDueDate">
@@ -48,7 +48,7 @@
             
             <div class="task-detail-section">
                 <div class="task-detail-row">
-                    <i class="fas fa-user-tie detail-icon"></i>
+                    @icon('user-round', ['class' => 'detail-icon icon-sm'])
                     <div class="task-detail-info">
                         <div class="task-detail-label">Assigned To</div>
                         <div class="task-detail-value" id="taskDetailAssigned">
@@ -60,7 +60,7 @@
             
             <div class="task-detail-section">
                 <div class="task-detail-row">
-                    <i class="fas fa-align-left detail-icon"></i>
+                    @icon('align-left', ['class' => 'detail-icon icon-sm'])
                     <div class="task-detail-info">
                         <div class="task-detail-label">Description</div>
                         <div class="task-detail-value task-detail-description" id="taskDetailDescription">
@@ -73,11 +73,11 @@
         
         <div class="task-detail-footer">
             <button class="task-detail-action-btn btn-complete-task" onclick="completeTaskFromDetail()">
-                <i class="fas fa-check"></i>
+                @icon('check', ['class' => 'icon-sm'])
                 Mark as Complete
             </button>
             <button class="task-detail-action-btn btn-extend-task" onclick="extendTaskFromDetail()">
-                <i class="fas fa-calendar-plus"></i>
+                @icon('calendar-plus', ['class' => 'icon-sm'])
                 Extend Deadline
             </button>
         </div>
@@ -230,6 +230,12 @@
     color: #666;
     margin-top: 2px;
     flex-shrink: 0;
+}
+
+.detail-icon.lucide,
+svg.lucide.detail-icon {
+    width: 20px;
+    height: 20px;
 }
 
 .task-detail-info {

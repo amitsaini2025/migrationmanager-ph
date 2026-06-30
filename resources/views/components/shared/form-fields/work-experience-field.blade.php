@@ -3,7 +3,7 @@
 
 <div class="repeatable-section">
     <button type="button" class="remove-item-btn" title="Remove Experience" onclick="removeExperienceField(this)">
-        <i class="fas fa-times-circle"></i>
+        @icon('circle-x', ['class' => 'icon-sm'])
     </button>
     
     {{-- Only include ID in edit mode --}}

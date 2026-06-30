@@ -1,7 +1,7 @@
 @props([
     'title',
     'count',
-    'icon' => 'fas fa-chart-bar',
+    'icon' => 'chart-column',
     'iconClass' => 'icon-active',
     'route' => null,
     'color' => 'primary'
@@ -21,7 +21,7 @@
 <div class="kpi-card-modern">
     <div class="kpi-card-inner">
         <div class="kpi-icon-wrapper" style="background: {{ $gradient['icon-bg'] }};">
-            {!! \App\Helpers\IconHelper::fromLegacy($icon, ['style' => 'color: ' . $gradient['from'] . ';']) !!}
+            {!! \App\Helpers\IconHelper::render($icon, ['style' => 'color: ' . $gradient['from'] . ';']) !!}
         </div>
         <div class="kpi-content">
             <h3 class="kpi-title">{{ $title }}</h3>

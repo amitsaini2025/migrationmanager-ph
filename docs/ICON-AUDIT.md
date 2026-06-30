@@ -8,11 +8,11 @@ Run `npm run audit:icons` to regenerate this file.
 
 | Metric | Value |
 |--------|-------|
-| Files scanned | 1084 |
-| Files with FA icons | 238 |
-| Unique `fa-*` icon tokens | 216 |
-| Total references | 2470 |
-| Mapped in `config/icons.php` | 216 |
+| Files scanned | 1089 |
+| Files with FA icons | 206 |
+| Unique `fa-*` icon tokens | 214 |
+| Total references | 2400 |
+| Mapped in `config/icons.php` | 214 |
 | Unmapped (need review) | 0 |
 
 ## Icons by usage (descending)
@@ -21,117 +21,116 @@ Run `npm run audit:icons` to regenerate this file.
 |-------|-------|-----------------|
 | `fa-check-circle` | 102 | `circle-check` |
 | `fa-plus` | 85 | `plus` |
-| `fa-times` | 85 | `x` |
-| `fa-info-circle` | 83 | `info` |
-| `fa-trash` | 83 | `trash-2` |
+| `fa-info-circle` | 82 | `info` |
+| `fa-times` | 81 | `x` |
+| `fa-spinner` | 75 | `loader-2` |
 | `fa-arrow-left` | 72 | `arrow-left` |
-| `fa-check` | 69 | `check` |
 | `fa-edit` | 68 | `pencil` |
 | `fa-exclamation-triangle` | 68 | `triangle-alert` |
-| `fa-spinner` | 66 | `loader-2` |
+| `fa-trash` | 67 | `trash-2` |
+| `fa-check` | 66 | `check` |
 | `fa-pen` | 51 | `pencil` |
-| `fa-envelope` | 47 | `mail` |
 | `fa-caret-down` | 46 | `chevron-down` |
+| `fa-envelope` | 45 | `mail` |
 | `fa-caret-up` | 43 | `chevron-up` |
-| `fa-clock` | 42 | `clock` |
 | `fa-file-alt` | 41 | `file-text` |
+| `fa-clock` | 40 | `clock` |
 | `fa-plus-circle` | 38 | `circle-plus` |
-| `fa-times-circle` | 37 | `circle-x` |
 | `fa-eye` | 35 | `eye` |
 | `fa-file-image` | 34 | `file-image` |
 | `fa-paper-plane` | 34 | `send` |
-| `fa-filter` | 30 | `filter` |
+| `fa-times-circle` | 33 | `circle-x` |
 | `fa-save` | 30 | `save` |
-| `fa-calendar-alt` | 28 | `calendar` |
+| `fa-filter` | 29 | `filter` |
 | `fa-circle` | 27 | `circle` |
-| `fa-search` | 26 | `search` |
-| `fa-user` | 25 | `user` |
+| `fa-search` | 25 | `search` |
+| `fa-calendar-alt` | 24 | `calendar` |
 | `fa-building` | 23 | `building-2` |
-| `fa-dollar-sign` | 23 | `dollar-sign` |
-| `fa-inbox` | 23 | `inbox` |
-| `fa-sticky-note` | 23 | `sticky-note` |
-| `fa-tag` | 23 | `tag` |
 | `fa-users` | 23 | `users` |
+| `fa-dollar-sign` | 22 | `dollar-sign` |
+| `fa-tag` | 22 | `tag` |
+| `fa-inbox` | 21 | `inbox` |
 | `fa-list` | 21 | `list` |
-| `fa-calendar` | 20 | `calendar` |
-| `fa-chart-line` | 20 | `chart-line` |
+| `fa-sticky-note` | 21 | `sticky-note` |
+| `fa-user` | 21 | `user` |
 | `fa-cloud-upload-alt` | 20 | `cloud-upload` |
 | `fa-download` | 20 | `download` |
 | `fa-redo` | 20 | `rotate-cw` |
-| `fa-upload` | 19 | `upload` |
+| `fa-chart-line` | 19 | `chart-line` |
+| `fa-upload` | 18 | `upload` |
 | `fa-briefcase` | 17 | `briefcase` |
-| `fa-sms` | 17 | `message-square-text` |
-| `fa-calendar-check` | 16 | `calendar-check` |
+| `fa-calendar` | 17 | `calendar` |
 | `fa-file-pdf` | 16 | `file-text` |
 | `fa-paperclip` | 16 | `paperclip` |
+| `fa-sms` | 16 | `message-square-text` |
 | `fa-sync-alt` | 16 | `refresh-cw` |
 | `fa-ellipsis-v` | 15 | `ellipsis-vertical` |
 | `fa-link` | 15 | `link` |
 | `fa-user-check` | 15 | `user-check` |
 | `fa-bolt` | 14 | `zap` |
 | `fa-star` | 14 | `star` |
-| `fa-tasks` | 14 | `list-todo` |
-| `fa-exclamation-circle` | 13 | `circle-alert` |
+| `fa-calendar-check` | 13 | `calendar-check` |
 | `fa-phone` | 13 | `phone` |
+| `fa-tasks` | 13 | `list-todo` |
 | `fa-user-plus` | 13 | `user-plus` |
 | `fa-arrow-right-from-bracket` | 12 | `log-out` |
+| `fa-exclamation-circle` | 12 | `circle-alert` |
 | `fa-history` | 12 | `history` |
-| `fa-chart-bar` | 11 | `chart-column` |
 | `fa-sort` | 11 | `arrow-up-down` |
 | `fa-undo` | 11 | `undo-2` |
 | `fa-bell` | 10 | `bell` |
-| `fa-calendar-plus` | 10 | `calendar-plus` |
+| `fa-chart-bar` | 10 | `chart-column` |
 | `fa-graduation-cap` | 10 | `graduation-cap` |
 | `fa-trash-alt` | 10 | `trash-2` |
-| `fa-user-tie` | 10 | `user-round` |
 | `fa-file` | 9 | `file` |
 | `fa-file-invoice-dollar` | 9 | `receipt` |
 | `fa-folder-open` | 9 | `folder-open` |
 | `fa-lock` | 9 | `lock` |
-| `fa-user-circle` | 9 | `circle-user` |
 | `fa-ban` | 8 | `ban` |
 | `fa-external-link-alt` | 8 | `external-link` |
-| `fa-file-signature` | 8 | `file-signature` |
 | `fa-globe` | 8 | `globe` |
+| `fa-user-tie` | 8 | `user-round` |
 | `fa-arrow-down` | 7 | `arrow-down` |
 | `fa-clock-o` | 7 | `clock` |
-| `fa-comment` | 7 | `message-circle` |
 | `fa-file-contract` | 7 | `file-text` |
+| `fa-file-signature` | 7 | `file-signature` |
 | `fa-id-card` | 7 | `id-card` |
+| `fa-minus` | 7 | `minus` |
+| `fa-passport` | 7 | `book-user` |
 | `fa-route` | 7 | `route` |
 | `fa-sync` | 7 | `refresh-cw` |
+| `fa-user-circle` | 7 | `circle-user` |
 | `fa-arrows-alt` | 6 | `move` |
 | `fa-bullhorn` | 6 | `megaphone` |
-| `fa-calendar-minus` | 6 | `calendar-minus` |
-| `fa-calendar-week` | 6 | `calendar-range` |
 | `fa-copy` | 6 | `copy` |
 | `fa-ellipsis-h` | 6 | `ellipsis` |
-| `fa-exchange-alt` | 6 | `arrow-left-right` |
 | `fa-eye-slash` | 6 | `eye-off` |
 | `fa-language` | 6 | `languages` |
 | `fa-mobile-alt` | 6 | `smartphone` |
-| `fa-passport` | 6 | `book-user` |
 | `fa-user-friends` | 6 | `users` |
-| `fa-align-left` | 5 | `align-left` |
 | `fa-arrow-up` | 5 | `arrow-up` |
 | `fa-bars` | 5 | `menu` |
+| `fa-calendar-plus` | 5 | `calendar-plus` |
+| `fa-calendar-week` | 5 | `calendar-range` |
+| `fa-comment` | 5 | `message-circle` |
+| `fa-exchange-alt` | 5 | `arrow-left-right` |
 | `fa-map-marker-alt` | 5 | `map-pin` |
-| `fa-minus` | 5 | `minus` |
 | `fa-receipt` | 5 | `receipt` |
 | `fa-address-card` | 4 | `id-card` |
 | `fa-arrow-right` | 4 | `arrow-right` |
 | `fa-book` | 4 | `book` |
-| `fa-calendar-day` | 4 | `calendar-days` |
 | `fa-calendar-times` | 4 | `calendar-x` |
 | `fa-chevron-right` | 4 | `chevron-right` |
 | `fa-cogs` | 4 | `settings` |
 | `fa-plane-departure` | 4 | `plane-takeoff` |
 | `fa-robot` | 4 | `bot` |
 | `fa-stream` | 4 | `align-justify` |
-| `fa-user-shield` | 4 | `shield-user` |
 | `fa-users-cog` | 4 | `users-round` |
+| `fa-align-left` | 3 | `align-left` |
 | `fa-archive` | 3 | `archive` |
 | `fa-arrows-alt-h` | 3 | `move-horizontal` |
+| `fa-calendar-day` | 3 | `calendar-days` |
+| `fa-calendar-minus` | 3 | `calendar-minus` |
 | `fa-check-double` | 3 | `check-check` |
 | `fa-chevron-left` | 3 | `chevron-left` |
 | `fa-chevron-up` | 3 | `chevron-up` |
@@ -140,8 +139,9 @@ Run `npm run audit:icons` to regenerate this file.
 | `fa-file-text` | 3 | `file-text` |
 | `fa-flag` | 3 | `flag` |
 | `fa-folder-minus` | 3 | `folder-minus` |
+| `fa-gavel` | 3 | `gavel` |
+| `fa-google` | 3 | `google` |
 | `fa-hand-holding-usd` | 3 | `hand-coins` |
-| `fa-hourglass-half` | 3 | `hourglass` |
 | `fa-image` | 3 | `image` |
 | `fa-magic` | 3 | `wand-sparkles` |
 | `fa-money-bill` | 3 | `banknote` |
@@ -153,6 +153,7 @@ Run `npm run audit:icons` to regenerate this file.
 | `fa-trophy` | 3 | `trophy` |
 | `fa-unlink` | 3 | `unlink` |
 | `fa-user-edit` | 3 | `user-pen` |
+| `fa-user-shield` | 3 | `shield-user` |
 | `fa-user-tag` | 3 | `user-round` |
 | `fa-wallet` | 3 | `wallet` |
 | `fa-angle-left` | 2 | `chevron-left` |
@@ -161,9 +162,9 @@ Run `npm run audit:icons` to regenerate this file.
 | `fa-at` | 2 | `at-sign` |
 | `fa-bullseye` | 2 | `target` |
 | `fa-calculator` | 2 | `calculator` |
-| `fa-chevron-down` | 2 | `chevron-down` |
 | `fa-child` | 2 | `baby` |
 | `fa-city` | 2 | `building` |
+| `fa-clipboard-list` | 2 | `clipboard-list` |
 | `fa-code` | 2 | `code` |
 | `fa-envelope-open` | 2 | `mail-open` |
 | `fa-envelope-open-text` | 2 | `mail-open` |
@@ -171,10 +172,9 @@ Run `npm run audit:icons` to regenerate this file.
 | `fa-file-invoice` | 2 | `file-text` |
 | `fa-file-word` | 2 | `file-text` |
 | `fa-folder` | 2 | `folder` |
-| `fa-gavel` | 2 | `gavel` |
-| `fa-google` | 2 | `brand:google` |
 | `fa-heart` | 2 | `heart` |
 | `fa-home` | 2 | `house` |
+| `fa-hourglass-half` | 2 | `hourglass` |
 | `fa-key` | 2 | `key` |
 | `fa-list-alt` | 2 | `list` |
 | `fa-mail-bulk` | 2 | `mails` |
@@ -195,9 +195,8 @@ Run `npm run audit:icons` to regenerate this file.
 | `fa-calendar-clock` | 1 | `calendar-clock` |
 | `fa-chart-pie` | 1 | `chart-pie` |
 | `fa-chevron` | 1 | `chevron-right` |
+| `fa-chevron-down` | 1 | `chevron-down` |
 | `fa-clipboard` | 1 | `clipboard` |
-| `fa-clipboard-list` | 1 | `clipboard-list` |
-| `fa-columns` | 1 | `columns-3` |
 | `fa-compress` | 1 | `shrink` |
 | `fa-credit-card` | 1 | `credit-card` |
 | `fa-expand` | 1 | `expand` |
@@ -210,7 +209,6 @@ Run `npm run audit:icons` to regenerate this file.
 | `fa-hand-paper` | 1 | `hand` |
 | `fa-hand-point-left` | 1 | `hand-helping` |
 | `fa-heartbeat` | 1 | `heart-pulse` |
-| `fa-infinity` | 1 | `infinity` |
 | `fa-list-ul` | 1 | `list` |
 | `fa-map-marked-alt` | 1 | `map` |
 | `fa-medal` | 1 | `medal` |
@@ -238,4 +236,4 @@ Run `npm run audit:icons` to regenerate this file.
 
 ## Brand icons
 
-- `fa-google`: 2 reference(s) — see `config/icons.php` → `brands`
+- `fa-google`: 3 reference(s) — see `config/icons.php` → `brands`

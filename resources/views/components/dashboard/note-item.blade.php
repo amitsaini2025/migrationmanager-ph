@@ -48,11 +48,11 @@
 <li class="note-item-enhanced urgency-{{ $urgencyBadge }}">
     <div class="note-item-header">
         <span class="urgency-badge badge-{{ $urgencyBadge }}">
-            <i class="fas fa-{{ $isOverdue ? 'exclamation-triangle' : 'clock' }}"></i>
+            @icon($isOverdue ? 'triangle-alert' : 'clock', ['class' => 'icon-sm'])
             {{ $urgencyLabel }}
         </span>
         <span class="deadline-date {{ $daysLeftClass }}">
-            <i class="fas fa-calendar-alt"></i>
+            @icon('calendar', ['class' => 'icon-sm'])
             {{ $deadline->format('d M Y') }}
         </span>
     </div>
@@ -60,7 +60,7 @@
     <div class="note-item-body">
         <div class="note-client-info">
             <a href="{{ route('clients.detail', base64_encode(convert_uuencode($client->id))) }}" class="client-link">
-                <i class="fas fa-user"></i>
+                @icon('user', ['class' => 'icon-sm'])
                 @php
                     $noteClientLabel = trim($client->company_name_or_personal_name);
                     if ($noteClientLabel === '') {
@@ -73,26 +73,26 @@
         </div>
         
         <div class="note-description">
-            <i class="fas fa-sticky-note"></i>
+            @icon('sticky-note', ['class' => 'icon-sm'])
             {{ Str::limit(strip_tags($note->description), 80) }}
         </div>
         
         <div class="note-assigned-info">
-            <i class="fas fa-user-tie"></i>
+            @icon('user-round', ['class' => 'icon-sm'])
             <span>Assigned to: <strong>{{ $assignedName }}</strong></span>
         </div>
     </div>
     
     <div class="note-item-footer">
         <span class="time-indicator {{ $daysLeftClass }}">
-            <i class="fas fa-hourglass-half"></i>
+            @icon('hourglass', ['class' => 'icon-sm'])
             {{ $daysLeftText }}
         </span>
         <div class="note-actions">
             <button class="btn-note-action btn-complete" 
                     onclick="closeNotesDeadlineAction({{ $note->id }}, {{ json_encode($note->unique_group_id) }})"
                     title="Mark as Complete">
-                <i class="fas fa-check"></i> Complete
+                @icon('check', ['class' => 'icon-sm']) Complete
             </button>
             <button class="btn-note-action btn-extend btn-extend_note_deadline" 
                     data-noteid="{{ $note->id }}" 
@@ -100,7 +100,7 @@
                     data-assignnote="{{ e($note->description ?? '') }}" 
                     data-deadlinedate="{{ $note->note_deadline }}"
                     title="Extend Deadline">
-                <i class="fas fa-calendar-plus"></i> Extend
+                @icon('calendar-plus', ['class' => 'icon-sm']) Extend
             </button>
         </div>
     </div>
@@ -209,7 +209,8 @@
     text-decoration: underline;
 }
 
-.client-link i {
+.client-link i,
+.client-link svg.lucide {
     color: #667eea;
 }
 
@@ -231,7 +232,8 @@
     line-height: 1.5;
 }
 
-.note-description i {
+.note-description i,
+.note-description svg.lucide {
     color: #ffc107;
     margin-top: 2px;
 }
@@ -244,7 +246,8 @@
     color: #666;
 }
 
-.note-assigned-info i {
+.note-assigned-info i,
+.note-assigned-info svg.lucide {
     color: #6f42c1;
 }
 

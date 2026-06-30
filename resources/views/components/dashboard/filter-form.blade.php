@@ -7,7 +7,7 @@
                    name="client_name" 
                    placeholder="Search Client Name..." 
                    value="{{ $filters['client_name'] ?? '' }}">
-            @icon('fa-search')
+            @icon('search')
         </div>
 
         <select name="client_stage" class="stage-select">
@@ -21,12 +21,12 @@
         </select>
 
         <button type="submit" class="filter-button">
-            @icon('fa-filter') Filter
+            @icon('filter') Filter
         </button>
 
         @if(isset($filters['client_name']) || isset($filters['client_stage']))
             <a href="{{ route('dashboard') }}" class="clear-filters" onclick="clearFiltersAndReset()">
-                @icon('fa-times') Clear Filters
+                @icon('x') Clear Filters
             </a>
         @endif
     </form>

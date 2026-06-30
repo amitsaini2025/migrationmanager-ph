@@ -40,61 +40,61 @@
     $activityConfig = [
         'signed' => [
             'label' => 'Document Signed',
-            'icon' => 'fa-file-signature',
+            'icon' => 'file-signature',
             'class' => 'activity-signed',
             'color' => '#28a745'
         ],
         'document_uploaded' => [
             'label' => 'Document Uploaded',
-            'icon' => 'fa-upload',
+            'icon' => 'upload',
             'class' => 'activity-upload',
             'color' => '#007bff'
         ],
         'note_added' => [
             'label' => 'Note Added',
-            'icon' => 'fa-sticky-note',
+            'icon' => 'sticky-note',
             'class' => 'activity-note',
             'color' => '#ffc107'
         ],
         'email_sent' => [
             'label' => 'Email Sent',
-            'icon' => 'fa-envelope',
+            'icon' => 'mail',
             'class' => 'activity-email',
             'color' => '#17a2b8'
         ],
         'sms_sent' => [
             'label' => 'SMS Sent',
-            'icon' => 'fa-sms',
+            'icon' => 'message-square-text',
             'class' => 'activity-sms',
             'color' => '#00bcd4'
         ],
         'status_changed' => [
             'label' => 'Status Changed',
-            'icon' => 'fa-exchange-alt',
+            'icon' => 'arrow-left-right',
             'class' => 'activity-status',
             'color' => '#6f42c1'
         ],
         'stage_updated' => [
             'label' => 'Stage Updated',
-            'icon' => 'fa-tasks',
+            'icon' => 'list-todo',
             'class' => 'activity-stage',
             'color' => '#fd7e14'
         ],
         'appointment_scheduled' => [
             'label' => 'Appointment Set',
-            'icon' => 'fa-calendar-check',
+            'icon' => 'calendar-check',
             'class' => 'activity-appointment',
             'color' => '#20c997'
         ],
         'payment_received' => [
             'label' => 'Payment Received',
-            'icon' => 'fa-dollar-sign',
+            'icon' => 'dollar-sign',
             'class' => 'activity-payment',
             'color' => '#28a745'
         ],
         'default' => [
             'label' => 'Recently Updated',
-            'icon' => 'fa-clock',
+            'icon' => 'clock',
             'class' => 'activity-default',
             'color' => '#6c757d'
         ]
@@ -121,7 +121,7 @@
         </span>
     </div>
     <div class="case-activity-badge {{ $activity['class'] }}">
-        <i class="fas {{ $activity['icon'] }}"></i>
+        @icon($activity['icon'], ['class' => 'icon-sm'])
         <span class="activity-label">{{ $activity['label'] }}</span>
     </div>
 </li>
@@ -140,7 +140,8 @@
     border: 2px solid;
 }
 
-.case-activity-badge i {
+.case-activity-badge i,
+.case-activity-badge svg.lucide {
     font-size: 1em;
 }
 
@@ -222,7 +223,8 @@
         display: none;
     }
     
-    .case-activity-badge i {
+    .case-activity-badge i,
+    .case-activity-badge svg.lucide {
         font-size: 1.2em;
     }
 }

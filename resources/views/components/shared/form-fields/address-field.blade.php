@@ -4,7 +4,7 @@
 <div class="address-entry-wrapper" data-address-index="{{ $index }}">
     @if($showRemoveButton)
         <button type="button" class="remove-address-btn" onclick="removeAddressEntry(this)" title="Remove Address">
-            <i class="fas fa-times"></i>
+            @icon('x', ['class' => 'icon-sm'])
         </button>
     @endif
     

@@ -2,12 +2,12 @@
 <template id="add-my-task-popover-template">
     <div class="modern-popover-content add-task-layout">
         <div class="form-group">
-            <label class="control-label"><i class="fa fa-user-circle"></i> Client</label>
+            <label class="control-label">@icon('circle-user', ['class' => 'icon-sm']) Client</label>
             <select id="assign_client_id" class="form-control js-data-example-ajaxccsearch__addmytask" data-placeholder="Search and select client..."></select>
             <div id="client-error" class="error-message"></div>
         </div>
         <div class="form-group">
-            <label class="control-label"><i class="fa fa-users"></i> Assignees</label>
+            <label class="control-label">@icon('users', ['class' => 'icon-sm']) Assignees</label>
             <div class="dropdown-multi-select" style="width: 100%;">
                 <button type="button" class="btn btn-default dropdown-toggle" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="width: 100%;">
                     Select assignees <span class="selected-count"></span>
@@ -41,14 +41,14 @@
             <div id="assignees-error" class="error-message"></div>
         </div>
         <div class="form-group form-group-full-width">
-            <label class="control-label"><i class="fa fa-comment"></i> Task Description</label>
+            <label class="control-label">@icon('message-circle', ['class' => 'icon-sm']) Task Description</label>
             <textarea id="assignnote" class="form-control" rows="3" placeholder="Enter task description..."></textarea>
             <div id="note-error" class="error-message"></div>
         </div>
         <input id="task_group" name="task_group" type="hidden" value="Personal Action">
         <div class="text-center">
             <button type="button" class="btn btn-primary" id="add_my_task">
-                <i class="fa fa-plus-circle"></i> Add My Task
+                @icon('circle-plus', ['class' => 'icon-sm']) Add My Task
             </button>
         </div>
     </div>
