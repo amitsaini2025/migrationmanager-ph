@@ -17,7 +17,7 @@ What **is** live today:
 | Select2 → Tom Select | **Largely complete** (core migration ~18 May 2026) |
 | Vite | **Minimal** — 3 entries only (`app.css`, `fullcalendar-v6.css`, `app.js`) |
 | Font Awesome | **FA 5.11.2** — local copy, heavy use across templates |
-| Lucide / IconHelper | **Phase 0 done** — npm package, `config/icons.php`, audit script; IconHelper not started |
+| Lucide / IconHelper | **Phase 1 done** — IconHelper, `@icon`, `lucide-init.js`, `crmIcon()`; FA still loaded in parallel |
 | Phase 2 asset bundling | **Not started** |
 | Central toast/confirm helpers | **Not started** |
 
@@ -203,9 +203,10 @@ The following were described as done on 26–27 Jun but are **not present** on `
 - [x] Create `config/icons.php` FA → Lucide mapping *(2026-06-30)*
 - [x] Add `npm run audit:icons` + `docs/ICON-AUDIT.md` *(2026-06-30)*
 - [x] Add `docs/ICON-MIGRATION.md` *(2026-06-30)*
-- [ ] Create `app/Helpers/IconHelper.php` (or `app/Support/IconHelper.php`)
-- [ ] Register `@icon('name')` Blade directive
-- [ ] Add `resources/js/lucide-init.js` Vite entry + `crmIcon(name, options)` in shared JS
+- [x] Create `app/Helpers/IconHelper.php` *(2026-06-30)*
+- [x] Register `@icon('name')` Blade directive *(2026-06-30)*
+- [x] Add `resources/js/lucide-init.js` Vite entry + `crmIcon(name, options)` *(2026-06-30)*
+- [x] Add `resources/css/icons.css` *(2026-06-30)*
 - [ ] Add `npm run sync-fontawesome` (or equivalent) for FA 6 deploy
 - [ ] Upgrade local FA 5 → FA 6.7.x with v4 shims
 - [ ] CSS updates for SVG icon sizing/alignment in nav, buttons, tables

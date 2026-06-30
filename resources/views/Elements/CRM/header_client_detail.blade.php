@@ -4,7 +4,7 @@
     </button>
     <div class="topbar-left">
         <div class="icon-group">
-            <a href="{{route('dashboard')}}" class="icon-btn" title="Dashboard"><i class="fas fa-tachometer-alt"></i></a>
+            <a href="{{route('dashboard')}}" class="icon-btn" title="Dashboard">@icon('fa-tachometer-alt')</a>
             <a href="{{ route('signatures.index') }}" class="icon-btn" title="Signature Dashboard"><i class="fas fa-pen"></i></a>
             <div class="icon-dropdown js-dropdown">
                 <a href="{{ route('booking.appointments.index') }}" class="icon-btn" title="Website Bookings" style="position: relative;">

@@ -1,6 +1,10 @@
 {
+  "_rolldown-runtime-QTnfLwEv.js": {
+    "file": "assets/rolldown-runtime-QTnfLwEv.js",
+    "name": "rolldown-runtime"
+  },
   "resources/css/app.css": {
-    "file": "assets/app-Bu9ws64Z.css",
+    "file": "assets/app-BNxPc-Sl.css",
     "name": "app",
     "names": [
       "app.css"
@@ -17,10 +21,34 @@
     "src": "resources/css/fullcalendar-v6.css",
     "isEntry": true
   },
+  "resources/css/icons.css": {
+    "file": "assets/icons-G-GfHmzd.css",
+    "name": "icons",
+    "names": [
+      "icons.css"
+    ],
+    "src": "resources/css/icons.css",
+    "isEntry": true
+  },
   "resources/js/app.js": {
-    "file": "assets/app-p4s52hym.js",
+    "file": "assets/app-BvCG525y.js",
     "name": "app",
     "src": "resources/js/app.js",
-    "isEntry": true
+    "isEntry": true,
+    "imports": [
+      "_rolldown-runtime-QTnfLwEv.js"
+    ]
+  },
+  "resources/js/lucide-init.js": {
+    "file": "assets/lucide-init-BSrdVJ_m.js",
+    "name": "lucide-init",
+    "src": "resources/js/lucide-init.js",
+    "isEntry": true,
+    "imports": [
+      "_rolldown-runtime-QTnfLwEv.js"
+    ],
+    "css": [
+      "assets/icons-G-GfHmzd.css"
+    ]
   }
 }

@@ -22,6 +22,8 @@
     <link rel="stylesheet" href="{{asset('css/dataTables.bootstrap5.min.css')}}">
     <link rel="stylesheet" href="{{asset('css/buttons.bootstrap5.min.css')}}">
     <link rel="stylesheet" href="{{asset('icons/font-awesome/css/all.min.css')}}">
+    @vite(['resources/css/icons.css'])
+    @include('components.icons.config-script')
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="{{ asset('js/datetime-display.js') }}"></script>
 
@@ -2996,7 +2998,7 @@
     </script>
     {{-- Vite: Load Laravel Echo with Reverb for real-time WebSocket notifications --}}
     {{-- Must load BEFORE broadcasts.js so window.Echo is available --}}
-    @vite(['resources/js/app.js'])
+    @vite(['resources/js/app.js', 'resources/js/lucide-init.js'])
     
     {{-- Wait for Echo to be available before loading broadcasts.js --}}
     <script>

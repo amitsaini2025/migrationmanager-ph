@@ -1,6 +1,6 @@
 # Icon migration — Font Awesome → Lucide
 
-**Status:** Phase 0 complete (prep) · Phase 1+ not started  
+**Status:** Phase 1 complete (infrastructure) · Phase 2+ pending  
 **Related:** [TECH_UPDATE.md](TECH_UPDATE.md) Track 3 · [ICON-AUDIT.md](ICON-AUDIT.md) (generated)
 
 ---
@@ -16,7 +16,7 @@ Replace Font Awesome 5 font icons with [Lucide](https://lucide.dev/) SVG icons a
 | Phase | Scope | Status |
 |-------|--------|--------|
 | **0 — Prep** | npm package, `config/icons.php`, audit script, docs | **Done** |
-| 1 — Infrastructure | `IconHelper`, `@icon`, `lucide-init.js`, `crmIcon()` | Pending |
+| **1 — Infrastructure** | `IconHelper`, `@icon`, `lucide-init.js`, `crmIcon()` | **Done** |
 | 2 — High visibility | Navbar, dashboard, emails, sortable | Pending |
 | 3 — Core screens | Client detail/edit, accounts, leads, AdminConsole | Pending |
 | 4 — Dynamic sources | DB icons, controllers, JS templates | Pending |
@@ -170,4 +170,5 @@ Review `docs/ICON-AUDIT.md` for **unmapped** tokens and add them to `config/icon
 
 | Date | Change |
 |------|--------|
-| 2026-06-30 | Phase 0: lucide npm, config/icons.php, audit script, this doc |
+| 2026-06-30 | Phase 1: IconHelper, @icon, lucide-init.js, icons.css, layout wiring, dashboard nav proof icon |
+| 2026-06-30 | Phase 1 review: fix loader-2 spin bug, crmIcon PascalCase lookup, Vite module init timing, fa-google legacy map |

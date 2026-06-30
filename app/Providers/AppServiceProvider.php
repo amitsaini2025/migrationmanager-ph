@@ -26,6 +26,11 @@ class AppServiceProvider extends ServiceProvider
         Blade::directive('sortablelink', function ($expression) {
             return "<?php echo App\\Helpers\\SortableHelper::linkWithIcon($expression); ?>";
         });
+
+        // Lucide icon directive — @icon('trash-2') or @icon('fa-trash', ['class' => 'icon-sm'])
+        Blade::directive('icon', function ($expression) {
+            return "<?php echo App\\Helpers\\IconHelper::render($expression); ?>";
+        });
         
         // TIER 1 OPTIMIZATION: Query logging for slow query detection
         // Only enable in local/staging environments or when debugging

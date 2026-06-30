@@ -105,7 +105,6 @@ return [
         'fa-unlock-alt' => 'lock-open',
         'fa-user-times' => 'user-x',
         'fa-vial' => 'test-tube',
-        'fa-google' => 'brand:google',
         'fa-chevron-down' => 'chevron-down',
         'fa-chevron-up' => 'chevron-up',
         'fa-chevron-left' => 'chevron-left',

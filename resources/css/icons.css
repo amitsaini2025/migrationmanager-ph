@@ -1,0 +1,58 @@
+/* Lucide icon sizing — complements Font Awesome during migration */
+
+.lucide,
+.icon {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+}
+
+.icon-sm,
+.lucide.icon-sm {
+    width: 14px;
+    height: 14px;
+}
+
+.icon-lg,
+.lucide.icon-lg {
+    width: 20px;
+    height: 20px;
+}
+
+.icon-spin,
+.lucide.icon-spin {
+    animation: crm-icon-spin 1s linear infinite;
+}
+
+@keyframes crm-icon-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Topbar / icon buttons — Lucide replaces <i> with <svg> after hydration */
+.icon-btn svg.lucide,
+.icon-btn .lucide,
+.icon-btn .icon,
+.icon-btn i[data-lucide] {
+    width: 1.25em;
+    height: 1.25em;
+    vertical-align: middle;
+}
+
+.icon-brand {
+    display: inline-block;
+    vertical-align: -0.125em;
+    line-height: 0;
+}
+
+.icon-brand svg {
+    display: block;
+}
