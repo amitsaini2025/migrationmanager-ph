@@ -2,9 +2,9 @@
             <div class="tab-pane" id="noteterm-tab">
                 <div class="card full-width notes-container">
                     <div class="notes-header">
-                        <h3><i class="fas fa-file-alt"></i> Notes</h3>
+                        <h3>@icon('fa-file-alt') Notes</h3>
                         <button class="btn btn-primary btn-sm create_note_d" datatype="note">
-                            <i class="fas fa-plus"></i> Add Note
+                            @icon('fa-plus') Add Note
                         </button>
                     </div>
 
@@ -13,7 +13,7 @@
                         <div class="input-group" style="max-width: 400px;">
                             <div class="input-group-prepend">
                                 <span class="input-group-text" style="background: #f8f9fa; border-right: none;">
-                                    <i class="fas fa-search"></i>
+                                    @icon('fa-search')
                                 </span>
                             </div>
                             <input type="text" id="notes-search-input" class="form-control" placeholder="Search notes..." style="border-left: none;">
@@ -253,7 +253,7 @@
                         <div class="note-card-redesign <?php if($list->pin == 1) echo 'pinned'; ?>" data-matterid="{{ $list->matter_id }}" id="note_id_{{$list->id}}" data-id="{{$list->id}}" data-type="{{ $typeLabel }}">
                             <?php if($list->pin == 1) { ?>
                                 <div class="pined_note">
-                                    <i class="fa fa-thumb-tack" aria-hidden="true"></i>
+                                    @icon('fa-thumb-tack')
                                 </div>
                             <?php } ?>
 
@@ -262,7 +262,7 @@
                                 <div class="note-toggle-btn-div">
                                     <div class="dropdown">
                                         <button class="btn btn-link dropdown-toggle note-toggle-btn-div-type" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <i class="fa fa-ellipsis-v"></i>
+                                            @icon('fa-ellipsis-v')
                                         </button>
                                         <div class="dropdown-menu">
                                             <a class="dropdown-item opennoteform" data-id="{{$list->id}}" href="javascript:;">Edit</a>
@@ -285,7 +285,7 @@
                             </div>
                             @if(!empty(trim((string) ($list->mobile_number ?? ''))))
                                 <div class="note-meta-redesign" style="margin-bottom: 10px;">
-                                    <i class="fas fa-phone" style="color: #2563eb;" aria-hidden="true"></i>
+                                    @icon('fa-phone', ['style' => 'color: #2563eb;'])
                                     <strong style="margin-left: 6px;">Number:</strong> {{ $list->mobile_number }}
                                 </div>
                             @endif

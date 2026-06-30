@@ -5,7 +5,7 @@
                         <!-- Table Container -->
                         <div style="flex: 1; min-width: 0;">
                             <div class="subtab-header" style="margin-bottom: 15px;">
-                                <h3><i class="fas fa-folder"></i> Not Used Documents</h3>
+                                <h3>@icon('fa-folder') Not Used Documents</h3>
                                 <p style="color: #374151;">Documents marked as "Not Used" from both Personal and Visa document tabs are shown here.</p>
                             </div>
                             <div style="overflow: auto; max-height: calc(100vh - 250px);">
@@ -49,13 +49,13 @@
                                                         <div data-id="{{$fetch->id}}" data-name="<?php echo $fetch->file_name; ?>" class="doc-row" title="Uploaded by: <?php echo ($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showNotUsedFileContextMenu(event, <?= $fetch->id ?>, '<?= htmlspecialchars($fetch->filetype) ?>', '<?= $fileUrl ?>', '<?= $fetch->doc_type ?>', '<?= $fetch->status ?? 'draft' ?>'); return false;">
                                                             <?php if( isset($fetch->myfile_key) && $fetch->myfile_key != ""){ //For new file upload ?>
                                                                 <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype;?>','<?php echo $fetch->myfile; ?>','preview-container-notuseddocumnetlist')">
-                                                                    <i class="fas fa-file-image"></i> <span><?php echo $fetch->file_name . '.' . $fetch->filetype; ?></span>
+                                                                    {!! \App\Helpers\IconHelper::fromLegacy('fas fa-file-image') !!} <span><?php echo $fetch->file_name . '.' . $fetch->filetype; ?></span>
                                                                 </a>
                                                             <?php } else {  //For old file upload
                                                                 $url = 'https://'.env('AWS_BUCKET').'.s3.'. env('AWS_DEFAULT_REGION') . '.amazonaws.com/';
                                                                 ?>
                                                                 <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype;?>','<?php echo $myawsfile; ?>','preview-container-notuseddocumnetlist')">
-                                                                    <i class="fas fa-file-image"></i> <span><?php echo $fetch->file_name . '.' . $fetch->filetype; ?></span>
+                                                                    {!! \App\Helpers\IconHelper::fromLegacy('fas fa-file-image') !!} <span><?php echo $fetch->file_name . '.' . $fetch->filetype; ?></span>
                                                                 </a>
                                                             <?php } ?>
                                                         </div>
@@ -90,13 +90,13 @@
             <!-- Custom Context Menu for Not Used Documents -->
             <div id="notUsedFileContextMenu" class="context-menu" style="display: none; position: fixed; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10000; min-width: 180px;">
                 <div class="context-menu-item" onclick="handleNotUsedContextAction('preview')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
-                    <i class="fa fa-eye" style="margin-right: 8px;"></i> Preview
+                    @icon('fa-eye', ['style' => 'margin-right: 8px;']) Preview
                 </div>
                 <div class="context-menu-item" onclick="handleNotUsedContextAction('delete')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
-                    <i class="fa fa-trash" style="margin-right: 8px;"></i> Delete
+                    @icon('fa-trash', ['style' => 'margin-right: 8px;']) Delete
                 </div>
                 <div class="context-menu-item" onclick="handleNotUsedContextAction('back-to-doc')" style="padding: 8px 12px; cursor: pointer;">
-                    <i class="fa fa-undo" style="margin-right: 8px;"></i> Back To Document
+                    @icon('fa-undo', ['style' => 'margin-right: 8px;']) Back To Document
                 </div>
             </div>
 

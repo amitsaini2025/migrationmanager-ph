@@ -3,10 +3,10 @@
     <div class="eoi-roi-container">
         <div class="eoi-roi-header">
             <h2>
-                <i class="fas fa-passport"></i> EOI / ROI Management
+                @icon('fa-passport') EOI / ROI Management
             </h2>
             <button type="button" class="btn btn-primary" id="btn-add-eoi">
-                <i class="fas fa-plus"></i> Add New EOI
+                @icon('fa-plus') Add New EOI
             </button>
         </div>
 
@@ -30,7 +30,7 @@
                     <tbody id="eoi-roi-tbody">
                         <tr class="no-data-row">
                             <td colspan="8" class="text-center">
-                                <i class="fas fa-info-circle"></i> No EOI/ROI records found. Click "Add New EOI" to get started.
+                                @icon('fa-info-circle') No EOI/ROI records found. Click "Add New EOI" to get started.
                             </td>
                         </tr>
                     </tbody>
@@ -175,7 +175,7 @@
                                 <div class="input-group-append">
                                     <button class="btn btn-outline-secondary" type="button" 
                                             id="toggle-password" title="Show/Hide Password">
-                                        <i class="fas fa-eye"></i>
+                                        @icon('fa-eye')
                                     </button>
                                 </div>
                             </div>
@@ -186,7 +186,7 @@
                         <div class="form-group">
                             <label class="d-block">Document Attachments</label>
                             <div class="alert alert-info mt-2 mb-0">
-                                <i class="fas fa-info-circle"></i>
+                                @icon('fa-info-circle')
                                 <strong>Attaching Documents:</strong> When you send the confirmation email to the client, you'll be able to select which visa documents to attach from a list. No pre-mapping required!
                             </div>
                             <div class="eoi-map-help mt-2">
@@ -211,21 +211,21 @@
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-success" id="btn-save-eoi">
-                        <i class="fas fa-save"></i> Save EOI
+                        @icon('fa-save') Save EOI
                     </button>
                     <button type="button" class="btn btn-secondary" id="btn-cancel-eoi">
-                        <i class="fas fa-times"></i> Cancel
+                        @icon('fa-times') Cancel
                     </button>
                     <button type="button" class="btn btn-danger float-right" id="btn-delete-eoi" 
                             style="display:none;">
-                        <i class="fas fa-trash"></i> Delete
+                        @icon('fa-trash') Delete
                     </button>
                 </div>
 
                 {{-- Workflow Section - Compact Version inside form --}}
                 <div id="workflow-section-compact" style="display:none; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
                     <h4 style="font-size: 16px; margin-bottom: 15px; color: #333;">
-                        <i class="fas fa-tasks"></i> Workflow & Client Confirmation
+                        @icon('fa-tasks') Workflow & Client Confirmation
                     </h4>
                     <div id="workflow-content-compact">
                         <!-- Workflow content will be loaded dynamically -->
@@ -238,10 +238,10 @@
         <div class="eoi-roi-section" id="points-summary-section">
             <div class="points-summary-header">
                 <h3>
-                    <i class="fas fa-calculator"></i> Points Summary
+                    @icon('fa-calculator') Points Summary
                 </h3>
                 <button type="button" class="btn btn-sm btn-info" id="btn-refresh-points">
-                    <i class="fas fa-sync-alt"></i> Refresh
+                    @icon('fa-sync-alt') Refresh
                 </button>
             </div>
             
@@ -257,7 +257,7 @@
 
             <div id="points-summary-content">
                 <div class="text-center text-muted">
-                    <i class="fas fa-spinner fa-spin"></i> Loading points calculation...
+                    @icon('fa-spinner', ['spin' => true]) Loading points calculation...
                 </div>
             </div>
         </div>
@@ -312,7 +312,7 @@
                                         <div style="text-align: center; color: #999;">Loading preview...</div>
                                     </div>
                                     <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle"></i> This shows how the email will appear to your client. Body is generated from template and contains confirmation links.
+                                        @icon('fa-info-circle') This shows how the email will appear to your client. Body is generated from template and contains confirmation links.
                                     </small>
                                 </div>
                             </div>
@@ -326,12 +326,12 @@
                                     <div class="border p-3" style="max-height: 350px; overflow-y: auto; background-color: #f8f9fa;">
                                         <div id="eoi-attachment-list">
                                             <div class="text-center text-muted py-3">
-                                                <i class="fas fa-spinner fa-spin"></i> Loading documents...
+                                                @icon('fa-spinner', ['spin' => true]) Loading documents...
                                             </div>
                                         </div>
                                     </div>
                                     <small class="form-text text-muted mt-2">
-                                        <i class="fas fa-paperclip"></i> Maximum 10 documents, 25MB total
+                                        @icon('fa-paperclip') Maximum 10 documents, 25MB total
                                         <span id="eoi-attachment-summary" class="ml-2"></span>
                                     </small>
                                 </div>
@@ -342,10 +342,10 @@
                         <div class="row">
                             <div class="col-12">
                                 <button type="button" class="btn btn-primary" id="btn-eoi-send-email">
-                                    <i class="fas fa-paper-plane"></i> Send Email
+                                    @icon('fa-paper-plane') Send Email
                                 </button>
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                    <i class="fas fa-times"></i> Cancel
+                                    @icon('fa-times') Cancel
                                 </button>
                             </div>
                         </div>

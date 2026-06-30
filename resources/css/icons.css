@@ -18,7 +18,9 @@
 }
 
 .icon-lg,
-.lucide.icon-lg {
+.lucide.icon-lg,
+.lucide.fa-lg,
+svg.lucide.fa-lg {
     width: 20px;
     height: 20px;
 }

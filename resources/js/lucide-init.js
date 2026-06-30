@@ -92,13 +92,22 @@ function buildSvgAttrs(options = {}) {
         className += ' icon-spin';
     }
 
-    return {
+    const attrs = {
         width: size,
         height: size,
         'stroke-width': strokeWidth,
         class: className.trim(),
         'aria-hidden': 'true',
     };
+
+    if (options.style) {
+        attrs.style = options.style;
+    }
+    if (options.title) {
+        attrs.title = options.title;
+    }
+
+    return attrs;
 }
 
 function crmIconBrand(name) {

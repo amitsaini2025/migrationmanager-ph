@@ -2094,7 +2094,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Show success animation
                     const $successDiv = $('<div class="allocation-success">' +
                         '<div class="success-checkmark">' +
-                        '@icon('fa-check-circle')' +
+                        crmI('fas fa-check-circle') +
                         '</div>' +
                         '<p>✅ Receipt successfully allocated to ' + invoiceNo + '!</p>' +
                         '</div>');

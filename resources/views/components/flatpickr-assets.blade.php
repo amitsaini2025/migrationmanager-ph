@@ -1,2 +1,2 @@
-{{-- Flatpickr - Single source, loaded from public assets (not CDN) --}}
+{{-- Flatpickr CSS - legacy component; CRM layouts load via @vite vendor-libs.css --}}
 <link rel="stylesheet" href="{{ asset('css/flatpickr.min.css') }}">

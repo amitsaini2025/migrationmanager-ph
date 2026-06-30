@@ -1,6 +1,6 @@
 {
-  "_rolldown-runtime-QTnfLwEv.js": {
-    "file": "assets/rolldown-runtime-QTnfLwEv.js",
+  "_rolldown-runtime-aKtaBQYM.js": {
+    "file": "assets/rolldown-runtime-aKtaBQYM.js",
     "name": "rolldown-runtime"
   },
   "resources/css/app.css": {
@@ -22,7 +22,7 @@
     "isEntry": true
   },
   "resources/css/icons.css": {
-    "file": "assets/icons-G-GfHmzd.css",
+    "file": "assets/icons-CZKOlvvw.css",
     "name": "icons",
     "names": [
       "icons.css"
@@ -30,25 +30,43 @@
     "src": "resources/css/icons.css",
     "isEntry": true
   },
+  "resources/css/vendor-libs.css": {
+    "file": "assets/vendor-libs-C51wm8LC.css",
+    "name": "vendor-libs",
+    "names": [
+      "vendor-libs.css"
+    ],
+    "src": "resources/css/vendor-libs.css",
+    "isEntry": true
+  },
   "resources/js/app.js": {
-    "file": "assets/app-BvCG525y.js",
+    "file": "assets/app-Cq93q1C6.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_rolldown-runtime-QTnfLwEv.js"
+      "_rolldown-runtime-aKtaBQYM.js"
     ]
   },
   "resources/js/lucide-init.js": {
-    "file": "assets/lucide-init-BiGeffVx.js",
+    "file": "assets/lucide-init-1PMHR4tx.js",
     "name": "lucide-init",
     "src": "resources/js/lucide-init.js",
     "isEntry": true,
     "imports": [
-      "_rolldown-runtime-QTnfLwEv.js"
+      "_rolldown-runtime-aKtaBQYM.js"
     ],
     "css": [
-      "assets/icons-G-GfHmzd.css"
+      "assets/icons-CZKOlvvw.css"
+    ]
+  },
+  "resources/js/vendor-libs.js": {
+    "file": "assets/vendor-libs-BZrloOU5.js",
+    "name": "vendor-libs",
+    "src": "resources/js/vendor-libs.js",
+    "isEntry": true,
+    "imports": [
+      "_rolldown-runtime-aKtaBQYM.js"
     ]
   }
 }

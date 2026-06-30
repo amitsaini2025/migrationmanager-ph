@@ -1,6 +1,6 @@
 # Plan: Vendor Library Vite Consolidation (Phase 2)
 
-**Status:** Phase 2a applied — Phase 2b pending approval  
+**Status:** Phase 2b applied — Phase 2f (copy script retirement) pending soak + QA  
 **Created:** 2026-06-30  
 **Scope:** Move copied `public/js` vendor assets (Tom Select, DataTables, flatpickr, iziToast, inputmask) into Vite bundles; retire copy scripts when stable.  
 **Parent doc:** `docs/TECH_UPDATE.md` — Track 1 (Phase 2) + Track 2 consolidation + Track 5
@@ -138,126 +138,36 @@ Both layouts share the same vendor `<head>` CSS and footer `<script>` block patt
 
 ### Phase 2b — Vendor bundle (core of this plan)
 
-**Status:** Not started  
+**Status:** ✅ Applied (2026-06-30) — copy scripts retained for rollback  
 **Deploy:** Staged — feature flag or parallel load recommended (see Rollback)
 
 #### Step 2b.1 — Create Vite entries
 
-**New files:**
+**Done:**
 
-```
-resources/js/vendor-libs.js          # JS entry
-resources/css/vendor-libs.css        # CSS entry (imports vendor styles)
-resources/js/vendor/mm-tomselect-jquery.js   # optional: move from public/ (copy first, import later)
-```
-
-**`resources/js/vendor-libs.js` (sketch):**
-
-```js
-// Expose globals expected by legacy CRM scripts
-import TomSelect from 'tom-select/dist/js/tom-select.complete.min.js';
-import flatpickr from 'flatpickr';
-import 'datatables.net';
-import 'datatables.net-bs5';
-import 'datatables.net-buttons';
-import 'datatables.net-buttons-bs5';
-import 'datatables.net-buttons/js/buttons.html5.js';
-import JSZip from 'jszip';
-import iziToast from 'iziToast'; // may need npm install if not present
-
-window.TomSelect = TomSelect;
-window.flatpickr = flatpickr;
-window.JSZip = JSZip;
-window.iziToast = iziToast;
-// DataTables attaches to jQuery automatically when jQuery exists
-```
-
-**Notes for implementer:**
-
-- Add `iziToast` to `package.json` if bundling from npm; or import from `@legacy/iziToast.min.js` during transition.
-- DataTables + pdfmake: consider **split chunk** `vendor-libs-pdf.js` (~1MB vfs_fonts) loaded only on pages that need PDF export, OR keep `datatables-pdfmake.min.js` as raw script until Phase 2f.
-- Register `vendor-libs.js` and `vendor-libs.css` in `vite.config.js` `input` array.
-
-**`resources/css/vendor-libs.css`:**
-
-```css
-@import 'flatpickr/dist/flatpickr.min.css';
-@import 'tom-select/dist/css/tom-select.bootstrap5.min.css';
-@import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
-@import 'datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css';
-/* iziToast CSS — from npm or @legacy */
-```
-
-Keep `tom-select-layout-compat.css` as a **separate** `@vite` or `asset()` link (project file, not npm).
+- `resources/js/vendor-libs.js` — Tom Select, flatpickr, DataTables, JSZip, iziToast, mm-tomselect bridge
+- `resources/css/vendor-libs.css` — vendor CSS bundle
+- `resources/js/vendor/jquery-global-shim.js` — uses CDN jQuery global for DataTables
+- `vite.config.js` — entries + `@legacy-css` alias
 
 #### Step 2b.2 — Wire layouts (both CRM layouts)
 
-**Replace in `<head>`:**
+**Done:** `crm_client_detail.blade.php`, `crm_client_detail_dashboard.blade.php`
 
-```blade
-{{-- REMOVE --}}
-@include('components.flatpickr-assets')
-<link rel="stylesheet" href="{{asset('css/tom-select.bootstrap5.min.css')}}">
-<link rel="stylesheet" href="{{asset('css/dataTables.bootstrap5.min.css')}}">
-<link rel="stylesheet" href="{{asset('css/buttons.bootstrap5.min.css')}}">
-<link rel="stylesheet" href="{{asset('css/iziToast.min.css')}}">
-
-{{-- ADD --}}
-@vite(['resources/css/vendor-libs.css'])
-<link rel="stylesheet" href="{{ asset('css/tom-select-layout-compat.css') }}?v=...">
-```
-
-**Replace in footer (before `crm-flatpickr.js`):**
-
-```blade
-{{-- REMOVE --}}
-@include('components.flatpickr-scripts')
-<script src="{{asset('js/datatables.min.js')}}"></script>
-<script src="{{asset('js/tom-select.complete.min.js')}}"></script>
-<script src="{{asset('js/iziToast.min.js')}}"></script>
-
-{{-- ADD --}}
-@vite(['resources/js/vendor-libs.js'])
-<script src="{{asset('js/datatables-pdfmake.min.js')}}"></script>  {{-- until pdf in bundle --}}
-<script src="{{ asset('js/mm-tomselect-jquery.js') }}?v=..."></script>
-```
-
-**Keep unchanged for this phase:** jQuery CDN, `app.min.js`, TinyMCE, Bootstrap CDN, `scripts.js`, `custom.js`, `@vite app.js`.
+Removed raw tags for: datatables.min.js, flatpickr, tom-select, iziToast (JS + CSS).  
+Kept: `datatables-pdfmake.min.js`, `crm-flatpickr.js`, `tom-select-layout-compat.css`.
 
 #### Step 2b.3 — Dual-run period (recommended)
 
-For **one release**:
-
-1. Load **both** old copy scripts output AND new Vite bundle, OR
-2. Keep copy scripts in `npm run build` but stop referencing `public/` files in Blade (Vite only).
-
-Prefer (2): copy scripts become dead weight until Phase 2f removes them — easier rollback by reverting Blade only.
+**Active:** `npm run build` still runs copy scripts; layouts load Vite bundle only (not `public/` copies).
 
 #### Step 2b.4 — Update `package.json` build script
 
-**After stable QA:**
-
-```json
-"build": "vite build"
-```
-
-Remove `copy:datatables` and `copy:tom-select` from default `build`. Keep scripts as `npm run copy:datatables` for emergency rollback.
+**Pending** — remove copy steps after soak period (Phase 2f gate).
 
 #### Step 2b.5 — Retire copy scripts (Phase 2f gate)
 
-Only when **all** of:
-
-- [ ] Phase 2b deployed ≥1 week without vendor-related incidents
-- [ ] Smoke matrix re-run and passed
-- [ ] pdfmake strategy decided (bundled or separate chunk)
-- [ ] No layout still references `public/js/tom-select.complete.min.js` or `public/js/datatables.min.js`
-
-Then:
-
-- [ ] Delete or archive `scripts/copy-tom-select.cjs`
-- [ ] Delete or archive `scripts/copy-datatables.cjs`
-- [ ] Remove copied artifacts from `public/js` and `public/css` (or mark deprecated in `PUBLIC-JS-LEGACY.md`)
-- [ ] Update `TECH_UPDATE.md` Track 2 + Track 5 status
+**Pending** — see criteria below.
 
 **Exit criteria:** Client detail loads with ≤2 vendor Vite tags; Tom Select / DataTables / flatpickr / iziToast work; build has no copy steps.
 

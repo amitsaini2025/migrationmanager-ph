@@ -54,33 +54,33 @@
 <li class="feed-item feed-item--{{ $activity->activity_type === 'stage' ? 'stage' : 'email' }} activity {{ $activity->activity_type ? 'activity-type-' . $activity->activity_type : $legacyActivityTypeClass }} {{ $noteTypeClass }}" id="activity_{{ $activity->id }}" data-created-at="{{ $activity->created_at ? \Carbon\Carbon::parse($activity->created_at)->format('Y-m-d') : '' }}">
     <span class="feed-icon {{ $activity->activity_type === 'sms' ? 'feed-icon-sms' : '' }} {{ $activity->activity_type === 'activity' ? 'feed-icon-activity' : '' }} {{ $activity->activity_type === 'stage' ? 'feed-icon-stage' : '' }} {{ $activity->activity_type === 'financial' || $legacyActivityTypeClass === 'activity-type-financial' ? 'feed-icon-financial' : '' }} {{ $activity->activity_type === 'email' || $legacyActivityTypeClass === 'activity-type-email' ? 'feed-icon-email' : '' }} {{ $activity->activity_type === 'signature' ? 'feed-icon-signature' : '' }} {{ $activity->activity_type === 'note' ? 'feed-icon-note ' . str_replace('activity-type-', 'feed-icon-', $noteTypeClass) : '' }}">
         @if($activity->activity_type === 'sms')
-            <i class="fas fa-sms"></i>
+            @icon('fa-sms')
         @elseif($activity->activity_type === 'note')
-            <i class="fas {{ $noteIcon }}"></i>
+            @icon($noteIcon)
         @elseif($activity->activity_type === 'activity')
-            <i class="fas fa-bolt"></i>
+            @icon('fa-bolt')
         @elseif($activity->activity_type === 'stage')
-            <i class="fas fa-route"></i>
+            @icon('fa-route')
         @elseif($activity->activity_type === 'financial')
-            <i class="fas fa-dollar-sign"></i>
+            @icon('fa-dollar-sign')
         @elseif($activity->activity_type === 'email')
-            <i class="fas fa-envelope"></i>
+            @icon('fa-envelope')
         @elseif($activity->activity_type === 'signature')
-            <i class="fas fa-file-signature"></i>
+            @icon('fa-file-signature')
         @elseif($activity->activity_type === 'document')
-            <i class="fas fa-file-alt"></i>
+            @icon('fa-file-alt')
         @elseif(str_contains(strtolower($activity->subject ?? ''), 'uploaded email:'))
-            <i class="fas fa-envelope"></i>
+            @icon('fa-envelope')
         @elseif(str_contains(strtolower($activity->subject ?? ''), "invoice") || 
                 str_contains(strtolower($activity->subject ?? ''), "receipt") || 
                 str_contains(strtolower($activity->subject ?? ''), "ledger") || 
                 str_contains(strtolower($activity->subject ?? ''), "payment") ||
                 str_contains(strtolower($activity->subject ?? ''), "account"))
-            <i class="fas fa-dollar-sign"></i>
+            @icon('fa-dollar-sign')
         @elseif(str_contains($activity->subject ?? '', "document"))
-            <i class="fas fa-file-alt"></i>
+            @icon('fa-file-alt')
         @else
-            <i class="fas fa-sticky-note"></i>
+            @icon('fa-sticky-note')
         @endif
     </span>
     <div class="feed-content">
@@ -102,15 +102,15 @@
                 <strong>{{ $feedStaffDisplay }}  {{ $activity->subject ?? '' }}</strong>
                 @endif
                 @if(str_contains($activity->subject ?? '', 'added a note') || str_contains($activity->subject ?? '', 'updated a note'))
-                    <i class="fas fa-ellipsis-v convert-activity-to-note" 
-                       style="margin-left: 5px; cursor: pointer;" 
+                    <span class="convert-activity-to-note"
+                       style="margin-left: 5px; cursor: pointer;"
                        title="Convert to Note"
                        data-activity-id="{{ $activity->id }}"
                        data-activity-subject="{{ $activity->subject }}"
                        data-activity-description="{{ $activity->description }}"
                        data-activity-created-by="{{ $activity->created_by }}"
                        data-activity-created-at="{{ $activity->created_at }}"
-                       data-client-id="{{ $clientId }}"></i>
+                       data-client-id="{{ $clientId }}">@icon('fa-ellipsis-v')</span>
                 @endif
                 -
                 @if($activity->description != '')

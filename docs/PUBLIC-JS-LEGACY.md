@@ -89,12 +89,14 @@ Options:
 
 ## Phase 2 entry map (target)
 
-| Vite entry | Replaces |
-|------------|----------|
-| `resources/css/vendor-libs.css` | flatpickr, tom-select, datatables, iziToast CSS in layouts |
-| `resources/js/vendor-libs.js` | flatpickr, tom-select, datatables, iziToast JS in layouts |
-| `resources/js/layouts/crm-client-detail.js` | Layout inline scripts (Phase 2c) |
-| `resources/js/app.js` | Already live — Echo, Alpine, FullCalendar |
+| Vite entry | Replaces | Status |
+|------------|----------|--------|
+| `resources/css/vendor-libs.css` | flatpickr, tom-select, datatables, iziToast CSS in CRM layouts | ✅ Live |
+| `resources/js/vendor-libs.js` | flatpickr, tom-select, datatables, iziToast JS + mm-tomselect bridge in CRM layouts | ✅ Live |
+| `resources/js/layouts/crm-client-detail.js` | Layout inline scripts (Phase 2c) | Pending |
+| `resources/js/app.js` | Already live — Echo, Alpine, FullCalendar | ✅ Live |
+
+CRM layouts load `@vite(['resources/css/vendor-libs.css'])` in `<head>` and `@vite(['resources/js/vendor-libs.js'])` after `app.min.js`. PDF export still uses `public/js/datatables-pdfmake.min.js` (sync, ~1MB).
 
 ---
 

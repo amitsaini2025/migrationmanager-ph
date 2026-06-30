@@ -1,10 +1,10 @@
 <!-- Activity Feed (Personal Details, Company Details, Activity nav; single #activity-feed instance) -->
 <aside class="activity-feed" id="activity-feed">
     <div class="activity-feed-header">
-        <h2><i class="fas fa-history"></i> Activity Feed</h2>
+        <h2>@icon('fa-history') Activity Feed</h2>
         <div class="activity-feed-header-actions">
             <button type="button" class="btn btn-sm btn-link p-0 activity-feed-refresh" id="activity-feed-refresh" title="Refresh">
-                <i class="fas fa-sync-alt"></i>
+                @icon('fa-sync-alt')
             </button>
             <label for="increase-activity-feed-width">
                 <input type="checkbox" id="increase-activity-feed-width" title="Expand Width">
@@ -35,10 +35,10 @@
         </div>
         <div class="activity-feed-filter-actions">
             <button type="button" class="btn btn-sm btn-primary activity-feed-apply" id="activity-feed-apply">
-                <i class="fas fa-search"></i> Apply
+                @icon('fa-search') Apply
             </button>
             <button type="button" class="btn btn-sm btn-outline-secondary activity-feed-reset" id="activity-feed-reset">
-                <i class="fas fa-redo"></i> Reset
+                @icon('fa-redo') Reset
             </button>
         </div>
     </div>
@@ -46,25 +46,25 @@
     <!-- Activity Type Filters -->
     <div class="activity-filters">
         <button class="activity-filter-btn active" data-filter="all">
-            <i class="fas fa-list"></i> All
+            @icon('fa-list') All
         </button>
         <button class="activity-filter-btn" data-filter="activity">
-            <i class="fas fa-bolt"></i> Activity
+            @icon('fa-bolt') Activity
         </button>
         <button class="activity-filter-btn" data-filter="note">
-            <i class="fas fa-sticky-note"></i> Notes
+            @icon('fa-sticky-note') Notes
         </button>
         <button class="activity-filter-btn" data-filter="email">
-            <i class="fas fa-envelope"></i> Emails
+            @icon('fa-envelope') Emails
         </button>
         <button class="activity-filter-btn" data-filter="document">
-            <i class="fas fa-file-alt"></i> Documents
+            @icon('fa-file-alt') Documents
         </button>
         <button class="activity-filter-btn" data-filter="signature">
-            <i class="fas fa-file-signature"></i> Signatures
+            @icon('fa-file-signature') Signatures
         </button>
         <button class="activity-filter-btn" data-filter="financial">
-            <i class="fas fa-dollar-sign"></i> Financial
+            @icon('fa-dollar-sign') Financial
         </button>
     </div>
     
@@ -133,15 +133,14 @@
                 ])
             @endforeach
             <li class="feed-item feed-item-no-results" style="display: none; text-align: center; padding: 20px; color: #6c757d;">
-                <i class="fas fa-filter" style="font-size: 1.5em; margin-bottom: 8px; opacity: 0.5;"></i>
+                @icon('fa-filter', ['style' => 'font-size: 1.5em; margin-bottom: 8px; opacity: 0.5;'])
                 <p class="mb-0 small">No activities match your filters</p>
             </li>
         @else
             <li class="feed-item feed-item--empty" style="text-align: center; padding: 20px; color: #6c757d;">
-                <i class="fas fa-inbox" style="font-size: 2em; margin-bottom: 10px; opacity: 0.5;"></i>
+                @icon('fa-inbox', ['style' => 'font-size: 2em; margin-bottom: 10px; opacity: 0.5;'])
                 <p>No activities found</p>
             </li>
         @endif
     </ul>
 </aside>
-

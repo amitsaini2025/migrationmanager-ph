@@ -110,7 +110,7 @@
                                     </div>
                                     @if($workflowSelectedMatter->deadline)
                                         <div class="mt-2">
-                                            <span class="badge badge-info"><i class="fas fa-calendar-alt"></i> Deadline: {{ \Carbon\Carbon::parse($workflowSelectedMatter->deadline)->format('d/m/Y') }}</span>
+                                            <span class="badge badge-info">@icon('fa-calendar-alt') Deadline: {{ \Carbon\Carbon::parse($workflowSelectedMatter->deadline)->format('d/m/Y') }}</span>
                                         </div>
                                     @endif
                                 </div>
@@ -124,11 +124,11 @@
                                     {{-- Discontinued matter: show Reopen (same roles as discontinue), Change Workflow --}}
                                     @if($workflowCanReopen)
                                     <button class="btn btn-primary btn-sm matter-detail-reopen-btn" id="workflow-tab-reopen" data-matter-id="{{ $workflowSelectedMatter->id }}" title="Reopen Matter">
-                                        <i class="fas fa-redo"></i> Reopen
+                                        @icon('fa-redo') Reopen
                                     </button>
                                     @endif
                                     <button class="btn btn-outline-secondary btn-sm" id="workflow-tab-change-workflow" data-matter-id="{{ $workflowSelectedMatter->id }}" data-current-workflow-id="{{ $workflowSelectedMatter->workflow_id ?? '' }}" title="Change workflow for this matter">
-                                        <i class="fas fa-exchange-alt"></i> Change Workflow
+                                        @icon('fa-exchange-alt') Change Workflow
                                     </button>
                                 @else
                                     {{-- Active matter: show normal workflow buttons --}}
@@ -148,7 +148,7 @@
                                         $workflowIsLastStage = $workflowNextStage === null;
                                     @endphp
                                     <button class="btn btn-outline-primary btn-sm" id="workflow-tab-back-to-previous-stage" data-matter-id="{{ $workflowSelectedMatter->id }}" title="Back to Previous Stage" {{ $workflowIsFirstStage ? 'disabled' : '' }}>
-                                        <i class="fas fa-angle-left"></i> Back to Previous Stage
+                                        @icon('fa-angle-left') Back to Previous Stage
                                     </button>
                                     @php
                                         $workflowNextBtnDisabled = $workflowIsLastStage;
@@ -157,15 +157,15 @@
                                             && in_array((int) ($workflowAdminForDiscontinue->role ?? 0), config('crm.matter_discontinue_role_ids', [1, 17, 16]), true);
                                     @endphp
                                     <button class="btn btn-success btn-sm" id="workflow-tab-proceed-to-next-stage" data-matter-id="{{ $workflowSelectedMatter->id }}" data-next-stage-name="{{ $workflowNextStageName ?? '' }}" data-current-stage-name="{{ $workflowCurrentStageName ?? '' }}" title="Proceed to Next Stage" {{ $workflowNextBtnDisabled ? 'disabled' : '' }}>
-                                        Proceed to Next Stage <i class="fas fa-angle-right"></i>
+                                        Proceed to Next Stage @icon('fa-angle-right')
                                     </button>
                                     @if($workflowCanDiscontinue)
                                         <button class="btn btn-outline-danger btn-sm" id="workflow-tab-discontinue" data-matter-id="{{ $workflowSelectedMatter->id }}" title="Discontinue Matter">
-                                            <i class="fas fa-ban"></i> Discontinue
+                                            @icon('fa-ban') Discontinue
                                         </button>
                                     @endif
                                     <button class="btn btn-outline-secondary btn-sm" id="workflow-tab-change-workflow" data-matter-id="{{ $workflowSelectedMatter->id }}" data-current-workflow-id="{{ $workflowSelectedMatter->workflow_id ?? '' }}" title="Change workflow for this matter">
-                                        <i class="fas fa-exchange-alt"></i> Change Workflow
+                                        @icon('fa-exchange-alt') Change Workflow
                                     </button>
                                 @endif
                             </div>
@@ -178,7 +178,7 @@
                 <div class="col-md-12">
                     <div class="info-card">
                         <h5>
-                            <i class="fas fa-folder-open"></i> {{ $workflowMatterName }} ({{ $workflowMatterNumber }})
+                            @icon('fa-folder-open') {{ $workflowMatterName }} ({{ $workflowMatterNumber }})
                         </h5>
 
                         @if($workflowAllStages->count() > 0)

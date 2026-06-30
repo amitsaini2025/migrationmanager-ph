@@ -11,16 +11,12 @@
     <title>CRM | @yield('title', 'Client Details')</title>
     <link rel="icon" type="image/png" href="{{asset('img/favicon.png')}}">
     <link rel="stylesheet" href="{{asset('css/app.min.css')}}">
-    <link rel="stylesheet" href="{{asset('css/iziToast.min.css')}}">
     <!-- TinyMCE is self-hosted and loaded per page as needed -->
-    @include('components.flatpickr-assets')
-    <link rel="stylesheet" href="{{asset('css/tom-select.bootstrap5.min.css')}}">
+    @vite(['resources/css/vendor-libs.css'])
     <link rel="stylesheet" href="{{ asset('css/tom-select-layout-compat.css') }}?v={{ file_exists(public_path('css/tom-select-layout-compat.css')) ? filemtime(public_path('css/tom-select-layout-compat.css')) : 1 }}">
     <link rel="stylesheet" href="{{asset('css/style.css')}}">
     <link rel="stylesheet" href="{{asset('css/components.css')}}">
     <link rel="stylesheet" href="{{asset('css/custom.css')}}">
-    <link rel="stylesheet" href="{{asset('css/dataTables.bootstrap5.min.css')}}">
-    <link rel="stylesheet" href="{{asset('css/buttons.bootstrap5.min.css')}}">
     <link rel="stylesheet" href="{{asset('icons/font-awesome/css/all.min.css')}}">
     @vite(['resources/css/icons.css'])
     @include('components.icons.config-script')
@@ -1732,19 +1728,15 @@
     var dataformat = '{{$dataformat}}';
     </script>
     <script src="{{asset('js/app.min.js')}}"></script>
-    <script src="{{asset('js/datatables.min.js')}}"></script>
+    @vite(['resources/js/vendor-libs.js'])
     <script src="{{asset('js/datatables-pdfmake.min.js')}}"></script>
     <!-- TinyMCE is self-hosted and loaded per page as needed -->
     <script src="{{asset('js/tinymce/js/tinymce/tinymce.min.js')}}"></script>
-    @include('components.flatpickr-scripts')
     <script src="{{asset('js/crm-flatpickr.js')}}"></script>
-    <script src="{{asset('js/tom-select.complete.min.js')}}"></script>
-    <script src="{{ asset('js/mm-tomselect-jquery.js') }}?v={{ file_exists(public_path('js/mm-tomselect-jquery.js')) ? filemtime(public_path('js/mm-tomselect-jquery.js')) : 1 }}"></script>
     <script src="{{asset('js/custom-form-validation.js')}}"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{asset('js/bootstrap5-jquery-compat.js')}}"></script>
     <script src="{{asset('js/scripts.js')}}"></script>
-    <script src="{{asset('js/iziToast.min.js')}}"></script>
     <script src="{{asset('js/custom.js')}}"></script>
     @auth('admin')
     <script>window.crmLoginUrl = {!! json_encode(route('crm.login')) !!};</script>

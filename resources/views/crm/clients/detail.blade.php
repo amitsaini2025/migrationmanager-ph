@@ -1469,7 +1469,7 @@ $(document).ready(function() {
                         var subjectLower = subject.toLowerCase();
 
                         if (activityType === 'sms') {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sms') : '<i class="fas fa-sms"></i>');
+                            subjectIcon = crmI('fas fa-sms');
                             iconClass = 'feed-icon-sms';
                         } else if (activityType === 'note') {
                             var noteIcon = 'fa-sticky-note';
@@ -1478,40 +1478,40 @@ $(document).ready(function() {
                             else if (subjectLower.indexOf('in-person') !== -1) { noteIcon = 'fa-user-friends'; noteSubtypeClass = ' activity-type-note-in-person'; }
                             else if (subjectLower.indexOf('attention') !== -1) { noteIcon = 'fa-exclamation-triangle'; noteSubtypeClass = ' activity-type-note-attention'; }
                             else if (subjectLower.indexOf('others') !== -1) { noteIcon = 'fa-ellipsis-h'; noteSubtypeClass = ' activity-type-note-others'; }
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas ' + noteIcon) : '<i class="fas ' + noteIcon + '"></i>');
+                            subjectIcon = crmI('fas ' + noteIcon);
                             iconClass = 'feed-icon-note';
                         } else if (activityType === 'activity') {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-bolt') : '<i class="fas fa-bolt"></i>');
+                            subjectIcon = crmI('fas fa-bolt');
                             iconClass = 'feed-icon-activity';
                         } else if (activityType === 'stage') {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-route') : '<i class="fas fa-route"></i>');
+                            subjectIcon = crmI('fas fa-route');
                             iconClass = 'feed-icon-stage';
                         } else if (activityType === 'financial') {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-dollar-sign') : '<i class="fas fa-dollar-sign"></i>');
+                            subjectIcon = crmI('fas fa-dollar-sign');
                             iconClass = 'feed-icon-financial';
                         } else if (activityType === 'email') {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : '<i class="fas fa-envelope"></i>');
+                            subjectIcon = crmI('fas fa-envelope');
                             iconClass = 'feed-icon-email';
                         } else if (activityType === 'signature') {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-signature') : '<i class="fas fa-file-signature"></i>');
+                            subjectIcon = crmI('fas fa-file-signature');
                             iconClass = 'feed-icon-signature';
                         } else if (activityType === 'document') {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : '<i class="fas fa-file-alt"></i>');
+                            subjectIcon = crmI('fas fa-file-alt');
                             iconClass = '';
                         } else if (/uploaded email:/i.test(subjectLower)) {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : '<i class="fas fa-envelope"></i>');
+                            subjectIcon = crmI('fas fa-envelope');
                             iconClass = 'feed-icon-email';
                         } else if (subjectLower.includes('invoice') || subjectLower.includes('receipt') || subjectLower.includes('ledger') || subjectLower.includes('payment') || subjectLower.includes('account')) {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-dollar-sign') : '<i class="fas fa-dollar-sign"></i>');
+                            subjectIcon = crmI('fas fa-dollar-sign');
                             iconClass = 'feed-icon-financial';
                         } else if (subjectLower.includes('document') && !/(receipt document|journal receipt document|client receipt document|office receipt document)/i.test(subjectLower)) {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : '<i class="fas fa-file-alt"></i>');
+                            subjectIcon = crmI('fas fa-file-alt');
                             iconClass = '';
                         } else if (subjectLower.includes('document')) {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : '<i class="fas fa-file-alt"></i>');
+                            subjectIcon = crmI('fas fa-file-alt');
                             iconClass = '';
                         } else {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sticky-note') : '<i class="fas fa-sticky-note"></i>');
+                            subjectIcon = crmI('fas fa-sticky-note');
                             iconClass = '';
                         }
 
