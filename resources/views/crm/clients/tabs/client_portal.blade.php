@@ -2,13 +2,13 @@
 <div class="tab-pane" id="client_portal-tab">
     <div class="card full-width client-portal-container">
         <div class="portal-header">
-            <h3><i class="fas fa-globe"></i> Client Portal Access</h3>
+            <h3>@icon('fa-globe') Client Portal Access</h3>
             <div class="portal-header-controls">
                 <div class="portal-status-badge">
                     @if(isset($fetchedData->cp_status) && in_array($fetchedData->cp_status, [1, 2]))
-                        <span class="badge badge-success"><i class="fas fa-check-circle"></i> Active</span>
+                        <span class="badge badge-success">@icon('fa-check-circle') Active</span>
                     @else
-                        <span class="badge badge-secondary"><i class="fas fa-times-circle"></i> Inactive</span>
+                        <span class="badge badge-secondary">@icon('fa-times-circle') Inactive</span>
                     @endif
                 </div>
                 
@@ -30,7 +30,7 @@
                             <span class="toggle-slider"></span>
                         </div>
                         <span class="portal-toggle-loader" id="portal-toggle-loader-tab" style="display: none;">
-                            <i class="fas fa-spinner fa-spin"></i>
+                            @icon('fa-spinner', ['spin' => true])
                         </span>
                     </label>
                 </div>
@@ -148,7 +148,7 @@
                                             {{-- Discontinued matter: show Reopen (same roles as discontinue) --}}
                                             @if($portalCanReopen)
                                             <button class="btn btn-primary btn-sm matter-detail-reopen-btn client-portal-reopen-btn" id="client-portal-reopen" data-matter-id="{{ $selectedMatter->id }}" title="Reopen Matter">
-                                                <i class="fas fa-redo"></i> Reopen
+                                                @icon('fa-redo') Reopen
                                             </button>
                                             @endif
                                         @else
@@ -167,7 +167,7 @@
                                                 }
                                             @endphp
                                             <button class="btn btn-outline-primary btn-sm" id="back-to-previous-stage" data-matter-id="{{ $selectedMatter->id }}" title="Back to Previous Stage" {{ $isFirstStage ? 'disabled' : '' }}>
-                                                <i class="fas fa-angle-left"></i> Back to Previous Stage
+                                                @icon('fa-angle-left') Back to Previous Stage
                                             </button>
                                             @php
                                                 $portalAdminForDiscontinue = Auth::guard('admin')->user();
@@ -175,11 +175,11 @@
                                                     && in_array((int) ($portalAdminForDiscontinue->role ?? 0), config('crm.matter_discontinue_role_ids', [1, 17, 16]), true);
                                             @endphp
                                             <button class="btn btn-success btn-sm" id="proceed-to-next-stage" data-matter-id="{{ $selectedMatter->id }}" data-next-stage-name="{{ $nextStageName ?? '' }}" data-current-stage-name="{{ $currentStageName ?? '' }}" title="Proceed to Next Stage">
-                                                Proceed to Next Stage <i class="fas fa-angle-right"></i>
+                                                Proceed to Next Stage @icon('fa-angle-right')
                                             </button>
                                             @if($portalCanDiscontinue)
                                                 <button class="btn btn-outline-danger btn-sm client-portal-discontinue-btn" data-matter-id="{{ $selectedMatter->id }}" title="Discontinue Matter">
-                                                    <i class="fas fa-ban"></i> Discontinue
+                                                    @icon('fa-ban') Discontinue
                                                 </button>
                                             @endif
                                         @endif
@@ -194,7 +194,7 @@
                     <div class="col-md-12">
                         <div class="info-card">
                             <h5>
-                                <i class="fas fa-folder-open"></i> Selected Matter
+                                @icon('fa-folder-open') Selected Matter
                                 @if($selectedMatter)
                                     - {{ $matterName }} ({{ $matterNumber }})
                                 @endif
@@ -290,7 +290,7 @@
                                                                                                     data-matter-id="{{ $selectedMatter->id }}">
                                                                                                     <td class="checklist-status">
                                                                                                         @if($uploadCount > 0)
-                                                                                                            <span class="check"><i class="fa fa-check"></i></span>
+                                                                                                            <span class="check">@icon('fa-check')</span>
                                                                                                         @else
                                                                                                             <span class="round"></span>
                                                                                                         @endif
@@ -312,7 +312,7 @@
                                                                                class="add-checklist-link openchecklist"
                                                                                data-matter-id="{{ $selectedMatter->id }}"
                                                                                data-wf-stage="{{ $stage->name }}">
-                                                                                <i class="fa fa-plus"></i> Add New Checklist
+                                                                                @icon('fa-plus') Add New Checklist
                                                                             </a>
                                                                         </li>
                                                                     @endforeach
@@ -324,7 +324,7 @@
                                                         <div class="col-md-8">
                                                             <div class="checklist-details-panel" id="cp-checklist-details-panel">
                                                                 <div class="text-muted text-center py-4" id="cp-checklist-placeholder">
-                                                                    <i class="fas fa-hand-point-left fa-2x mb-2"></i>
+                                                                    @icon('fa-hand-point-left', ['class' => 'fa-2x mb-2'])
                                                                     <p>Select a checklist item on the left to view its documents.</p>
                                                                 </div>
                                                                 <div id="cp-checklist-documents-content" style="display:none;">
@@ -369,7 +369,7 @@
                                                     <div class="message-info-modal-header">
                                                         <button type="button" class="message-info-close" id="message-info-close" aria-label="Close">&times;</button>
                                                         <div class="message-info-title">
-                                                            <i class="fas fa-info-circle"></i>
+                                                            @icon('fa-info-circle')
                                                             <span>Message info</span>
                                                         </div>
                                                     </div>
@@ -407,12 +407,12 @@
                                                     <div class="chat-input-row">
                                                         <div class="chat-input-actions-left">
                                                             <button type="button" id="attach-file-btn" class="chat-action-btn" title="Attach file">
-                                                                <i class="fas fa-plus"></i>
+                                                                @icon('fa-plus')
                                                             </button>
                                                             <input type="file" id="message-attachments" name="attachments[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" style="display:none">
                                                             <div class="emoji-picker-wrapper">
                                                                 <button type="button" id="emoji-picker-btn" class="chat-action-btn" title="Emoji">
-                                                                    <i class="far fa-smile"></i>
+                                                                    @icon('fa-smile')
                                                                 </button>
                                                                 <div id="emoji-picker-popover" class="emoji-picker-popover" style="display:none">
                                                                     <div class="emoji-picker-grid"></div>
@@ -421,13 +421,13 @@
                                                         </div>
                                                         <textarea id="message-input" class="message-input" placeholder="Type a message" rows="1"></textarea>
                                                         <button id="send-message-btn" class="send-message-btn" title="Send message">
-                                                            <i class="fas fa-paper-plane"></i>
+                                                            @icon('fa-paper-plane')
                                                         </button>
                                                     </div>
                                                     <div class="attachment-thumbnails-row" id="attachment-thumbnails-row" style="display:none">
                                                         <div class="attachment-thumbnails" id="attachment-thumbnails"></div>
                                                         <button type="button" id="add-more-attach-btn" class="chat-action-btn add-more-attach-btn" title="Add more">
-                                                            <i class="fas fa-plus"></i>
+                                                            @icon('fa-plus')
                                                         </button>
                                                     </div>
                                                 </div>
@@ -554,7 +554,7 @@
                                                     <!-- Basic Information Section -->
                                                     <div class="details-section-card">
                                                         <div class="details-section-header">
-                                                            <h5><i class="fas fa-user"></i> Basic Information</h5>
+                                                            <h5>@icon('fa-user') Basic Information</h5>
                                                         </div>
                                                         <div class="summary-view">
                                                             <div class="summary-grid">
@@ -564,17 +564,17 @@
                                                                         {{ $basicInfo['first_name'] ?? 'Not set' }}
                                                                         @if(isset($auditEntries['first_name']))
                                                                             <span class="audit-badge" title="Pending approval">
-                                                                                <i class="fas fa-clock"></i>
+                                                                                @icon('fa-clock')
                                                                             </span>
                                                                         @endif
                                                                     </span>
                                                                     @if(isset($auditEntries['first_name']))
                                                                         <div class="audit-actions">
                                                                             <button type="button" class="btn-approve" onclick="approveAuditValue({{ $auditEntries['first_name']['id'] }}, 'first_name', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                <i class="fas fa-check-circle"></i>
+                                                                                @icon('fa-check-circle')
                                                                             </button>
                                                                             <button type="button" class="btn-reject" onclick="rejectAuditValue({{ $auditEntries['first_name']['id'] }}, 'first_name', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                <i class="fas fa-times-circle"></i>
+                                                                                @icon('fa-times-circle')
                                                                             </button>
                                                                         </div>
                                                                     @endif
@@ -585,17 +585,17 @@
                                                                         {{ $basicInfo['last_name'] ?? 'Not set' }}
                                                                         @if(isset($auditEntries['last_name']))
                                                                             <span class="audit-badge" title="Pending approval">
-                                                                                <i class="fas fa-clock"></i>
+                                                                                @icon('fa-clock')
                                                                             </span>
                                                                         @endif
                                                                     </span>
                                                                     @if(isset($auditEntries['last_name']))
                                                                         <div class="audit-actions">
                                                                             <button type="button" class="btn-approve" onclick="approveAuditValue({{ $auditEntries['last_name']['id'] }}, 'last_name', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                <i class="fas fa-check-circle"></i>
+                                                                                @icon('fa-check-circle')
                                                                             </button>
                                                                             <button type="button" class="btn-reject" onclick="rejectAuditValue({{ $auditEntries['last_name']['id'] }}, 'last_name', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                <i class="fas fa-times-circle"></i>
+                                                                                @icon('fa-times-circle')
                                                                             </button>
                                                                         </div>
                                                                     @endif
@@ -606,17 +606,17 @@
                                                                         {{ $displayClientId }}
                                                                         @if(isset($auditEntries['client_id']))
                                                                             <span class="audit-badge" title="Pending approval">
-                                                                                <i class="fas fa-clock"></i>
+                                                                                @icon('fa-clock')
                                                                             </span>
                                                                         @endif
                                                                     </span>
                                                                     @if(isset($auditEntries['client_id']))
                                                                         <div class="audit-actions">
                                                                             <button type="button" class="btn-approve" onclick="approveAuditValue({{ $auditEntries['client_id']['id'] }}, 'client_id', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                <i class="fas fa-check-circle"></i>
+                                                                                @icon('fa-check-circle')
                                                                             </button>
                                                                             <button type="button" class="btn-reject" onclick="rejectAuditValue({{ $auditEntries['client_id']['id'] }}, 'client_id', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                <i class="fas fa-times-circle"></i>
+                                                                                @icon('fa-times-circle')
                                                                             </button>
                                                                         </div>
                                                                     @endif
@@ -627,17 +627,17 @@
                                                                         {{ $displayMaritalStatus }}
                                                                         @if(isset($auditEntries['marital_status']))
                                                                             <span class="audit-badge" title="Pending approval">
-                                                                                <i class="fas fa-clock"></i>
+                                                                                @icon('fa-clock')
                                                                             </span>
                                                                         @endif
                                                                     </span>
                                                                     @if(isset($auditEntries['marital_status']))
                                                                         <div class="audit-actions">
                                                                             <button type="button" class="btn-approve" onclick="approveAuditValue({{ $auditEntries['marital_status']['id'] }}, 'marital_status', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                <i class="fas fa-check-circle"></i>
+                                                                                @icon('fa-check-circle')
                                                                             </button>
                                                                             <button type="button" class="btn-reject" onclick="rejectAuditValue({{ $auditEntries['marital_status']['id'] }}, 'marital_status', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                <i class="fas fa-times-circle"></i>
+                                                                                @icon('fa-times-circle')
                                                                             </button>
                                                                         </div>
                                                                     @endif
@@ -648,17 +648,17 @@
                                                                         {{ $dateOfBirth }}
                                                                         @if(isset($auditEntries['dob']))
                                                                             <span class="audit-badge" title="Pending approval">
-                                                                                <i class="fas fa-clock"></i>
+                                                                                @icon('fa-clock')
                                                                             </span>
                                                                         @endif
                                                                     </span>
                                                                     @if(isset($auditEntries['dob']))
                                                                         <div class="audit-actions">
                                                                             <button type="button" class="btn-approve" onclick="approveAuditValue({{ $auditEntries['dob']['id'] }}, 'dob', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                <i class="fas fa-check-circle"></i>
+                                                                                @icon('fa-check-circle')
                                                                             </button>
                                                                             <button type="button" class="btn-reject" onclick="rejectAuditValue({{ $auditEntries['dob']['id'] }}, 'dob', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                <i class="fas fa-times-circle"></i>
+                                                                                @icon('fa-times-circle')
                                                                             </button>
                                                                         </div>
                                                                     @endif
@@ -669,17 +669,17 @@
                                                                         {{ $age }}
                                                                         @if(isset($auditEntries['age']))
                                                                             <span class="audit-badge" title="Pending approval">
-                                                                                <i class="fas fa-clock"></i>
+                                                                                @icon('fa-clock')
                                                                             </span>
                                                                         @endif
                                                                     </span>
                                                                     @if(isset($auditEntries['age']))
                                                                         <div class="audit-actions">
                                                                             <button type="button" class="btn-approve" onclick="approveAuditValue({{ $auditEntries['age']['id'] }}, 'age', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                <i class="fas fa-check-circle"></i>
+                                                                                @icon('fa-check-circle')
                                                                             </button>
                                                                             <button type="button" class="btn-reject" onclick="rejectAuditValue({{ $auditEntries['age']['id'] }}, 'age', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                <i class="fas fa-times-circle"></i>
+                                                                                @icon('fa-times-circle')
                                                                             </button>
                                                                         </div>
                                                                     @endif
@@ -690,17 +690,17 @@
                                                                         {{ $displayGender }}
                                                                         @if(isset($auditEntries['gender']))
                                                                             <span class="audit-badge" title="Pending approval">
-                                                                                <i class="fas fa-clock"></i>
+                                                                                @icon('fa-clock')
                                                                             </span>
                                                                         @endif
                                                                     </span>
                                                                     @if(isset($auditEntries['gender']))
                                                                         <div class="audit-actions">
                                                                             <button type="button" class="btn-approve" onclick="approveAuditValue({{ $auditEntries['gender']['id'] }}, 'gender', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                <i class="fas fa-check-circle"></i>
+                                                                                @icon('fa-check-circle')
                                                                             </button>
                                                                             <button type="button" class="btn-reject" onclick="rejectAuditValue({{ $auditEntries['gender']['id'] }}, 'gender', {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                <i class="fas fa-times-circle"></i>
+                                                                                @icon('fa-times-circle')
                                                                             </button>
                                                                         </div>
                                                                     @endif
@@ -715,7 +715,7 @@
                                                     ?>
                                                     <div class="details-section-card">
                                                         <div class="details-section-header">
-                                                            <h5><i class="fas fa-phone"></i> Phone Number</h5>
+                                                            <h5>@icon('fa-phone') Phone Number</h5>
                                                         </div>
                                                         <div class="summary-view">
                                                             <div class="summary-grid">
@@ -737,17 +737,17 @@
                                                                                 @endif
                                                                                 @if($phoneHasAudit)
                                                                                     <span class="audit-badge" title="Pending approval">
-                                                                                        <i class="fas fa-clock"></i>
+                                                                                        @icon('fa-clock')
                                                                                     </span>
                                                                                 @endif
                                                                             </span>
                                                                             @if($phoneHasAudit)
                                                                                 <div class="audit-actions">
                                                                                     <button type="button" class="btn-approve" onclick="approvePhoneAudit({{ $contact['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                        <i class="fas fa-check-circle"></i>
+                                                                                        @icon('fa-check-circle')
                                                                                     </button>
                                                                                     <button type="button" class="btn-reject" onclick="rejectPhoneAudit({{ $contact['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                        <i class="fas fa-times-circle"></i>
+                                                                                        @icon('fa-times-circle')
                                                                                     </button>
                                                                                 </div>
                                                                             @endif
@@ -791,7 +791,7 @@
                                                     <!-- Email Address Section (source: client_emails + clientportal_details_audit) -->
                                                     <div class="details-section-card">
                                                         <div class="details-section-header">
-                                                            <h5><i class="fas fa-envelope"></i> Email Address</h5>
+                                                            <h5>@icon('fa-envelope') Email Address</h5>
                                                         </div>
                                                         <div class="summary-view">
                                                             <div class="summary-grid">
@@ -808,17 +808,17 @@
                                                                                 {{ $emailValue }}
                                                                                 @if($emailHasAudit)
                                                                                     <span class="audit-badge" title="Pending approval">
-                                                                                        <i class="fas fa-clock"></i>
+                                                                                        @icon('fa-clock')
                                                                                     </span>
                                                                                 @endif
                                                                             </span>
                                                                             @if($emailHasAudit)
                                                                                 <div class="audit-actions">
                                                                                     <button type="button" class="btn-approve" onclick="approveEmailAudit({{ $emailRec['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                        <i class="fas fa-check-circle"></i>
+                                                                                        @icon('fa-check-circle')
                                                                                     </button>
                                                                                     <button type="button" class="btn-reject" onclick="rejectEmailAudit({{ $emailRec['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                        <i class="fas fa-times-circle"></i>
+                                                                                        @icon('fa-times-circle')
                                                                                     </button>
                                                                                 </div>
                                                                             @endif
@@ -837,7 +837,7 @@
                                                     <!-- Passport Information Section (source: client_passport_informations + clientportal_details_audit) -->
                                                     <div class="details-section-card">
                                                         <div class="details-section-header">
-                                                            <h5><i class="fas fa-id-card"></i> Passport Information</h5>
+                                                            <h5>@icon('fa-id-card') Passport Information</h5>
                                                         </div>
                                                         <div class="summary-view">
                                                             <div class="summary-grid">
@@ -863,17 +863,17 @@
                                                                             {{ $passportExpiryDate ?: '—' }}
                                                                             @if($passportHasAudit)
                                                                                 <span class="audit-badge" title="Pending approval">
-                                                                                    <i class="fas fa-clock"></i>
+                                                                                    @icon('fa-clock')
                                                                                 </span>
                                                                             @endif
                                                                         </span>
                                                                         @if($passportHasAudit)
                                                                             <div class="audit-actions">
                                                                                 <button type="button" class="btn-approve" onclick="approvePassportAudit({{ $passport['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                    <i class="fas fa-check-circle"></i>
+                                                                                    @icon('fa-check-circle')
                                                                                 </button>
                                                                                 <button type="button" class="btn-reject" onclick="rejectPassportAudit({{ $passport['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                    <i class="fas fa-times-circle"></i>
+                                                                                    @icon('fa-times-circle')
                                                                                 </button>
                                                                             </div>
                                                                         @endif
@@ -891,7 +891,7 @@
                                                     <!-- Visa Information Section (source: client_visa_countries + clientportal_details_audit) -->
                                                     <div class="details-section-card">
                                                         <div class="details-section-header">
-                                                            <h5><i class="fas fa-stamp"></i> Visa Information</h5>
+                                                            <h5>@icon('fa-stamp') Visa Information</h5>
                                                         </div>
                                                         <div class="summary-view">
                                                             <div class="summary-grid">
@@ -922,17 +922,17 @@
                                                                             {{ $visa['visa_expiry_date'] ?? '—' }}
                                                                             @if($visaHasAudit)
                                                                                 <span class="audit-badge" title="Pending approval">
-                                                                                    <i class="fas fa-clock"></i>
+                                                                                    @icon('fa-clock')
                                                                                 </span>
                                                                             @endif
                                                                         </span>
                                                                         @if($visaHasAudit)
                                                                             <div class="audit-actions">
                                                                                 <button type="button" class="btn-approve" onclick="approveVisaAudit({{ $visa['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                    <i class="fas fa-check-circle"></i>
+                                                                                    @icon('fa-check-circle')
                                                                                 </button>
                                                                                 <button type="button" class="btn-reject" onclick="rejectVisaAudit({{ $visa['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                    <i class="fas fa-times-circle"></i>
+                                                                                    @icon('fa-times-circle')
                                                                                 </button>
                                                                             </div>
                                                                         @endif
@@ -950,7 +950,7 @@
                                                     <!-- Address Information Section (source: client_addresses + clientportal_details_audit) -->
                                                     <div class="details-section-card">
                                                         <div class="details-section-header">
-                                                            <h5><i class="fas fa-map-marker-alt"></i> Address Information</h5>
+                                                            <h5>@icon('fa-map-marker-alt') Address Information</h5>
                                                         </div>
                                                         <div class="summary-view">
                                                             <div class="summary-grid">
@@ -978,17 +978,17 @@
                                                                                 @if(!empty($addr['is_current'])) <span class="badge badge-success">Current</span> @endif
                                                                                 @if($addrHasAudit)
                                                                                     <span class="audit-badge" title="Pending approval">
-                                                                                        <i class="fas fa-clock"></i>
+                                                                                        @icon('fa-clock')
                                                                                     </span>
                                                                                 @endif
                                                                             </span>
                                                                             @if($addrHasAudit)
                                                                                 <div class="audit-actions">
                                                                                     <button type="button" class="btn-approve" onclick="approveAddressAudit({{ $addr['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                        <i class="fas fa-check-circle"></i>
+                                                                                        @icon('fa-check-circle')
                                                                                     </button>
                                                                                     <button type="button" class="btn-reject" onclick="rejectAddressAudit({{ $addr['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                        <i class="fas fa-times-circle"></i>
+                                                                                        @icon('fa-times-circle')
                                                                                     </button>
                                                                                 </div>
                                                                             @endif
@@ -1007,7 +1007,7 @@
                                                     <!-- Travel Information Section (source: client_travel_informations + clientportal_details_audit) -->
                                                     <div class="details-section-card">
                                                         <div class="details-section-header">
-                                                            <h5><i class="fas fa-plane"></i> Travel Information</h5>
+                                                            <h5>@icon('fa-plane') Travel Information</h5>
                                                         </div>
                                                         <div class="summary-view">
                                                             <div class="summary-grid">
@@ -1028,17 +1028,17 @@
                                                                                 {{ $travel['departure_date'] ?? '—' }}
                                                                                 @if($travelHasAudit)
                                                                                     <span class="audit-badge" title="Pending approval">
-                                                                                        <i class="fas fa-clock"></i>
+                                                                                        @icon('fa-clock')
                                                                                     </span>
                                                                                 @endif
                                                                             </span>
                                                                             @if($travelHasAudit)
                                                                                 <div class="audit-actions">
                                                                                     <button type="button" class="btn-approve" onclick="approveTravelAudit({{ $travel['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                        <i class="fas fa-check-circle"></i>
+                                                                                        @icon('fa-check-circle')
                                                                                     </button>
                                                                                     <button type="button" class="btn-reject" onclick="rejectTravelAudit({{ $travel['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                        <i class="fas fa-times-circle"></i>
+                                                                                        @icon('fa-times-circle')
                                                                                     </button>
                                                                                 </div>
                                                                             @endif
@@ -1063,7 +1063,7 @@
                                                     <!-- Educational Qualifications Section -->
                                                     <div class="details-section-card">
                                                         <div class="details-section-header">
-                                                            <h5><i class="fas fa-graduation-cap"></i> Educational Qualifications</h5>
+                                                            <h5>@icon('fa-graduation-cap') Educational Qualifications</h5>
                                                         </div>
                                                         <div class="summary-view">
                                                             <div class="summary-grid">
@@ -1097,17 +1097,17 @@
                                                                                 @if($qualRelevant) <span class="badge badge-info">Relevant</span> @endif
                                                                                 @if($qualHasAudit)
                                                                                     <span class="audit-badge" title="Pending approval">
-                                                                                        <i class="fas fa-clock"></i>
+                                                                                        @icon('fa-clock')
                                                                                     </span>
                                                                                 @endif
                                                                             </span>
                                                                             @if($qualHasAudit)
                                                                                 <div class="audit-actions">
                                                                                     <button type="button" class="btn-approve" onclick="approveQualificationAudit({{ $qual['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                        <i class="fas fa-check-circle"></i>
+                                                                                        @icon('fa-check-circle')
                                                                                     </button>
                                                                                     <button type="button" class="btn-reject" onclick="rejectQualificationAudit({{ $qual['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                        <i class="fas fa-times-circle"></i>
+                                                                                        @icon('fa-times-circle')
                                                                                     </button>
                                                                                 </div>
                                                                             @endif
@@ -1126,7 +1126,7 @@
                                                     <!-- Work Experience Section -->
                                                     <div class="details-section-card">
                                                         <div class="details-section-header">
-                                                            <h5><i class="fas fa-briefcase"></i> Work Experience</h5>
+                                                            <h5>@icon('fa-briefcase') Work Experience</h5>
                                                         </div>
                                                         <div class="summary-view">
                                                             <div class="summary-grid">
@@ -1161,17 +1161,17 @@
                                                                                 @if($expRelevant) <span class="badge badge-info">Relevant</span> @endif
                                                                                 @if($expHasAudit)
                                                                                     <span class="audit-badge" title="Pending approval">
-                                                                                        <i class="fas fa-clock"></i>
+                                                                                        @icon('fa-clock')
                                                                                     </span>
                                                                                 @endif
                                                                             </span>
                                                                             @if($expHasAudit)
                                                                                 <div class="audit-actions">
                                                                                     <button type="button" class="btn-approve" onclick="approveExperienceAudit({{ $exp['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                        <i class="fas fa-check-circle"></i>
+                                                                                        @icon('fa-check-circle')
                                                                                     </button>
                                                                                     <button type="button" class="btn-reject" onclick="rejectExperienceAudit({{ $exp['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                        <i class="fas fa-times-circle"></i>
+                                                                                        @icon('fa-times-circle')
                                                                                     </button>
                                                                                 </div>
                                                                             @endif
@@ -1190,7 +1190,7 @@
                                                     <!-- Occupation Section -->
                                                     <div class="details-section-card">
                                                         <div class="details-section-header">
-                                                            <h5><i class="fas fa-user-tie"></i> Occupation</h5>
+                                                            <h5>@icon('fa-user-tie') Occupation</h5>
                                                         </div>
                                                         <div class="summary-view">
                                                             <div class="summary-grid">
@@ -1224,17 +1224,17 @@
                                                                                     {{ $occSubclass ?? '—' }} {{ $occDates ? ' / ' . $occDates : '' }}{{ $occExpiry ? ' / ' . $occExpiry : '' }}
                                                                                     @if($occHasAudit)
                                                                                         <span class="audit-badge" title="Pending approval">
-                                                                                            <i class="fas fa-clock"></i>
+                                                                                            @icon('fa-clock')
                                                                                         </span>
                                                                                     @endif
                                                                                 </span>
                                                                                 @if($occHasAudit)
                                                                                     <div class="audit-actions">
                                                                                         <button type="button" class="btn-approve" onclick="approveOccupationAudit({{ $occ['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                            <i class="fas fa-check-circle"></i>
+                                                                                            @icon('fa-check-circle')
                                                                                         </button>
                                                                                         <button type="button" class="btn-reject" onclick="rejectOccupationAudit({{ $occ['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                            <i class="fas fa-times-circle"></i>
+                                                                                            @icon('fa-times-circle')
                                                                                         </button>
                                                                                     </div>
                                                                                 @endif
@@ -1260,7 +1260,7 @@
                                                     <!-- Test Score Section -->
                                                     <div class="details-section-card">
                                                         <div class="details-section-header">
-                                                            <h5><i class="fas fa-chart-line"></i> Test Score</h5>
+                                                            <h5>@icon('fa-chart-line') Test Score</h5>
                                                         </div>
                                                         <div class="summary-view">
                                                             <div class="summary-grid">
@@ -1292,17 +1292,17 @@
                                                                                 {{ $testOverall }} {{ $testProficiency ? ' (' . $testProficiency . ')' : '' }}
                                                                                 @if($testHasAudit)
                                                                                     <span class="audit-badge" title="Pending approval">
-                                                                                        <i class="fas fa-clock"></i>
+                                                                                        @icon('fa-clock')
                                                                                     </span>
                                                                                 @endif
                                                                             </span>
                                                                             @if($testHasAudit)
                                                                                 <div class="audit-actions">
                                                                                     <button type="button" class="btn-approve" onclick="approveTestScoreAudit({{ $test['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Approve">
-                                                                                        <i class="fas fa-check-circle"></i>
+                                                                                        @icon('fa-check-circle')
                                                                                     </button>
                                                                                     <button type="button" class="btn-reject" onclick="rejectTestScoreAudit({{ $test['meta_order'] }}, {{ $clientId }}, {{ $selectedMatter ? $selectedMatter->id : 'null' }})" title="Reject">
-                                                                                        <i class="fas fa-times-circle"></i>
+                                                                                        @icon('fa-times-circle')
                                                                                     </button>
                                                                                 </div>
                                                                             @endif
@@ -1336,20 +1336,20 @@
             @else
                 <!-- Portal is Inactive -->
                 <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i> Client portal is currently inactive. Use the toggle in the sidebar to activate it.
+                    @icon('fa-exclamation-triangle') Client portal is currently inactive. Use the toggle in the sidebar to activate it.
                 </div>
 
                 <div class="info-card">
-                    <h5><i class="fas fa-info-circle"></i> About Client Portal</h5>
+                    <h5>@icon('fa-info-circle') About Client Portal</h5>
                     <p>The client portal allows clients to:</p>
                     <ul class="feature-list">
-                        <li><i class="fas fa-check text-success"></i> View their case status and progress</li>
-                        <li><i class="fas fa-check text-success"></i> Access and download documents</li>
-                        <li><i class="fas fa-check text-success"></i> Upload required documents</li>
-                        <li><i class="fas fa-check text-success"></i> View appointments and deadlines</li>
-                        <li><i class="fas fa-check text-success"></i> Communicate via secure messaging</li>
-                        <li><i class="fas fa-check text-success"></i> View invoices and payment history</li>
-                        <li><i class="fas fa-check text-success"></i> Update their profile information</li>
+                        <li>@icon('fa-check', ['class' => 'text-success']) View their case status and progress</li>
+                        <li>@icon('fa-check', ['class' => 'text-success']) Access and download documents</li>
+                        <li>@icon('fa-check', ['class' => 'text-success']) Upload required documents</li>
+                        <li>@icon('fa-check', ['class' => 'text-success']) View appointments and deadlines</li>
+                        <li>@icon('fa-check', ['class' => 'text-success']) Communicate via secure messaging</li>
+                        <li>@icon('fa-check', ['class' => 'text-success']) View invoices and payment history</li>
+                        <li>@icon('fa-check', ['class' => 'text-success']) Update their profile information</li>
                     </ul>
 
                     <?php
@@ -1363,20 +1363,20 @@
 
                     @if(!$hasEmail || !$hasMatters)
                         <div class="alert alert-danger mt-3">
-                            <h6><i class="fas fa-exclamation-circle"></i> Portal Activation Requirements:</h6>
+                            <h6>@icon('fa-exclamation-circle') Portal Activation Requirements:</h6>
                             <ul class="mb-0">
                                 @if(!$hasEmail)
-                                    <li><i class="fas fa-times text-danger"></i> Client email address is required</li>
+                                    <li>@icon('fa-times', ['class' => 'text-danger']) Client email address is required</li>
                                 @endif
                                 @if(!$hasMatters)
-                                    <li><i class="fas fa-times text-danger"></i> At least one active matter is required</li>
+                                    <li>@icon('fa-times', ['class' => 'text-danger']) At least one active matter is required</li>
                                 @endif
                             </ul>
                             <p class="mt-2 mb-0"><strong>Please complete these requirements before activating the portal.</strong></p>
                         </div>
                     @else
                         <div class="alert alert-success mt-3">
-                            <i class="fas fa-check-circle"></i> All requirements met. You can activate the portal using the toggle in the sidebar.
+                            @icon('fa-check-circle') All requirements met. You can activate the portal using the toggle in the sidebar.
                         </div>
                     @endif
                 </div>
@@ -3889,7 +3889,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const btn = this;
         const orig = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        btn.innerHTML = '@icon('fa-spinner', ['spin' => true]) Processing...';
         $('#decision-received-modal').modal('hide');
 
         const decisionPayload = { matter_id: matterId, decision_outcome: outcome, decision_note: note };
@@ -4473,9 +4473,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 iconDiv.className = isPdf ? 'doc-icon-pdf' : 'doc-icon-generic';
                 iconDiv.textContent = isPdf ? 'PDF' : '';
                 if (!isPdf) {
-                    const icon = document.createElement('i');
-                    icon.className = 'fas fa-file-alt';
-                    iconDiv.appendChild(icon);
+                    iconDiv.innerHTML = crmI('fas fa-file-alt');
                 }
                 const infoDiv = document.createElement('div');
                 infoDiv.className = 'doc-info';
@@ -4798,9 +4796,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     img.src = URL.createObjectURL(file);
                     item.appendChild(img);
                 } else {
-                    const icon = document.createElement('i');
-                    icon.className = file.type === 'application/pdf' ? 'fas fa-file-pdf' : 'fas fa-file-alt';
-                    item.appendChild(icon);
+                    item.innerHTML = crmI(file.type === 'application/pdf' ? 'fas fa-file-pdf' : 'fas fa-file-alt');
                 }
                 item.appendChild(check);
                 item.appendChild(removeBtn);
@@ -4829,7 +4825,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 const div = document.createElement('div');
                 div.className = 'doc-placeholder';
-                div.innerHTML = '<i class="fas fa-file-alt"></i><span>' + (file.name || 'Document') + '</span>';
+                div.innerHTML = '@icon('fa-file-alt')<span>' + (file.name || 'Document') + '</span>';
                 docPreviewContent.appendChild(div);
             }
         }
@@ -5958,7 +5954,7 @@ $(document).on('click', '.cp-doc-checklist-row', function () {
     $('#cp-checklist-placeholder').hide();
     $('#cp-checklist-documents-content').show();
     $('#cp-checklist-selected-name').text(checklistName);
-    $('#cp-checklist-documents-tbody').html('<tr><td colspan="4" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>');
+    $('#cp-checklist-documents-tbody').html('<tr><td colspan="4" class="text-center">@icon('fa-spinner', ['spin' => true]) Loading...</td></tr>');
 
     $.ajax({
         url: '/api/client-portal/checklist-documents',
@@ -5984,11 +5980,11 @@ $(document).on('click', '.cp-doc-checklist-row', function () {
 
                     // Row 2 buttons — no spacers; show only what's relevant for each status
                     var approveBtn = (doc.cp_doc_status != 1)   // hide when already Approved
-                        ? '<a href="javascript:void(0);" class="btn btn-sm btn-success cp-approve-doc-btn" data-document-id="' + doc.id + '" title="Approve"><i class="fa fa-check-circle"></i></a>'
+                        ? '<a href="javascript:void(0);" class="btn btn-sm btn-success cp-approve-doc-btn" data-document-id="' + doc.id + '" title="Approve">@icon('fa-check-circle')</a>'
                         : '';
 
                     var rejectBtn = (doc.cp_doc_status != 2)    // hide when already Rejected
-                        ? '<a href="javascript:void(0);" class="btn btn-sm btn-warning cp-reject-doc-btn" data-document-id="' + doc.id + '" title="Reject"><i class="fa fa-times-circle"></i></a>'
+                        ? '<a href="javascript:void(0);" class="btn btn-sm btn-warning cp-reject-doc-btn" data-document-id="' + doc.id + '" title="Reject">@icon('fa-times-circle')</a>'
                         : '';
 
                     var fileUrl     = doc.myfile || '';
@@ -5997,10 +5993,10 @@ $(document).on('click', '.cp-doc-checklist-row', function () {
                         ? '<a href="' + fileUrl + '" target="_blank" title="Click to preview" style="color:inherit;text-decoration:underline;cursor:pointer;">' + fileNameDisplay + '</a>'
                         : fileNameDisplay;
 
-                    var downloadBtn = '<a href="javascript:void(0);" class="btn btn-sm btn-primary cp-download-doc-btn" data-document-id="' + doc.id + '" data-file-name="' + (doc.file_name || 'document') + '" title="Download"><i class="fa fa-download"></i></a>';
-                    var deleteBtn   = '<a href="javascript:void(0);" class="btn btn-sm btn-danger cp-delete-doc-btn" data-document-id="' + doc.id + '" data-list-id="' + checklistId + '" title="Delete"><i class="fa fa-trash"></i></a>';
+                    var downloadBtn = '<a href="javascript:void(0);" class="btn btn-sm btn-primary cp-download-doc-btn" data-document-id="' + doc.id + '" data-file-name="' + (doc.file_name || 'document') + '" title="Download">@icon('fa-download')</a>';
+                    var deleteBtn   = '<a href="javascript:void(0);" class="btn btn-sm btn-danger cp-delete-doc-btn" data-document-id="' + doc.id + '" data-list-id="' + checklistId + '" title="Delete">@icon('fa-trash')</a>';
                     var moveBtn     = (doc.cp_doc_status == 1)
-                        ? '<a href="javascript:void(0);" class="btn btn-sm btn-info cp-move-doc-btn" data-document-id="' + doc.id + '" data-matter-id="' + (matterId || '') + '" data-list-id="' + checklistId + '" title="Move Document"><i class="fa fa-arrows-alt"></i></a>'
+                        ? '<a href="javascript:void(0);" class="btn btn-sm btn-info cp-move-doc-btn" data-document-id="' + doc.id + '" data-matter-id="' + (matterId || '') + '" data-list-id="' + checklistId + '" title="Move Document">@icon('fa-arrows-alt')</a>'
                         : '';
 
                     html += '<tr data-matter-id="' + (matterId || '') + '">'
@@ -6085,8 +6081,8 @@ $(document).on('click', '.cp-approve-doc-btn', function () {
                 // Row 2: Approved → [Reject][Move]
                 var listId = $actionRow.closest('td').find('.cp-delete-doc-btn').data('list-id') || '';
                 $actionRow.html(
-                    '<a href="javascript:void(0);" class="btn btn-sm btn-warning cp-reject-doc-btn" data-document-id="' + documentId + '" title="Reject"><i class="fa fa-times-circle"></i></a>' +
-                    '<a href="javascript:void(0);" class="btn btn-sm btn-info cp-move-doc-btn" data-document-id="' + documentId + '" data-matter-id="' + matterId + '" data-list-id="' + listId + '" title="Move Document"><i class="fa fa-arrows-alt"></i></a>'
+                    '<a href="javascript:void(0);" class="btn btn-sm btn-warning cp-reject-doc-btn" data-document-id="' + documentId + '" title="Reject">@icon('fa-times-circle')</a>' +
+                    '<a href="javascript:void(0);" class="btn btn-sm btn-info cp-move-doc-btn" data-document-id="' + documentId + '" data-matter-id="' + matterId + '" data-list-id="' + listId + '" title="Move Document">@icon('fa-arrows-alt')</a>'
                 );
                 alert('Document has been approved successfully.');
             } else {
@@ -6117,7 +6113,7 @@ $(document).on('click', '.cp-reject-doc-btn', function () {
                 $btn.closest('tr').find('td:nth-child(3)').html('<span class="badge badge-danger" title="' + $('<div>').text(reason || 'No reason provided').html() + '" style="cursor:help;">Rejected</span>');
                 // Row 2: Rejected → [Approve] only (Move only shows when Approved)
                 $btn.closest('.action-row').html(
-                    '<a href="javascript:void(0);" class="btn btn-sm btn-success cp-approve-doc-btn" data-document-id="' + documentId + '" title="Approve"><i class="fa fa-check-circle"></i></a>'
+                    '<a href="javascript:void(0);" class="btn btn-sm btn-success cp-approve-doc-btn" data-document-id="' + documentId + '" title="Approve">@icon('fa-check-circle')</a>'
                 );
             } else {
                 alert(response.message || 'Failed to reject document.');
@@ -6133,7 +6129,7 @@ $(document).on('click', '.cp-reject-doc-btn', function () {
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="cpWorkflowMoveDocModalLabel"><i class="fa fa-arrows-alt mr-1"></i> Move Document</h5>
+                <h5 class="modal-title" id="cpWorkflowMoveDocModalLabel">@icon('fa-arrows-alt', ['class' => 'mr-1']) Move Document</h5>
                 <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
             <div class="modal-body">

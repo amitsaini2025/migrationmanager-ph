@@ -171,6 +171,13 @@ function initLucideIcons() {
 
 window.crmIcon = crmIcon;
 window.crmIconLegacy = crmIconLegacy;
+/** Shorthand for crmIconLegacy — use in template literals / dynamic HTML. */
+window.crmI = function crmI(legacyClass, options) {
+    if (typeof crmIconLegacy === 'function') {
+        return crmIconLegacy(legacyClass, options || {});
+    }
+    return '<i class="' + legacyClass + '"></i>';
+};
 window.refreshLucideIcons = refreshLucideIcons;
 
 if (document.readyState === 'loading') {

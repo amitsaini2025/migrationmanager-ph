@@ -1279,6 +1279,11 @@ $(function () {
         setTimeout(function() {
             initializeClientMmSelect();
         }, 100);
+
+        // Hydrate Lucide SVG placeholders injected via tpl.innerHTML
+        if (typeof refreshLucideIcons === 'function') {
+            refreshLucideIcons($popover[0]);
+        }
     });
     
     // Hide backdrop when Add My Task popover is hidden

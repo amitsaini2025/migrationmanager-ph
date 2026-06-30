@@ -8,13 +8,13 @@
         <div style="display: inline-block; margin-right: 20px; padding: 5px; background: #f8f9fa; border-radius: 5px;">
             <strong style="font-size: 12px; color: #666; margin-right: 10px;">Create Entry:</strong>
             <a class="btn btn-success createreceipt" href="javascript:;" role="button" data-account-entry="true" data-receipt-type="1" style="margin-right: 5px;">
-                <i class="fas fa-wallet"></i> Client Funds Ledger
+                @icon('fa-wallet') Client Funds Ledger
             </a>
             <a class="btn btn-primary createreceipt" href="javascript:;" role="button" data-account-entry="true" data-receipt-type="2" style="margin-right: 5px;">
-                <i class="fas fa-hand-holding-usd"></i> Direct Office Receipt
+                @icon('fa-hand-holding-usd') Direct Office Receipt
             </a>
             <a class="btn btn-info createreceipt" href="javascript:;" role="button" data-account-entry="true" data-receipt-type="3">
-                <i class="fas fa-file-invoice-dollar"></i> Invoice
+                @icon('fa-file-invoice-dollar') Invoice
             </a>
         </div>
     </div>
@@ -23,7 +23,7 @@
         <!-- Client Funds Ledger Section -->
         <section class="account-section client-account">
             <div class="account-section-header">
-                <h2><i class="fas fa-wallet" style="color: #28a745;"></i> Client Funds Ledger</h2>
+                <h2>@icon('fa-wallet', ['style' => 'color: #28a745;']) Client Funds Ledger</h2>
                 <div class="balance-display">
                     <div class="balance-label">Current Funds Held</div>
                     <div class="balance-amount funds-held">
@@ -127,7 +127,7 @@
                                     <?php
                                     if( isset($rec_val->validate_receipt) && $rec_val->validate_receipt == '1' )
                                     { ?>
-                                        <i class="fas fa-check-circle" title="Verified Receipt" style="margin-right: 5px; color: #28a745;"></i>
+                                        @icon('fa-check-circle', ['style' => 'margin-right: 5px; color: #28a745;', 'title' => 'Verified Receipt'])
                                     <?php
                                     } ?>
                                     <?php echo $rec_val->trans_date;?>
@@ -147,7 +147,7 @@
                                 } else {
                                     $type_icon = 'fa-arrow-up';
                                 }?>
-                                <i class="fas {{$type_icon}} type-icon" title="{{$rec_val->client_fund_ledger_type}}"></i>
+                                {!! \App\Helpers\IconHelper::fromLegacy('fas ' . $type_icon, ['class' => 'type-icon', 'title' => $rec_val->client_fund_ledger_type]) !!}
                                 <span>
                                     {{$rec_val->client_fund_ledger_type}}
                                     <?php
@@ -183,7 +183,7 @@
                                             $docUrl = Storage::disk('s3')->url($filePath);
                                         }
                                         ?>
-                                        <a target="_blank" title="See Attached Document" class="link-primary" href="<?php echo $docUrl;?>"><i class="fas fa-file-pdf"></i></a>
+                                        <a target="_blank" title="See Attached Document" class="link-primary" href="<?php echo $docUrl;?>">@icon('fa-file-pdf')</a>
                                     <?php
                                     }
                                 } ?>
@@ -201,21 +201,21 @@
                             <td style="text-align: center; vertical-align: middle;">
                                 <div class="dropdown d-inline-block">
                                     <span class="reference-dropdown-trigger dropdown-toggle" id="dropdownReceipt{{$rec_val->id}}" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
-                                        <?php echo $rec_val->trans_no;?> <i class="fas fa-caret-down" style="font-size: 11px; opacity: 0.6; margin-left: 3px;"></i>
+                                        <?php echo $rec_val->trans_no;?> @icon('fa-caret-down', ['style' => 'font-size: 11px; opacity: 0.6; margin-left: 3px;'])
                                     </span>
                                     <div class="dropdown-menu" aria-labelledby="dropdownReceipt{{$rec_val->id}}">
                                         <a class="dropdown-item" href="{{URL::to('/clients/genClientFundReceipt')}}/{{$rec_val->id}}" target="_blank">
-                                            <i class="fas fa-eye"></i> View Receipt
+                                            @icon('fa-eye') View Receipt
                                         </a>
                                         <a class="dropdown-item" href="{{URL::to('/clients/genClientFundReceipt')}}/{{$rec_val->id}}?regenerate=1" target="_blank">
-                                            <i class="fas fa-sync-alt"></i> Regenerate Invoice
+                                            @icon('fa-sync-alt') Regenerate Invoice
                                         </a>
                                         <a class="dropdown-item" href="{{URL::to('/clients/genClientFundReceipt')}}/{{$rec_val->id}}?download=1">
-                                            <i class="fas fa-download"></i> Download PDF
+                                            @icon('fa-download') Download PDF
                                         </a>
                                         <div class="dropdown-divider"></div>
                                         <a class="dropdown-item send-client-fund-receipt-to-client" href="javascript:;" data-receipt-id="<?php echo $rec_val->id; ?>" data-receipt-no="<?php echo $rec_val->trans_no; ?>">
-                                            <i class="fas fa-envelope"></i> Send to Client
+                                            @icon('fa-envelope') Send to Client
                                         </a>
                                         <div class="dropdown-divider"></div>
                                         <?php if(!empty($rec_val->uploaded_doc_id)) { 
@@ -241,18 +241,18 @@
                                                 }
                                                 ?>
                                         <a class="dropdown-item" href="<?php echo $docUrl; ?>" target="_blank">
-                                            <i class="fas fa-file-alt"></i> View Uploaded Receipt
+                                            @icon('fa-file-alt') View Uploaded Receipt
                                         </a>
                                         <?php } } ?>
                                         <a class="dropdown-item upload-clientreceipt-doc" href="javascript:;" 
                                             data-receipt-id="<?php echo $rec_val->id; ?>" 
                                             data-client-id="<?php echo $fetchedData->id; ?>"
                                             data-matter-id="<?php echo $rec_val->client_matter_id; ?>">
-                                            <i class="fas fa-upload"></i> <?php echo !empty($rec_val->uploaded_doc_id) ? 'Replace' : 'Upload'; ?> Receipt Document
+                                            @icon('fa-upload') <?php echo !empty($rec_val->uploaded_doc_id) ? 'Replace' : 'Upload'; ?> Receipt Document
                                         </a>
                                         <div class="dropdown-divider"></div>
                                         <a class="dropdown-item send-client-fund-receipt-to-client" href="javascript:;" data-receipt-id="<?php echo $rec_val->id; ?>" data-receipt-no="<?php echo $rec_val->trans_no; ?>">
-                                            <i class="fas fa-envelope"></i> Send to Client
+                                            @icon('fa-envelope') Send to Client
                                         </a>
                                         <?php if($rec_val->client_fund_ledger_type !== 'Fee Transfer'){ ?>
                                         <div class="dropdown-divider"></div>
@@ -267,12 +267,12 @@
                                             data-withdraw="<?php echo htmlspecialchars($rec_val->withdraw_amount ?? 0, ENT_QUOTES, 'UTF-8'); ?>"
                                             data-payment-method="<?php echo htmlspecialchars($rec_val->payment_method ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                                             data-eftpos-surcharge="<?php echo htmlspecialchars($rec_val->eftpos_surcharge_amount ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                                            <i class="fas fa-edit"></i> Edit Entry
+                                            @icon('fa-edit') Edit Entry
                                         </a>
                                         <?php } ?>
                                         <div class="dropdown-divider"></div>
                                         <a class="dropdown-item copy-reference" href="javascript:;" data-reference="<?php echo $rec_val->trans_no;?>">
-                                            <i class="fas fa-copy"></i> Copy Reference
+                                            @icon('fa-copy') Copy Reference
                                         </a>
                                         
                                         <?php 
@@ -283,7 +283,7 @@
                                         <div class="dropdown-divider"></div>
                                         <?php if($isAllocated) { ?>
                                         <a class="dropdown-item" href="javascript:;" style="color: #28a745; cursor: default;" onclick="return false;">
-                                            <i class="fas fa-check-circle"></i> Already Allocated to <?php echo $rec_val->invoice_no; ?>
+                                            @icon('fa-check-circle') Already Allocated to <?php echo $rec_val->invoice_no; ?>
                                         </a>
                                         <a class="dropdown-item quick-allocate-ledger" href="javascript:;"
                                             data-receipt-id="<?php echo $rec_val->id; ?>"
@@ -291,7 +291,7 @@
                                             data-matter-id="<?php echo $rec_val->client_matter_id; ?>"
                                             data-client-id="<?php echo $fetchedData->id; ?>"
                                             style="padding-left: 2rem;">
-                                            <i class="fas fa-sync-alt"></i> Re-allocate to Different Invoice
+                                            @icon('fa-sync-alt') Re-allocate to Different Invoice
                                         </a>
                                         <?php } else { ?>
                                         <a class="dropdown-item quick-allocate-ledger" href="javascript:;"
@@ -299,7 +299,7 @@
                                             data-receipt-amount="<?php echo $rec_val->deposit_amount; ?>"
                                             data-matter-id="<?php echo $rec_val->client_matter_id; ?>"
                                             data-client-id="<?php echo $fetchedData->id; ?>">
-                                            <i class="fas fa-magic"></i> Quick Allocate to Invoice
+                                            @icon('fa-magic') Quick Allocate to Invoice
                                         </a>
                                         <?php } ?>
                                         <?php } ?>
@@ -321,7 +321,7 @@
         <!-- Invoicing & Office Receipts Section -->
         <section class="account-section office-account">
             <div class="account-section-header">
-                <h2><i class="fas fa-file-invoice-dollar" style="color: #007bff;"></i> Invoicing & Office Receipts</h2>
+                <h2>@icon('fa-file-invoice-dollar', ['style' => 'color: #007bff;']) Invoicing & Office Receipts</h2>
                 <div class="balance-display">
                     <div class="balance-label">Outstanding Balance</div>
                     <div class="balance-amount outstanding outstanding-balance">
@@ -349,7 +349,7 @@
 
                         <?php if ($latest_outstanding_balance < 0): ?>
                             <a class="link-primary adjustinvoice" href="javascript:;" title="Adjust Invoice">
-                                <i class="fas fa-pencil-alt"></i>
+                                @icon('fa-pencil-alt')
                             </a>
                         <?php endif; ?>
                     </div>
@@ -419,32 +419,32 @@
                                         <td style="text-align: center; vertical-align: middle;">
                                             <div class="dropdown d-inline-block">
                                             <span class="reference-dropdown-trigger dropdown-toggle" id="dropdownInvoice{{$inc_val->id}}" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
-                                                <?php echo $inc_val->trans_no;?> <i class="fas fa-caret-down" style="font-size: 11px; opacity: 0.6; margin-left: 3px;"></i>
+                                                <?php echo $inc_val->trans_no;?> @icon('fa-caret-down', ['style' => 'font-size: 11px; opacity: 0.6; margin-left: 3px;'])
                                             </span>
                                             <div class="dropdown-menu" aria-labelledby="dropdownInvoice{{$inc_val->id}}">
                                                 <?php if($saveTypeLower === 'final') { ?>
                                                 <a class="dropdown-item" href="{{URL::to('/clients/genInvoice')}}/{{$inc_val->receipt_id}}/{{$fetchedData->id}}" target="_blank">
-                                                    <i class="fas fa-eye"></i> View Invoice
+                                                    @icon('fa-eye') View Invoice
                                                 </a>
                                                 <a class="dropdown-item" href="{{URL::to('/clients/genInvoice')}}/{{$inc_val->receipt_id}}/{{$fetchedData->id}}?regenerate=1" target="_blank">
-                                                    <i class="fas fa-sync-alt"></i> Regenerate Invoice
+                                                    @icon('fa-sync-alt') Regenerate Invoice
                                                 </a>
                                                 <a class="dropdown-item" href="{{URL::to('/clients/genInvoice')}}/{{$inc_val->receipt_id}}/{{$fetchedData->id}}?download=1">
-                                                    <i class="fas fa-download"></i> Download PDF
+                                                    @icon('fa-download') Download PDF
                                                 </a>
                                                 <div class="dropdown-divider"></div>
                                                 <a class="dropdown-item send-invoice-to-client" href="javascript:;" data-invoice-id="<?php echo $inc_val->receipt_id; ?>" data-invoice-no="<?php echo $inc_val->trans_no; ?>">
-                                                    <i class="fas fa-envelope"></i> Send to Client
+                                                    @icon('fa-envelope') Send to Client
                                                 </a>
                                                 <?php } ?>
                                                 <?php if($saveTypeLower === 'draft'){ ?>
                                                 <a class="dropdown-item updatedraftinvoice" href="javascript:;" data-receiptid="<?php echo $inc_val->receipt_id;?>">
-                                                    <i class="fas fa-edit"></i> Edit Draft Invoice
+                                                    @icon('fa-edit') Edit Draft Invoice
                                                 </a>
                                                 <?php } ?>
                                                 <div class="dropdown-divider"></div>
                                                 <a class="dropdown-item copy-reference" href="javascript:;" data-reference="<?php echo $inc_val->trans_no;?>">
-                                                    <i class="fas fa-copy"></i> Copy Invoice #
+                                                    @icon('fa-copy') Copy Invoice #
                                                 </a>
                                                 
                                                 <?php if($saveTypeLower === 'final') { ?>
@@ -464,17 +464,17 @@
                                                         ->value('hubdoc_sent_at');
                                                 ?>
                                                     <a class="dropdown-item send-to-hubdoc-btn" href="javascript:;" data-invoice-id="<?php echo $inc_val->receipt_id; ?>" data-hubdoc-sent="1" style="color: #28a745;">
-                                                        <i class="fas fa-check"></i> Already Sent to Hubdoc
+                                                        @icon('fa-check') Already Sent to Hubdoc
                                                     </a>
                                                     <div class="dropdown-item-text hubdoc-sent-time" style="font-size: 11px; color: #666; padding: 0.25rem 1rem;">
                                                         Sent: <?php echo date('d/m/Y H:i', strtotime($hubdoc_sent_at)); ?>
                                                     </div>
                                                     <a class="dropdown-item refresh-hubdoc-status" href="javascript:;" data-invoice-id="<?php echo $inc_val->receipt_id; ?>">
-                                                        <i class="fas fa-sync-alt"></i> Refresh Status
+                                                        @icon('fa-sync-alt') Refresh Status
                                                     </a>
                                                 <?php } else { ?>
                                                     <a class="dropdown-item send-to-hubdoc-btn" href="javascript:;" data-invoice-id="<?php echo $inc_val->receipt_id; ?>">
-                                                        <i class="fas fa-paper-plane"></i> Send to Hubdoc
+                                                        @icon('fa-paper-plane') Send to Hubdoc
                                                     </a>
                                                 <?php } ?>
                                                 <?php 
@@ -493,7 +493,7 @@
                                                 <div class="dropdown-divider"></div>
                                                 <?php if($client_app_sent) { ?>
                                                     <span class="dropdown-item" style="color: #28a745;">
-                                                        <i class="fas fa-check"></i> Already Sent to Client Portal
+                                                        @icon('fa-check') Already Sent to Client Portal
                                                     </span>
                                                     <?php if(!empty($client_app_sent_at)) { ?>
                                                     <div class="dropdown-item-text" style="font-size: 11px; color: #666; padding: 0.25rem 1rem;">
@@ -502,7 +502,7 @@
                                                     <?php } ?>
                                                 <?php } else { ?>
                                                     <a class="dropdown-item send-to-client-portal-btn" href="javascript:;" data-invoice-id="<?php echo $inc_val->receipt_id; ?>" data-invoice-no="<?php echo $inc_val->trans_no; ?>">
-                                                        <i class="fas fa-mobile-alt"></i> Send to Client Portal
+                                                        @icon('fa-mobile-alt') Send to Client Portal
                                                     </a>
                                                 <?php } ?>
                                                 <?php } ?>
@@ -608,7 +608,7 @@
                                         <?php
                                         if( isset($off_val->validate_receipt) && $off_val->validate_receipt == '1' )
                                         { ?>
-                                            <i class="fas fa-check-circle" title="Verified Receipt" style="margin-right: 5px; color: #28a745;"></i>
+                                            @icon('fa-check-circle', ['style' => 'margin-right: 5px; color: #28a745;', 'title' => 'Verified Receipt'])
                                         <?php
                                         } ?>
                                         <?php echo $off_val->trans_date;?>
@@ -635,7 +635,7 @@
                                             }
                                             ?>
                                             <br/>
-                                            <a title="See Attached Document" target="_blank" class="link-primary" href="<?php echo $docUrl;?>"><i class="fas fa-file-pdf"></i> Document</a>
+                                            <a title="See Attached Document" target="_blank" class="link-primary" href="<?php echo $docUrl;?>">@icon('fa-file-pdf') Document</a>
                                         <?php
                                         }
                                     } ?>
@@ -649,7 +649,7 @@
                                 ];
                                 ?>
                                 <td class="type-cell" style="text-align: left; vertical-align: middle;">
-                                   <i class="fas  <?php echo $payClassMap[$off_val->payment_method] ?? 'fa-money-bill'; ?> type-icon"></i>
+                                   {!! \App\Helpers\IconHelper::fromLegacy('fas ' . ($payClassMap[$off_val->payment_method] ?? 'fa-money-bill'), ['class' => 'type-icon']) !!}
                                    <span>
                                     {{$off_val->payment_method}}
                                     
@@ -678,19 +678,19 @@
                                     <td style="text-align: center; vertical-align: middle;">
                                         <div class="dropdown d-inline-block">
                                         <span class="reference-dropdown-trigger dropdown-toggle" id="dropdownOffice{{$off_val->id}}" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
-                                            <?php echo $off_val->trans_no;?> <i class="fas fa-caret-down" style="font-size: 11px; opacity: 0.6; margin-left: 3px;"></i>
+                                            <?php echo $off_val->trans_no;?> @icon('fa-caret-down', ['style' => 'font-size: 11px; opacity: 0.6; margin-left: 3px;'])
                                         </span>
                                         <div class="dropdown-menu" aria-labelledby="dropdownOffice{{$off_val->id}}">
                                             <?php if(isset($off_val->save_type) && $off_val->save_type == 'final') { ?>
                                             <a class="dropdown-item" href="{{URL::to('/clients/genOfficeReceipt')}}/{{$off_val->id}}" target="_blank">
-                                                <i class="fas fa-eye"></i> View Receipt
+                                                @icon('fa-eye') View Receipt
                                             </a>
                                             <a class="dropdown-item" href="{{URL::to('/clients/genOfficeReceipt')}}/{{$off_val->id}}?download=1">
-                                                <i class="fas fa-download"></i> Download PDF
+                                                @icon('fa-download') Download PDF
                                             </a>
                                             <div class="dropdown-divider"></div>
                                             <a class="dropdown-item send-office-receipt-to-client" href="javascript:;" data-receipt-id="<?php echo $off_val->id; ?>" data-receipt-no="<?php echo $off_val->trans_no; ?>">
-                                                <i class="fas fa-envelope"></i> Send to Client
+                                                @icon('fa-envelope') Send to Client
                                             </a>
                                             <?php } ?>
                                             <div class="dropdown-divider"></div>
@@ -715,14 +715,14 @@
                                                     }
                                                     ?>
                                             <a class="dropdown-item" href="<?php echo $docUrl; ?>" target="_blank">
-                                                <i class="fas fa-file-alt"></i> View Uploaded Receipt
+                                                @icon('fa-file-alt') View Uploaded Receipt
                                             </a>
                                             <?php } } ?>
                                             <a class="dropdown-item upload-officereceipt-doc" href="javascript:;" 
                                                 data-receipt-id="<?php echo $off_val->id; ?>" 
                                                 data-client-id="<?php echo $fetchedData->id; ?>"
                                                 data-matter-id="<?php echo $off_val->client_matter_id; ?>">
-                                                <i class="fas fa-upload"></i> <?php echo !empty($off_val->uploaded_doc_id) ? 'Replace' : 'Upload'; ?> Receipt Document
+                                                @icon('fa-upload') <?php echo !empty($off_val->uploaded_doc_id) ? 'Replace' : 'Upload'; ?> Receipt Document
                                             </a>
                                             <?php
                                             $currentUserRole = Auth::check() ? Auth::user()->role : null;
@@ -742,12 +742,12 @@
                                                 data-matter-id="<?php echo $off_val->client_matter_id; ?>"
                                                 data-uploaded-doc-id="<?php echo $off_val->uploaded_doc_id ?? ''; ?>"
                                                 data-save-type="<?php echo htmlspecialchars($off_val->save_type ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                                                <i class="fas fa-edit"></i> <?php echo ($currentUserRole == 1 && isset($off_val->save_type) && $off_val->save_type == 'final') ? 'Edit Receipt' : 'Edit Draft Receipt'; ?>
+                                                @icon('fa-edit') <?php echo ($currentUserRole == 1 && isset($off_val->save_type) && $off_val->save_type == 'final') ? 'Edit Receipt' : 'Edit Draft Receipt'; ?>
                                             </a>
                                             <?php } ?>
                                             <div class="dropdown-divider"></div>
                                             <a class="dropdown-item copy-reference" href="javascript:;" data-reference="<?php echo $off_val->trans_no;?>">
-                                                <i class="fas fa-copy"></i> Copy Reference
+                                                @icon('fa-copy') Copy Reference
                                             </a>
                                             
                                             <?php 
@@ -761,7 +761,7 @@
                                                 data-matter-id="<?php echo $off_val->client_matter_id; ?>"
                                                 data-client-id="<?php echo $fetchedData->id; ?>"
                                                 style="color: #ff6b6b; font-weight: 600;">
-                                                <i class="fas fa-link"></i> Quick Allocate to Invoice
+                                                @icon('fa-link') Quick Allocate to Invoice
                                             </a>
                                             <?php } ?>
                                         </div>
@@ -776,7 +776,7 @@
                                     ?>
                                     <br/>
                                     <small style="color: #dc3545; font-weight: 600;">
-                                        <i class="fas fa-exclamation-circle"></i> Unallocated
+                                        @icon('fa-exclamation-circle') Unallocated
                                     </small>
                                     <?php } ?>
                                 </td>
@@ -813,9 +813,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update modal title based on receipt type
         const modalTitles = {
-            '1': '<i class="fas fa-wallet" style="color: #28a745;"></i> Create Client Funds Ledger Entry',
-            '2': '<i class="fas fa-hand-holding-usd" style="color: #007bff;"></i> Create Direct Office Receipt',
-            '3': '<i class="fas fa-file-invoice-dollar" style="color: #17a2b8;"></i> Create Invoice'
+            '1': '@icon('fa-wallet', ['style' => 'color: #28a745;']) Create Client Funds Ledger Entry',
+            '2': '@icon('fa-hand-holding-usd', ['style' => 'color: #007bff;']) Create Direct Office Receipt',
+            '3': '@icon('fa-file-invoice-dollar', ['style' => 'color: #17a2b8;']) Create Invoice'
         };
         
         $modal.find('.modal-title').html(modalTitles[receiptType] || 'Create Receipt');
@@ -948,7 +948,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(reference).then(() => {
                 // Show success feedback
-                $item.html('<i class="fas fa-check"></i> Copied!');
+                $item.html('@icon('fa-check') Copied!');
                 $item.css({'background-color': '#d4edda', 'color': '#155724'});
                 
                 // Reset after 1.5 seconds
@@ -960,7 +960,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('✅ Copied to clipboard:', reference);
             }).catch(err => {
                 console.error('Failed to copy:', err);
-                $item.html('<i class="fas fa-times"></i> Failed');
+                $item.html('@icon('fa-times') Failed');
                 $item.css({'background-color': '#f8d7da', 'color': '#721c24'});
                 setTimeout(() => {
                     $item.html(originalHtml);
@@ -978,7 +978,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 $temp.remove();
                 
                 // Show success feedback
-                $item.html('<i class="fas fa-check"></i> Copied!');
+                $item.html('@icon('fa-check') Copied!');
                 $item.css({'background-color': '#d4edda', 'color': '#155724'});
                 
                 setTimeout(() => {
@@ -989,7 +989,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('✅ Copied to clipboard (fallback):', reference);
             } catch(err) {
                 $temp.remove();
-                $item.html('<i class="fas fa-times"></i> Failed');
+                $item.html('@icon('fa-times') Failed');
                 $item.css({'background-color': '#f8d7da', 'color': '#721c24'});
                 setTimeout(() => {
                     $item.html(originalHtml);
@@ -1143,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $('input[name="receipt_type"][value="office_receipt"]').prop('checked', true).trigger('change');
         
         // Update modal title
-        $modal.find('.modal-title').html('<i class="fas fa-money-bill-wave" style="color: #28a745;"></i> Quick Receipt for ' + invoiceData.invoiceNo);
+        $modal.find('.modal-title').html('@icon('fa-money-bill-wave', ['style' => 'color: #28a745;']) Quick Receipt for ' + invoiceData.invoiceNo);
         
         // Wait briefly for the form to render, then populate fields
         if (typeof window.populateQuickReceiptOfficeForm === 'function') {
@@ -1157,7 +1157,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add a badge to indicate this is from Quick Receipt
         // FIX: Remove ALL existing badges first to prevent duplication
         $modal.find('.modal-header .badge').remove();
-        $modal.find('.modal-header').prepend('<span class="badge badge-success" style="margin-right: 10px;"><i class="fas fa-bolt"></i> QUICK RECEIPT</span>');
+        $modal.find('.modal-header').prepend('<span class="badge badge-success" style="margin-right: 10px;">@icon('fa-bolt') QUICK RECEIPT</span>');
         
         // SOLUTION 5: Validate modal is available before opening
         if (typeof $modal.modal !== 'function') {
@@ -1376,7 +1376,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🔗 Quick Allocate clicked:', {receiptId, receiptAmount, matterId, clientId});
 
         const originalHtml = $btn.html();
-        $btn.html('<i class="fas fa-spinner fa-spin"></i> Finding matches...');
+        $btn.html('@icon('fa-spinner', ['spin' => true]) Finding matches...');
 
         $.ajax({
             url: '{{ route("clients.getInvoicesByMatter") }}',
@@ -1475,7 +1475,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🔗 Quick Allocate Ledger clicked:', {receiptId, receiptAmount, matterId, clientId});
 
         const originalHtml = $btn.html();
-        $btn.html('<i class="fas fa-spinner fa-spin"></i> Finding matches...');
+        $btn.html('@icon('fa-spinner', ['spin' => true]) Finding matches...');
 
         $.ajax({
             url: '{{ route("clients.getInvoicesByMatter") }}',
@@ -1576,19 +1576,19 @@ document.addEventListener('DOMContentLoaded', function() {
             '<div class="modal-dialog modal-lg" role="document">' +
             '<div class="modal-content">' +
             '<div class="modal-header" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">' +
-            '<h5 class="modal-title"><i class="fas fa-magic"></i> Allocate Deposit to Invoice</h5>' +
+            '<h5 class="modal-title">@icon('fa-magic') Allocate Deposit to Invoice</h5>' +
             '<button type="button" class="close" data-bs-dismiss="modal" style="color: white;">' +
             '<span>&times;</span>' +
             '</button>' +
             '</div>' +
             '<div class="modal-body">' +
             '<div class="alert alert-info">' +
-            '<i class="fas fa-info-circle"></i> Deposit Amount: <strong>$' + receiptAmount.toFixed(2) + '</strong>' +
+            '@icon('fa-info-circle') Deposit Amount: <strong>$' + receiptAmount.toFixed(2) + '</strong>' +
             '</div>';
         
         if (exactMatch) {
             modalHtml += '<div class="alert alert-success" style="border-left: 4px solid #28a745;">' +
-                '<h6><i class="fas fa-bullseye"></i> <strong>Exact Match Found!</strong></h6>' +
+                '<h6>@icon('fa-bullseye') <strong>Exact Match Found!</strong></h6>' +
                 '<p style="margin-bottom: 10px;">' +
                 exactMatch.trans_no + ' - $' + parseFloat(exactMatch.balance_amount).toFixed(2) + 
                 ' (' + exactMatch.status + ')' +
@@ -1596,14 +1596,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<button class="btn btn-success allocate-ledger-to-invoice-btn" ' +
                 'data-receipt-id="' + receiptId + '" ' +
                 'data-invoice-no="' + exactMatch.trans_no + '">' +
-                '<i class="fas fa-check"></i> Allocate to ' + exactMatch.trans_no +
+                '@icon('fa-check') Allocate to ' + exactMatch.trans_no +
                 '</button>' +
                 '</div>';
         }
         
         if (closeMatches.length > 0) {
             modalHtml += '<div style="margin-top: 20px;">' +
-                '<h6><i class="fas fa-star"></i> Close Matches:</h6>' +
+                '<h6>@icon('fa-star') Close Matches:</h6>' +
                 '<div class="list-group">';
             
             closeMatches.forEach(function(invoice) {
@@ -1622,7 +1622,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<button class="btn btn-sm btn-primary allocate-ledger-to-invoice-btn" ' +
                     'data-receipt-id="' + receiptId + '" ' +
                     'data-invoice-no="' + invoice.trans_no + '">' +
-                    '<i class="fas fa-link"></i> Allocate' +
+                    '@icon('fa-link') Allocate' +
                     '</button>' +
                     '</div>' +
                     '</div>';
@@ -1633,7 +1633,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (otherInvoices.length > 0) {
             modalHtml += '<div style="margin-top: 20px;">' +
-                '<h6><i class="fas fa-list"></i> Other Unpaid Invoices:</h6>' +
+                '<h6>@icon('fa-list') Other Unpaid Invoices:</h6>' +
                 '<div class="list-group" style="max-height: 300px; overflow-y: auto;">';
             
             otherInvoices.forEach(function(invoice) {
@@ -1651,7 +1651,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<button class="btn btn-sm btn-primary allocate-ledger-to-invoice-btn" ' +
                     'data-receipt-id="' + receiptId + '" ' +
                     'data-invoice-no="' + invoice.trans_no + '">' +
-                    '<i class="fas fa-link"></i> Allocate' +
+                    '@icon('fa-link') Allocate' +
                     '</button>' +
                     '</div>' +
                     '</div>';
@@ -1663,7 +1663,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // If no invoices in any category, show a message
         if (!exactMatch && closeMatches.length === 0 && otherInvoices.length === 0) {
             modalHtml += '<div class="alert alert-warning">' +
-                '<i class="fas fa-exclamation-triangle"></i> No unpaid invoices found for this client/matter.' +
+                '@icon('fa-exclamation-triangle') No unpaid invoices found for this client/matter.' +
                 '</div>';
         }
         
@@ -1692,7 +1692,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const $btn = $(this);
         const originalHtml = $btn.html();
-        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Allocating...');
+        $btn.prop('disabled', true).html('@icon('fa-spinner', ['spin' => true]) Allocating...');
         
         console.log('🔗 Allocating ledger entry:', receiptId, 'to invoice:', invoiceNo);
         
@@ -1749,14 +1749,14 @@ document.addEventListener('DOMContentLoaded', function() {
             '<div class="modal-dialog modal-lg" role="document">' +
             '<div class="modal-content">' +
             '<div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">' +
-            '<h5 class="modal-title"><i class="fas fa-magic"></i> Smart Invoice Allocation</h5>' +
+            '<h5 class="modal-title">@icon('fa-magic') Smart Invoice Allocation</h5>' +
             '<button type="button" class="close" data-bs-dismiss="modal" style="color: white;">' +
             '<span>&times;</span>' +
             '</button>' +
             '</div>' +
             '<div class="modal-body">' +
             '<div class="alert alert-info">' +
-            '<i class="fas fa-info-circle"></i> Receipt Amount: <strong>$' + receiptAmount.toFixed(2) + '</strong>' +
+            '@icon('fa-info-circle') Receipt Amount: <strong>$' + receiptAmount.toFixed(2) + '</strong>' +
             '</div>';
         
         if (exactMatch) {
@@ -1765,12 +1765,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const isOverpayment = excessAmount > 0.01;
             const warningHtml = isOverpayment ? 
                 '<div class="alert alert-warning mt-2" style="border-left: 4px solid #ffc107;">' +
-                '<i class="fas fa-exclamation-triangle"></i> <strong>Note:</strong> Receipt amount ($' + receiptAmount.toFixed(2) + ') exceeds invoice balance ($' + invBalance.toFixed(2) + '). ' +
+                '@icon('fa-exclamation-triangle') <strong>Note:</strong> Receipt amount ($' + receiptAmount.toFixed(2) + ') exceeds invoice balance ($' + invBalance.toFixed(2) + '). ' +
                 'A residual receipt of $' + excessAmount.toFixed(2) + ' will be created.' +
                 '</div>' : '';
             
             modalHtml += '<div class="alert alert-success" style="border-left: 4px solid #28a745;">' +
-                '<h6><i class="fas fa-bullseye"></i> <strong>Exact Match Found!</strong></h6>' +
+                '<h6>@icon('fa-bullseye') <strong>Exact Match Found!</strong></h6>' +
                 '<p style="margin-bottom: 10px;">' +
                 exactMatch.trans_no + ' - $' + invBalance.toFixed(2) + 
                 ' (' + exactMatch.status + ')' +
@@ -1780,21 +1780,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 'data-receipt-id="' + receiptId + '" ' +
                 'data-invoice-no="' + exactMatch.trans_no + '" ' +
                 'data-invoice-balance="' + invBalance + '">' +
-                '<i class="fas fa-check"></i> Allocate to ' + exactMatch.trans_no +
+                '@icon('fa-check') Allocate to ' + exactMatch.trans_no +
                 '</button>' +
                 '</div>';
         }
         
         if (closeMatches.length > 0) {
             modalHtml += '<div style="margin-top: 20px;">' +
-                '<h6><i class="fas fa-star"></i> Close Matches:</h6>' +
+                '<h6>@icon('fa-star') Close Matches:</h6>' +
                 '<div class="list-group">';
             
             closeMatches.forEach(function(invoice) {
                 const invBalance = parseFloat(invoice.balance_amount);
                 const excessAmount = receiptAmount - invBalance;
                 const isOverpayment = excessAmount > 0.01;
-                const warningIcon = isOverpayment ? ' <i class="fas fa-exclamation-triangle text-warning" title="Receipt exceeds invoice amount - will create residual receipt"></i>' : '';
+                const warningIcon = isOverpayment ? ' @icon('fa-exclamation-triangle', ['class' => 'text-warning', 'title' => 'Receipt exceeds invoice amount - will create residual receipt'])' : '';
                 
                 modalHtml += '<div class="list-group-item">' +
                     '<div class="d-flex justify-content-between align-items-center">' +
@@ -1803,13 +1803,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     '$' + invBalance.toFixed(2) + 
                     ' (' + invoice.status + ')' + warningIcon +
                     '<br/><small class="text-muted">' + invoice.description + '</small>' +
-                    (isOverpayment ? '<br/><small class="text-warning"><i class="fas fa-info-circle"></i> Excess: $' + excessAmount.toFixed(2) + ' will create residual receipt</small>' : '') +
+                    (isOverpayment ? '<br/><small class="text-warning">@icon('fa-info-circle') Excess: $' + excessAmount.toFixed(2) + ' will create residual receipt</small>' : '') +
                     '</div>' +
                     '<button class="btn btn-sm btn-primary allocate-to-invoice-btn" ' +
                     'data-receipt-id="' + receiptId + '" ' +
                     'data-invoice-no="' + invoice.trans_no + '" ' +
                     'data-invoice-balance="' + invBalance + '">' +
-                    '<i class="fas fa-link"></i> Allocate' +
+                    '@icon('fa-link') Allocate' +
                     '</button>' +
                     '</div>' +
                     '</div>';
@@ -1820,7 +1820,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (otherInvoices.length > 0) {
             modalHtml += '<div style="margin-top: 20px;">' +
-                '<h6><i class="fas fa-list"></i> Other Unpaid Invoices:</h6>' +
+                '<h6>@icon('fa-list') Other Unpaid Invoices:</h6>' +
                 '<div class="list-group" style="max-height: 300px; overflow-y: auto;">';
             
             otherInvoices.forEach(function(invoice) {
@@ -1829,7 +1829,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const excessAmount = receiptAmount - invBalance;
                 const isOverpayment = excessAmount > 0.01;
                 const diffText = difference > 0 ? ' (diff: $' + difference.toFixed(2) + ')' : '';
-                const warningIcon = isOverpayment ? ' <i class="fas fa-exclamation-triangle text-warning" title="Receipt exceeds invoice amount - will create residual receipt"></i>' : '';
+                const warningIcon = isOverpayment ? ' @icon('fa-exclamation-triangle', ['class' => 'text-warning', 'title' => 'Receipt exceeds invoice amount - will create residual receipt'])' : '';
                 
                 modalHtml += '<div class="list-group-item">' +
                     '<div class="d-flex justify-content-between align-items-center">' +
@@ -1837,13 +1837,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<strong>' + invoice.trans_no + '</strong> - ' +
                     '$' + invBalance.toFixed(2) + 
                     ' (' + invoice.status + ')' + diffText + warningIcon +
-                    (isOverpayment ? '<br/><small class="text-warning"><i class="fas fa-info-circle"></i> Excess: $' + excessAmount.toFixed(2) + ' will create residual receipt</small>' : '') +
+                    (isOverpayment ? '<br/><small class="text-warning">@icon('fa-info-circle') Excess: $' + excessAmount.toFixed(2) + ' will create residual receipt</small>' : '') +
                     '</div>' +
                     '<button class="btn btn-sm btn-primary allocate-to-invoice-btn" ' +
                     'data-receipt-id="' + receiptId + '" ' +
                     'data-invoice-no="' + invoice.trans_no + '" ' +
                     'data-invoice-balance="' + invBalance + '">' +
-                    '<i class="fas fa-link"></i> Allocate' +
+                    '@icon('fa-link') Allocate' +
                     '</button>' +
                     '</div>' +
                     '</div>';
@@ -1855,7 +1855,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // If no invoices in any category, show a message
         if (!exactMatch && closeMatches.length === 0 && otherInvoices.length === 0) {
             modalHtml += '<div class="alert alert-warning">' +
-                '<i class="fas fa-exclamation-triangle"></i> No unpaid invoices found for this client/matter.' +
+                '@icon('fa-exclamation-triangle') No unpaid invoices found for this client/matter.' +
                 '</div>';
         }
         
@@ -1915,7 +1915,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const $btn = $(this);
         const originalHtml = $btn.html();
-        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Allocating...');
+        $btn.prop('disabled', true).html('@icon('fa-spinner', ['spin' => true]) Allocating...');
         
         console.log('🔗 Allocating receipt:', receiptId, 'to invoice:', invoiceNo);
         
@@ -2088,7 +2088,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Show success animation
                     const $successDiv = $('<div class="allocation-success">' +
                         '<div class="success-checkmark">' +
-                        '<i class="fas fa-check-circle"></i>' +
+                        '@icon('fa-check-circle')' +
                         '</div>' +
                         '<p>✅ Receipt successfully allocated to ' + invoiceNo + '!</p>' +
                         '</div>');
@@ -2548,7 +2548,7 @@ tr.unallocated-receipt[draggable="true"]:hover::after {
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="fas fa-upload"></i> Upload Receipt Document
+                    @icon('fa-upload') Upload Receipt Document
                 </h5>
                 <button type="button" class="close" data-bs-dismiss="modal">
                     <span>&times;</span>
@@ -2569,7 +2569,7 @@ tr.unallocated-receipt[draggable="true"]:hover::after {
                         <!-- NEW: Drag and Drop Zone -->
                         <div class="receipt-drag-drop-zone" id="receiptDragDropZone">
                             <div class="drag-zone-inner">
-                                <i class="fas fa-cloud-upload-alt"></i>
+                                @icon('fa-cloud-upload-alt')
                                 <div class="drag-zone-content">
                                     <p class="drag-zone-text">Drag file here or <strong>click to browse</strong></p>
                                     <small class="drag-zone-formats">Accepted: PDF, JPG, PNG, DOC, DOCX (Max 10MB)</small>
@@ -2584,23 +2584,23 @@ tr.unallocated-receipt[draggable="true"]:hover::after {
                         <!-- File name display (shown after selection) -->
                         <div id="selected-file-display" class="selected-file-display" style="display: none;">
                             <div class="file-info">
-                                <i class="fas fa-file-alt text-success"></i>
+                                @icon('fa-file-alt', ['class' => 'text-success'])
                                 <span id="selected-file-name" class="file-name"></span>
                                 <button type="button" class="btn btn-sm btn-link text-danger remove-file" title="Remove file">
-                                    <i class="fas fa-times"></i>
+                                    @icon('fa-times')
                                 </button>
                             </div>
                         </div>
                     </div>
                     
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> This document will be attached to the selected receipt entry for verification purposes.
+                        @icon('fa-info-circle') This document will be attached to the selected receipt entry for verification purposes.
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-upload"></i> Upload Document
+                        @icon('fa-upload') Upload Document
                     </button>
                 </div>
             </form>
@@ -2784,7 +2784,7 @@ $(document).ready(function() {
             
             // Show current document if exists
             if(uploadedDocId && uploadedDocId != '') {
-                $('#current_document_display').html('<p class="text-info"><i class="fas fa-file-pdf"></i> Document attached (ID: ' + uploadedDocId + ')</p>');
+                $('#current_document_display').html('<p class="text-info">@icon('fa-file-pdf') Document attached (ID: ' + uploadedDocId + ')</p>');
             } else {
                 $('#current_document_display').html('');
             }
@@ -3076,7 +3076,7 @@ $(document).ready(function() {
         // Show loading state on submit button
         let submitBtn = $(this).find('button[type="submit"]');
         let originalText = submitBtn.html();
-        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Uploading...');
+        submitBtn.prop('disabled', true).html('@icon('fa-spinner', ['spin' => true]) Uploading...');
         
         $.ajax({
             url: uploadUrl,

@@ -37,7 +37,7 @@
 
     function sendInvoiceToClientAjax(invoiceId, invoiceNo, $btn) {
         var originalHtml = $btn.html();
-        $btn.html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+        $btn.html(crmI('fas fa-spinner fa-spin') + ' Sending...');
         $btn.prop('disabled', true);
 
         $.ajax({
@@ -125,7 +125,7 @@
 
     function sendClientFundReceiptToClientAjax(receiptId, receiptNo, $btn) {
         var originalHtml = $btn.html();
-        $btn.html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+        $btn.html(crmI('fas fa-spinner fa-spin') + ' Sending...');
         $btn.prop('disabled', true);
 
         $.ajax({
@@ -213,7 +213,7 @@
 
     function sendInvoiceToClientApplicationAjax(invoiceId, invoiceNo, $btn) {
         var originalHtml = $btn.html();
-        $btn.html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+        $btn.html(crmI('fas fa-spinner fa-spin') + ' Sending...');
         $btn.prop('disabled', true);
 
         var baseUrl = (window.ClientDetailConfig && window.ClientDetailConfig.urls && window.ClientDetailConfig.urls.sendToClientApplication)
@@ -319,7 +319,7 @@
 
     function sendOfficeReceiptToClientAjax(receiptId, receiptNo, $btn) {
         var originalHtml = $btn.html();
-        $btn.html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+        $btn.html(crmI('fas fa-spinner fa-spin') + ' Sending...');
         $btn.prop('disabled', true);
 
         $.ajax({
@@ -439,14 +439,14 @@
         $btn
             .attr('data-hubdoc-sent', '1')
             .css('color', '#28a745')
-            .html('<i class="fas fa-check"></i> Already Sent to Hubdoc')
+            .html(crmI('fas fa-check') + ' Already Sent to Hubdoc')
             .prop('disabled', false);
 
         var $timeDiv = $('<div class="dropdown-item-text hubdoc-sent-time" style="font-size: 11px; color: #666; padding: 0.25rem 1rem;">Sent: ' + formatted + '</div>');
         $timeDiv.insertAfter($btn);
 
         $('<a class="dropdown-item refresh-hubdoc-status" href="javascript:;" data-invoice-id="' + invoiceId + '">' +
-            '<i class="fas fa-sync-alt"></i> Refresh Status</a>')
+            crmI('fas fa-sync-alt') + ' Refresh Status</a>')
             .insertAfter($timeDiv);
 
         attachSendToClientHandlers();
@@ -462,7 +462,7 @@
         $btn
             .removeAttr('data-hubdoc-sent')
             .removeAttr('style')
-            .html('<i class="fas fa-paper-plane"></i> Send to Hubdoc')
+            .html(crmI('fas fa-paper-plane') + ' Send to Hubdoc')
             .prop('disabled', false);
 
         attachSendToClientHandlers();
@@ -521,7 +521,7 @@
 
     function sendToHubdocAjax(invoiceId, $btn) {
         var originalHtml = $btn.html();
-        $btn.html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+        $btn.html(crmI('fas fa-spinner fa-spin') + ' Sending...');
         $btn.prop('disabled', true);
 
         var baseUrl = window.ClientDetailConfig.urls.sendToHubdoc;
@@ -600,7 +600,7 @@
         }
 
         var originalHtml = $btn.html();
-        $btn.html('<i class="fas fa-spinner fa-spin"></i> Refreshing...');
+        $btn.html(crmI('fas fa-spinner fa-spin') + ' Refreshing...');
         $btn.prop('disabled', true);
 
         $.ajax({

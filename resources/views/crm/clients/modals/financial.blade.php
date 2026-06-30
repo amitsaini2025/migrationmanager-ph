@@ -60,7 +60,7 @@
                     <input type="hidden" name="type" value="client">
                     <input type="hidden" name="doctype" value="client_receipt">
                     <span class="file-selection-hint" style="margin-left: 10px; color: #34395e;"></span>
-                    <a href="javascript:;" class="btn btn-primary add-document-btn"><i class="fa fa-plus"></i> Add Document</a>
+                    <a href="javascript:;" class="btn btn-primary add-document-btn">@icon('fa-plus') Add Document</a>
                     <input class="docclientreceiptupload" type="file" name="document_upload[]"/>
                 </div>
                 </form>
@@ -76,7 +76,7 @@
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="editOfficeReceiptModalLabel"><i class="fas fa-hand-holding-usd"></i> Edit Direct Office Receipt</h5>
+                <h5 class="modal-title" id="editOfficeReceiptModalLabel">@icon('fa-hand-holding-usd') Edit Direct Office Receipt</h5>
                 <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">×</span>
                 </button>
@@ -161,7 +161,7 @@
                                 <input type="hidden" name="type" value="client">
                                 <input type="hidden" name="doctype" value="office_receipt">
                                 <span class="file-selection-hint-edit" style="margin-left: 10px; color: #34395e;"></span>
-                                <a href="javascript:;" class="btn btn-info add-document-btn-edit"><i class="fa fa-plus"></i> Add/Update Document</a>
+                                <a href="javascript:;" class="btn btn-info add-document-btn-edit">@icon('fa-plus') Add/Update Document</a>
                                 <input class="docofficereceiptupload_edit" type="file" name="document_upload[]"/>
                             </div>
                             <div id="current_document_display" class="mt-2"></div>
@@ -171,8 +171,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-secondary" id="updateOfficeReceiptDraftBtn"><i class="fas fa-save"></i> Save as Draft</button>
-                <button type="button" class="btn btn-primary" id="updateOfficeReceiptFinalBtn"><i class="fas fa-check"></i> Save and Finalize</button>
+                <button type="button" class="btn btn-secondary" id="updateOfficeReceiptDraftBtn">@icon('fa-save') Save as Draft</button>
+                <button type="button" class="btn btn-primary" id="updateOfficeReceiptFinalBtn">@icon('fa-check') Save and Finalize</button>
             </div>
         </div>
     </div>

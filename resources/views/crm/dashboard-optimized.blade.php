@@ -1066,6 +1066,11 @@ $(function () {
         setTimeout(function() {
             initializeClientMmSelect();
         }, 100);
+
+        // Hydrate Lucide SVG placeholders injected via tpl.innerHTML
+        if (typeof refreshLucideIcons === 'function') {
+            refreshLucideIcons($popover[0]);
+        }
     });
 
     $(document).on('hidden.bs.popover', '.add_my_task', function() {

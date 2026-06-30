@@ -58,9 +58,9 @@
                                         </button>
                                         <?php if ($isClientGenerated): ?>
                                             <div class="action-buttons" style="display: none; position: absolute; top: 0; right: -8px;">
-                                                <button class="btn btn-sm btn-warning update-personal-cat-title" data-id="<?= $id ?>" style="padding: 2px 0px 2px 6px;"><i class="fa fa-edit" aria-hidden="true"></i></button>
+                                                <button class="btn btn-sm btn-warning update-personal-cat-title" data-id="<?= $id ?>" style="padding: 2px 0px 2px 6px;">@icon('fa-edit')</button>
                                                 <?php if ($canDeletePersonalDocCategory): ?>
-                                                    <button class="btn btn-sm btn-danger delete-personal-cat-title" data-id="<?= $id ?>" data-title="<?= htmlspecialchars($catVal->title) ?>" style="padding: 2px 0px 2px 6px;"><i class="fa fa-trash" aria-hidden="true"></i></button>
+                                                    <button class="btn btn-sm btn-danger delete-personal-cat-title" data-id="<?= $id ?>" data-title="<?= htmlspecialchars($catVal->title) ?>" style="padding: 2px 0px 2px 6px;">@icon('fa-trash')</button>
                                                 <?php endif; ?>
                                             </div>
                                         <?php endif; ?>
@@ -70,12 +70,12 @@
                             <div style="display: flex; gap: 10px; align-items: center;">
                                 @if (!$companyDocumentsOnlyGeneral)
                                 <button type="button" class="btn add_personal_doc_cat-btn add_personal_doc_cat" data-type="personal" data-categoryid="">
-                                    <i class="fas fa-plus"></i> Add Category
+                                    @icon('fa-plus') Add Category
                                 </button>
                                 @endif
                                 <!-- Add link to Not Used Documents -->
                                 <button type="button" class="btn btn-secondary client-nav-button client-nav-button--inline" data-tab="notuseddocuments">
-                                    <i class="fas fa-folder-minus"></i> Not Used Documents
+                                    @icon('fa-folder-minus') Not Used Documents
                                 </button>
                             </div>
                         </div>
@@ -94,13 +94,13 @@
                                 <div class="subtab2-pane <?= $isActive ?>" id="<?= $id ?>-subtab2">
                                     <div class="checklist-table-container" style="vertical-align: top; margin-top: 10px; width: 760px;">
                                         <div class="subtab2-header" style="margin-left: 10px;">
-                                            <h3><i class="fas fa-file-alt"></i> <?= htmlspecialchars($catVal->title) ?> Documents</h3>
+                                            <h3>@icon('fa-file-alt') <?= htmlspecialchars($catVal->title) ?> Documents</h3>
                                             <div style="display: flex; gap: 10px;">
                                                 <button type="button" class="btn add-checklist-btn add_education_doc" data-type="personal" data-categoryid="<?= $id ?>">
-                                                    <i class="fas fa-plus"></i> Add Checklist
+                                                    @icon('fa-plus') Add Checklist
                                                 </button>
                                                 <button type="button" class="btn btn-info bulk-upload-toggle-btn" data-categoryid="<?= $id ?>" data-categoryname="<?= htmlspecialchars($catVal->title) ?>">
-                                                    <i class="fas fa-upload"></i> Bulk Upload
+                                                    @icon('fa-upload') Bulk Upload
                                                 </button>
                                             </div>
                                         </div>
@@ -108,7 +108,7 @@
                                         <!-- Bulk Upload Dropzone (Hidden by default) -->
                                         <div class="bulk-upload-dropzone-container" id="bulk-upload-<?= $id ?>" style="display: none; margin: 15px 0; padding: 20px; border: 2px dashed #4a90e2; border-radius: 8px; background-color: #f8f9fa;">
                                             <div class="bulk-upload-dropzone" data-categoryid="<?= $id ?>" style="text-align: center; padding: 30px; cursor: pointer;">
-                                                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #2563eb; margin-bottom: 15px;"></i>
+                                                @icon('fa-cloud-upload-alt', ['style' => 'font-size: 48px; color: #2563eb; margin-bottom: 15px;'])
                                                 <p style="font-size: 16px; color: #374151; margin-bottom: 10px;">
                                                     <strong>Drag and drop files here</strong> or <strong>click to browse</strong>
                                                 </p>
@@ -158,10 +158,10 @@
                                                                 <div class="checklist-actions" style="display: flex; gap: 5px;">
                                                                     <?php if (!$fetch->file_name): ?>
                                                                     <a href="javascript:;" class="edit-checklist-btn" data-id="<?= $fetch->id ?>" data-checklist="<?= htmlspecialchars($fetch->checklist) ?>" title="Edit Checklist Name" style="color: #007bff; cursor: pointer;">
-                                                                        <i class="fas fa-edit"></i>
+                                                                        @icon('fa-edit')
                                                                     </a>
                                                                     <a href="javascript:;" class="delete-checklist-btn" data-id="<?= $fetch->id ?>" data-checklist="<?= htmlspecialchars($fetch->checklist) ?>" title="Delete Checklist" style="color: #dc3545; cursor: pointer;">
-                                                                        <i class="fas fa-trash"></i>
+                                                                        @icon('fa-trash')
                                                                     </a>
                                                                     <?php endif; ?>
                                                                 </div>
@@ -171,7 +171,7 @@
                                                             <?php if ($fetch->file_name): ?>
                                                                 <div data-id="<?= $fetch->id ?>" data-name="<?= htmlspecialchars($fetch->file_name) ?>" class="doc-row" title="Uploaded by: <?= htmlspecialchars($admin->first_name ?? 'NA') ?> on <?= date('d/m/Y H:i', strtotime($fetch->created_at)) ?>" oncontextmenu="showFileContextMenu(event, <?= $fetch->id ?>, '<?= htmlspecialchars($fetch->filetype) ?>', '<?= $fileUrl ?>', '<?= $id ?>', '<?= $fetch->status ?? 'draft' ?>'); return false;">
                                                                     <a href="javascript:void(0);" onclick="previewFile('<?= $fetch->filetype ?>','<?= $fileUrl ?>','preview-container-<?= $id ?>')">
-                                                                        <i class="fas fa-file-image"></i> <span><?= htmlspecialchars($fetch->file_name . '.' . $fetch->filetype) ?></span>
+                                                                        @icon('fa-file-image') <span><?= htmlspecialchars($fetch->file_name . '.' . $fetch->filetype) ?></span>
                                                                     </a>
                                                                 </div>
                                                             <?php else: ?>
@@ -190,7 +190,7 @@
                                                                              data-doccategory="<?= $id ?>"
                                                                              data-formid="upload_form_<?= $fetch->id ?>">
                                                                             <div class="drag-zone-inner">
-                                                                                <i class="fas fa-cloud-upload-alt"></i>
+                                                                                @icon('fa-cloud-upload-alt')
                                                                                 <span class="drag-zone-text">Drag file here or <strong>click to browse</strong></span>
                                                                             </div>
                                                                         </div>
@@ -227,12 +227,12 @@
                                                 <div class="grid_list" id="gid_<?= $fetch->id ?>">
                                                     <div class="grid_col">
                                                         <div class="grid_icon">
-                                                            <i class="fas fa-file-image"></i>
+                                                            @icon('fa-file-image')
                                                         </div>
                                                         <div class="grid_content">
                                                             <span id="grid_<?= $fetch->id ?>" class="gridfilename"><?= htmlspecialchars($fetch->file_name) ?></span>
                                                             <div class="dropdown d-inline dropdown_ellipsis_icon">
-                                                                <a class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
+                                                                <a class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">@icon('fa-ellipsis-v')</a>
                                                                 <div class="dropdown-menu">
                                                                     <a target="_blank" class="dropdown-item" href="<?= $fetch->myfile ?>">Preview</a>
                                                                     <a href="#" class="dropdown-item download-file" data-filelink="<?= $fetch->myfile ?>" data-filename="<?= $fetch->myfile_key ?>">Download</a>
@@ -260,25 +260,25 @@
             <!-- Custom Context Menu -->
             <div id="fileContextMenu" class="context-menu" style="display: none; position: fixed; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10000; min-width: 180px;">
                 <div class="context-menu-item" onclick="handleContextAction('rename-checklist')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
-                    <i class="fa fa-edit" style="margin-right: 8px;"></i> Rename Checklist
+                    @icon('fa-edit', ['style' => 'margin-right: 8px;']) Rename Checklist
                 </div>
                 <div class="context-menu-item" onclick="handleContextAction('rename-doc')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
-                    <i class="fa fa-file-text" style="margin-right: 8px;"></i> Rename File Name
+                    @icon('fa-file-text', ['style' => 'margin-right: 8px;']) Rename File Name
                 </div>
                 <div class="context-menu-item" onclick="handleContextAction('move')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
-                    <i class="fa fa-arrows-alt" style="margin-right: 8px;"></i> Move Document
+                    @icon('fa-arrows-alt', ['style' => 'margin-right: 8px;']) Move Document
                 </div>
                 <div class="context-menu-item" onclick="handleContextAction('preview')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
-                    <i class="fa fa-eye" style="margin-right: 8px;"></i> Preview
+                    @icon('fa-eye', ['style' => 'margin-right: 8px;']) Preview
                 </div>
                 <div id="context-pdf-option" class="context-menu-item" onclick="handleContextAction('pdf')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; display: none;">
-                    <i class="fa fa-file-pdf" style="margin-right: 8px;"></i> PDF
+                    @icon('fa-file-pdf', ['style' => 'margin-right: 8px;']) PDF
                 </div>
                 <div class="context-menu-item" onclick="handleContextAction('download')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
-                    <i class="fa fa-download" style="margin-right: 8px;"></i> Download
+                    @icon('fa-download', ['style' => 'margin-right: 8px;']) Download
                 </div>
                 <div class="context-menu-item" onclick="handleContextAction('not-used')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
-                    <i class="fa fa-trash" style="margin-right: 8px;"></i> Not Used
+                    @icon('fa-trash', ['style' => 'margin-right: 8px;']) Not Used
                 </div>
             </div>
 
@@ -479,7 +479,7 @@
                                 }
                                 
                                 $zone.addClass('uploading');
-                                $('.custom-error-msg').html('<span class="alert alert-info"><i class="fa fa-clock-o"></i> Uploading document...</span>');
+                                $('.custom-error-msg').html('<span class="alert alert-info">' + crmI('fa fa-clock-o') + ' Uploading document...</span>');
                                 
                                 $.ajax({
                                     url: '{{ url("/documents/upload-edu-document") }}',
@@ -501,7 +501,7 @@
                                             uploadTd.html(
                                                 '<div data-id="' + fileid + '" data-name="' + docNameWithoutExt + '" class="doc-row" title="Uploaded by: Admin" oncontextmenu="showFileContextMenu(event, ' + fileid + ', \'' + ress.filetype + '\', \'' + ress.fileurl + '\', \'' + doccategory + '\', \'' + (ress.status_value || 'draft') + '\'); return false;">' +
                                                     '<a href="javascript:void(0);" onclick="previewFile(\'' + ress.filetype + '\', \'' + ress.fileurl + '\', \'preview-container-' + doccategory + '\')">' +
-                                                        '<i class="fas fa-file-image"></i> <span>' + ress.filename + '</span>' +
+                                                        crmI('fas fa-file-image') + ' <span>' + ress.filename + '</span>' +
                                                     '</a>' +
                                                 '</div>'
                                             );
@@ -670,7 +670,7 @@
                             
                             // Visual feedback
                             $zone.addClass('uploading');
-                            $('.custom-error-msg').html('<span class="alert alert-info"><i class="fa fa-clock-o"></i> Uploading document...</span>');
+                            $('.custom-error-msg').html('<span class="alert alert-info">' + crmI('fa fa-clock-o') + ' Uploading document...</span>');
                             
                             // Upload via AJAX
                             $.ajax({
@@ -694,7 +694,7 @@
                                         uploadTd.html(
                                             '<div data-id="' + fileid + '" data-name="' + docNameWithoutExt + '" class="doc-row" title="Uploaded by: Admin" oncontextmenu="showFileContextMenu(event, ' + fileid + ', \'' + ress.filetype + '\', \'' + ress.fileurl + '\', \'' + doccategory + '\', \'' + (ress.status_value || 'draft') + '\'); return false;">' +
                                                 '<a href="javascript:void(0);" onclick="previewFile(\'' + ress.filetype + '\', \'' + ress.fileurl + '\', \'preview-container-' + doccategory + '\')">' +
-                                                    '<i class="fas fa-file-image"></i> <span>' + ress.filename + '</span>' +
+                                                    crmI('fas fa-file-image') + ' <span>' + ress.filename + '</span>' +
                                                 '</a>' +
                                             '</div>'
                                         );
@@ -1353,7 +1353,7 @@
             <div id="bulk-upload-mapping-modal" class="bulk-upload-mapping-modal">
                 <div class="bulk-upload-mapping-content">
                     <div class="bulk-upload-mapping-header">
-                        <h3><i class="fas fa-link"></i> Map Files to Checklists</h3>
+                        <h3>@icon('fa-link') Map Files to Checklists</h3>
                         <span class="close-mapping-modal">&times;</span>
                     </div>
                     <div id="bulk-upload-mapping-table"></div>
@@ -1392,11 +1392,11 @@
                     
                     // Hide all other dropzones first
                     $('.bulk-upload-dropzone-container').not('#bulk-upload-' + categoryId).slideUp();
-                    $('.bulk-upload-toggle-btn').not(this).html('<i class="fas fa-upload"></i> Bulk Upload');
+                    $('.bulk-upload-toggle-btn').not(this).html(crmI('fas fa-upload') + ' Bulk Upload');
                     
                     if (dropzoneContainer.is(':visible')) {
                         dropzoneContainer.slideUp();
-                        $(this).html('<i class="fas fa-upload"></i> Bulk Upload');
+                        $(this).html(crmI('fas fa-upload') + ' Bulk Upload');
                         // Clear files if closing
                         bulkUploadFiles[categoryId] = [];
                         dropzoneContainer.find('.bulk-upload-file-list').hide();
@@ -1404,7 +1404,7 @@
                         dropzoneContainer.find('.file-count').text('0');
                     } else {
                         dropzoneContainer.slideDown();
-                        $(this).html('<i class="fas fa-times"></i> Close');
+                        $(this).html(crmI('fas fa-times') + ' Close');
                         currentCategoryId = categoryId;
                     }
                 });
@@ -1731,7 +1731,7 @@
                         html += '<tr class="bulk-upload-file-item" data-file-index="' + index + '" data-file-name="' + escapeHtml(fileName) + '">';
                         html += '<td>';
                         html += '<div class="file-info">';
-                        html += '<i class="fas fa-file" style="color: #4a90e2;"></i>';
+                        html += crmI('fas fa-file');
                         html += '<div>';
                         html += '<div class="file-name">' + escapeHtml(fileName) + '</div>';
                         html += '<div class="file-size">' + fileSize + '</div>';
@@ -1754,7 +1754,7 @@
                         html += '</td>';
                         html += '<td style="text-align: center;">';
                         html += '<button type="button" class="btn btn-sm btn-danger remove-bulk-file" data-file-index="' + index + '" title="Remove file">';
-                        html += '<i class="fas fa-trash-alt"></i>';
+                        html += crmI('far fa-trash-alt');
                         html += '</button>';
                         html += '</td>';
                         html += '</tr>';

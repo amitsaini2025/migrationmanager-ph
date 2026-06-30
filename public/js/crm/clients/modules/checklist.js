@@ -43,8 +43,8 @@
             $parent.data('current-html', $parent.html());
             $parent.empty().append(
                 $('<input style="display: inline-block;width: auto;" class="form-control opentime" type="text">').prop('value', opentime),
-                $('<button class="btn btn-personalprimary btn-sm mb-1"><i class="fas fa-check"></i></button>'),
-                $('<button class="btn btn-personaldanger btn-sm mb-1"><i class="far fa-trash-alt"></i></button>')
+                $('<button class="btn btn-personalprimary btn-sm mb-1">' + crmI('fas fa-check') + '</button>'),
+                $('<button class="btn btn-personaldanger btn-sm mb-1">' + crmI('far fa-trash-alt') + '</button>')
             );
             return false;
         });
@@ -126,8 +126,8 @@
             parent.data('current-html', parent.html());
             parent.empty().append(
                 $('<input style="display: inline-block;width: auto;" class="form-control opentime" type="text">').prop('value', opentime),
-                $('<button class="btn btn-visaprimary btn-sm mb-1"><i class="fas fa-check"></i></button>'),
-                $('<button class="btn btn-visadanger btn-sm mb-1"><i class="far fa-trash-alt"></i></button>')
+                $('<button class="btn btn-personalprimary btn-sm mb-1">' + crmI('fas fa-check') + '</button>'),
+                $('<button class="btn btn-personaldanger btn-sm mb-1">' + crmI('far fa-trash-alt') + '</button>')
             );
             return false;
         });
@@ -211,8 +211,8 @@
             var cancelBtnClass = isVisa ? 'btn-visadanger' : 'btn-personaldanger';
             $parent.empty().append(
                 $('<input style="display: inline-block;width: auto;" class="form-control opentime" type="text">').prop('value', currentChecklist),
-                $('<button class="btn ' + saveBtnClass + ' btn-sm mb-1"><i class="fas fa-check"></i></button>'),
-                $('<button class="btn ' + cancelBtnClass + ' btn-sm mb-1"><i class="far fa-trash-alt"></i></button>')
+                $('<button class="btn ' + saveBtnClass + ' btn-sm mb-1">' + crmI('fas fa-check') + '</button>'),
+                $('<button class="btn ' + cancelBtnClass + ' btn-sm mb-1">' + crmI('far fa-trash-alt') + '</button>')
             );
             return false;
         });
@@ -227,7 +227,7 @@
             if (!confirm('Are you sure you want to delete the checklist "' + checklistName + '"? This action cannot be undone.')) {
                 return false;
             }
-            $('.custom-error-msg').html('<span class="alert alert-info"><i class="fa fa-clock-o"></i> Deleting checklist...</span>');
+            $('.custom-error-msg').html('<span class="alert alert-info">' + crmI('fa fa-clock-o') + ' Deleting checklist...</span>');
             var deleteUrl = (window.ClientDetailConfig && window.ClientDetailConfig.urls && window.ClientDetailConfig.urls.deleteChecklist) ?
                 window.ClientDetailConfig.urls.deleteChecklist : (typeof site_url !== 'undefined' ? site_url + '/documents/delete-checklist' : '/documents/delete-checklist');
             $.ajax({

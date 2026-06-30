@@ -1257,6 +1257,10 @@ $(document).ready(function() {
 
                             $('#client_portal-tab').html(response);
 
+                            if (typeof refreshLucideIcons === 'function') {
+                                refreshLucideIcons(document.getElementById('client_portal-tab'));
+                            }
+
                             // Initialize Flatpickr for matter date fields
                             if (typeof flatpickr !== 'undefined') {
                                 $('#client_portal-tab .datepicker').each(function() {
@@ -1409,7 +1413,7 @@ $(document).ready(function() {
 
                 <div style="text-align: center;">
 
-                    <i class="fas fa-spinner fa-spin fa-2x" style="color: #4a90e2;"></i>
+                    ${crmI('fas fa-spinner fa-spin', { size: 32, class: 'icon-spin' })}
 
                     <p style="margin-top: 10px; color: #666;">Loading preview...</p>
 
@@ -1483,7 +1487,7 @@ $(document).ready(function() {
 
                 <div class="preview-content" style="flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column;">
 
-                    <i class="fas fa-file fa-3x" style="color: #6c757d; margin-bottom: 15px;"></i>
+                    ${crmI('fas fa-file', { size: 48 })}
 
                     <p style="margin-bottom: 15px;">Preview not available for this file type.</p>
 
@@ -2760,7 +2764,7 @@ success: function(response) {
 
                                     <td>
 
-                                        <a class="removeitems_invoice" href="javascript:;"><i class="fa fa-times"></i></a>
+                                        <a class="removeitems_invoice" href="javascript:;">${crmI('fa fa-times')}</a>
 
                                     </td>
 
@@ -2949,7 +2953,7 @@ success: function(response) {
 
                                     <td>
 
-                                        <a class="removeitems_invoice" href="javascript:;"><i class="fa fa-times"></i></a>
+                                        <a class="removeitems_invoice" href="javascript:;">${crmI('fa fa-times')}</a>
 
                                     </td>
 
@@ -3326,7 +3330,7 @@ success: function(response) {
 
                         <td>
 
-                            <a class="removeitems_invoice" href="javascript:;"><i class="fa fa-times"></i></a>
+                            <a class="removeitems_invoice" href="javascript:;">${crmI('fa fa-times')}</a>
 
                         </td>>`;
 
@@ -4393,7 +4397,7 @@ success: function(response) {
                 $btn.data('visaAgreementCreateLoading', true);
                 $btn.data('visaAgreementCreateHtml', $btn.html());
                 $btn.prop('disabled', true).attr('aria-busy', 'true');
-                $btn.html('<i class="fas fa-spinner fa-spin mr-1"></i>Creating...');
+                $btn.html(crmI('fas fa-spinner fa-spin', { class: 'mr-1' }) + 'Creating...');
             } else {
                 if (!$btn.data('visaAgreementCreateLoading')) {
                     return;
@@ -6140,7 +6144,7 @@ success: function(response) {
                         var subjectLower = subject.toLowerCase();
 
                         if (activityType === 'sms') {
-                            subjectIcon = '<i class="fas fa-sms"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sms') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sms') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sms') : '<i class="fas fa-sms"></i>')));
                             iconClass = 'feed-icon-sms';
                         } else if (activityType === 'note') {
                             var noteIcon = 'fa-sticky-note';
@@ -6149,40 +6153,40 @@ success: function(response) {
                             else if (subjectLower.indexOf('in-person') !== -1) { noteIcon = 'fa-user-friends'; noteSubtypeClass = ' activity-type-note-in-person'; }
                             else if (subjectLower.indexOf('attention') !== -1) { noteIcon = 'fa-exclamation-triangle'; noteSubtypeClass = ' activity-type-note-attention'; }
                             else if (subjectLower.indexOf('others') !== -1) { noteIcon = 'fa-ellipsis-h'; noteSubtypeClass = ' activity-type-note-others'; }
-                            subjectIcon = '<i class="fas ' + noteIcon + '"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas ' + noteIcon) : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas ' + noteIcon) : '<i class="fas ' + noteIcon + ''></i>'));
                             iconClass = 'feed-icon-note';
                         } else if (activityType === 'activity') {
-                            subjectIcon = '<i class="fas fa-bolt"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-bolt') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-bolt') : '<i class="fas fa-bolt"></i>'));
                             iconClass = 'feed-icon-activity';
                         } else if (activityType === 'stage') {
-                            subjectIcon = '<i class="fas fa-route"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-route') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-route') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-route') : '<i class="fas fa-route"></i>')));
                             iconClass = 'feed-icon-stage';
                         } else if (activityType === 'financial') {
-                            subjectIcon = '<i class="fas fa-dollar-sign"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-dollar-sign') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-dollar-sign') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-dollar-sign') : '<i class="fas fa-dollar-sign"></i>')));
                             iconClass = 'feed-icon-financial';
                         } else if (activityType === 'email') {
-                            subjectIcon = '<i class="fas fa-envelope"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : '<i class="fas fa-envelope"></i>')));
                             iconClass = 'feed-icon-email';
                         } else if (activityType === 'signature') {
-                            subjectIcon = '<i class="fas fa-file-signature"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-signature') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-signature') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-signature') : '<i class="fas fa-file-signature"></i>')));
                             iconClass = 'feed-icon-signature';
                         } else if (activityType === 'document') {
-                            subjectIcon = '<i class="fas fa-file-alt"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : '<i class="fas fa-file-alt"></i>')));
                             iconClass = '';
                         } else if (/uploaded email:/i.test(subjectLower)) {
-                            subjectIcon = '<i class="fas fa-envelope"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : '<i class="fas fa-envelope"></i>')));
                             iconClass = 'feed-icon-email';
                         } else if (subjectLower.includes('invoice') || subjectLower.includes('receipt') || subjectLower.includes('ledger') || subjectLower.includes('payment') || subjectLower.includes('account')) {
-                            subjectIcon = '<i class="fas fa-dollar-sign"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-dollar-sign') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-dollar-sign') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-dollar-sign') : '<i class="fas fa-dollar-sign"></i>')));
                             iconClass = 'feed-icon-financial';
                         } else if (subjectLower.includes('document') && !/(receipt document|journal receipt document|client receipt document|office receipt document)/i.test(subjectLower)) {
-                            subjectIcon = '<i class="fas fa-file-alt"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : '<i class="fas fa-file-alt"></i>')));
                             iconClass = '';
                         } else if (subjectLower.includes('document')) {
-                            subjectIcon = '<i class="fas fa-file-alt"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : '<i class="fas fa-file-alt"></i>')));
                             iconClass = '';
                         } else {
-                            subjectIcon = '<i class="fas fa-sticky-note"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sticky-note') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sticky-note') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sticky-note') : '<i class="fas fa-sticky-note"></i>')));
                             iconClass = '';
                         }
 
@@ -6520,7 +6524,7 @@ success: function(response) {
                                 trRow += '<div data-id="' + doc.id + '" data-name="' + fileName + '" class="doc-row" title="' + uploadTitle + '" ' +
                                     'oncontextmenu="showNotUsedFileContextMenu(event, ' + doc.id + ', \'' + fileExt + '\', \'' + fileUrl + '\', \'' + doc.doc_type + '\', \'' + (doc.status || 'draft') + '\'); return false;">' +
                                     '<a href="javascript:void(0);" onclick="previewFile(\'' + fileExt + '\',\'' + filePreviewPath + '\',\'preview-container-notuseddocumnetlist\')">' +
-                                        '<i class="fas fa-file-image"></i> <span>' + fileName + '.' + fileExt + '</span>' +
+                                        crmI('fas fa-file-image') + ' <span>' + fileName + '.' + fileExt + '</span>' +
                                     '</a>' +
                                 '</div>';
                             } else {
@@ -8072,7 +8076,7 @@ success: function(response) {
 
             // Show immediate feedback that upload is starting
 
-            $('.custom-error-msg').html('<span class="alert alert-info"><i class="fa fa-clock-o"></i> Uploading document...</span>');
+            $('.custom-error-msg').html('<span class="alert alert-info">' + crmI('fa fa-clock-o') + ' Uploading document...</span>');
 
 
 
@@ -8114,7 +8118,7 @@ success: function(response) {
 
                                 '<a href="javascript:void(0);" onclick="previewFile(\'' + ress.filetype + '\', \'' + ress.fileurl + '\', \'preview-container-' + doccategoryL + '\')">' +
 
-                                    '<i class="fas fa-file-image"></i> <span>' + ress.filename + '</span>' +
+                                    crmI('fas fa-file-image') + ' <span>' + ress.filename + '</span>' +
 
                                 '</a>' +
 
@@ -8353,7 +8357,7 @@ success: function(response) {
             
             // Visual feedback
             dragZone.addClass('uploading');
-            $('.custom-error-msg').html('<span class="alert alert-info"><i class="fa fa-clock-o"></i> Uploading document...</span>');
+            $('.custom-error-msg').html('<span class="alert alert-info">' + crmI('fa fa-clock-o') + ' Uploading document...</span>');
             
             // Upload via AJAX
             $.ajax({
@@ -8377,7 +8381,7 @@ success: function(response) {
                         uploadTd.html(
                             '<div data-id="' + fileid + '" data-name="' + docNameWithoutExt + '" class="doc-row" title="Uploaded by: ' + (ress.uploaded_by || 'Staff') + (ress.uploaded_at ? ' on ' + formatClientDocDateTime(ress.uploaded_at) : '') + '" oncontextmenu="showFileContextMenu(event, ' + fileid + ', \'' + ress.filetype + '\', \'' + ress.fileurl + '\', \'' + doccategory + '\', \'' + (ress.status_value || 'draft') + '\'); return false;">' +
                                 '<a href="javascript:void(0);" onclick="previewFile(\'' + ress.filetype + '\', \'' + ress.fileurl + '\', \'preview-container-' + doccategory + '\')">' +
-                                    '<i class="fas fa-file-image"></i> <span>' + ress.filename + '</span>' +
+                                    crmI('fas fa-file-image') + ' <span>' + ress.filename + '</span>' +
                                 '</a>' +
                             '</div>'
                         );
@@ -8437,7 +8441,7 @@ success: function(response) {
             
             // Visual feedback
             dragZone.addClass('uploading');
-            $('.custom-error-msg').html('<span class="alert alert-info"><i class="fa fa-clock-o"></i> Uploading document...</span>');
+            $('.custom-error-msg').html('<span class="alert alert-info">' + crmI('fa fa-clock-o') + ' Uploading document...</span>');
             
             // Upload via AJAX
             $.ajax({
@@ -8461,7 +8465,7 @@ success: function(response) {
                         uploadTd.html(
                             '<div data-id="' + fileid + '" data-name="' + docNameWithoutExt + '" class="doc-row" title="Uploaded by: ' + (ress.uploaded_by || 'Staff') + (ress.uploaded_at ? ' on ' + formatClientDocDateTime(ress.uploaded_at) : '') + '" oncontextmenu="' + contextMenuFn + '(event, ' + fileid + ', \'' + ress.filetype + '\', \'' + ress.fileurl + '\', \'' + visa_doc_cat + '\', \'' + (ress.status_value || 'draft') + '\'); return false;">' +
                                 '<a href="javascript:void(0);" onclick="previewFile(\'' + ress.filetype + '\', \'' + ress.fileurl + '\', \'' + previewPane + '\')">' +
-                                    '<i class="fas fa-file-image"></i> <span>' + ress.filename + '</span>' +
+                                    crmI('fas fa-file-image') + ' <span>' + ress.filename + '</span>' +
                                 '</a>' +
                             '</div>'
                         );
@@ -8647,7 +8651,7 @@ success: function(response) {
 
             // Show immediate feedback that upload is starting
 
-            $('.custom-error-msg').html('<span class="alert alert-info"><i class="fa fa-clock-o"></i> Uploading document...</span>');
+            $('.custom-error-msg').html('<span class="alert alert-info">' + crmI('fa fa-clock-o') + ' Uploading document...</span>');
 
             
 
@@ -8710,7 +8714,7 @@ success: function(response) {
 
                                 '<a href="javascript:void(0);" onclick="previewFile(\'' + ress.filetype + '\', \'' + ress.fileurl + '\', \'' + previewPane + '\')">' +
 
-                                    '<i class="fas fa-file-image"></i> <span>' + ress.filename + '</span>' +
+                                    crmI('fas fa-file-image') + ' <span>' + ress.filename + '</span>' +
 
                                 '</a>' +
 

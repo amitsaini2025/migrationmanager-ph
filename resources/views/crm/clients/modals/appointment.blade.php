@@ -4,7 +4,7 @@
 		<div class="modal-content">
 			<div class="modal-header" style="background: linear-gradient(135deg, #0056b3 0%, #004085 100%); color: white; border-bottom: 2px solid rgba(255,255,255,0.2); padding: 18px 24px;">
 				<h5 class="modal-title" id="interestModalLabel" style="font-weight: 700; font-size: 18px;">
-					<i class="fas fa-calendar-plus mr-2"></i>Schedule Appointment
+					@icon('fa-calendar-plus', ['class' => 'mr-2'])Schedule Appointment
 				</h5>
 				<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close" style="color: white; opacity: 0.9; font-size: 24px; font-weight: 300;">
 					<span aria-hidden="true">&times;</span>
@@ -196,7 +196,7 @@
                                         <!-- Date & Time Label at Top -->
                                         <div class="form-group">
                                             <label for="description" class="font-weight-bold text-dark mb-3" style="font-size: 16px;">
-                                                <i class="fas fa-calendar-clock mr-2" style="color: #667eea;"></i>
+                                                @icon('fa-calendar-clock', ['class' => 'mr-2', 'style' => 'color: #667eea;'])
                                                 Date & Time <span class="span_req">*</span>
                                             </label>
 
@@ -206,7 +206,7 @@
                                                     <div class="datetime-content">
                                                         <div class="calendar-section">
                                                             <div class="section-header">
-                                                                <i class="fas fa-calendar-check"></i>
+                                                                @icon('fa-calendar-check')
                                                                 <span>Select Date</span>
                                                             </div>
                                                             <div class="calendar-wrapper">
@@ -216,7 +216,7 @@
                                                         
                                                         <div class="timeslot-section">
                                                             <div class="section-header">
-                                                                <i class="fas fa-clock"></i>
+                                                                @icon('fa-clock')
                                                                 <span>Available Time Slots</span>
                                                             </div>
                                                             <div class="timeslot-wrapper">
@@ -227,7 +227,7 @@
                                                                 <!-- New Modern UI -->
                                                                 <div class="selected-date-display">
                                                                     <div class="date-icon">
-                                                                        <i class="fas fa-calendar-day"></i>
+                                                                        @icon('fa-calendar-day')
                                                                     </div>
                                                                     <div class="date-info">
                                                                         <div class="modern-selected-date">Select a date</div>
@@ -241,7 +241,7 @@
                                                                 
                                                                 <div class="no-slots-message" style="display: none;">
                                                                     <div class="no-slots-icon">
-                                                                        <i class="fas fa-calendar-times"></i>
+                                                                        @icon('fa-calendar-times')
                                                                     </div>
                                                                     <div class="no-slots-text">
                                                                         <h6>No Available Slots</h6>
@@ -259,14 +259,14 @@
                                                 <div class="custom-control custom-checkbox">
                                                     <input type="checkbox" class="custom-control-input" name="slot_overwrite" id="slot_overwrite" value="0">
                                                     <label class="custom-control-label" for="slot_overwrite">
-                                                        <i class="fas fa-unlock-alt mr-2"></i>Slot Overwrite
+                                                        @icon('fa-unlock-alt', ['class' => 'mr-2'])Slot Overwrite
                                                     </label>
                                                     <input type="hidden" name="slot_overwrite_hidden" id="slot_overwrite_hidden" value="0">
                                                 </div>
                                                 <div class="custom-control custom-checkbox mt-2">
                                                     <input type="checkbox" class="custom-control-input" name="send_confirmation_email" id="send_confirmation_email" value="1" checked>
                                                     <label class="custom-control-label" for="send_confirmation_email">
-                                                        <i class="fas fa-envelope mr-2"></i>Send confirmation email to client
+                                                        @icon('fa-envelope', ['class' => 'mr-2'])Send confirmation email to client
                                                     </label>
                                                 </div>
                                             </div>
@@ -314,10 +314,10 @@
 
                         <div class="col-12 col-md-12 col-lg-12 text-right pt-3" style="border-top: 1px solid #e9ecef;">
 							<button onclick="customValidate('appointform')" type="button" class="btn btn-primary btn-lg px-4" id="appointform_save">
-								<i class="fas fa-calendar-check mr-2"></i>Schedule Appointment
+								@icon('fa-calendar-check', ['class' => 'mr-2'])Schedule Appointment
 							</button>
 							<button type="button" class="btn btn-outline-secondary btn-lg px-4 ml-2" data-bs-dismiss="modal">
-								<i class="fas fa-times mr-2"></i>Cancel
+								@icon('fa-times', ['class' => 'mr-2'])Cancel
 							</button>
 						</div>
 					</div>

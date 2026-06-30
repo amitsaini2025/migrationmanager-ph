@@ -4,7 +4,7 @@
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="editMatterOfficeLabel">
-                    <i class="fas fa-building"></i> Assign Office to Matter
+                    @icon('fa-building') Assign Office to Matter
                 </h5>
                 <button type="button" class="close text-white" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
@@ -16,7 +16,7 @@
                 
                 <div class="modal-body">
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
+                        @icon('fa-info-circle')
                         <strong>Matter Details:</strong>
                         <div id="matter_details" class="mt-2"></div>
                     </div>
@@ -53,10 +53,10 @@
                 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times"></i> Cancel
+                        @icon('fa-times') Cancel
                     </button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save Office Assignment
+                        @icon('fa-save') Save Office Assignment
                     </button>
                 </div>
             </form>

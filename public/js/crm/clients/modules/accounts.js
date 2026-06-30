@@ -44,7 +44,7 @@
                 methodCell += '<br/><span style="font-size:11px;color:#6c757d;">+$' + surVal.toFixed(2) + ' surcharge</span>';
             }
             var editIcon = entry.client_fund_ledger_type !== 'Fee Transfer' ?
-                '<a href="#" class="edit-ledger-entry" data-id="' + entry.id + '" data-trans-date="' + entry.trans_date + '" data-entry-date="' + entry.entry_date + '" data-type="' + entry.client_fund_ledger_type + '" data-description="' + (entry.description || '') + '" data-deposit="' + (entry.deposit_amount || '') + '" data-withdraw="' + (entry.withdraw_amount || '') + '" data-payment-method="' + (entry.payment_method || '').replace(/"/g, '&quot;') + '" data-eftpos-surcharge="' + surVal + '"><i class="fas fa-pencil-alt"></i></a>' : '';
+                '<a href="#" class="edit-ledger-entry" data-id="' + entry.id + '" data-trans-date="' + entry.trans_date + '" data-entry-date="' + entry.entry_date + '" data-type="' + entry.client_fund_ledger_type + '" data-description="' + (entry.description || '') + '" data-deposit="' + (entry.deposit_amount || '') + '" data-withdraw="' + (entry.withdraw_amount || '') + '" data-payment-method="' + (entry.payment_method || '').replace(/"/g, '&quot;') + '" data-eftpos-surcharge="' + surVal + '">' + crmI('fas fa-pencil-alt') + '</a>' : '';
             trRows += '<tr data-id="' + entry.id + '">' +
                 '<td>' + entry.trans_date + ' ' + editIcon + '</td>' +
                 '<td class="type-cell"><i class="fas ' + typeIcon + ' type-icon ' + typeClass + '"></i>' +

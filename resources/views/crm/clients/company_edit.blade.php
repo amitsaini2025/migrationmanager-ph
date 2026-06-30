@@ -44,60 +44,60 @@
 
             <!-- Mobile Sidebar Toggle -->
             <button class="sidebar-toggle" onclick="toggleSidebar()">
-                <i class="fas fa-bars"></i>
+                @icon('fa-bars')
             </button>
 
             <!-- Sidebar Navigation -->
             <div class="sidebar-navigation" id="sidebarNav">
                 <div class="nav-header">
-                    <h3><i class="fas fa-building"></i> {{ $fetchedData->type == 'lead' ? 'Edit Company Lead' : 'Edit Company Client' }} : {{ $company ? $company->company_name : 'Unnamed Company' }}</h3>
+                    <h3>@icon('fa-building') {{ $fetchedData->type == 'lead' ? 'Edit Company Lead' : 'Edit Company Client' }} : {{ $company ? $company->company_name : 'Unnamed Company' }}</h3>
                     <div class="client-id">
                         {{ $fetchedData->type == 'lead' ? 'Lead ID' : ($fetchedData->type == 'client' ? 'Client ID' : '') }} : {{ $fetchedData->client_id }}
                     </div>
                 </div>
                 <nav class="nav-menu">
                     <button class="nav-item active" onclick="scrollToSection('companySection')">
-                        <i class="fas fa-building"></i>
+                        @icon('fa-building')
                         <span>Company Information</span>
                     </button>
                     <button class="nav-item" onclick="scrollToSection('contactPersonSection')">
-                        <i class="fas fa-user-tie"></i>
+                        @icon('fa-user-tie')
                         <span>Contact Person</span>
                     </button>
                     <button class="nav-item" onclick="scrollToSection('sponsorshipSection')">
-                        <i class="fas fa-file-contract"></i>
+                        @icon('fa-file-contract')
                         <span>Sponsorship</span>
                     </button>
                     <button class="nav-item" onclick="scrollToSection('directorsSection')">
-                        <i class="fas fa-users-cog"></i>
+                        @icon('fa-users-cog')
                         <span>Directors</span>
                     </button>
                     <button class="nav-item" onclick="scrollToSection('financialSection')">
-                        <i class="fas fa-dollar-sign"></i>
+                        @icon('fa-dollar-sign')
                         <span>Financial</span>
                     </button>
                     <button class="nav-item" onclick="scrollToSection('workforceSection')">
-                        <i class="fas fa-users"></i>
+                        @icon('fa-users')
                         <span>Workforce</span>
                     </button>
                     <button class="nav-item" onclick="scrollToSection('operationsSection')">
-                        <i class="fas fa-briefcase"></i>
+                        @icon('fa-briefcase')
                         <span>Operations</span>
                     </button>
                     <button class="nav-item" onclick="scrollToSection('trainingSection')">
-                        <i class="fas fa-graduation-cap"></i>
+                        @icon('fa-graduation-cap')
                         <span>Training</span>
                     </button>
                     <button class="nav-item" onclick="scrollToSection('nominationsSection')">
-                        <i class="fas fa-user-check"></i>
+                        @icon('fa-user-check')
                         <span>Nominations</span>
                     </button>
                     <button class="nav-item" onclick="scrollToSection('addressSection')">
-                        <i class="fas fa-map-marker-alt"></i>
+                        @icon('fa-map-marker-alt')
                         <span>Business Address</span>
                     </button>
                     <button class="nav-item" onclick="scrollToSection('contactsSection')">
-                        <i class="fas fa-phone"></i>
+                        @icon('fa-phone')
                         <span>Contacts</span>
                     </button>
                 </nav>
@@ -105,7 +105,7 @@
                 <!-- Back Button in Sidebar -->
                 <div class="sidebar-actions">
                     <button class="nav-item summary-nav back-btn" onclick="goBackWithRefresh()">
-                        <i class="fas fa-arrow-left"></i>
+                        @icon('fa-arrow-left')
                         <span>Back</span>
                     </button>
                 </div>
@@ -138,10 +138,10 @@
                 <section id="companySection" class="content-section">
                     <section class="form-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-building"></i> Company Information</h3>
+                            <h3>@icon('fa-building') Company Information</h3>
                             <div class="section-actions">
                                 <button type="button" class="edit-section-btn" onclick="toggleEditMode('companyInfo')">
-                                    <i class="fas fa-pen"></i>
+                                    @icon('fa-pen')
                                 </button>
                             </div>
                         </div>
@@ -242,11 +242,11 @@
                                         <div class="trading-name-row" style="display: flex; gap: 10px; margin-bottom: 8px; align-items: center;">
                                             <input type="text" name="trading_names[]" value="{{ old("trading_names.{$idx}", is_object($tn) ? $tn->trading_name : $tn) }}" placeholder="Trading name" style="flex: 1;">
                                             <label><input type="radio" name="trading_name_primary" value="{{ $idx }}" {{ ($tn->is_primary ?? ($idx === 0)) ? 'checked' : '' }}> Primary</label>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTradingName(this)"><i class="fas fa-times"></i></button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTradingName(this)">@icon('fa-times')</button>
                                         </div>
                                         @endforeach
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addTradingName()"><i class="fas fa-plus"></i> Add another</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addTradingName()">@icon('fa-plus') Add another</button>
                                 </div>
                                 
                                 <div class="form-group">
@@ -329,10 +329,10 @@
                 <section id="contactPersonSection" class="content-section">
                     <section class="form-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-user-tie"></i> Primary Contact Person</h3>
+                            <h3>@icon('fa-user-tie') Primary Contact Person</h3>
                             <div class="section-actions">
                                 <button type="button" class="edit-section-btn" onclick="toggleEditMode('contactPersonInfo')">
-                                    <i class="fas fa-pen"></i>
+                                    @icon('fa-pen')
                                 </button>
                             </div>
                         </div>
@@ -457,12 +457,12 @@
                 <section id="sponsorshipSection" class="content-section">
                     <section class="form-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-file-contract"></i> Sponsorship</h3>
+                            <h3>@icon('fa-file-contract') Sponsorship</h3>
                             <div class="section-actions">
                                 <button type="button" class="edit-section-btn" onclick="toggleEditMode('sponsorship')">
-                                    <i class="fas fa-pen"></i>
+                                    @icon('fa-pen')
                                 </button>
-                                <button type="button" class="add-section-btn" onclick="addSponsorshipRow()" title="Add Sponsorship"><i class="fas fa-plus"></i></button>
+                                <button type="button" class="add-section-btn" onclick="addSponsorshipRow()" title="Add Sponsorship">@icon('fa-plus')</button>
                             </div>
                         </div>
                         <div id="sponsorshipSummary" class="summary-view">
@@ -530,7 +530,7 @@
                                         <div class="form-group"><label><input type="checkbox" class="sponsorship-adverse-cb" name="sponsorship_adverse[{{ $idx }}]" value="1" {{ !empty($s->adverse_information) ? 'checked' : '' }}> Adverse Information</label></div>
                                         <div class="form-group full-width"><label>Previous Sponsorship Notes</label><textarea name="sponsorship_previous_notes[]" rows="2">{{ $s->previous_sponsorship_notes ?? '' }}</textarea></div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeSponsorshipRow(this)"><i class="fas fa-times"></i> Remove</button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeSponsorshipRow(this)">@icon('fa-times') Remove</button>
                                 </div>
                                 @endforeach
                             </div>
@@ -546,12 +546,12 @@
                 <section id="directorsSection" class="content-section">
                     <section class="form-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-users-cog"></i> Directors</h3>
+                            <h3>@icon('fa-users-cog') Directors</h3>
                             <div class="section-actions">
                                 <button type="button" class="edit-section-btn" onclick="toggleEditMode('directors')">
-                                    <i class="fas fa-pen"></i>
+                                    @icon('fa-pen')
                                 </button>
-                                <button type="button" class="add-section-btn" onclick="addDirectorRow()" title="Add Director"><i class="fas fa-plus"></i></button>
+                                <button type="button" class="add-section-btn" onclick="addDirectorRow()" title="Add Director">@icon('fa-plus')</button>
                             </div>
                         </div>
                         <div id="directorsSummary" class="summary-view">
@@ -568,7 +568,7 @@
                         <div id="directorsEdit" class="edit-view hidden">
                             <div class="form-group" style="margin-bottom:15px;">
                                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="addContactPersonAsDirector()">
-                                    <i class="fas fa-user-plus"></i> Add contact person as director
+                                    @icon('fa-user-plus') Add contact person as director
                                 </button>
                                 <small class="form-text text-muted">Quick-add the selected contact person (from Contact Person section) to the directors list.</small>
                             </div>
@@ -599,12 +599,12 @@
                                         <input type="date" name="director_dobs[]" value="{{ isset($dir->director_dob) && $dir->director_dob ? $dir->director_dob->format('Y-m-d') : '' }}" placeholder="DOB" title="DOB">
                                         <input type="text" name="director_roles[]" value="{{ $dir->director_role ?? '' }}" placeholder="Role" style="width:120px;">
                                         <label><input type="radio" name="director_primary" value="{{ $idx }}" {{ ($dir->is_primary ?? ($idx===0)) ? 'checked' : '' }}> Primary</label>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDirectorRow(this)"><i class="fas fa-times"></i> Remove</button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDirectorRow(this)">@icon('fa-times') Remove</button>
                                     </div>
                                 </div>
                                 @endforeach
                             </div>
-                            <button type="button" class="add-item-btn" onclick="addDirectorRow()"><i class="fas fa-plus-circle"></i> Add Director</button>
+                            <button type="button" class="add-item-btn" onclick="addDirectorRow()">@icon('fa-plus-circle') Add Director</button>
                             <div class="edit-actions">
                                 <button type="button" class="btn btn-primary" onclick="saveDirectorsInfo()">Save</button>
                                 <button type="button" class="btn btn-secondary" onclick="cancelEdit('directors')">Cancel</button>
@@ -650,10 +650,10 @@
                 <section id="financialSection" class="content-section">
                     <section class="form-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-dollar-sign"></i> Financial</h3>
+                            <h3>@icon('fa-dollar-sign') Financial</h3>
                             <div class="section-actions">
                                 <button type="button" class="edit-section-btn" onclick="toggleEditMode('financial')">
-                                    <i class="fas fa-pen"></i>
+                                    @icon('fa-pen')
                                 </button>
                             </div>
                         </div>
@@ -685,11 +685,11 @@
                                         <div class="form-group"><label>Annual Turnover</label><input type="number" name="financial_annual_turnover[]" value="{{ $fin->annual_turnover !== null && $fin->annual_turnover !== '' ? $fin->annual_turnover : '' }}" placeholder="0" step="0.01" min="0"></div>
                                         <div class="form-group"><label>Wages Expenditure</label><input type="number" name="financial_wages_expenditure[]" value="{{ $fin->wages_expenditure !== null && $fin->wages_expenditure !== '' ? $fin->wages_expenditure : '' }}" placeholder="0" step="0.01" min="0"></div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFinancialRow(this)"><i class="fas fa-times"></i> Remove</button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFinancialRow(this)">@icon('fa-times') Remove</button>
                                 </div>
                                 @endforeach
                             </div>
-                            <button type="button" class="add-item-btn" onclick="addFinancialRow()"><i class="fas fa-plus-circle"></i> Add financial year</button>
+                            <button type="button" class="add-item-btn" onclick="addFinancialRow()">@icon('fa-plus-circle') Add financial year</button>
                             <div class="edit-actions">
                                 <button type="button" class="btn btn-primary" onclick="saveFinancialInfo()">Save</button>
                                 <button type="button" class="btn btn-secondary" onclick="cancelEdit('financial')">Cancel</button>
@@ -702,10 +702,10 @@
                 <section id="workforceSection" class="content-section">
                     <section class="form-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-users"></i> Workforce</h3>
+                            <h3>@icon('fa-users') Workforce</h3>
                             <div class="section-actions">
                                 <button type="button" class="edit-section-btn" onclick="toggleEditMode('workforce')">
-                                    <i class="fas fa-pen"></i>
+                                    @icon('fa-pen')
                                 </button>
                             </div>
                         </div>
@@ -751,10 +751,10 @@
                 <section id="operationsSection" class="content-section">
                     <section class="form-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-briefcase"></i> Operations</h3>
+                            <h3>@icon('fa-briefcase') Operations</h3>
                             <div class="section-actions">
                                 <button type="button" class="edit-section-btn" onclick="toggleEditMode('operations')">
-                                    <i class="fas fa-pen"></i>
+                                    @icon('fa-pen')
                                 </button>
                             </div>
                         </div>
@@ -785,10 +785,10 @@
                 <section id="trainingSection" class="content-section">
                     <section class="form-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-graduation-cap"></i> Training</h3>
+                            <h3>@icon('fa-graduation-cap') Training</h3>
                             <div class="section-actions">
                                 <button type="button" class="edit-section-btn" onclick="toggleEditMode('training')">
-                                    <i class="fas fa-pen"></i>
+                                    @icon('fa-pen')
                                 </button>
                             </div>
                         </div>
@@ -819,12 +819,12 @@
                 <section id="nominationsSection" class="content-section">
                     <section class="form-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-user-check"></i> Nominations</h3>
+                            <h3>@icon('fa-user-check') Nominations</h3>
                             <div class="section-actions">
                                 <button type="button" class="edit-section-btn" onclick="toggleEditMode('nominations')">
-                                    <i class="fas fa-pen"></i>
+                                    @icon('fa-pen')
                                 </button>
-                                <button type="button" class="add-section-btn" onclick="addNominationRow()" title="Add Nomination"><i class="fas fa-plus"></i></button>
+                                <button type="button" class="add-section-btn" onclick="addNominationRow()" title="Add Nomination">@icon('fa-plus')</button>
                             </div>
                         </div>
                         <div id="nominationsSummary" class="summary-view">
@@ -874,12 +874,12 @@
                                         <div class="form-group"><label>Status</label><input type="text" name="nomination_statuses[]" value="{{ $nom->status ?? '' }}" placeholder="Status"></div>
                                         <div class="form-group"><label>Nomination Date</label><input type="date" name="nomination_dates[]" value="{{ $nom->nomination_date?->format('Y-m-d') ?? '' }}"></div>
                                         <div class="form-group"><label>Expiry Date</label><input type="date" name="nomination_expiries[]" value="{{ $nom->expiry_date?->format('Y-m-d') ?? '' }}"></div>
-                                        <div class="form-group" style="align-self:end;"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeNominationRow(this)"><i class="fas fa-times"></i> Remove</button></div>
+                                        <div class="form-group" style="align-self:end;"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeNominationRow(this)">@icon('fa-times') Remove</button></div>
                                     </div>
                                 </div>
                                 @endforeach
                             </div>
-                            <button type="button" class="add-item-btn" onclick="addNominationRow()"><i class="fas fa-plus-circle"></i> Add Nomination</button>
+                            <button type="button" class="add-item-btn" onclick="addNominationRow()">@icon('fa-plus-circle') Add Nomination</button>
                             <div class="edit-actions">
                                 <button type="button" class="btn btn-primary" onclick="saveNominationsInfo()">Save</button>
                                 <button type="button" class="btn btn-secondary" onclick="cancelEdit('nominations')">Cancel</button>
@@ -903,13 +903,13 @@
                     <!-- Phone Numbers -->
                     <section class="form-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-mobile-alt"></i> Phone Numbers</h3>
+                            <h3>@icon('fa-mobile-alt') Phone Numbers</h3>
                             <div class="section-actions">
                                 <button type="button" class="edit-section-btn" onclick="toggleEditMode('phoneNumbers')">
-                                    <i class="fas fa-pen"></i>
+                                    @icon('fa-pen')
                                 </button>
                                 <button type="button" class="add-section-btn" onclick="addPhoneNumber()" title="Add Phone Number">
-                                    <i class="fas fa-plus"></i>
+                                    @icon('fa-plus')
                                 </button>
                             </div>
                         </div>
@@ -925,11 +925,11 @@
                                             @if($contact->canVerify())
                                                 @if($contact->is_verified)
                                                     <span class="verified-badge" title="Verified on {{ $contact->verified_at ? $contact->verified_at->format('M j, Y g:i A') : 'Unknown' }}">
-                                                        <i class="fas fa-check-circle"></i> Verified
+                                                        @icon('fa-check-circle') Verified
                                                     </span>
                                                 @else
                                                     <button type="button" class="btn-verify-phone" onclick="sendOTP({{ $contact->id ?? 'null' }}, '{{ $contact->phone }}', '{{ $contact->country_code }}')" data-contact-id="{{ $contact->id ?? '' }}">
-                                                        <i class="fas fa-lock"></i> Verify
+                                                        @icon('fa-lock') Verify
                                                     </button>
                                                 @endif
                                             @endif
@@ -951,7 +951,7 @@
                                 @endforeach
                             </div>
 
-                            <button type="button" class="add-item-btn" onclick="addPhoneNumber()"><i class="fas fa-plus-circle"></i> Add Phone Number</button>
+                            <button type="button" class="add-item-btn" onclick="addPhoneNumber()">@icon('fa-plus-circle') Add Phone Number</button>
                             <div class="edit-actions">
                                 <button type="button" class="btn btn-primary" onclick="savePhoneNumbers()">Save</button>
                                 <button type="button" class="btn btn-secondary" onclick="cancelEdit('phoneNumbers')">Cancel</button>
@@ -962,13 +962,13 @@
                     <!-- Email Addresses -->
                     <section class="form-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-envelope"></i> Email Addresses</h3>
+                            <h3>@icon('fa-envelope') Email Addresses</h3>
                             <div class="section-actions">
                                 <button type="button" class="edit-section-btn" onclick="toggleEditMode('emailAddresses')">
-                                    <i class="fas fa-pen"></i>
+                                    @icon('fa-pen')
                                 </button>
                                 <button type="button" class="add-section-btn" onclick="addEmailAddress()" title="Add Email Address">
-                                    <i class="fas fa-plus"></i>
+                                    @icon('fa-plus')
                                 </button>
                             </div>
                         </div>
@@ -983,11 +983,11 @@
                                             <span class="summary-value">{{ $email->email }}</span>
                                             @if($email->is_verified)
                                                 <span class="verified-badge" title="Verified on {{ $email->verified_at ? $email->verified_at->format('M j, Y g:i A') : 'Unknown' }}">
-                                                    <i class="fas fa-check-circle"></i> Verified
+                                                    @icon('fa-check-circle') Verified
                                                 </span>
                                             @else
                                                 <button type="button" class="btn-verify-email" onclick="sendEmailVerification({{ $email->id }}, '{{ $email->email }}')" data-email-id="{{ $email->id }}">
-                                                    <i class="fas fa-lock"></i> Verify
+                                                    @icon('fa-lock') Verify
                                                 </button>
                                             @endif
                                         </div>
@@ -1008,7 +1008,7 @@
                                 @endforeach
                             </div>
 
-                            <button type="button" class="add-item-btn" onclick="addEmailAddress()"><i class="fas fa-plus-circle"></i> Add Email Address</button>
+                            <button type="button" class="add-item-btn" onclick="addEmailAddress()">@icon('fa-plus-circle') Add Email Address</button>
                             <div class="edit-actions">
                                 <button type="button" class="btn btn-primary" onclick="saveEmailAddresses()">Save</button>
                                 <button type="button" class="btn btn-secondary" onclick="cancelEdit('emailAddresses')">Cancel</button>
@@ -1138,7 +1138,7 @@
         const row = $('<div class="trading-name-row" style="display: flex; gap: 10px; margin-bottom: 8px; align-items: center;">' +
             '<input type="text" name="trading_names[]" placeholder="Trading name" style="flex: 1;">' +
             '<label><input type="radio" name="trading_name_primary" value="' + idx + '"> Primary</label>' +
-            '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTradingName(this)"><i class="fas fa-times"></i></button>' +
+            '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTradingName(this)">' + crmI('fas fa-times') + '</button>' +
             '</div>');
         container.append(row);
         // Update primary radio values
@@ -1174,7 +1174,7 @@
             '<input type="date" name="director_dobs[]" placeholder="DOB" title="DOB">' +
             '<input type="text" name="director_roles[]" placeholder="Role" style="width:120px;">' +
             '<label><input type="radio" name="director_primary" value="' + idx + '"> Primary</label>' +
-            '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDirectorRow(this)"><i class="fas fa-times"></i> Remove</button></div></div>';
+            '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDirectorRow(this)">' + crmI('fas fa-times') + ' Remove</button></div></div>';
         container.append(row);
         container.find('.director-row').each(function(i) { $(this).find('input[name="director_primary"]').val(i); });
         if (typeof $.fn.mmSelect === 'function') {
@@ -1220,7 +1220,7 @@
             '<div class="form-group"><label>Status</label><input type="text" name="nomination_statuses[]" placeholder="Status"></div>' +
             '<div class="form-group"><label>Nomination Date</label><input type="date" name="nomination_dates[]"></div>' +
             '<div class="form-group"><label>Expiry Date</label><input type="date" name="nomination_expiries[]"></div>' +
-            '<div class="form-group" style="align-self:end;"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeNominationRow(this)"><i class="fas fa-times"></i> Remove</button></div></div></div>';
+            '<div class="form-group" style="align-self:end;"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeNominationRow(this)">' + crmI('fas fa-times') + ' Remove</button></div></div></div>';
         container.append(row);
         if (typeof $.fn.mmSelect === 'function') {
             container.find('.nomination-person-select').last().mmSelect({
@@ -1270,7 +1270,7 @@
             '<div class="form-group"><label><input type="checkbox" class="sponsorship-adverse-cb" name="sponsorship_adverse[' + idx + ']" value="1"> Adverse Information</label></div>' +
             '<div class="form-group full-width"><label>Previous Sponsorship Notes</label><textarea name="sponsorship_previous_notes[]" rows="2"></textarea></div>' +
             '</div>' +
-            '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeSponsorshipRow(this)"><i class="fas fa-times"></i> Remove</button>' +
+            '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeSponsorshipRow(this)">' + crmI('fas fa-times') + ' Remove</button>' +
             '</div>';
         container.append(row);
         reindexSponsorshipRows();
@@ -1298,7 +1298,7 @@
             '<div class="form-group"><label>Annual Turnover</label><input type="number" name="financial_annual_turnover[]" value="" placeholder="0" step="0.01" min="0"></div>' +
             '<div class="form-group"><label>Wages Expenditure</label><input type="number" name="financial_wages_expenditure[]" value="" placeholder="0" step="0.01" min="0"></div>' +
             '</div>' +
-            '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFinancialRow(this)"><i class="fas fa-times"></i> Remove</button>';
+            '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFinancialRow(this)">' + crmI('fas fa-times') + ' Remove</button>';
         container.appendChild(row);
     }
 

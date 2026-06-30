@@ -2,10 +2,10 @@
            <div class="tab-pane" id="checklists-tab">
                 <div class="card full-width checklists-container">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0"><i class="fas fa-tasks mr-2"></i>Checklists</h4>
+                        <h4 class="mb-0">@icon('fa-tasks', ['class' => 'mr-2'])Checklists</h4>
                         <div class="checklist-add-wrapper position-relative">
                             <button type="button" class="btn btn-primary btn-add-checklist" id="btn-add-checklist">
-                                <i class="fas fa-plus mr-2"></i>Create Checklist
+                                @icon('fa-plus', ['class' => 'mr-2'])Create Checklist
                             </button>
                             <div class="checklist-create-dropdown" id="checklist-create-dropdown" style="display: none;">
                                 <div class="dropdown-arrow"></div>
@@ -63,7 +63,7 @@
                                                         @endforeach
                                                     </select>
                                                     <small class="form-text text-muted">
-                                                        <i class="fas fa-building"></i> This matter will be handled by the selected office
+                                                        @icon('fa-building') This matter will be handled by the selected office
                                                     </small>
                                                 </div>
                                             </div>
@@ -104,7 +104,7 @@
                     </div>
                     <div class="card-body">
                         <div class="checklists-sent-section">
-                            <h5 class="font-weight-bold mb-3"><i class="fas fa-list mr-2"></i>Your Checklists</h5>
+                            <h5 class="font-weight-bold mb-3">@icon('fa-list', ['class' => 'mr-2'])Your Checklists</h5>
                             <div id="checklists-list-container">
                                 <?php
                                 $checklist_forms = \App\Models\CostAssignmentForm::where('client_id', $fetchedData->id)
@@ -114,7 +114,7 @@
                                 ?>
                                 @if($checklist_forms->isEmpty())
                                     <div class="alert alert-info" id="checklists-empty-state">
-                                        <i class="fas fa-info-circle mr-2"></i>
+                                        @icon('fa-info-circle', ['class' => 'mr-2'])
                                         No checklists yet. Click <strong>Create Checklist</strong> to add one. You'll select matter, assign migration agent and team, complete cost assignment, and create cost agreement.
                                     </div>
                                     <div id="checklists-list" style="display: none;"></div>
@@ -160,7 +160,7 @@
                                                 <div class="checklist-item-header" data-bs-toggle="collapse" data-bs-target="#checklist-detail-{{ $form->id }}">
                                                     <div class="d-flex justify-content-between align-items-center">
                                                         <div class="d-flex align-items-center">
-                                                            <i class="fas fa-chevron-right checklist-toggle-icon mr-2"></i>
+                                                            @icon('fa-chevron-right', ['class' => 'checklist-toggle-icon mr-2'])
                                                             <div>
                                                                 <strong class="checklist-matter-name">{{ $matterName }}</strong>
                                                                 <span class="checklist-date ml-2 small">{{ $form->created_at ? $form->created_at->format('d/m/Y') : '' }}</span>
@@ -169,14 +169,14 @@
                                                         <div class="checklist-summary d-flex align-items-center">
                                                             @if(($fetchedData->type ?? '') === 'lead')
                                                             <button type="button" class="btn btn-sm btn-outline-primary convertLeadToClient mr-2" onclick="event.stopPropagation(); $('#convertLeadToClientModal').modal('show');" title="Convert to Client">
-                                                                <i class="fas fa-user-check mr-1"></i> Convert to Client
+                                                                @icon('fa-user-check', ['class' => 'mr-1']) Convert to Client
                                                             </button>
                                                             @endif
                                                             <span class="badge badge-info mr-2">
-                                                                <i class="fas fa-users"></i> {{ $office ? $office->office_name : 'No Office' }}
+                                                                @icon('fa-users') {{ $office ? $office->office_name : 'No Office' }}
                                                             </span>
                                                             <span class="badge badge-success">
-                                                                <i class="fas fa-dollar-sign"></i> ${{ number_format($totalCost, 2) }}
+                                                                @icon('fa-dollar-sign') ${{ number_format($totalCost, 2) }}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -187,7 +187,7 @@
                                                         <div class="row">
                                                             <!-- Team Section -->
                                                             <div class="col-md-6 mb-3">
-                                                                <h6 class="font-weight-bold mb-3"><i class="fas fa-users mr-2"></i>Team Members</h6>
+                                                                <h6 class="font-weight-bold mb-3">@icon('fa-users', ['class' => 'mr-2'])Team Members</h6>
                                                                 <div class="team-member mb-2">
                                                                     <label class="mb-1">Migration Agent:</label>
                                                                     <div class="font-weight-500">
@@ -209,14 +209,14 @@
                                                                 <div class="team-member">
                                                                     <label class="mb-1">Handling Office:</label>
                                                                     <div class="font-weight-500">
-                                                                        <i class="fas fa-building mr-1 text-primary"></i>{{ $office ? $office->office_name : 'No Office Assigned' }}
+                                                                        @icon('fa-building', ['class' => 'mr-1 text-primary']){{ $office ? $office->office_name : 'No Office Assigned' }}
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                             
                                                             <!-- Cost Breakdown Section (compact) -->
                                                             <div class="col-md-6 mb-3 cost-breakdown-col">
-                                                                <h6 class="font-weight-bold cost-breakdown-title"><i class="fas fa-calculator mr-2"></i>Cost Breakdown</h6>
+                                                                <h6 class="font-weight-bold cost-breakdown-title">@icon('fa-calculator', ['class' => 'mr-2'])Cost Breakdown</h6>
                                                                 <div class="cost-item cost-breakdown-item">
                                                                     <div class="d-flex justify-content-between align-items-center">
                                                                         <span>Our Cost (Block Fees):</span>
@@ -254,7 +254,7 @@
                                                                 </div>
                                                                 <div class="cost-breakdown-edit mt-2">
                                                                     <button type="button" class="btn btn-outline-secondary btn-sm btn-amend-checklist" data-id="{{ $form->id }}" data-client-id="{{ $fetchedData->id ?? '' }}" data-client-matter-id="{{ $form->client_matter_id }}" title="Amend Cost Assignment">
-                                                                        <i class="fas fa-edit mr-1"></i>Edit
+                                                                        @icon('fa-edit', ['class' => 'mr-1'])Edit
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -264,11 +264,11 @@
                                                         <div class="checklist-actions-section mt-3 pt-3 border-top">
                                                             <div class="row">
                                                                 <div class="col-12">
-                                                                    <h6 class="font-weight-bold mb-3"><i class="fas fa-tools mr-2"></i>Actions</h6>
+                                                                    <h6 class="font-weight-bold mb-3">@icon('fa-tools', ['class' => 'mr-2'])Actions</h6>
                                                                     <div class="d-flex flex-wrap gap-2">
                                                                         @if($agreementDoc && $agreementDoc->status === 'signed' && $agreementDoc->signed_doc_link)
                                                                         <a href="{{ route('documents.download.signed', $agreementDoc->id) }}" target="_blank" class="btn btn-success btn-sm" title="Download Signed Document">
-                                                                            <i class="fas fa-download mr-1"></i>Download Signed
+                                                                            @icon('fa-download', ['class' => 'mr-1'])Download Signed
                                                                         </a>
                                                                         @endif
                                                                         <button type="button" class="btn btn-outline-info btn-sm btn-send-checklist" title="Send Document Checklist to client"
@@ -276,13 +276,13 @@
                                                                             data-client-email="{{ $fetchedData->email ?? '' }}"
                                                                             data-client-name="{{ trim(($fetchedData->first_name ?? '') . ' ' . ($fetchedData->last_name ?? '')) ?: ($fetchedData->company_name ?? '') }}"
                                                                             data-client-matter-id="{{ $form->client_matter_id ?? '' }}">
-                                                                            <i class="fas fa-paper-plane mr-1"></i>Send Checklist
+                                                                            @icon('fa-paper-plane', ['class' => 'mr-1'])Send Checklist
                                                                         </button>
                                                                         <button type="button" class="btn btn-primary btn-sm visaAgreementCreateForm" data-id="{{ $form->id }}" data-client-matter-id="{{ $form->client_matter_id }}" title="Create Visa Agreement">
-                                                                            <i class="fas fa-file-contract mr-1"></i>Create Visa Agreement
+                                                                            @icon('fa-file-contract', ['class' => 'mr-1'])Create Visa Agreement
                                                                         </button>
                                                                         <button type="button" class="btn btn-success btn-sm finalizeAgreementConvertToPdf" data-id="{{ $form->id }}" data-client-matter-id="{{ $form->client_matter_id }}" title="Upload PDF and place signature fields">
-                                                                            <i class="fas fa-lock mr-1"></i>Upload and Place Signatures
+                                                                            @icon('fa-lock', ['class' => 'mr-1'])Upload and Place Signatures
                                                                         </button>
                                                                     </div>
                                                                 </div>
@@ -291,10 +291,10 @@
                                                             @if($agreementDoc && $agreementDoc->status === 'signed' && $agreementDoc->signed_doc_link)
                                                             <!-- Document Signed - Download Section -->
                                                             <div class="signature-section mt-3 p-3 rounded border border-success" style="background-color: rgba(40, 167, 69, 0.1);">
-                                                                <h6 class="font-weight-bold mb-2 text-success"><i class="fas fa-check-circle mr-2"></i>Document Signed</h6>
+                                                                <h6 class="font-weight-bold mb-2 text-success">@icon('fa-check-circle', ['class' => 'mr-2'])Document Signed</h6>
                                                                 <p class="mb-2 small text-muted">The client has signed the cost agreement. Download the signed copy below.</p>
                                                                 <a href="{{ route('documents.download.signed', $agreementDoc->id) }}" target="_blank" class="btn btn-success btn-sm">
-                                                                    <i class="fas fa-download mr-1"></i>Download Signed Document
+                                                                    @icon('fa-download', ['class' => 'mr-1'])Download Signed Document
                                                                 </a>
                                                             </div>
                                                             @elseif($agreementDoc && $agreementDoc->signature_doc_link)
@@ -310,7 +310,7 @@
                                                             @endphp
                                                             <!-- Signature Link Section -->
                                                             <div class="signature-section mt-3 p-3 bg-light rounded">
-                                                                <h6 class="font-weight-bold mb-2"><i class="fas fa-signature mr-2"></i>Signature Link</h6>
+                                                                <h6 class="font-weight-bold mb-2">@icon('fa-signature', ['class' => 'mr-2'])Signature Link</h6>
                                                                 @if($signingUrl)
                                                                 <div class="mb-2">
                                                                     <small class="text-muted">
@@ -321,10 +321,10 @@
                                                                     <input type="text" class="form-control signature-link-input" value="{{ $signingUrl }}" readonly>
                                                                     <div class="input-group-append">
                                                                         <button class="btn btn-outline-secondary btn-copy-signature-link" type="button" data-link="{{ $signingUrl }}">
-                                                                            <i class="fas fa-copy"></i> Copy
+                                                                            @icon('fa-copy') Copy
                                                                         </button>
                                                                         <a href="{{ $signingUrl }}" target="_blank" class="btn btn-outline-primary">
-                                                                            <i class="fas fa-external-link-alt"></i> View
+                                                                            @icon('fa-external-link-alt') View
                                                                         </a>
                                                                         <button type="button" class="btn btn-info btn-send-signature-email" title="Send Email with Signature Link"
                                                                             data-signing-url="{{ $signingUrl }}"
@@ -334,7 +334,7 @@
                                                                             data-client-email="{{ $fetchedData->email ?? '' }}"
                                                                             data-client-name="{{ $fetchedData->first_name ?? '' }} {{ $fetchedData->last_name ?? '' }}"
                                                                             data-client-matter-id="{{ $form->client_matter_id }}">
-                                                                            <i class="fas fa-envelope mr-1"></i> Send Email
+                                                                            @icon('fa-envelope', ['class' => 'mr-1']) Send Email
                                                                         </button>
                                                                         @if($primarySigner)
                                                                         <button type="button" class="btn btn-warning btn-send-signature-reminder ml-1" title="Send reminder to signer"
@@ -342,36 +342,36 @@
                                                                             data-signer-id="{{ $primarySigner->id }}"
                                                                             data-reminder-count="{{ $primarySigner->reminder_count }}"
                                                                             {{ $primarySigner->reminder_count >= 3 ? 'disabled' : '' }}>
-                                                                            <i class="fas fa-bell mr-1"></i> Send Reminder ({{ $primarySigner->reminder_count }}/3)
+                                                                            @icon('fa-bell', ['class' => 'mr-1']) Send Reminder ({{ $primarySigner->reminder_count }}/3)
                                                                         </button>
                                                                         @endif
                                                                     </div>
                                                                 </div>
                                                                 <small class="text-muted d-block mt-2">
-                                                                    <i class="fas fa-info-circle"></i> Share this link with the client to sign the agreement
+                                                                    @icon('fa-info-circle') Share this link with the client to sign the agreement
                                                                 </small>
                                                                 @if($primarySigner)
                                                                 <small class="text-muted d-block mt-1 checklist-signature-reminder-status">
                                                                     @if($primarySigner->last_reminder_sent_at)
-                                                                        <i class="fas fa-clock"></i> Last reminder: {{ $primarySigner->last_reminder_sent_at->format('M d, Y g:i A') }}
+                                                                        @icon('fa-clock') Last reminder: {{ $primarySigner->last_reminder_sent_at->format('M d, Y g:i A') }}
                                                                     @else
-                                                                        <i class="fas fa-info-circle"></i> No reminders sent yet
+                                                                        @icon('fa-info-circle') No reminders sent yet
                                                                     @endif
                                                                 </small>
                                                                 @endif
                                                                 @else
                                                                 <div class="alert alert-warning mb-0">
-                                                                    <i class="fas fa-exclamation-triangle"></i> Signature link data is invalid. Please try placing signature fields again.
+                                                                    @icon('fa-exclamation-triangle') Signature link data is invalid. Please try placing signature fields again.
                                                                 </div>
                                                                 @endif
                                                             </div>
                                                             @elseif($agreementDoc)
                                                             <!-- Document Uploaded - Awaiting Signature Setup -->
                                                             <div class="signature-section mt-3 p-3 bg-warning-light rounded border border-warning">
-                                                                <h6 class="font-weight-bold mb-2"><i class="fas fa-exclamation-triangle mr-2 text-warning"></i>Signature Setup Required</h6>
+                                                                <h6 class="font-weight-bold mb-2">@icon('fa-exclamation-triangle', ['class' => 'mr-2 text-warning'])Signature Setup Required</h6>
                                                                 <p class="mb-2 small">The agreement has been uploaded but signature fields haven't been placed yet.</p>
                                                                 <button type="button" class="btn btn-warning btn-sm btn-place-signature-fields" data-document-id="{{ $agreementDoc->id }}" title="Place signature fields inline">
-                                                                    <i class="fas fa-pen-nib mr-1"></i>Place Signature Fields
+                                                                    @icon('fa-pen-nib', ['class' => 'mr-1'])Place Signature Fields
                                                                 </button>
                                                             </div>
                                                             @endif
@@ -1029,7 +1029,7 @@
             // Visual feedback
             var $btn = $(this);
             var originalHtml = $btn.html();
-            $btn.html('<i class="fas fa-check"></i> Copied!');
+            $btn.html(crmI('fas fa-check') + ' Copied!');
             $btn.addClass('btn-success').removeClass('btn-outline-secondary');
             
             setTimeout(function() {
@@ -1152,7 +1152,7 @@
             }
 
             var originalHtml = $btn.html();
-            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Sending...');
+            $btn.prop('disabled', true).html(crmI('fas fa-spinner fa-spin', { class: 'mr-1' }) + ' Sending...');
 
             $.ajax({
                 url: '{{ url("/signatures") }}/' + docId + '/reminder',
@@ -1167,7 +1167,7 @@
                 if (resp && resp.success) {
                     var count = resp.reminder_count != null ? resp.reminder_count : (parseInt($btn.data('reminder-count'), 10) + 1);
                     $btn.data('reminder-count', count);
-                    $btn.html('<i class="fas fa-bell mr-1"></i> Send Reminder (' + count + '/3)');
+                    $btn.html(crmI('fas fa-bell', { class: 'mr-1' }) + ' Send Reminder (' + count + '/3)');
                     if (count >= 3) {
                         $btn.prop('disabled', true);
                     } else {
@@ -1177,9 +1177,9 @@
                     var $status = $btn.closest('.signature-section').find('.checklist-signature-reminder-status');
                     if ($status.length) {
                         if (resp.last_reminder_sent_at) {
-                            $status.html('<i class="fas fa-clock"></i> Last reminder: ' + resp.last_reminder_sent_at);
+                            $status.html(crmI('fas fa-clock') + ' Last reminder: ' + resp.last_reminder_sent_at);
                         } else {
-                            $status.html('<i class="fas fa-info-circle"></i> No reminders sent yet');
+                            $status.html(crmI('fas fa-info-circle') + ' No reminders sent yet');
                         }
                     }
 
@@ -1541,7 +1541,7 @@
                     else if (xhr.responseText && xhr.responseText.length < 200) msg = xhr.responseText;
                     alert(msg);
                 }).always(function() {
-                    $btn.prop('disabled', false).html('<i class="fas fa-save mr-1"></i>Save Signature Locations');
+                    $btn.prop('disabled', false).html(crmI('fas fa-save', { class: 'mr-1' }) + 'Save Signature Locations');
                 });
             });
         }

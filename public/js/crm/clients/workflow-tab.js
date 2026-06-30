@@ -244,7 +244,7 @@
 
         var orig = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        btn.innerHTML = crmI('fas fa-spinner fa-spin') + ' Processing...';
 
         var payload = { matter_id: matterId };
         if (getActiveTabId() === 'client_portal' || btn.id === 'back-to-previous-stage') {
@@ -330,7 +330,7 @@
         var orig = btn ? btn.innerHTML : '';
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.innerHTML = crmI('fas fa-spinner fa-spin') + ' Processing...';
         }
 
         var payload = { matter_id: matterId };
@@ -526,7 +526,7 @@
 
                 reopenBtn.disabled = true;
                 var origReopen = reopenBtn.innerHTML;
-                reopenBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reopening...';
+                reopenBtn.innerHTML = crmI('fas fa-spinner fa-spin') + ' Reopening...';
 
                 var urlsReopen = workflowUrls();
                 fetch(urlsReopen.reopen, {
@@ -576,7 +576,7 @@
                 var urlsCw = workflowUrls();
                 var origCw = changeWorkflowSubmit.innerHTML;
                 changeWorkflowSubmit.disabled = true;
-                changeWorkflowSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                changeWorkflowSubmit.innerHTML = crmI('fas fa-spinner fa-spin') + ' Processing...';
 
                 fetch(urlsCw.changeWorkflow, {
                     method: 'POST',
@@ -624,7 +624,7 @@
 
                 var origDisc = discontinueSubmit.innerHTML;
                 discontinueSubmit.disabled = true;
-                discontinueSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                discontinueSubmit.innerHTML = crmI('fas fa-spinner fa-spin') + ' Processing...';
 
                 var urlsDisc = workflowUrls();
                 fetch(urlsDisc.discontinue, {

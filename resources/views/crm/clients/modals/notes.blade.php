@@ -78,7 +78,7 @@
 		<div class="modal-content create-note-modal">
 			<div class="modal-header create-note-header">
 				<div class="modal-title-section">
-					<i class="fas fa-sticky-note text-primary mr-2"></i>
+					@icon('fa-sticky-note', ['class' => 'text-primary mr-2'])
 					<h5 class="modal-title mb-0" id="appliationModalLabel">Create Note</h5>
 				</div>
 				<div class="modal-actions">
@@ -98,12 +98,12 @@
                         <div class="col-12 col-md-6">
 							<div class="form-group enhanced-form-group">
 								<label for="matter_id" class="form-label">
-									<i class="fas fa-folder-open text-muted mr-1"></i>
+									@icon('fa-folder-open', ['class' => 'text-muted mr-1'])
 									Select Matter
 								</label>
 								<div class="input-group">
 									<div class="input-group-prepend">
-										<span class="input-group-text"><i class="fas fa-list-ul"></i></span>
+										<span class="input-group-text">@icon('fa-list-ul')</span>
                                         </div>
 									<select name="matter_id" id="matter_id" class="form-control enhanced-select">
 								    <option value="">Select Client Matters</option>
@@ -145,12 +145,12 @@
                         <div class="col-12 col-md-6">
 							<div class="form-group enhanced-form-group">
 								<label for="task_group" class="form-label">
-									<i class="fas fa-tag text-muted mr-1"></i>
+									@icon('fa-tag', ['class' => 'text-muted mr-1'])
 									Type <span class="text-danger">*</span>
 								</label>
 								<div class="input-group">
 									<div class="input-group-prepend">
-										<span class="input-group-text"><i class="fas fa-list"></i></span>
+										<span class="input-group-text">@icon('fa-list')</span>
 									</div>
 									<select name="task_group" class="form-control enhanced-select" data-valid="required" id="noteTypeEnhanced">
                                     <option value="">Please Select</option>
@@ -173,7 +173,7 @@
 						<div class="col-12">
 							<div class="form-group enhanced-form-group">
 								<label for="description" class="form-label">
-									<i class="fas fa-align-left text-muted mr-1"></i>
+									@icon('fa-align-left', ['class' => 'text-muted mr-1'])
 									Description <span class="text-danger">*</span>
 								</label>
 								<div class="rich-text-container">
@@ -188,13 +188,13 @@
                         <div class="col-12">
 							<div class="modal-footer-buttons">
 								<button type="button" class="btn btn-primary btn-lg btn-create-action" data-container="body" data-role="popover" data-placement="bottom" data-html="true">
-									<i class="fas fa-cog mr-2"></i>Create Action
+									@icon('fa-cog', ['class' => 'mr-2'])Create Action
 								</button>
 								<button onclick="customValidate('notetermform_n')" type="button" class="btn btn-primary btn-lg btn-create-note">
-									<i class="fas fa-save mr-2"></i>Create Note
+									@icon('fa-save', ['class' => 'mr-2'])Create Note
 								</button>
 								<button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal">
-									<i class="fas fa-times mr-2"></i>Cancel
+									@icon('fa-times', ['class' => 'mr-2'])Cancel
 								</button>
 							</div>
                         </div>
