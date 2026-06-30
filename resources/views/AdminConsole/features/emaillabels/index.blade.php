@@ -120,7 +120,7 @@
 									<tr id="id_{{@$list->id}}">
 										<td>
 											<span class="badge" style="background-color: {{@$list->color}}20; border: 1px solid {{@$list->color}}; color: {{@$list->color}}; padding: 5px 10px; border-radius: 4px;">
-												<i class="{{@$list->icon ?? 'fas fa-tag'}}"></i> {{@$list->name}}
+												{!! \App\Helpers\IconHelper::renderStored(@$list->icon, [], 'tag') !!} {{@$list->name}}
 											</span>
 										</td>
 										<td>{{ @$list->name == "" ? config('constants.empty') : Str::limit(@$list->name, '50', '...') }}</td>
@@ -146,11 +146,11 @@
 												<button class="btn btn-primary dropdown-toggle" type="button" id="actionBtn_{{@$list->id}}" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Action</button>
 												<div class="dropdown-menu" aria-labelledby="actionBtn_{{@$list->id}}">
 													@if(@$list->type == 'system')
-														<a class="dropdown-item has-icon text-muted" href="javascript:void(0);" style="cursor: not-allowed; pointer-events: none;"><i class="far fa-edit"></i> Edit (System labels cannot be edited)</a>
-														<a class="dropdown-item has-icon text-muted" href="javascript:void(0);" style="cursor: not-allowed; pointer-events: none;"><i class="fas fa-trash"></i> Delete (System labels cannot be deleted)</a>
+														<a class="dropdown-item has-icon text-muted" href="javascript:void(0);" style="cursor: not-allowed; pointer-events: none;">@icon('fa-edit') Edit (System labels cannot be edited)</a>
+														<a class="dropdown-item has-icon text-muted" href="javascript:void(0);" style="cursor: not-allowed; pointer-events: none;">@icon('fa-trash') Delete (System labels cannot be deleted)</a>
 													@else
-														<a class="dropdown-item has-icon" href="{{route('adminconsole.features.emaillabels.edit', base64_encode(convert_uuencode(@$list->id)))}}"><i class="far fa-edit"></i> Edit</a>
-														<a class="dropdown-item has-icon" href="javascript:;" onClick="deleteAction({{@$list->id}}, 'email_labels')"><i class="fas fa-trash"></i> Delete</a>
+														<a class="dropdown-item has-icon" href="{{route('adminconsole.features.emaillabels.edit', base64_encode(convert_uuencode(@$list->id)))}}">@icon('fa-edit') Edit</a>
+														<a class="dropdown-item has-icon" href="javascript:;" onClick="deleteAction({{@$list->id}}, 'email_labels')">@icon('fa-trash') Delete</a>
 													@endif
 												</div>
 											</div>								  

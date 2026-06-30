@@ -59,10 +59,10 @@ html, body {
             <!-- Back Button -->
             <div class="mb-3">
                 <a href="{{ route('booking.appointments.index') }}" class="btn btn-sm btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to List
+                    @icon('fa-arrow-left') Back to List
                 </a>
                 <a href="{{ route('booking.sync.dashboard') }}" class="btn btn-sm btn-info">
-                    <i class="fas fa-sync"></i> Sync Status
+                    @icon('fa-sync') Sync Status
                 </a>
             </div>
 
@@ -70,7 +70,7 @@ html, body {
             <div class="card">
                 <div class="card-header">
                     <h4>
-                        <i class="fas fa-calendar-check mr-2"></i>
+                        @icon('fa-calendar-check', ['class' => 'mr-2'])
                         Appointment Details - #{{ $appointment->id }}
                     </h4>
                     <div class="card-header-action">
@@ -96,7 +96,7 @@ html, body {
                             <!-- Client Information -->
                             <div class="card info-card">
                                 <div class="card-header bg-primary text-white">
-                                    <i class="fas fa-user"></i> Client Information
+                                    @icon('fa-user') Client Information
                                 </div>
                                 <div class="card-body">
                                     <div class="info-row">
@@ -139,7 +139,7 @@ html, body {
                                         <div class="row">
                                             <div class="col-12">
                                                 <a href="{{ route('clients.detail', $clientDetailParams) }}" class="btn btn-sm btn-info btn-block" target="_blank">
-                                                    <i class="fas fa-external-link-alt"></i> View Client Profile
+                                                    @icon('fa-external-link-alt') View Client Profile
                                                 </a>
                                             </div>
                                         </div>
@@ -151,7 +151,7 @@ html, body {
                             <!-- Appointment Details -->
                             <div class="card info-card">
                                 <div class="card-header bg-info text-white">
-                                    <i class="fas fa-calendar"></i> Appointment Details
+                                    @icon('fa-calendar') Appointment Details
                                 </div>
                                 <div class="card-body">
                                     <div class="info-row">
@@ -198,7 +198,7 @@ html, body {
                             <!-- Service Information -->
                             <div class="card info-card">
                                 <div class="card-header bg-secondary text-white">
-                                    <i class="fas fa-briefcase"></i> Service Information
+                                    @icon('fa-briefcase') Service Information
                                 </div>
                                 <div class="card-body">
                                     <div class="info-row">
@@ -250,7 +250,7 @@ html, body {
                             @if($appointment->is_paid)
                             <div class="card info-card">
                                 <div class="card-header bg-success text-white">
-                                    <i class="fas fa-dollar-sign"></i> Payment Information
+                                    @icon('fa-dollar-sign') Payment Information
                                 </div>
                                 <div class="card-body">
                                     <div class="info-row">
@@ -314,9 +314,9 @@ html, body {
                             <!-- Admin Notes -->
                             <div class="card info-card">
                                 <div class="card-header bg-warning text-dark">
-                                    <i class="fas fa-sticky-note"></i> Admin Notes
+                                    @icon('fa-sticky-note') Admin Notes
                                     <button class="btn btn-sm btn-light float-right" onclick="addNote()">
-                                        <i class="fas fa-plus"></i> Add
+                                        @icon('fa-plus') Add
                                     </button>
                                 </div>
                                 <div class="card-body">
@@ -348,7 +348,7 @@ html, body {
                             <!-- Sync Information -->
                             <div class="card info-card">
                                 <div class="card-header bg-light">
-                                    <i class="fas fa-sync"></i> Sync Information
+                                    @icon('fa-sync') Sync Information
                                 </div>
                                 <div class="card-body">
                                     <div class="info-row">
@@ -419,7 +419,7 @@ html, body {
                             <!-- Notification History -->
                             <div class="card info-card">
                                 <div class="card-header bg-info text-white">
-                                    <i class="fas fa-bell"></i> Notification History
+                                    @icon('fa-bell') Notification History
                                 </div>
                                 <div class="card-body">
                                     <div class="info-row">
@@ -456,34 +456,34 @@ html, body {
                     <!-- Quick Actions -->
                     <div class="card">
                         <div class="card-header bg-dark text-white">
-                            <i class="fas fa-bolt"></i> Quick Actions
+                            @icon('fa-bolt') Quick Actions
                         </div>
                         <div class="card-body text-center action-buttons">
                             @if($appointment->status === 'pending')
                             <button class="btn btn-success" onclick="updateStatus('confirmed')">
-                                <i class="fas fa-check"></i> Confirm Appointment
+                                @icon('fa-check') Confirm Appointment
                             </button>
                             @endif
                             
                             @if(in_array($appointment->status, ['pending', 'confirmed']))
                             <button class="btn btn-primary" onclick="markCompleteAppointment()">
-                                <i class="fas fa-check-circle"></i> Mark Completed
+                                @icon('fa-check-circle') Mark Completed
                             </button>
                             <button class="btn btn-danger" onclick="cancelAppointment()">
-                                <i class="fas fa-times"></i> Cancel
+                                @icon('fa-times') Cancel
                             </button>
                             @endif
                             
                             <!--<button class="btn btn-warning" onclick="sendReminder()">
-                                <i class="fas fa-envelope"></i> Send Reminder
+                                @icon('fa-envelope') Send Reminder
                             </button>-->
                             
                             <button class="btn btn-info" onclick="sendSMS()">
-                                <i class="fas fa-sms"></i> Send SMS
+                                @icon('fa-sms') Send SMS
                             </button>
                             
                             <button class="btn btn-secondary" onclick="window.print()">
-                                <i class="fas fa-print"></i> Print
+                                @icon('fa-print') Print
                             </button>
                         </div>
                     </div>

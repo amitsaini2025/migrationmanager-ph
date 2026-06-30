@@ -157,7 +157,7 @@
 						<div class="card-header">
 							<h4>All Matters</h4>
                             <div class="card-header-action">
-                                <a href="javascript:;" class="btn btn-theme btn-theme-sm filter_btn mr-2"><i class="fas fa-filter"></i> Filter</a>
+                                <a href="javascript:;" class="btn btn-theme btn-theme-sm filter_btn mr-2">@icon('fa-filter') Filter</a>
                                 <a href="{{route('adminconsole.features.matter.create')}}" class="btn btn-primary">Create Matter</a>
 							</div>
 						</div>
@@ -216,8 +216,8 @@
 											<div class="dropdown d-inline">
 												<button class="btn btn-primary dropdown-toggle matter-action-dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Action</button>
 												<div class="dropdown-menu">
-													<a class="dropdown-item has-icon" href="{{route('adminconsole.features.matter.edit', base64_encode(convert_uuencode(@$list->id)))}}"><i class="far fa-edit"></i> Edit</a>
-													<a class="dropdown-item has-icon" href="javascript:;" onClick="deleteAction({{@$list->id}}, 'matters')"><i class="fas fa-trash"></i> Delete</a>
+													<a class="dropdown-item has-icon" href="{{route('adminconsole.features.matter.edit', base64_encode(convert_uuencode(@$list->id)))}}">@icon('fa-edit') Edit</a>
+													<a class="dropdown-item has-icon" href="javascript:;" onClick="deleteAction({{@$list->id}}, 'matters')">@icon('fa-trash') Delete</a>
 													<?php
 													$hasTemplate = \App\Models\EmailTemplate::forMatter($list->id)->ofType(\App\Models\EmailTemplate::TYPE_MATTER_FIRST)->exists();
 													?>
@@ -225,13 +225,13 @@
 													<?php
 													$Template_info = \App\Models\EmailTemplate::forMatter($list->id)->ofType(\App\Models\EmailTemplate::TYPE_MATTER_FIRST)->first();
 													?>
-													<a class="dropdown-item has-icon" href="{{route('adminconsole.features.matteremailtemplate.edit', [$Template_info->id, $list->id])}}"><i class="far fa-edit"></i> Edit First Email</a>
+													<a class="dropdown-item has-icon" href="{{route('adminconsole.features.matteremailtemplate.edit', [$Template_info->id, $list->id])}}">@icon('fa-edit') Edit First Email</a>
 													@else
-													<a class="dropdown-item has-icon" href="{{ route('adminconsole.features.matteremailtemplate.create', ['matter_id' => @$list->id]) }}"><i class="far fa-edit"></i> Create First Email</a>
+													<a class="dropdown-item has-icon" href="{{ route('adminconsole.features.matteremailtemplate.create', ['matter_id' => @$list->id]) }}">@icon('fa-edit') Create First Email</a>
 													@endif
 
-													<a class="dropdown-item has-icon" href="{{route('upload_checklists.matter', @$list->id)}}"><i class="fas fa-list"></i> Matter Checklist</a>
-													<a class="dropdown-item has-icon" href="{{route('adminconsole.features.matterotheremailtemplate.index', @$list->id)}}"><i class="fas fa-envelope"></i> Email Templates</a>
+													<a class="dropdown-item has-icon" href="{{route('upload_checklists.matter', @$list->id)}}">@icon('fa-list') Matter Checklist</a>
+													<a class="dropdown-item has-icon" href="{{route('adminconsole.features.matterotheremailtemplate.index', @$list->id)}}">@icon('fa-envelope') Email Templates</a>
 												</div>
 											</div>
 										</td>

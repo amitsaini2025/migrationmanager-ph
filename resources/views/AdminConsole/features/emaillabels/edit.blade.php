@@ -16,7 +16,7 @@
 							<div class="card-header">
 								<h4>Edit Email Label</h4>
 								<div class="card-header-action">
-									<a href="{{route('adminconsole.features.emaillabels.index')}}" class="btn btn-primary"><i class="fa fa-arrow-left"></i> Back</a>
+									<a href="{{route('adminconsole.features.emaillabels.index')}}" class="btn btn-primary">@icon('fa-arrow-left') Back</a>
 								</div>
 							</div>
 						</div>
@@ -74,8 +74,13 @@
 												<div class="col-12 col-md-6 col-lg-6">
 													<div class="form-group"> 
 														<label for="icon">Icon</label>
-														<input type="text" name="icon" class="form-control" autocomplete="off" placeholder="fas fa-tag" value="{{ old('icon', @$fetchedData->icon ?: 'fas fa-tag') }}">
-														<small class="form-text text-muted">Font Awesome icon class (e.g., fas fa-tag, fas fa-star)</small>
+														<input type="text" name="icon" class="form-control" autocomplete="off" placeholder="tag" value="{{ old('icon', @$fetchedData->icon ?: 'tag') }}" list="lucide-icon-suggestions">
+														<datalist id="lucide-icon-suggestions">
+															<option value="tag"><option value="inbox"><option value="send"><option value="star">
+															<option value="flag"><option value="pencil"><option value="trash-2"><option value="archive">
+															<option value="briefcase"><option value="user"><option value="triangle-alert">
+														</datalist>
+														<small class="form-text text-muted">Lucide icon name (e.g. tag, inbox, star). Legacy Font Awesome classes still work.</small>
 														@if ($errors->has('icon'))
 															<span class="custom-error" role="alert">
 																<strong>{{ @$errors->first('icon') }}</strong>

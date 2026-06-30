@@ -105,20 +105,20 @@
 
                     {{-- Page header --}}
                     <div class="d-flex align-items-center justify-content-between mb-3">
-                        <h4 class="mb-0"><i class="fas fa-chart-bar"></i> Sent Emails — Dashboard</h4>
+                        <h4 class="mb-0">@icon('fa-chart-bar') Sent Emails — Dashboard</h4>
                         <div>
                             <a href="{{ route('adminconsole.features.system-emails.dashboard') }}" class="btn btn-outline-secondary btn-sm mr-1">
-                                <i class="fas fa-robot"></i> System Emails
+                                @icon('fa-robot') System Emails
                             </a>
                             <a href="{{ route('adminconsole.features.sent-emails.index') }}" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-list"></i> Search All Emails
+                                @icon('fa-list') Search All Emails
                             </a>
                         </div>
                     </div>
 
                     {{-- Coverage notice --}}
                     <div class="alert alert-warning coverage-notice mb-4" role="alert" style="font-size:0.875rem;">
-                        <i class="fas fa-info-circle"></i>
+                        @icon('fa-info-circle')
                         Analytics cover CRM-logged outgoing emails only (staff compose). System-generated emails (invoices, reminders, appointments, etc.) are tracked separately on the
                         <a href="{{ route('adminconsole.features.system-emails.dashboard') }}">System Emails</a> dashboard.
                     </div>
@@ -128,7 +128,7 @@
                         <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-3">
                             <div class="card card-statistic-1 stat-card">
                                 <div class="card-icon bg-primary">
-                                    <i class="fas fa-paper-plane"></i>
+                                    @icon('fa-paper-plane')
                                 </div>
                                 <div class="card-wrap">
                                     <div class="card-header"><h4>Sent Today</h4></div>
@@ -139,7 +139,7 @@
                         <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-3">
                             <div class="card card-statistic-1 stat-card">
                                 <div class="card-icon bg-success">
-                                    <i class="fas fa-calendar-week"></i>
+                                    @icon('fa-calendar-week')
                                 </div>
                                 <div class="card-wrap">
                                     <div class="card-header"><h4>This Week</h4></div>
@@ -150,7 +150,7 @@
                         <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-3">
                             <div class="card card-statistic-1 stat-card">
                                 <div class="card-icon bg-info">
-                                    <i class="fas fa-calendar-alt"></i>
+                                    @icon('fa-calendar-alt')
                                 </div>
                                 <div class="card-wrap">
                                     <div class="card-header"><h4>This Month</h4></div>
@@ -161,7 +161,7 @@
                         <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-3">
                             <div class="card card-statistic-1 stat-card">
                                 <div class="card-icon bg-warning">
-                                    <i class="fas fa-paperclip"></i>
+                                    @icon('fa-paperclip')
                                 </div>
                                 <div class="card-wrap">
                                     <div class="card-header"><h4>With Attachments</h4></div>
@@ -176,7 +176,7 @@
                         <div class="col-lg-5 col-md-12 mb-3">
                             <div class="card h-100">
                                 <div class="card-header">
-                                    <h4><i class="fas fa-users"></i> Top Senders This Month</h4>
+                                    <h4>@icon('fa-users') Top Senders This Month</h4>
                                 </div>
                                 <div class="card-body">
                                     @if($stats['topSenders']->isNotEmpty())
@@ -206,44 +206,44 @@
                         <div class="col-lg-7 col-md-12 mb-3">
                             <div class="card h-100 sent-emails-quick-searches">
                                 <div class="card-header">
-                                    <h4><i class="fas fa-bolt"></i> Quick Searches</h4>
+                                    <h4>@icon('fa-bolt') Quick Searches</h4>
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col-6 mb-2">
                                             <a href="{{ route('adminconsole.features.sent-emails.index', ['filter'=>1,'date_from'=>now()->toDateString(),'date_to'=>now()->toDateString()]) }}"
                                                class="btn btn-outline-primary btn-block">
-                                                <i class="fas fa-sun"></i> Today's Emails
+                                                @icon('fa-sun') Today's Emails
                                             </a>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <a href="{{ route('adminconsole.features.sent-emails.index', ['filter'=>1,'has_attachments'=>'1']) }}"
                                                class="btn btn-outline-secondary btn-block">
-                                                <i class="fas fa-paperclip"></i> With Attachments
+                                                @icon('fa-paperclip') With Attachments
                                             </a>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <a href="{{ route('adminconsole.features.sent-emails.index', ['filter'=>1,'type'=>'client']) }}"
                                                class="btn btn-outline-info btn-block">
-                                                <i class="fas fa-user"></i> To Clients
+                                                @icon('fa-user') To Clients
                                             </a>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <a href="{{ route('adminconsole.features.sent-emails.index', ['filter'=>1,'type'=>'lead']) }}"
                                                class="btn btn-outline-warning btn-block">
-                                                <i class="fas fa-user-plus"></i> To Leads
+                                                @icon('fa-user-plus') To Leads
                                             </a>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <a href="{{ route('adminconsole.features.sent-emails.index', ['filter'=>1,'date_from'=>now()->startOfMonth()->toDateString(),'date_to'=>now()->toDateString()]) }}"
                                                class="btn btn-outline-success btn-block">
-                                                <i class="fas fa-calendar-alt"></i> This Month
+                                                @icon('fa-calendar-alt') This Month
                                             </a>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <a href="{{ route('adminconsole.features.sent-emails.index') }}"
                                                class="btn btn-outline-dark btn-block">
-                                                <i class="fas fa-search"></i> Full Search
+                                                @icon('fa-search') Full Search
                                             </a>
                                         </div>
                                     </div>
@@ -255,7 +255,7 @@
                     {{-- Recent 10 --}}
                     <div class="card">
                         <div class="card-header">
-                            <h4><i class="fas fa-history"></i> Recent Sent Emails</h4>
+                            <h4>@icon('fa-history') Recent Sent Emails</h4>
                             <div class="card-header-action">
                                 <a href="{{ route('adminconsole.features.sent-emails.index', ['filter'=>1]) }}" class="btn btn-sm btn-primary">
                                     View All
@@ -292,7 +292,7 @@
                                                 {{ $row['subject'] }}
                                                 @if($row['attach_count'] > 0)
                                                     <span class="badge badge-secondary ml-1" style="font-size:0.7rem;">
-                                                        <i class="fas fa-paperclip"></i> {{ $row['attach_count'] }}
+                                                        @icon('fa-paperclip') {{ $row['attach_count'] }}
                                                     </span>
                                                 @endif
                                             </td>
@@ -319,7 +319,7 @@
                                             <td>
                                                 <a href="{{ route('adminconsole.features.sent-emails.show', $row['id']) }}"
                                                    class="btn btn-sm btn-info">
-                                                    <i class="fas fa-eye"></i>
+                                                    @icon('fa-eye')
                                                 </a>
                                             </td>
                                         </tr>
@@ -329,7 +329,7 @@
                             </div>
                             @else
                             <div class="p-4 text-center text-muted">
-                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                @icon('fa-inbox', ['class' => 'fa-2x mb-2 d-block'])
                                 No sent emails recorded yet.
                             </div>
                             @endif

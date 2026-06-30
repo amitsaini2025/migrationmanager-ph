@@ -28,21 +28,21 @@
                 <div class="col-9 col-md-9 col-lg-9">
 
                     <div class="d-flex align-items-center justify-content-between mb-3">
-                        <h4 class="mb-0"><i class="fas fa-robot"></i> System Emails</h4>
+                        <h4 class="mb-0">@icon('fa-robot') System Emails</h4>
                         <a href="{{ route('adminconsole.features.system-emails.dashboard') }}" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-chart-bar"></i> Dashboard
+                            @icon('fa-chart-bar') Dashboard
                         </a>
                     </div>
 
                     <div class="alert alert-info coverage-notice" role="alert" style="font-size:0.875rem;">
-                        <i class="fas fa-info-circle"></i>
+                        @icon('fa-info-circle')
                         Automated system emails — invoices, reminders, appointments, e-signatures, and similar.
                         Staff-composed emails are on the <a href="{{ route('adminconsole.features.sent-emails.index') }}">Sent Emails</a> page.
                     </div>
 
                     <div class="card filter-card">
                         <div class="card-header" data-toggle="collapse" data-target="#filterBody" aria-expanded="true">
-                            <h4 class="mb-0"><i class="fas fa-filter"></i> Search &amp; Filters</h4>
+                            <h4 class="mb-0">@icon('fa-filter') Search &amp; Filters</h4>
                         </div>
                         <div class="collapse show" id="filterBody">
                             <div class="card-body">
@@ -51,24 +51,24 @@
 
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label"><i class="fas fa-search"></i> Subject / From / To</label>
+                                            <label class="form-label">@icon('fa-search') Subject / From / To</label>
                                             <input type="text" name="search" class="form-control"
                                                    placeholder="Search subject, from address or recipient…"
                                                    value="{{ request('search') }}">
                                         </div>
                                         <div class="col-md-3 mb-3">
-                                            <label class="form-label"><i class="fas fa-calendar"></i> Date From</label>
+                                            <label class="form-label">@icon('fa-calendar') Date From</label>
                                             <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
                                         </div>
                                         <div class="col-md-3 mb-3">
-                                            <label class="form-label"><i class="fas fa-calendar"></i> Date To</label>
+                                            <label class="form-label">@icon('fa-calendar') Date To</label>
                                             <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
                                         </div>
                                     </div>
 
                                     <div class="row">
                                         <div class="col-md-4 mb-3">
-                                            <label class="form-label"><i class="fas fa-tag"></i> Category</label>
+                                            <label class="form-label">@icon('fa-tag') Category</label>
                                             <select name="category" class="form-control mm-select">
                                                 <option value="">All Categories</option>
                                                 @foreach($categories as $key => $label)
@@ -77,7 +77,7 @@
                                             </select>
                                         </div>
                                         <div class="col-md-4 mb-3">
-                                            <label class="form-label"><i class="fas fa-traffic-light"></i> Delivery Status</label>
+                                            <label class="form-label">@icon('fa-traffic-light') Delivery Status</label>
                                             <select name="delivery_status" class="form-control mm-select">
                                                 <option value="">Any Status</option>
                                                 @foreach(['pending','processed','delivered','deferred','bounced','dropped','send_failed'] as $status)
@@ -88,7 +88,7 @@
                                             </select>
                                         </div>
                                         <div class="col-md-4 mb-3">
-                                            <label class="form-label"><i class="fas fa-at"></i> From Address</label>
+                                            <label class="form-label">@icon('fa-at') From Address</label>
                                             <input type="text" name="from_address" class="form-control"
                                                    placeholder="e.g. invoice@domain.com.au"
                                                    value="{{ request('from_address') }}">
@@ -97,7 +97,7 @@
 
                                     <div class="row">
                                         <div class="col-md-4 mb-3">
-                                            <label class="form-label"><i class="fas fa-user"></i> Client / Lead</label>
+                                            <label class="form-label">@icon('fa-user') Client / Lead</label>
                                             <select name="client_id" id="se_client_id" class="form-control mm-select-ajax">
                                                 <option value="">All Clients &amp; Leads</option>
                                                 @if($selectedClient)
@@ -112,7 +112,7 @@
                                             </select>
                                         </div>
                                         <div class="col-md-4 mb-3">
-                                            <label class="form-label"><i class="fas fa-paperclip"></i> Has Attachments</label>
+                                            <label class="form-label">@icon('fa-paperclip') Has Attachments</label>
                                             <select name="has_attachments" class="form-control mm-select">
                                                 <option value="">Any</option>
                                                 <option value="1" {{ request('has_attachments') === '1' ? 'selected' : '' }}>Yes</option>
@@ -120,8 +120,8 @@
                                             </select>
                                         </div>
                                         <div class="col-md-4 mb-3 d-flex align-items-end">
-                                            <button type="submit" class="btn btn-primary mr-2"><i class="fas fa-search"></i> Search</button>
-                                            <a href="{{ route('adminconsole.features.system-emails.index') }}" class="btn btn-secondary"><i class="fas fa-redo"></i> Reset</a>
+                                            <button type="submit" class="btn btn-primary mr-2">@icon('fa-search') Search</button>
+                                            <a href="{{ route('adminconsole.features.system-emails.index') }}" class="btn btn-secondary">@icon('fa-redo') Reset</a>
                                         </div>
                                     </div>
                                 </form>
@@ -133,7 +133,7 @@
                     <div class="card">
                         <div class="card-header">
                             <h4 class="mb-0">
-                                <i class="fas fa-list"></i> Results
+                                @icon('fa-list') Results
                                 <span class="badge badge-primary ml-2">{{ number_format($total) }}</span>
                             </h4>
                         </div>
@@ -167,7 +167,7 @@
                                                 {{ $row['subject'] }}
                                                 @if($row['attach_count'] > 0)
                                                     <span class="badge badge-secondary attach-badge ml-1">
-                                                        <i class="fas fa-paperclip"></i> {{ $row['attach_count'] }}
+                                                        @icon('fa-paperclip') {{ $row['attach_count'] }}
                                                     </span>
                                                 @endif
                                             </td>
@@ -194,7 +194,7 @@
                                             </td>
                                             <td>
                                                 <a href="{{ route('adminconsole.features.system-emails.show', $row['id']) }}"
-                                                   class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
+                                                   class="btn btn-sm btn-info">@icon('fa-eye')</a>
                                             </td>
                                         </tr>
                                         @endforeach
@@ -210,7 +210,7 @@
 
                             @else
                             <div class="p-4 text-center text-muted">
-                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                @icon('fa-inbox', ['class' => 'fa-2x mb-2'])
                                 <p>No system emails found matching your criteria.</p>
                             </div>
                             @endif
@@ -219,7 +219,7 @@
                     @else
                     <div class="card">
                         <div class="card-body text-center text-muted py-5">
-                            <i class="fas fa-search fa-3x mb-3"></i>
+                            @icon('fa-search', ['class' => 'fa-3x mb-3'])
                             <p class="lead">Use the filters above to search system emails.</p>
                         </div>
                     </div>

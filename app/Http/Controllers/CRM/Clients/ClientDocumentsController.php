@@ -25,6 +25,7 @@ use App\Traits\LogsClientActivity;
 use App\Support\DocumentStoredFilename;
 use App\Support\DocumentFilenameRules;
 use App\Support\StaffClientVisibility;
+use App\Helpers\IconHelper;
 use Illuminate\Http\JsonResponse;
 use mikehaertl\pdftk\Pdf;
 
@@ -194,10 +195,10 @@ class ClientDocumentsController extends Controller
                                     <div class="checklist-actions" style="display: flex; gap: 5px;">
                                         <?php if (!$fetch->file_name): ?>
                                         <a href="javascript:;" class="edit-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" title="Edit Checklist Name" style="color: #007bff; cursor: pointer;">
-                                            <i class="fas fa-edit"></i>
+                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-edit'); ?>
                                         </a>
                                         <a href="javascript:;" class="delete-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" title="Delete Checklist" style="color: #dc3545; cursor: pointer;">
-                                            <i class="fas fa-trash"></i>
+                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-trash'); ?>
                                         </a>
                                         <?php endif; ?>
                                     </div>
@@ -208,7 +209,7 @@ class ClientDocumentsController extends Controller
                                 if( isset($fetch->file_name) && $fetch->file_name !=""){ ?>
                                     <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->filetype); ?>', '<?php echo $fileUrl; ?>', '<?php echo $request->folder_name; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
                                         <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype;?>','<?php echo $fileUrl; ?>','preview-container-<?php echo $request->folder_name;?>')">
-                                            <i class="fas fa-file-image"></i> <span><?php echo htmlspecialchars($fetch->file_name . '.' . $fetch->filetype); ?></span>
+                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->file_name . '.' . $fetch->filetype); ?></span>
                                         </a>
                                     </div>
                                 <?php
@@ -230,7 +231,7 @@ class ClientDocumentsController extends Controller
                                                  data-doccategory="<?php echo $request->folder_name; ?>"
                                                  data-formid="upload_form_<?php echo $fetch->id; ?>">
                                                 <div class="drag-zone-inner">
-                                                    <i class="fas fa-cloud-upload-alt"></i>
+                                                    <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-cloud-upload-alt'); ?>
                                                     <span class="drag-zone-text">Drag file here or <strong>click to browse</strong></span>
                                                 </div>
                                             </div>
@@ -264,12 +265,12 @@ class ClientDocumentsController extends Controller
                         <div class="grid_list">
                             <div class="grid_col">
                                 <div class="grid_icon">
-                                    <i class="fas fa-file-image"></i>
+                                    <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?>
                                 </div>
                                 <div class="grid_content">
                                     <span id="grid_<?php echo $fetch->id; ?>" class="gridfilename"><?php echo $fetch->file_name; ?></span>
                                     <div class="dropdown d-inline dropdown_ellipsis_icon">
-                                        <a class="dropdown-toggle" type="button" id="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
+                                        <a class="dropdown-toggle" type="button" id="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?php echo \App\Helpers\IconHelper::fromLegacy('fa fa-ellipsis-v'); ?></a>
                                         <div class="dropdown-menu">
                                             <?php
                                             $url = 'https://'.env('AWS_BUCKET').'.s3.'. env('AWS_DEFAULT_REGION') . '.amazonaws.com/';
@@ -658,10 +659,10 @@ class ClientDocumentsController extends Controller
                                     <div class="checklist-actions" style="display: flex; gap: 5px;">
                                         <?php if (!$fetch->file_name): ?>
                                         <a href="javascript:;" class="edit-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" title="Edit Checklist Name" style="color: #007bff; cursor: pointer;">
-                                            <i class="fas fa-edit"></i>
+                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-edit'); ?>
                                         </a>
                                         <a href="javascript:;" class="delete-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" title="Delete Checklist" style="color: #dc3545; cursor: pointer;">
-                                            <i class="fas fa-trash"></i>
+                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-trash'); ?>
                                         </a>
                                         <?php endif; ?>
                                     </div>
@@ -672,7 +673,7 @@ class ClientDocumentsController extends Controller
                                 if( isset($fetch->file_name) && $fetch->file_name !=""){ ?>
                                     <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showVisaFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->filetype); ?>', '<?php echo $fileUrl; ?>', '<?php echo $fetch->folder_name; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
                                         <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype;?>','<?php echo $fetch->myfile; ?>','preview-container-migdocumnetlist')">
-                                            <i class="fas fa-file-image"></i> <span><?php echo htmlspecialchars($fetch->file_name . '.' . $fetch->filetype); ?></span>
+                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->file_name . '.' . $fetch->filetype); ?></span>
                                         </a>
                                     </div>
                                 <?php
@@ -695,7 +696,7 @@ class ClientDocumentsController extends Controller
                                                  data-doccategory="<?php echo $fetch->folder_name;?>"
                                                  data-formid="mig_upload_form_<?php echo $fetch->id;?>">
                                                 <div class="drag-zone-inner">
-                                                    <i class="fas fa-cloud-upload-alt"></i>
+                                                    <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-cloud-upload-alt'); ?>
                                                     <span class="drag-zone-text">Drag file here or <strong>click to browse</strong></span>
                                                 </div>
                                             </div>
@@ -734,12 +735,12 @@ class ClientDocumentsController extends Controller
                         <div class="grid_list">
                             <div class="grid_col">
                                 <div class="grid_icon">
-                                    <i class="fas fa-file-image"></i>
+                                    <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?>
                                 </div>
                                 <div class="grid_content">
                                     <span id="grid_<?php echo $fetch->id; ?>" class="gridfilename"><?php echo $fetch->file_name; ?></span>
                                     <div class="dropdown d-inline dropdown_ellipsis_icon">
-                                        <a class="dropdown-toggle" type="button" id="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
+                                        <a class="dropdown-toggle" type="button" id="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?php echo \App\Helpers\IconHelper::fromLegacy('fa fa-ellipsis-v'); ?></a>
                                         <div class="dropdown-menu">
                                             <?php
                                             $url = 'https://'.env('AWS_BUCKET').'.s3.'. env('AWS_DEFAULT_REGION') . '.amazonaws.com/';
@@ -891,10 +892,10 @@ class ClientDocumentsController extends Controller
                                     <div class="checklist-actions" style="display: flex; gap: 5px;">
                                         <?php if (!$fetch->file_name) { ?>
                                         <a href="javascript:;" class="edit-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" title="Edit Checklist Name" style="color: #007bff; cursor: pointer;">
-                                            <i class="fas fa-edit"></i>
+                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-edit'); ?>
                                         </a>
                                         <a href="javascript:;" class="delete-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" title="Delete Checklist" style="color: #dc3545; cursor: pointer;">
-                                            <i class="fas fa-trash"></i>
+                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-trash'); ?>
                                         </a>
                                         <?php } ?>
                                     </div>
@@ -904,7 +905,7 @@ class ClientDocumentsController extends Controller
                                 <?php if (isset($fetch->file_name) && $fetch->file_name != '') { ?>
                                     <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showNominationFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->filetype); ?>', '<?php echo $fileUrl; ?>', '<?php echo $fetch->folder_name; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
                                         <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype; ?>','<?php echo $fetch->myfile; ?>','preview-container-nomdocumnetlist')">
-                                            <i class="fas fa-file-image"></i> <span><?php echo htmlspecialchars($fetch->file_name.'.'.$fetch->filetype); ?></span>
+                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->file_name.'.'.$fetch->filetype); ?></span>
                                         </a>
                                     </div>
                                 <?php } else { ?>
@@ -923,7 +924,7 @@ class ClientDocumentsController extends Controller
                                                  data-doccategory="<?php echo $fetch->folder_name; ?>"
                                                  data-formid="mig_upload_form_<?php echo $fetch->id; ?>">
                                                 <div class="drag-zone-inner">
-                                                    <i class="fas fa-cloud-upload-alt"></i>
+                                                    <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-cloud-upload-alt'); ?>
                                                     <span class="drag-zone-text">Drag file here or <strong>click to browse</strong></span>
                                                 </div>
                                             </div>
@@ -957,12 +958,12 @@ class ClientDocumentsController extends Controller
                         <div class="grid_list">
                             <div class="grid_col">
                                 <div class="grid_icon">
-                                    <i class="fas fa-file-image"></i>
+                                    <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?>
                                 </div>
                                 <div class="grid_content">
                                     <span id="grid_<?php echo $fetch->id; ?>" class="gridfilename"><?php echo $fetch->file_name; ?></span>
                                     <div class="dropdown d-inline dropdown_ellipsis_icon">
-                                        <a class="dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
+                                        <a class="dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?php echo \App\Helpers\IconHelper::fromLegacy('fa fa-ellipsis-v'); ?></a>
                                         <div class="dropdown-menu">
                                             <a target="_blank" class="dropdown-item" href="<?php echo $fetch->myfile; ?>">Preview</a>
                                             <a href="#" class="dropdown-item download-file" data-filelink="<?php echo $fetch->myfile; ?>" data-filename="<?php echo $fetch->myfile_key; ?>">Download</a>
@@ -2065,8 +2066,8 @@ class ClientDocumentsController extends Controller
                 // Only show edit/delete buttons if no file uploaded
                 if (!$doc->file_name) {
                     $html .= '<div class="checklist-actions" style="display: flex; gap: 5px;">';
-                    $html .= '<a href="javascript:;" class="edit-checklist-btn" data-id="' . $doc->id . '" data-checklist="' . htmlspecialchars($checklist) . '" title="Edit Checklist Name" style="color: #007bff; cursor: pointer;"><i class="fas fa-edit"></i></a>';
-                    $html .= '<a href="javascript:;" class="delete-checklist-btn" data-id="' . $doc->id . '" data-checklist="' . htmlspecialchars($checklist) . '" title="Delete Checklist" style="color: #dc3545; cursor: pointer;"><i class="fas fa-trash"></i></a>';
+                    $html .= '<a href="javascript:;" class="edit-checklist-btn" data-id="' . $doc->id . '" data-checklist="' . htmlspecialchars($checklist) . '" title="Edit Checklist Name" style="color: #007bff; cursor: pointer;">' . IconHelper::fromLegacy('fas fa-edit') . '</a>';
+                    $html .= '<a href="javascript:;" class="delete-checklist-btn" data-id="' . $doc->id . '" data-checklist="' . htmlspecialchars($checklist) . '" title="Delete Checklist" style="color: #dc3545; cursor: pointer;">' . IconHelper::fromLegacy('fas fa-trash') . '</a>';
                     $html .= '</div>';
                 }
                 

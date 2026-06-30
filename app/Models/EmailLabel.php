@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\IconHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +11,21 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class EmailLabel extends Model
 {
     use HasFactory;
+
+    /** Lucide icon names for system labels (stored in DB and used as fallbacks). */
+    public const SYSTEM_DEFAULT_ICONS = [
+        'inbox' => 'inbox',
+        'sent' => 'send',
+        'draft' => 'pencil',
+        'trash' => 'trash-2',
+        'spam' => 'ban',
+        'archive' => 'archive',
+        'work' => 'briefcase',
+        'personal' => 'user',
+        'important' => 'star',
+        'urgent' => 'triangle-alert',
+        'follow up' => 'flag',
+    ];
 
     protected $fillable = [
         'user_id',
@@ -59,7 +75,7 @@ class EmailLabel extends Model
     }
 
     /**
-     * Get the display icon for the label.
+     * Stored or default icon identifier (Lucide name or legacy FA class string).
      */
     public function getDisplayIconAttribute(): string
     {
@@ -67,22 +83,17 @@ class EmailLabel extends Model
             return $this->icon;
         }
 
-        // Default icons based on label name
-        $defaultIcons = [
-            'inbox' => 'fas fa-inbox',
-            'sent' => 'fas fa-paper-plane',
-            'draft' => 'fas fa-edit',
-            'trash' => 'fas fa-trash',
-            'spam' => 'fas fa-ban',
-            'archive' => 'fas fa-archive',
-            'work' => 'fas fa-briefcase',
-            'personal' => 'fas fa-user',
-            'important' => 'fas fa-star',
-            'urgent' => 'fas fa-exclamation-triangle',
-        ];
+        $labelName = strtolower(trim($this->name));
 
-        $labelName = strtolower($this->name);
-        return $defaultIcons[$labelName] ?? 'fas fa-tag';
+        return self::SYSTEM_DEFAULT_ICONS[$labelName] ?? 'tag';
+    }
+
+    /**
+     * Render the label icon as a Lucide placeholder (hydrated client-side).
+     */
+    public function iconHtml(array $attributes = []): string
+    {
+        return IconHelper::renderStored($this->display_icon, $attributes);
     }
 
     /**

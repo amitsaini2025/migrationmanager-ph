@@ -206,16 +206,16 @@
 
 <div class="analytics-dashboard">
     <div class="analytics-header">
-        <h1><i class="fas fa-chart-line"></i> Lead Analytics Dashboard</h1>
+        <h1>@icon('fa-chart-line') Lead Analytics Dashboard</h1>
         <div class="date-filter">
             <input type="date" id="start_date" value="{{ $startDate->format('Y-m-d') }}">
             <span>to</span>
             <input type="date" id="end_date" value="{{ $endDate->format('Y-m-d') }}">
             <button class="btn btn-primary" onclick="applyDateFilter()">
-                <i class="fas fa-filter"></i> Apply
+                @icon('fa-filter') Apply
             </button>
             <button class="btn btn-secondary" onclick="exportReport()">
-                <i class="fas fa-download"></i> Export
+                @icon('fa-download') Export
             </button>
         </div>
     </div>

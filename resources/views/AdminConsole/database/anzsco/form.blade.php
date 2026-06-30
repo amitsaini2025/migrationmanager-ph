@@ -20,12 +20,12 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">
-                        <i class="fas fa-briefcase"></i> 
+                        @icon('fa-briefcase') 
                         {{ isset($occupation) ? 'Edit Occupation' : 'Add New Occupation' }}
                     </h3>
                     <div class="card-tools">
                         <a href="{{ route('adminconsole.database.anzsco.index') }}" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-arrow-left"></i> Back to List
+                            @icon('fa-arrow-left') Back to List
                         </a>
                     </div>
                 </div>
@@ -191,10 +191,10 @@
                     
                     <div class="card-footer">
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> {{ isset($occupation) ? 'Update' : 'Save' }} Occupation
+                            @icon('fa-save') {{ isset($occupation) ? 'Update' : 'Save' }} Occupation
                         </button>
                         <a href="{{ route('adminconsole.database.anzsco.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Cancel
+                            @icon('fa-times') Cancel
                         </a>
                     </div>
                 </form>

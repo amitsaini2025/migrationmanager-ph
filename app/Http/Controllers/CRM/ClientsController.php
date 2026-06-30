@@ -17,6 +17,7 @@ use App\Models\ActivitiesLog;
 // use App\Models\OnlineForm; // REMOVED: OnlineForm model has been deleted
 use Illuminate\Support\Facades\Auth;
 use App\Helpers\PhoneHelper;
+use App\Helpers\IconHelper;
 use Barryvdh\DomPDF\Facade as PDF;
 use App\Models\CheckinLog;
 use App\Models\Note;
@@ -8495,11 +8496,11 @@ class ClientsController extends Controller
             $html .= '<div class="content">
                 <h4 class="appointmentname">' . htmlspecialchars($appointmentlistslast->service_type) . '</h4>
                 <div class="appitem">
-                    <i class="fa fa-clock"></i>
+                    ' . IconHelper::fromLegacy('fa fa-clock') . '
                     <span class="appcontent appointmenttime">' . $displayTimeLast . '</span>
                 </div>
                 <div class="appitem">
-                    <i class="fa fa-calendar"></i>
+                    ' . IconHelper::fromLegacy('fa fa-calendar') . '
                     <span class="appcontent appointmentdate">' . $appointmentDateLast . '</span>
                 </div>
                 <div class="description appointmentdescription">

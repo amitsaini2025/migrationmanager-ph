@@ -68,17 +68,17 @@ html, body {
             <div class="card">
                 <div class="card-header">
                     <h4>
-                        <i class="fas fa-globe mr-2"></i> 
+                        @icon('fa-globe', ['class' => 'mr-2']) 
                         Website Bookings 
                         <small class="text-muted">(Synced from Bansal Immigration Website)</small>
                     </h4>
                     <div class="card-header-action">
                         @if(Auth::user() && in_array(Auth::user()->role, [1, 12]))
                         <a href="{{ route('booking.sync.dashboard') }}" class="btn btn-sm btn-info">
-                            <i class="fas fa-sync"></i> Sync Status
+                            @icon('fa-sync') Sync Status
                         </a>
                         <button onclick="manualSync()" class="btn btn-sm btn-primary">
-                            <i class="fas fa-sync-alt"></i> Manual Sync
+                            @icon('fa-sync-alt') Manual Sync
                         </button>
                         @endif
                     </div>
@@ -89,7 +89,7 @@ html, body {
                         <div class="col-lg col-md-6 col-sm-6 col-12">
                             <div class="card card-statistic-1">
                                 <div class="card-icon bg-warning">
-                                    <i class="fas fa-clock"></i>
+                                    @icon('fa-clock')
                                 </div>
                                 <div class="card-wrap">
                                     <div class="card-header">
@@ -104,7 +104,7 @@ html, body {
                         <div class="col-lg col-md-6 col-sm-6 col-12">
                             <div class="card card-statistic-1">
                                 <div class="card-icon bg-primary">
-                                    <i class="fas fa-dollar-sign"></i>
+                                    @icon('fa-dollar-sign')
                                 </div>
                                 <div class="card-wrap">
                                     <div class="card-header">
@@ -119,7 +119,7 @@ html, body {
                         <div class="col-lg col-md-6 col-sm-6 col-12">
                             <div class="card card-statistic-1">
                                 <div class="card-icon bg-success">
-                                    <i class="fas fa-check-circle"></i>
+                                    @icon('fa-check-circle')
                                 </div>
                                 <div class="card-wrap">
                                     <div class="card-header">
@@ -134,7 +134,7 @@ html, body {
                         <div class="col-lg col-md-6 col-sm-6 col-12">
                             <div class="card card-statistic-1">
                                 <div class="card-icon bg-info">
-                                    <i class="fas fa-calendar-check"></i>
+                                    @icon('fa-calendar-check')
                                 </div>
                                 <div class="card-wrap">
                                     <div class="card-header">
@@ -149,7 +149,7 @@ html, body {
                         <div class="col-lg col-md-6 col-sm-6 col-12">
                             <div class="card card-statistic-1">
                                 <div class="card-icon bg-primary">
-                                    <i class="fas fa-list"></i>
+                                    @icon('fa-list')
                                 </div>
                                 <div class="card-wrap">
                                     <div class="card-header">
@@ -209,10 +209,10 @@ html, body {
                                     <label>&nbsp;</label>
                                     <div>
                                         <button type="submit" class="btn btn-primary" style="width: calc(50% - 5px); margin-right: 5px;">
-                                            <i class="fas fa-filter"></i> Filter
+                                            @icon('fa-filter') Filter
                                         </button>
                                         <a href="{{ route('booking.appointments.index') }}" class="btn btn-secondary" style="width: calc(50% - 5px);">
-                                            <i class="fas fa-redo"></i> Reset
+                                            @icon('fa-redo') Reset
                                         </a>
                                     </div>
                                 </div>
@@ -282,7 +282,7 @@ html, body {
                                     <td>
                                         <strong>{{ $appointment->appointment_datetime->format('d M Y') }}</strong><br>
                                         <small>{{ $appointment->appointment_datetime->format('h:i A') }}</small><br>
-                                        <small><i class="fas fa-map-marker-alt"></i> {{ ucfirst($appointment->location) }}</small>
+                                        <small>@icon('fa-map-marker-alt') {{ ucfirst($appointment->location) }}</small>
                                     </td>
                                     <td>
                                         {{ $appointment->service_type ?? 'N/A' }}<br>
@@ -327,16 +327,16 @@ html, body {
                                     </td>
                                     <td>
                                         <a href="{{ route('booking.appointments.show', $appointment->id) }}" class="btn btn-sm btn-primary" title="View Details">
-                                            <i class="fas fa-eye"></i>
+                                            @icon('fa-eye')
                                         </a>
                                         <a href="{{ route('booking.appointments.edit', $appointment->id) }}"
                                             class="btn btn-sm btn-warning"
                                             title="Edit Date & Time">
-                                            <i class="fas fa-edit"></i>
+                                            @icon('fa-edit')
                                         </a>
                                         
                                         <button onclick="quickAction('{{ $appointment->id }}')" class="btn btn-sm btn-info" title="Quick Actions">
-                                            <i class="fas fa-bolt"></i>
+                                            @icon('fa-bolt')
                                         </button>
                                     </td>
                                 </tr>
@@ -344,7 +344,7 @@ html, body {
                                 <tr>
                                     <td colspan="8" class="text-center">
                                         <p class="text-muted mt-3 mb-3">
-                                            <i class="fas fa-info-circle"></i> No appointments found.
+                                            @icon('fa-info-circle') No appointments found.
                                         </p>
                                     </td>
                                 </tr>

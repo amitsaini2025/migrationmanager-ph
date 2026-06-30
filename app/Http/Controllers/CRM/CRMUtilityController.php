@@ -57,7 +57,7 @@ class CRMUtilityController extends Controller
 	    foreach($notificalists as $listnoti){
 	        $output .= '<a href="'.$listnoti->url.'?t='.$listnoti->id.'" class="dropdown-item dropdown-item-unread">
 						<span class="dropdown-item-icon bg-primary text-white">
-							<i class="fas fa-code"></i>
+							<?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-code'); ?>
 						</span>
 						<span class="dropdown-item-desc">'.$listnoti->message.' <span class="time">'.date('d/m/Y h:i A',strtotime($listnoti->created_at)).'</span></span>
 					</a>';

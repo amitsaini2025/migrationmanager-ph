@@ -239,22 +239,24 @@
     }
     
     .sortable::after {
-        content: '\f0dc';
-        font-family: 'Font Awesome 5 Free';
-        font-weight: 900;
+        content: '⇅';
+        font-family: inherit;
+        font-weight: 600;
         position: absolute;
         right: 8px;
-        opacity: 0.3;
+        opacity: 0.35;
+        font-size: 11px;
+        line-height: 1;
     }
     
     .sortable.asc::after {
-        content: '\f0de';
+        content: '↑';
         opacity: 1;
         color: #667eea;
     }
     
     .sortable.desc::after {
-        content: '\f0dd';
+        content: '↓';
         opacity: 1;
         color: #667eea;
     }
@@ -343,10 +345,12 @@
     /* Pin star styles */
     .listing-container .pin-cell { width: 40px; text-align: center; }
     .listing-container .pin-star {
-        font-size: 18px;
+        width: 18px;
+        height: 18px;
         cursor: pointer;
         color: #cbd5e0;
-        transition: all 0.2s ease;
+        transition: color 0.2s ease, transform 0.2s ease;
+        vertical-align: middle;
     }
     .listing-container .pin-star:hover {
         color: #f59e0b;
@@ -354,7 +358,7 @@
     }
     .listing-container .pin-star.pinned {
         color: #f59e0b;
-        text-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+        filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.35));
     }
     .listing-container .pin-star.pinned:hover {
         color: #cbd5e0;
@@ -388,10 +392,10 @@
         <div class="listing-section-body">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-                    <h4><i class="fas fa-passport"></i> EOI/ROI Sheet</h4>
+                    <h4>@icon('fa-passport') EOI/ROI Sheet</h4>
                     <div class="card-header-actions">
                         <a href="{{ route('clients.index') }}" class="btn btn-theme btn-theme-sm" title="Back to Clients">
-                            <i class="fas fa-arrow-left"></i> Back to Clients
+                            @icon('fa-arrow-left') Back to Clients
                         </a>
                     </div>
                 </div>
@@ -399,11 +403,11 @@
                 {{-- Tabs --}}
                 <div class="sheet-tabs">
                     <a href="{{ route('clients.sheets.eoi-roi', request()->query()) }}" class="sheet-tab active">
-                        <i class="fas fa-list"></i> List
+                        @icon('fa-list') List
                     </a>
                     @if(Auth::user() && in_array(Auth::user()->role, [1, 12]))
                     <a href="{{ route('clients.sheets.eoi-roi.insights', request()->query()) }}" class="sheet-tab">
-                        <i class="fas fa-chart-bar"></i> Insights
+                        @icon('fa-chart-bar') Insights
                     </a>
                     @endif
                 </div>
@@ -413,14 +417,14 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
                             <button type="button" class="btn btn-theme btn-theme-sm filter_btn">
-                                <i class="fas fa-filter"></i> Filters
+                                @icon('fa-filter') Filters
                                 @if($activeFilterCount > 0)
                                     <span class="active-filters-badge">{{ $activeFilterCount }}</span>
                                 @endif
                             </button>
                             @if($activeFilterCount > 0)
                                 <a href="{{ route('clients.sheets.eoi-roi') }}" class="clear-filter-btn">
-                                    <i class="fas fa-undo"></i> Clear Filters
+                                    @icon('fa-undo') Clear Filters
                                 </a>
                             @endif
                         </div>
@@ -452,7 +456,7 @@
                             
                             <div class="d-flex align-items-center flex-wrap">
                                 <label class="mb-0 mr-3" style="font-weight: 600; color: #6c757d;">
-                                    <i class="fas fa-building"></i> Filter by Office:
+                                    @icon('fa-building') Filter by Office:
                                 </label>
                                 @foreach(\App\Models\Branch::orderBy('office_name')->get() as $office)
                                     <div class="form-check form-check-inline mr-3">
@@ -470,7 +474,7 @@
                                 @if(request('office'))
                                     <a href="{{ route('clients.sheets.eoi-roi', array_merge(request()->except(['office', 'page']), ['per_page' => $perPage])) }}" 
                                        class="btn btn-sm btn-secondary ml-2">
-                                        <i class="fas fa-times"></i> Clear Office Filter
+                                        @icon('fa-times') Clear Office Filter
                                     </a>
                                 @endif
                             </div>
@@ -569,7 +573,7 @@
 
                     {{-- Scroll hint --}}
                     <div class="scroll-hint">
-                        <i class="fas fa-arrows-alt-h"></i> Scroll inside the table to browse rows and columns. Hold <kbd>Shift</kbd> while scrolling to move horizontally.
+                        @icon('fa-arrows-alt-h') Scroll inside the table to browse rows and columns. Hold <kbd>Shift</kbd> while scrolling to move horizontally.
                     </div>
 
                     {{-- Table --}}
@@ -580,7 +584,7 @@
                             <table class="table table-bordered table-hover eoi-roi-table" id="eoi-roi-sheet-table">
                             <thead>
                                 <tr>
-                                    <th class="pin-cell frozen-col frozen-col-1" title="Click star to pin row to top"><i class="fas fa-star"></i></th>
+                                    <th class="pin-cell frozen-col frozen-col-1" title="Click star to pin row to top">@icon('fa-star')</th>
                                     <th class="sortable frozen-col frozen-col-2 {{ request('sort') == 'eoi_number' ? (request('direction') == 'asc' ? 'asc' : 'desc') : '' }}" data-sort="eoi_number">EOI ID</th>
                                     <th class="sortable frozen-col frozen-col-3 frozen-col-last {{ request('sort') == 'client_name' ? (request('direction') == 'asc' ? 'asc' : 'desc') : '' }}" data-sort="client_name">Client Name</th>
                                     <th class="sortable {{ request('sort') == 'occupation' ? (request('direction') == 'asc' ? 'asc' : 'desc') : '' }}" data-sort="occupation">Nominated Occupation</th>
@@ -602,7 +606,7 @@
                                 @if($rows->isEmpty())
                                     <tr>
                                         <td colspan="15" class="text-center text-muted py-4">
-                                            <i class="fas fa-info-circle"></i> No EOI/ROI records found matching your criteria.
+                                            @icon('fa-info-circle') No EOI/ROI records found matching your criteria.
                                         </td>
                                     </tr>
                                 @else
@@ -625,9 +629,11 @@
                                         @endphp
                                         <tr class="{{ !empty($row->warnings_text) ? 'has-warning' : '' }}">
                                             <td class="pin-cell frozen-col frozen-col-1">
-                                                <i class="fas fa-star pin-star {{ ($row->is_pinned ?? false) ? 'pinned' : '' }}"
-                                                   data-eoi-id="{{ $row->eoi_id }}"
-                                                   title="{{ ($row->is_pinned ?? false) ? 'Unpin from top' : 'Pin to top' }}"></i>
+                                                {!! \App\Helpers\IconHelper::fromLegacy('fas fa-star', [
+                                                    'class' => 'pin-star ' . (($row->is_pinned ?? false) ? 'pinned' : ''),
+                                                    'data-eoi-id' => $row->eoi_id,
+                                                    'title' => ($row->is_pinned ?? false) ? 'Unpin from top' : 'Pin to top',
+                                                ]) !!}
                                             </td>
                                             <td class="frozen-col frozen-col-2"><a href="{{ $eoiPageUrl }}" class="eoi-link">{{ $row->EOI_number ?? '—' }}</a></td>
                                             <td class="frozen-col frozen-col-3 frozen-col-last"><a href="{{ $eoiPageUrl }}" class="eoi-link">{{ $row->first_name }} {{ $row->last_name }}</a></td>
@@ -683,12 +689,12 @@
                                                 @if($eoiRecord && $eoiRecord->confirmation_date)
                                                     <div style="line-height: 1.6;">
                                                         <strong>{{ $eoiRecord->confirmation_date->format('d/m/Y H:i') }}</strong>
-                                                        <br><small class="text-muted"><i class="fas fa-user-shield"></i> Staff</small>
+                                                        <br><small class="text-muted">@icon('fa-user-shield') Staff</small>
                                                     </div>
                                                     @if($eoiRecord->client_last_confirmation)
                                                         <div style="line-height: 1.6; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e0e0e0;">
                                                             <strong>{{ $eoiRecord->client_last_confirmation->format('d/m/Y H:i') }}</strong>
-                                                            <br><small class="text-success"><i class="fas fa-user-check"></i> Client</small>
+                                                            <br><small class="text-success">@icon('fa-user-check') Client</small>
                                                         </div>
                                                     @endif
                                                 @else
@@ -699,17 +705,17 @@
                                                 @if($eoiRecord && $eoiRecord->verifier)
                                                     <div style="line-height: 1.6;">
                                                         <strong>{{ $eoiRecord->verifier->first_name }} {{ $eoiRecord->verifier->last_name }}</strong>
-                                                        <br><small class="text-muted"><i class="fas fa-user-shield"></i> Staff</small>
+                                                        <br><small class="text-muted">@icon('fa-user-shield') Staff</small>
                                                     </div>
                                                     @if($eoiRecord->client_confirmation_status === 'confirmed')
                                                         <div style="line-height: 1.6; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e0e0e0;">
                                                             <strong class="text-success">Client Confirmed</strong>
-                                                            <br><small class="text-success"><i class="fas fa-user-check"></i> Client</small>
+                                                            <br><small class="text-success">@icon('fa-user-check') Client</small>
                                                         </div>
                                                     @elseif($eoiRecord->client_confirmation_status === 'amendment_requested')
                                                         <div style="line-height: 1.6; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e0e0e0;">
                                                             <strong class="text-warning">Amendment Requested</strong>
-                                                            <br><small class="text-warning"><i class="fas fa-exclamation-triangle"></i> Client</small>
+                                                            <br><small class="text-warning">@icon('fa-exclamation-triangle') Client</small>
                                                         </div>
                                                     @endif
                                                 @else
@@ -721,22 +727,22 @@
                                                     // Determine workflow status
                                                     if (!$eoiRecord) {
                                                         $workflowStatus = 'draft';
-                                                        $statusBadge = '<span class="badge badge-secondary"><i class="fas fa-file"></i> Draft</span>';
+                                                        $statusBadge = '<span class="badge badge-secondary">' . \App\Helpers\IconHelper::fromLegacy('fas fa-file') . ' Draft</span>';
                                                     } elseif (!$eoiRecord->staff_verified) {
                                                         $workflowStatus = 'pending_verification';
-                                                        $statusBadge = '<span class="badge badge-warning"><i class="fas fa-hourglass-half"></i> Pending Verification</span>';
+                                                        $statusBadge = '<span class="badge badge-warning">' . \App\Helpers\IconHelper::fromLegacy('fas fa-hourglass-half') . ' Pending Verification</span>';
                                                     } elseif ($eoiRecord->staff_verified && !$eoiRecord->confirmation_email_sent_at) {
                                                         $workflowStatus = 'verified';
-                                                        $statusBadge = '<span class="badge badge-info"><i class="fas fa-check-circle"></i> Verified - Ready to Send</span>';
+                                                        $statusBadge = '<span class="badge badge-info">' . \App\Helpers\IconHelper::fromLegacy('fas fa-check-circle') . ' Verified - Ready to Send</span>';
                                                     } elseif ($eoiRecord->client_confirmation_status === 'confirmed') {
                                                         $workflowStatus = 'completed';
-                                                        $statusBadge = '<span class="badge badge-success"><i class="fas fa-check-double"></i> Client Confirmed</span>';
+                                                        $statusBadge = '<span class="badge badge-success">' . \App\Helpers\IconHelper::fromLegacy('fas fa-check-double') . ' Client Confirmed</span>';
                                                     } elseif ($eoiRecord->client_confirmation_status === 'amendment_requested') {
                                                         $workflowStatus = 'amendment';
-                                                        $statusBadge = '<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Amendment Requested</span>';
+                                                        $statusBadge = '<span class="badge badge-danger">' . \App\Helpers\IconHelper::fromLegacy('fas fa-exclamation-triangle') . ' Amendment Requested</span>';
                                                     } elseif ($eoiRecord->client_confirmation_status === 'pending') {
                                                         $workflowStatus = 'awaiting_client';
-                                                        $statusBadge = '<span class="badge badge-primary"><i class="fas fa-clock"></i> Awaiting Client Response</span>';
+                                                        $statusBadge = '<span class="badge badge-primary">' . \App\Helpers\IconHelper::fromLegacy('fas fa-clock') . ' Awaiting Client Response</span>';
                                                     } else {
                                                         $workflowStatus = 'unknown';
                                                         $statusBadge = '<span class="badge badge-secondary">—</span>';

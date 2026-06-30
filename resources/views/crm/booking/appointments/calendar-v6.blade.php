@@ -12,44 +12,44 @@
             <!-- Back and Calendar Type Navigation -->
             <div class="mb-3">
                 <a href="{{ route('booking.appointments.index') }}" class="btn btn-sm btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to List
+                    @icon('fa-arrow-left') Back to List
                 </a>
                 <div class="btn-group ml-2" role="group">
                     <a href="{{ route('booking.appointments.calendar', ['type' => 'paid']) }}" 
                        class="btn btn-sm {{ $type === 'paid' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        <i class="far fa-calendar-check"></i> Employer Sponsored Calendar
+                        @icon('fa-calendar-check') Employer Sponsored Calendar
                     </a>
                     <a href="{{ route('booking.appointments.calendar', ['type' => 'jrp']) }}" 
                        class="btn btn-sm {{ $type === 'jrp' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        <i class="far fa-calendar"></i> JRP
+                        @icon('fa-calendar') JRP
                     </a>
                     <a href="{{ route('booking.appointments.calendar', ['type' => 'education']) }}" 
                        class="btn btn-sm {{ $type === 'education' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        <i class="fas fa-graduation-cap"></i> Education
+                        @icon('fa-graduation-cap') Education
                     </a>
                     <a href="{{ route('booking.appointments.calendar', ['type' => 'tourist']) }}" 
                        class="btn btn-sm {{ $type === 'tourist' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        <i class="fas fa-plane"></i> Tourist
+                        @icon('fa-plane') Tourist
                     </a>
                     <a href="{{ route('booking.appointments.calendar', ['type' => 'adelaide']) }}" 
                        class="btn btn-sm {{ $type === 'adelaide' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        <i class="fas fa-city"></i> Adelaide
+                        @icon('fa-city') Adelaide
                     </a>
                     <a href="{{ route('booking.appointments.calendar', ['type' => 'adelaide_education']) }}" 
                        class="btn btn-sm {{ $type === 'adelaide_education' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        <i class="fas fa-graduation-cap"></i> Adelaide Education
+                        @icon('fa-graduation-cap') Adelaide Education
                     </a>
                     <a href="{{ route('booking.appointments.calendar', ['type' => 'ajay']) }}" 
                        class="btn btn-sm {{ $type === 'ajay' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        <i class="fas fa-calendar-alt"></i> Ajay Calendar
+                        @icon('fa-calendar-alt') Ajay Calendar
                     </a>
                     <a href="{{ route('booking.appointments.calendar', ['type' => 'kunal']) }}" 
                        class="btn btn-sm {{ $type === 'kunal' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        <i class="fas fa-calendar-alt"></i> Kunal Calendar
+                        @icon('fa-calendar-alt') Kunal Calendar
                     </a>
                     <a href="{{ route('booking.appointments.calendar', ['type' => 'arun']) }}" 
                        class="btn btn-sm {{ $type === 'arun' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        <i class="fas fa-calendar-alt"></i> Arun Calendar
+                        @icon('fa-calendar-alt') Arun Calendar
                     </a>
                 </div>
             </div>
@@ -57,13 +57,13 @@
             <div class="card">
                 <div class="card-header">
                     <h4>
-                        <i class="fas fa-calendar-alt mr-2"></i>
+                        @icon('fa-calendar-alt', ['class' => 'mr-2'])
                         {{ $calendarTitle }}
                         <small class="text-muted">(Website Bookings - v6)</small>
                     </h4>
                     <div class="card-header-action">
                         <button onclick="location.reload()" class="btn btn-sm btn-info">
-                            <i class="fas fa-sync"></i> Refresh
+                            @icon('fa-sync') Refresh
                         </button>
                     </div>
                 </div>
@@ -180,7 +180,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-danger" id="confirmCancelBtn">
-                    <i class="fas fa-times"></i> Confirm Cancellation
+                    @icon('fa-times') Confirm Cancellation
                 </button>
             </div>
         </div>
@@ -466,7 +466,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <p><strong>Meeting Type:</strong> 
                                 <span id="meetingTypeDisplay-${event.id}" style="cursor: pointer; color: #007bff; text-decoration: underline;" onclick="showMeetingTypeDropdown(${event.id}, '${props.meeting_type}')" title="Click to change meeting type">
                                     ${meetingTypeDisplay}
-                                    <i class="fas fa-edit ml-1" style="font-size: 0.8em;"></i>
+                                    @icon('fa-edit', ['class' => 'ml-1', 'style' => 'font-size: 0.8em;'])
                                 </span>
                                 <select id="meetingTypeSelect-${event.id}" class="form-control form-control-sm d-none" style="max-width: 200px; display: inline-block;" onchange="updateAppointmentMeetingType(${event.id}, this.value)" data-is-paid="${props.is_paid}">
                                     <option value="in_person" ${props.meeting_type === 'in_person' ? 'selected' : ''}>In Person</option>
@@ -487,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <!-- Reschedule Date & Time Section -->
                     <div class="row mb-3">
                         <div class="col-12">
-                            <h6><i class="fas fa-calendar-alt"></i> Reschedule Date & Time</h6>
+                            <h6>@icon('fa-calendar-alt') Reschedule Date & Time</h6>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label for="rescheduleDate-${event.id}" class="small">Appointment Date</label>
@@ -504,12 +504,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 <div class="form-group col-md-4 d-flex align-items-end">
                                     <button type="button" class="btn btn-sm btn-primary w-100" onclick="rescheduleAppointmentDateTime(this, ${event.id}, '${props.meeting_type || 'in_person'}', '${props.preferred_language || 'English'}')">
-                                        <i class="fas fa-save"></i> Update Date & Time
+                                        @icon('fa-save') Update Date & Time
                                     </button>
                                 </div>
                             </div>
                             <small class="text-muted">
-                                <i class="fas fa-info-circle"></i> Changes will sync with the Bansal website if the appointment is linked.
+                                @icon('fa-info-circle') Changes will sync with the Bansal website if the appointment is linked.
                             </small>
                         </div>
                     </div>
@@ -519,35 +519,35 @@ document.addEventListener('DOMContentLoaded', function() {
                     <!-- Action Controls -->
                     <div class="row">
                         <div class="col-md-6">
-                            <h6><i class="fas fa-edit"></i> Change Status</h6>
+                            <h6>@icon('fa-edit') Change Status</h6>
                             <div class="btn-group-vertical w-100" role="group">
                                 <button type="button" class="btn btn-sm btn-outline-success" onclick="updateAppointmentStatus(${event.id}, 'confirmed')">
-                                    <i class="fas fa-check"></i> Mark as Confirmed
+                                    @icon('fa-check') Mark as Confirmed
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="updateAppointmentStatus(${event.id}, 'completed')">
-                                    <i class="fas fa-check-circle"></i> Mark as Complete
+                                    @icon('fa-check-circle') Mark as Complete
                                 </button>
                                 <!-- <button type="button" class="btn btn-sm btn-outline-warning" onclick="updateAppointmentStatus(${event.id}, 'pending')">
-                                    <i class="fas fa-clock"></i> Mark as Pending
+                                    @icon('fa-clock') Mark as Pending
                                 </button> -->
                                 ${props.final_amount && parseFloat(props.final_amount) > 0 ? `
                                 <button type="button" class="btn btn-sm btn-outline-info" onclick="updateAppointmentStatus(${event.id}, 'paid')">
-                                    <i class="fas fa-dollar-sign"></i> Mark As Payment Done
+                                    @icon('fa-dollar-sign') Mark As Payment Done
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-warning" onclick="updateAppointmentStatus(${event.id}, 'pending')">
-                                    <i class="fas fa-clock"></i> Mark As Payment Pending
+                                    @icon('fa-clock') Mark As Payment Pending
                                 </button>
                                 ` : ''}
                                 <button type="button" class="btn btn-sm btn-outline-danger" onclick="updateAppointmentStatus(${event.id}, 'cancelled')">
-                                    <i class="fas fa-times"></i> Mark as Cancelled
+                                    @icon('fa-times') Mark as Cancelled
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="updateAppointmentStatus(${event.id}, 'no_show')">
-                                    <i class="fas fa-user-times"></i> Mark as No Show
+                                    @icon('fa-user-times') Mark as No Show
                                 </button>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <h6><i class="fas fa-exchange-alt"></i> Change Calendar Type</h6>
+                            <h6>@icon('fa-exchange-alt') Change Calendar Type</h6>
                             <div class="form-group">
                                 <select class="form-control form-control-sm" id="consultantSelect-${event.id}" data-stable-consultant-id="${stableConsultantIdAttr}" onchange="updateAppointmentConsultant(${event.id}, this.value)">
                                     <option value="">Select Consultant...</option>
@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div class="mt-2">
                                 <small class="text-muted">
-                                    <i class="fas fa-info-circle"></i> Changing consultant will move this appointment to the selected calendar type.
+                                    @icon('fa-info-circle') Changing consultant will move this appointment to the selected calendar type.
                                 </small>
                             </div>
                         </div>
@@ -739,7 +739,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const button = buttonEl || event?.target;
         const originalText = button ? button.innerHTML : '';
         if (button) {
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            button.innerHTML = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Updating...';
             button.disabled = true;
         }
 
@@ -995,7 +995,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Show loading state
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+        button.innerHTML = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Updating...';
         button.disabled = true;
         dateInput.disabled = true;
         timeInput.disabled = true;
@@ -1185,7 +1185,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ).join(' ');
                     
                     // Update display text
-                    display.innerHTML = `${newDisplay} <i class="fas fa-edit ml-1" style="font-size: 0.8em;"></i>`;
+                    display.innerHTML = `${newDisplay} ${(typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-edit') : '<i class="fas fa-edit"></i>')}`;
                     
                     // Update select value
                     select.value = newMeetingType;

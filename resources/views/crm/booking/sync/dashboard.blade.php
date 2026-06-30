@@ -78,10 +78,10 @@ html, body {
             <!-- Back Button -->
             <div class="mb-3">
                 <a href="{{ route('booking.appointments.index') }}" class="btn btn-sm btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Appointments
+                    @icon('fa-arrow-left') Back to Appointments
                 </a>
                 <button onclick="location.reload()" class="btn btn-sm btn-info">
-                    <i class="fas fa-sync"></i> Refresh
+                    @icon('fa-sync') Refresh
                 </button>
             </div>
 
@@ -89,16 +89,16 @@ html, body {
             <div class="card">
                 <div class="card-header">
                     <h4>
-                        <i class="fas fa-sync-alt mr-2"></i>
+                        @icon('fa-sync-alt', ['class' => 'mr-2'])
                         Appointment Sync Dashboard
                     </h4>
                     <div class="card-header-action">
                         @if(Auth::user() && in_array(Auth::user()->role, [1, 12]))
                         <button onclick="triggerManualSync()" class="btn btn-primary">
-                            <i class="fas fa-sync-alt"></i> Manual Sync Now
+                            @icon('fa-sync-alt') Manual Sync Now
                         </button>
                         <button onclick="testConnection()" class="btn btn-info">
-                            <i class="fas fa-plug"></i> Test Connection
+                            @icon('fa-plug') Test Connection
                         </button>
                         @endif
                     </div>
@@ -125,7 +125,7 @@ html, body {
                         <div class="col-md-4">
                             <div class="card">
                                 <div class="card-body">
-                                    <h5><i class="fas fa-clock mr-2"></i>Last Sync</h5>
+                                    <h5>@icon('fa-clock', ['class' => 'mr-2'])Last Sync</h5>
                                     <p class="mb-0">
                                         @if($lastSync)
                                             <strong>{{ $lastSync->created_at->diffForHumans() }}</strong><br>
@@ -142,7 +142,7 @@ html, body {
                         <div class="col-md-4">
                             <div class="card">
                                 <div class="card-body">
-                                    <h5><i class="fas fa-calendar-check mr-2"></i>Next Scheduled Sync</h5>
+                                    <h5>@icon('fa-calendar-check', ['class' => 'mr-2'])Next Scheduled Sync</h5>
                                     <p class="mb-0">
                                         <strong>{{ $nextSync ?? 'Within 10 minutes' }}</strong><br>
                                         <small class="text-muted">Runs every 10 minutes</small>
@@ -159,7 +159,7 @@ html, body {
                 <div class="col-lg-3 col-md-6">
                     <div class="card">
                         <div class="card-body metric-card">
-                            <i class="fas fa-download text-primary" style="font-size: 2rem;"></i>
+                            @icon('fa-download', ['class' => 'text-primary', 'style' => 'font-size: 2rem;'])
                             <h2 class="text-primary">{{ $stats['total_synced'] ?? 0 }}</h2>
                             <p>Total Synced</p>
                         </div>
@@ -168,7 +168,7 @@ html, body {
                 <div class="col-lg-3 col-md-6">
                     <div class="card">
                         <div class="card-body metric-card">
-                            <i class="fas fa-calendar-day text-success" style="font-size: 2rem;"></i>
+                            @icon('fa-calendar-day', ['class' => 'text-success', 'style' => 'font-size: 2rem;'])
                             <h2 class="text-success">{{ $stats['today'] ?? 0 }}</h2>
                             <p>Today's Syncs</p>
                         </div>
@@ -177,7 +177,7 @@ html, body {
                 <div class="col-lg-3 col-md-6">
                     <div class="card">
                         <div class="card-body metric-card">
-                            <i class="fas fa-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
+                            @icon('fa-exclamation-triangle', ['class' => 'text-warning', 'style' => 'font-size: 2rem;'])
                             <h2 class="text-warning">{{ $stats['failed'] ?? 0 }}</h2>
                             <p>Failed Syncs</p>
                         </div>
@@ -186,7 +186,7 @@ html, body {
                 <div class="col-lg-3 col-md-6">
                     <div class="card">
                         <div class="card-body metric-card">
-                            <i class="fas fa-check-circle text-info" style="font-size: 2rem;"></i>
+                            @icon('fa-check-circle', ['class' => 'text-info', 'style' => 'font-size: 2rem;'])
                             <h2 class="text-info">{{ $stats['success_rate'] ?? 100 }}%</h2>
                             <p>Success Rate</p>
                         </div>
@@ -197,7 +197,7 @@ html, body {
             <!-- Recent Sync History -->
             <div class="card">
                 <div class="card-header">
-                    <h4><i class="fas fa-history mr-2"></i>Recent Sync History</h4>
+                    <h4>@icon('fa-history', ['class' => 'mr-2'])Recent Sync History</h4>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -248,7 +248,7 @@ html, body {
                                     <td>
                                         @if($log->error_message)
                                             <button class="btn btn-sm btn-outline-danger" onclick="showError('{{ addslashes($log->error_message) }}')">
-                                                <i class="fas fa-exclamation-circle"></i> Error
+                                                @icon('fa-exclamation-circle') Error
                                             </button>
                                         @else
                                             <span class="text-muted">-</span>
@@ -277,7 +277,7 @@ html, body {
             <!-- API Configuration -->
             <div class="card">
                 <div class="card-header">
-                    <h4><i class="fas fa-cog mr-2"></i>API Configuration</h4>
+                    <h4>@icon('fa-cog', ['class' => 'mr-2'])API Configuration</h4>
                 </div>
                 <div class="card-body">
                     <div class="row">

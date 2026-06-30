@@ -18,10 +18,10 @@
                 <div class="col-9 col-md-9 col-lg-9">
                     <div class="card">
                         <div class="card-header">
-                            <h4><i class="fas fa-sms"></i> SMS Details</h4>
+                            <h4>@icon('fa-sms') SMS Details</h4>
                             <div class="card-header-action">
                                 <a href="{{ route('adminconsole.features.sms.history') }}" class="btn btn-secondary">
-                                    <i class="fas fa-arrow-left"></i> Back to History
+                                    @icon('fa-arrow-left') Back to History
                                 </a>
                             </div>
                         </div>

@@ -9,13 +9,7 @@
 		<meta name="keyword" content="Bootstrap,Admin,Template,Open,Source,jQuery,CSS,HTML,RWD,Dashboard">
 		<meta name="csrf-token" content="{{ csrf_token() }}">
 		<title>Tour Planner | Exception</title>
-    
-		<!-- Icons-->
-			<link rel="stylesheet" type="text/css" href="{{ asset('icons/@coreui/icons/css/coreui-icons.min.css') }}" />
-			<link rel="stylesheet" type="text/css" href="{{ asset('icons/flag-icon-css/css/flag-icon.min.css') }}" />
-			<link rel="stylesheet" type="text/css" href="{{ asset('icons/font-awesome/css/font-awesome.min.css') }}" />
-			<link rel="stylesheet" type="text/css" href="{{ asset('icons/simple-line-icons/css/simple-line-icons.css') }}" />
-		
+
 		<!-- Main styles for this application-->
 			<link rel="stylesheet" type="text/css" href="{{ asset('css/style.css') }}" />
 			<link rel="stylesheet" type="text/css" href="{{ asset('css/pace.min.css') }}" />

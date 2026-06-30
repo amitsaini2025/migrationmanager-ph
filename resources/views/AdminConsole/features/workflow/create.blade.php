@@ -21,7 +21,7 @@
 							@endif
 						</h4>
 							<div class="card-header-action">
-									<a href="{{ isset($workflow) ? route('adminconsole.features.workflow.stages', base64_encode(convert_uuencode($workflow->id))) : route('adminconsole.features.workflow.index') }}" class="btn btn-primary"><i class="fa fa-arrow-left"></i> Back</a>
+									<a href="{{ isset($workflow) ? route('adminconsole.features.workflow.stages', base64_encode(convert_uuencode($workflow->id))) : route('adminconsole.features.workflow.index') }}" class="btn btn-primary">@icon('fa-arrow-left') Back</a>
 							</div>
 							</div>
 						</div>
@@ -98,7 +98,7 @@ jQuery(document).ready(function($){
 	$('.add_stage').on('click', function(){
 		var html = '<tr>'+
             '<td><input type="text" data-valid="required" name="stage_name[]" placeholder="Stage Name" class="form-control"></td>'+
-            '<td><a href="javascript:;" class="remove_stage"><i class="fa fa-trash"></i></a></td>'+
+            '<td><a href="javascript:;" class="remove_stage">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-trash') : '<i class="fas fa-trash"></i>') + '</a></td>'+
             '<td></td>'+
         '</tr>';
         $('.workflow_stges table').append(html);

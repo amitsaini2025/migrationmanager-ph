@@ -108,7 +108,7 @@ class EmailLabelController extends Controller
             $obj->user_id = $userId;
             $obj->name = $requestData['name'];
             $obj->color = $requestData['color'];
-            $obj->icon = $requestData['icon'] ?? 'fas fa-tag';
+            $obj->icon = $requestData['icon'] ?? 'tag';
             $obj->type = $requestData['type'] ?? 'custom';
             $obj->description = $requestData['description'] ?? null;
             $obj->is_active = true;
@@ -205,7 +205,7 @@ class EmailLabelController extends Controller
 
         $obj->name = $requestData['name'];
         $obj->color = $requestData['color'];
-        $obj->icon = $requestData['icon'] ?? 'fas fa-tag';
+        $obj->icon = $requestData['icon'] ?? 'tag';
         $obj->description = $requestData['description'] ?? null;
         if (isset($requestData['is_active'])) {
             $obj->is_active = $requestData['is_active'];

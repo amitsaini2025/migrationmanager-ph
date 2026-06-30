@@ -19,7 +19,7 @@ use App\Http\Controllers\Controller;
         <div class="sidebar-header">
             <!-- Sidebar Toggle Button -->
             <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Hide Sidebar">
-                <i class="fas fa-chevron-left"></i>
+                @icon('fa-chevron-left')
             </button>
             <div class="client-info">
                 <h3 class="client-id">
@@ -47,7 +47,7 @@ use App\Http\Controllers\Controller;
                 <p class="client-name">
                     {{ $fetchedData->company->company_name ?? 'Unnamed Company' }}
                     <a href="{{route('clients.edit', base64_encode(convert_uuencode(@$fetchedData->id)))}}" title="Edit" class="client-name-edit">
-                        <i class="fa fa-edit"></i>
+                        @icon('fa-edit')
                     </a>
                 </p>
                 
@@ -70,11 +70,11 @@ use App\Http\Controllers\Controller;
                 <div class="sidebar-actions-row">
                     <!-- Action Icons -->
                     <div class="client-actions">
-                        <a href="javascript:;" class="create_note_d" datatype="note" title="Add Notes"><i class="fas fa-plus"></i></a>
-                        <a href="javascript:;" data-id="{{@$fetchedData->id}}" data-email="{{@$fetchedData->email}}" data-name="{{ $fetchedData->company->company_name ?? 'Unnamed Company' }}" class="clientemail" title="Compose Mail"><i class="fa fa-envelope"></i></a>
-                        <a href="javascript:;" class="send-sms-btn" data-client-id="{{@$fetchedData->id}}" data-client-name="{{ $fetchedData->company->company_name ?? 'Unnamed Company' }}" title="Send SMS"><i class="fas fa-sms"></i></a>
-                        <a href="javascript:;" datatype="not_picked_call" class="not_picked_call" title="Not Picked Call"><i class="fas fa-mobile-alt"></i></a>
-                        <a href="javascript:;" data-bs-toggle="modal" data-bs-target="#create_appoint" title="Add Appointment"><i class="fas fa-calendar-plus"></i></a>
+                        <a href="javascript:;" class="create_note_d" datatype="note" title="Add Notes">@icon('fa-plus')</a>
+                        <a href="javascript:;" data-id="{{@$fetchedData->id}}" data-email="{{@$fetchedData->email}}" data-name="{{ $fetchedData->company->company_name ?? 'Unnamed Company' }}" class="clientemail" title="Compose Mail">@icon('fa-envelope')</a>
+                        <a href="javascript:;" class="send-sms-btn" data-client-id="{{@$fetchedData->id}}" data-client-name="{{ $fetchedData->company->company_name ?? 'Unnamed Company' }}" title="Send SMS">@icon('fa-sms')</a>
+                        <a href="javascript:;" datatype="not_picked_call" class="not_picked_call" title="Not Picked Call">@icon('fa-mobile-alt')</a>
+                        <a href="javascript:;" data-bs-toggle="modal" data-bs-target="#create_appoint" title="Add Appointment">@icon('fa-calendar-plus')</a>
                     </div>
                     
                 </div>
@@ -310,13 +310,13 @@ use App\Http\Controllers\Controller;
                            maxlength="50"
                            autocomplete="off">
                     <button class="btn-cancel-input" type="button" title="Cancel (Esc)">
-                        <i class="fas fa-times"></i>
+                        @icon('fa-times')
                     </button>
                 </div>
                 
                 <!-- Add Button -->
                 <button id="btn-add-reference" class="btn-add-reference-chip" type="button">
-                    <i class="fas fa-plus"></i> Add Reference
+                    @icon('fa-plus') Add Reference
                 </button>
             </div>
         </div>
@@ -339,43 +339,43 @@ use App\Http\Controllers\Controller;
             {  //if client unique reference id is present in url
             ?>
                 <button class="client-nav-button active" data-tab="companydetails">
-                    <i class="fas fa-building"></i>
+                    @icon('fa-building')
                     <span>Company Details</span>
                 </button>
                 <button class="client-nav-button" data-tab="activityfeed">
-                    <i class="fas fa-history"></i>
+                    @icon('fa-history')
                     <span>Activity</span>
                 </button>
                 <button class="client-nav-button" data-tab="noteterm">
-                    <i class="fas fa-sticky-note"></i>
+                    @icon('fa-sticky-note')
                     <span>Notes</span>
                 </button>
                 <button class="client-nav-button" data-tab="personaldocuments">
-                    <i class="fas fa-folder-open"></i>
+                    @icon('fa-folder-open')
                     <span>Company Documents</span>
                 </button>
                 <button class="client-nav-button" data-tab="nominationdocuments">
-                    <i class="fas fa-file-contract"></i>
+                    @icon('fa-file-contract')
                     <span>Nomination Documents</span>
                 </button>
                 <button class="client-nav-button" data-tab="account">
-                    <i class="fas fa-file-invoice-dollar"></i>
+                    @icon('fa-file-invoice-dollar')
                     <span>Account</span>
                 </button>
                 <button class="client-nav-button" data-tab="emails">
-                    <i class="fas fa-inbox"></i>
+                    @icon('fa-inbox')
                     <span>Emails</span>
                 </button>
                 <button class="client-nav-button" data-tab="checklists">
-                    <i class="fas fa-tasks"></i>
+                    @icon('fa-tasks')
                     <span>Checklists</span>
                 </button>
                 <button class="client-nav-button" data-tab="workflow">
-                    <i class="fas fa-stream"></i>
+                    @icon('fa-stream')
                     <span>Workflow</span>
                 </button>
                 <button class="client-nav-button" data-tab="client_portal">
-                    <i class="fas fa-globe"></i>
+                    @icon('fa-globe')
                     <span>Client Portal</span>
                 </button>
                 <?php
@@ -395,23 +395,23 @@ use App\Http\Controllers\Controller;
             {  //If no matter is exist
             ?>
                 <button class="client-nav-button active" data-tab="companydetails">
-                    <i class="fas fa-building"></i>
+                    @icon('fa-building')
                     <span>Company Details</span>
                 </button>
                 <button class="client-nav-button" data-tab="activityfeed">
-                    <i class="fas fa-history"></i>
+                    @icon('fa-history')
                     <span>Activity</span>
                 </button>
                 <button class="client-nav-button" data-tab="noteterm">
-                    <i class="fas fa-sticky-note"></i>
+                    @icon('fa-sticky-note')
                     <span>Notes</span>
                 </button>
                 <button class="client-nav-button" data-tab="personaldocuments">
-                    <i class="fas fa-folder-open"></i>
+                    @icon('fa-folder-open')
                     <span>Company Documents</span>
                 </button>
                 <button class="client-nav-button" data-tab="checklists">
-                    <i class="fas fa-tasks"></i>
+                    @icon('fa-tasks')
                     <span>Checklists</span>
                 </button>
             <?php
@@ -659,7 +659,7 @@ use App\Http\Controllers\Controller;
 		<div class="modal-content">
 			<div class="modal-header">
 				<h5 class="modal-title" id="smsModalLabel">
-					<i class="fas fa-sms"></i> Send SMS
+					@icon('fa-sms') Send SMS
 				</h5>
 				<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
 					<span aria-hidden="true">&times;</span>
@@ -679,7 +679,7 @@ use App\Http\Controllers\Controller;
 									<option value="">Select phone number...</option>
 								</select>
 								<small class="form-text text-muted">
-									<i class="fas fa-info-circle"></i> 
+									@icon('fa-info-circle') 
 									Australian numbers will use Cellcast, international numbers will use Twilio
 								</small>
 							</div>
@@ -715,7 +715,7 @@ use App\Http\Controllers\Controller;
 						<!-- Buttons -->
                         <div class="col-12">
 							<button type="submit" class="btn btn-primary" id="sendSmsBtn">
-								<i class="fas fa-paper-plane"></i> Send SMS
+								@icon('fa-paper-plane') Send SMS
 							</button>
 							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
 						</div>
@@ -885,7 +885,7 @@ use App\Http\Controllers\Controller;
 				<input type="hidden" name="client_id" id="client_id" value="">
 				<input type="hidden" name="create_new_as_red" id="create_new_as_red" value="0">
 					<div id="tags_red_mode_hint" class="alert alert-warning py-2 mb-2" style="display: none;">
-						<i class="fas fa-exclamation-triangle text-danger"></i> <strong>Red Tag mode:</strong> Any new tags you add will be created as Red tags (hidden by default).
+						@icon('fa-exclamation-triangle', ['class' => 'text-danger']) <strong>Red Tag mode:</strong> Any new tags you add will be created as Red tags (hidden by default).
 					</div>
 					<div class="row">
 						<div class="col-12 col-md-12 col-lg-12">
@@ -979,7 +979,7 @@ use App\Http\Controllers\Controller;
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-primary" onclick="customValidate('inbox-email-reassign-to-client-matter')">
-					<i class="fa fa-save"></i> Re-assign Inbox Email
+					@icon('fa-save') Re-assign Inbox Email
 				</button>
 			</div>
 			</form>
@@ -1023,7 +1023,7 @@ use App\Http\Controllers\Controller;
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-primary" onclick="customValidate('sent-email-reassign-to-client-matter')">
-					<i class="fa fa-save"></i> Re-assign Sent Email
+					@icon('fa-save') Re-assign Sent Email
 				</button>
 			</div>
 			</form>
@@ -1444,7 +1444,7 @@ $(document).ready(function() {
                         var subjectLower = subject.toLowerCase();
 
                         if (activityType === 'sms') {
-                            subjectIcon = '<i class="fas fa-sms"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sms') : '<i class="fas fa-sms"></i>');
                             iconClass = 'feed-icon-sms';
                         } else if (activityType === 'note') {
                             var noteIcon = 'fa-sticky-note';
@@ -1453,40 +1453,40 @@ $(document).ready(function() {
                             else if (subjectLower.indexOf('in-person') !== -1) { noteIcon = 'fa-user-friends'; noteSubtypeClass = ' activity-type-note-in-person'; }
                             else if (subjectLower.indexOf('attention') !== -1) { noteIcon = 'fa-exclamation-triangle'; noteSubtypeClass = ' activity-type-note-attention'; }
                             else if (subjectLower.indexOf('others') !== -1) { noteIcon = 'fa-ellipsis-h'; noteSubtypeClass = ' activity-type-note-others'; }
-                            subjectIcon = '<i class="fas ' + noteIcon + '"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas ' + noteIcon) : '<i class="fas ' + noteIcon + '"></i>');
                             iconClass = 'feed-icon-note';
                         } else if (activityType === 'activity') {
-                            subjectIcon = '<i class="fas fa-bolt"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-bolt') : '<i class="fas fa-bolt"></i>');
                             iconClass = 'feed-icon-activity';
                         } else if (activityType === 'stage') {
-                            subjectIcon = '<i class="fas fa-route"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-route') : '<i class="fas fa-route"></i>');
                             iconClass = 'feed-icon-stage';
                         } else if (activityType === 'financial') {
-                            subjectIcon = '<i class="fas fa-dollar-sign"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-dollar-sign') : '<i class="fas fa-dollar-sign"></i>');
                             iconClass = 'feed-icon-financial';
                         } else if (activityType === 'email') {
-                            subjectIcon = '<i class="fas fa-envelope"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : '<i class="fas fa-envelope"></i>');
                             iconClass = 'feed-icon-email';
                         } else if (activityType === 'signature') {
-                            subjectIcon = '<i class="fas fa-file-signature"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-signature') : '<i class="fas fa-file-signature"></i>');
                             iconClass = 'feed-icon-signature';
                         } else if (activityType === 'document') {
-                            subjectIcon = '<i class="fas fa-file-alt"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : '<i class="fas fa-file-alt"></i>');
                             iconClass = '';
                         } else if (/uploaded email:/i.test(subjectLower)) {
-                            subjectIcon = '<i class="fas fa-envelope"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : '<i class="fas fa-envelope"></i>');
                             iconClass = 'feed-icon-email';
                         } else if (subjectLower.includes('invoice') || subjectLower.includes('receipt') || subjectLower.includes('ledger') || subjectLower.includes('payment') || subjectLower.includes('account')) {
-                            subjectIcon = '<i class="fas fa-dollar-sign"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-dollar-sign') : '<i class="fas fa-dollar-sign"></i>');
                             iconClass = 'feed-icon-financial';
                         } else if (subjectLower.includes('document') && !/(receipt document|journal receipt document|client receipt document|office receipt document)/i.test(subjectLower)) {
-                            subjectIcon = '<i class="fas fa-file-alt"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : '<i class="fas fa-file-alt"></i>');
                             iconClass = '';
                         } else if (subjectLower.includes('document')) {
-                            subjectIcon = '<i class="fas fa-file-alt"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-file-alt') : '<i class="fas fa-file-alt"></i>');
                             iconClass = '';
                         } else {
-                            subjectIcon = '<i class="fas fa-sticky-note"></i>';
+                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sticky-note') : '<i class="fas fa-sticky-note"></i>');
                             iconClass = '';
                         }
 
@@ -1785,7 +1785,7 @@ $('#sendSmsForm').on('submit', function(e) {
     const submitBtn = $('#sendSmsBtn');
     const originalText = submitBtn.html();
     
-    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+    submitBtn.prop('disabled', true).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Sending...');
     
     const formData = {
         _token: '{{ csrf_token() }}',

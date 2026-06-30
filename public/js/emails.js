@@ -402,6 +402,28 @@
     }
 
     /**
+     * Render attachment type icon HTML (Lucide via crmIconAny).
+     */
+    function renderAttachmentIcon(contentType) {
+        const legacy = getAttachmentIcon(contentType);
+        const colorClass = getAttachmentIconColor(contentType);
+        const extraClass = ('attachment-icon ' + colorClass).trim();
+        return typeof crmIconAny === 'function'
+            ? crmIconAny(legacy, { class: extraClass })
+            : '<i class="' + legacy + ' ' + extraClass + '"></i>';
+    }
+
+    /**
+     * Render label icon from stored Lucide name or legacy FA class string.
+     */
+    function renderLabelIcon(icon) {
+        const stored = icon || 'tag';
+        return typeof crmIconAny === 'function'
+            ? crmIconAny(stored)
+            : '<i class="' + (stored.includes(' ') ? stored : 'fas ' + stored) + '"></i>';
+    }
+
+    /**
      * Check if attachment can be previewed (images/PDFs only).
      * Filename extension is used as fallback when content_type is missing or generic.
      */
@@ -1138,15 +1160,15 @@
 
         // NEW: Attachment indicator
         const hasAttachments = email.attachments && Array.isArray(email.attachments) && email.attachments.length > 0;
-        const attachmentIcon = hasAttachments 
-            ? `<i class="fas fa-paperclip attachment-indicator" title="${email.attachments.length} attachment(s)"></i>`
+        const attachmentIcon = hasAttachments
+            ? (typeof crmIconAny === 'function' ? crmIconAny('paperclip', { class: 'attachment-indicator' }) : '<i class="fas fa-paperclip attachment-indicator"></i>')
             : '';
 
         // NEW: Label badges
-        const labelBadges = (email.labels && Array.isArray(email.labels)) 
-            ? email.labels.map(label => 
+        const labelBadges = (email.labels && Array.isArray(email.labels))
+            ? email.labels.map(label =>
                 `<span class="label-badge" style="background-color: ${label.color}20; border-color: ${label.color}; color: ${label.color}">
-                    <i class="${label.icon || 'fas fa-tag'}"></i> ${label.name}
+                    ${renderLabelIcon(label.icon)} ${label.name}
                 </span>`
             ).join('')
             : '';
@@ -1214,7 +1236,7 @@
         emailList.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">
-                    <i class="fas fa-inbox"></i>
+                    ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-inbox') : '<i class="fas fa-inbox"></i>'}
                 </div>
                 <div class="empty-state-text">
                     <h3>${message || 'No emails found'}</h3>
@@ -1235,7 +1257,7 @@
             emailList.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-state-icon">
-                        <i class="fas fa-spinner fa-spin"></i>
+                        ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>'}
                     </div>
                     <div class="empty-state-text">
                         <h3>Loading emails...</h3>
@@ -1285,7 +1307,7 @@
                 <div class="archived-body-notice">
                     <p>Email body has been moved to S3 storage.</p>
                     <a href="${email.archived_body_view_url}" target="_blank" rel="noopener noreferrer" class="archived-body-view-link">
-                        <i class="fas fa-external-link-alt"></i> View Email Body
+                        ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-external-link-alt') : '<i class="fas fa-external-link-alt"></i>'} View Email Body
                     </a>
                 </div>
             `;
@@ -1319,7 +1341,7 @@
             const attachmentItems = regularAttachments.map(att => `
                 <div class="attachment-item" data-attachment-id="${att.id}">
                     <div class="attachment-info">
-                        <i class="${getAttachmentIcon(att.content_type)} attachment-icon ${getAttachmentIconColor(att.content_type)}"></i>
+                        ${renderAttachmentIcon(att.content_type)}
                         <div class="attachment-details">
                             <div class="attachment-name">${escapeHtml(att.filename || att.display_name || 'Unknown')}</div>
                             <div class="attachment-size">${formatFileSize(att.file_size || 0)}</div>
@@ -1330,14 +1352,14 @@
                                 data-attachment-id="${att.id}" 
                                 data-filename="${escapeHtml(att.filename || att.display_name || 'file')}"
                                 title="Download ${escapeHtml(att.filename || 'file')}">
-                            <i class="fas fa-download"></i> Download
+                            ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-download') : '<i class="fas fa-download"></i>'} Download
                         </button>
                         ${canPreviewAttachment(att.content_type, att.filename || att.display_name) ? `
                         <button class="preview-btn preview-attachment-btn" 
                                 data-attachment-id="${att.id}" 
                                 data-filename="${escapeHtml(att.filename || att.display_name || 'file')}"
                                 title="Preview ${escapeHtml(att.filename || 'file')}">
-                            <i class="fas fa-eye"></i> Preview
+                            ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-eye') : '<i class="fas fa-eye"></i>'} Preview
                         </button>
                         ` : ''}
                     </div>
@@ -1348,7 +1370,7 @@
                 <div class="attachment-list">
                     <div class="attachment-list-header">
                         <span class="attachment-list-title">
-                            <i class="fas fa-paperclip"></i> 
+                            ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-paperclip') : '<i class="fas fa-paperclip"></i>'} 
                             ${regularAttachments.length} Attachment${regularAttachments.length !== 1 ? 's' : ''}
                         </span>
                         ${regularAttachments.length > 1 ? `
@@ -1356,7 +1378,7 @@
                                 data-mail-report-id="${email.id}"
                                 data-email-subject="${escapeHtml(subject)}"
                                 title="Download all attachments as ZIP">
-                            <i class="fas fa-download"></i> Download All
+                            ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-download') : '<i class="fas fa-download"></i>'} Download All
                         </button>
                         ` : ''}
                     </div>
@@ -1372,7 +1394,7 @@
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
                     <h4 style="margin-bottom: 10px; font-weight: 600;">Original Email File</h4>
                     <a href="${email.preview_url}" target="_blank" class="btn btn-sm btn-primary">
-                        <i class="fas fa-download"></i> Download .msg File
+                        ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-download') : '<i class="fas fa-download"></i>'} Download .msg File
                     </a>
                 </div>
             `;
@@ -2381,7 +2403,7 @@
         } else {
             labelContent.innerHTML = filteredLabels.map(label => {
                 const isApplied = currentLabelIds.includes(label.id);
-                const icon = label.icon || 'fas fa-tag';
+                const icon = label.icon || 'tag';
                 const color = label.color || '#3B82F6';
                 
                 return `
@@ -2389,10 +2411,10 @@
                          data-label-id="${label.id}" 
                          data-label-name="${escapeHtml(label.name)}">
                         <span class="submenu-item-badge" style="background-color: ${color}20; border-color: ${color}; color: ${color}">
-                            <i class="${icon}"></i>
+                            ${renderLabelIcon(icon)}
                         </span>
                         <span class="submenu-item-text">${escapeHtml(label.name)}</span>
-                        ${isApplied ? '<i class="fas fa-check submenu-item-check"></i>' : ''}
+                        ${isApplied ? (typeof crmIconAny === 'function' ? crmIconAny('check', { class: 'submenu-item-check' }) : '<i class="fas fa-check submenu-item-check"></i>') : ''}
                     </div>
                 `;
             }).join('');
@@ -2847,7 +2869,7 @@
                     // Disable button during download
                     const originalHtml = target.innerHTML;
                     target.disabled = true;
-                    target.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+                    target.innerHTML = (typeof crmIconAny === 'function' ? crmIconAny('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Downloading...';
                     
                     downloadAttachment(attachmentId, filename).finally(() => {
                         target.disabled = false;
@@ -2877,7 +2899,7 @@
                     // Disable button during download
                     const originalHtml = target.innerHTML;
                     target.disabled = true;
-                    target.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating ZIP...';
+                    target.innerHTML = (typeof crmIconAny === 'function' ? crmIconAny('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Creating ZIP...';
                     
                     downloadAllAttachments(mailReportId, emailSubject).finally(() => {
                         target.disabled = false;

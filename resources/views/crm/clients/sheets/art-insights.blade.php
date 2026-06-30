@@ -56,27 +56,27 @@
         <div class="listing-section-body">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-                    <h4><i class="fas fa-chart-bar"></i> ART Submission and Hearing Files - Insights</h4>
+                    <h4>@icon('fa-chart-bar') ART Submission and Hearing Files - Insights</h4>
                     <div class="card-header-actions">
                         <a href="{{ route('clients.index') }}" class="btn btn-theme btn-theme-sm" title="Back to Clients">
-                            <i class="fas fa-arrow-left"></i> Back to Clients
+                            @icon('fa-arrow-left') Back to Clients
                         </a>
                     </div>
                 </div>
 
                 <div class="sheet-tabs">
                     <a href="{{ route('clients.sheets.art') }}" class="sheet-tab">
-                        <i class="fas fa-list"></i> List
+                        @icon('fa-list') List
                     </a>
                     <a href="{{ route('clients.sheets.art.insights') }}" class="sheet-tab active">
-                        <i class="fas fa-chart-bar"></i> Insights
+                        @icon('fa-chart-bar') Insights
                     </a>
                 </div>
 
                 <div class="card-body">
                     @if($activeFilterCount > 0)
                         <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> Showing insights for filtered data ({{ $activeFilterCount }} filter(s) active).
+                            @icon('fa-info-circle') Showing insights for filtered data ({{ $activeFilterCount }} filter(s) active).
                             <a href="{{ route('clients.sheets.art.insights') }}" class="alert-link">View all data</a>
                         </div>
                     @endif
@@ -84,21 +84,21 @@
                     <div class="insights-grid">
                         <div class="insight-card">
                             <div class="insight-card-icon primary">
-                                <i class="fas fa-gavel"></i>
+                                @icon('fa-gavel')
                             </div>
                             <div class="insight-card-title">Total ART Records</div>
                             <div class="insight-card-value">{{ $insights['total_records'] }}</div>
                         </div>
                         <div class="insight-card">
                             <div class="insight-card-icon info">
-                                <i class="fas fa-calendar-week"></i>
+                                @icon('fa-calendar-week')
                             </div>
                             <div class="insight-card-title">Last 7 Days</div>
                             <div class="insight-card-value">{{ $insights['recent_submissions_7d'] }}</div>
                         </div>
                         <div class="insight-card">
                             <div class="insight-card-icon warning">
-                                <i class="fas fa-calendar-alt"></i>
+                                @icon('fa-calendar-alt')
                             </div>
                             <div class="insight-card-title">Last 30 Days</div>
                             <div class="insight-card-value">{{ $insights['recent_submissions_30d'] }}</div>
@@ -108,7 +108,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="breakdown-section">
-                                <h5><i class="fas fa-tasks mr-2"></i>By Status</h5>
+                                <h5>@icon('fa-tasks', ['class' => 'mr-2'])By Status</h5>
                                 @if(!empty($insights['by_status']))
                                     @php $maxStatusCount = max(array_values($insights['by_status'])); @endphp
                                     @foreach($insights['by_status'] as $status => $count)
@@ -126,7 +126,7 @@
                                         @endphp
                                         <div class="breakdown-item">
                                             <div class="breakdown-label">
-                                                <i class="fas fa-circle" style="font-size: 8px; color: #667eea;"></i>
+                                                @icon('fa-circle', ['style' => 'font-size: 8px; color: #667eea;'])
                                                 {{ $label }}
                                             </div>
                                             <div class="breakdown-value">{{ $count }}</div>
@@ -142,13 +142,13 @@
                         </div>
                         <div class="col-md-6">
                             <div class="breakdown-section">
-                                <h5><i class="fas fa-user-tie mr-2"></i>By Agent</h5>
+                                <h5>@icon('fa-user-tie', ['class' => 'mr-2'])By Agent</h5>
                                 @if(!empty($insights['by_agent']))
                                     @php $maxAgentCount = max(array_values($insights['by_agent'])); @endphp
                                     @foreach($insights['by_agent'] as $agent => $count)
                                         <div class="breakdown-item">
                                             <div class="breakdown-label">
-                                                <i class="fas fa-circle" style="font-size: 8px; color: #667eea;"></i>
+                                                @icon('fa-circle', ['style' => 'font-size: 8px; color: #667eea;'])
                                                 {{ trim($agent) ?: 'Not assigned' }}
                                             </div>
                                             <div class="breakdown-value">{{ $count }}</div>
@@ -165,7 +165,7 @@
                     </div>
 
                     <div class="chart-section">
-                        <h5><i class="fas fa-chart-line mr-2"></i>Submissions Over Last 6 Months</h5>
+                        <h5>@icon('fa-chart-line', ['class' => 'mr-2'])Submissions Over Last 6 Months</h5>
                         @if(!empty($insights['submissions_by_month']))
                             @php $maxMonthlyCount = max(array_values($insights['submissions_by_month'])); @endphp
                             <div class="monthly-chart">

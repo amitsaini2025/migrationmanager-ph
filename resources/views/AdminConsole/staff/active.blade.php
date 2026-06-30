@@ -40,7 +40,7 @@
 									<div class="" style="display: inline-flex;float: right;margin-left:680px;">
 										<input id="search-input" type="search" name="search_by" class="form-control" value="{{ request('search_by', '') }}" />
 										<button id="search-button" type="submit" class="btn btn-primary">
-											<i class="fas fa-search"></i>
+											@icon('fa-search')
 										</button>
 									</div>
 								</form>

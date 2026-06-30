@@ -13,7 +13,7 @@
 							<div class="card-header">
 								<h4>Create Workflow</h4>
 								<div class="card-header-action">
-									<a href="{{ route('adminconsole.features.workflow.index') }}" class="btn btn-primary"><i class="fa fa-arrow-left"></i> Back</a>
+									<a href="{{ route('adminconsole.features.workflow.index') }}" class="btn btn-primary">@icon('fa-arrow-left') Back</a>
 								</div>
 							</div>
 						</div>
@@ -40,7 +40,7 @@
 									<small class="form-text text-muted">When set, new client matters of this type will default to this workflow.</small>
 								</div>
 								<div class="alert alert-info mb-3" role="alert">
-									<i class="fas fa-info-circle"></i>
+									@icon('fa-info-circle')
 									The new workflow will be pre-populated with all stages from the <strong>General</strong> workflow.
 									Once created you will land on the stages page where you can add new stages or rename/delete any non-protected ones.
 									Protected stages (e.g. Checklist, Verification, Decision Received, Ready to Close, File Closed) are required by the system and cannot be changed.

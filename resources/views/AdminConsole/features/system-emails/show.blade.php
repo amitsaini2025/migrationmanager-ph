@@ -28,14 +28,14 @@
 
                     <div class="mb-3">
                         <a href="{{ route('adminconsole.features.system-emails.index') }}" class="btn btn-sm btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Back to System Emails
+                            @icon('fa-arrow-left') Back to System Emails
                         </a>
                     </div>
 
                     <div class="card">
                         <div class="card-header">
                             <h4 class="mb-0">
-                                <i class="fas fa-envelope-open-text"></i>
+                                @icon('fa-envelope-open-text')
                                 {{ $email->subject ?: '(no subject)' }}
                             </h4>
                             <div class="card-header-action">
@@ -102,7 +102,7 @@
                                     {{ $email->client->first_name }} {{ $email->client->last_name }}
                                     <a href="{{ route('clients.detail', $email->client_id) }}" target="_blank"
                                        class="btn btn-xs btn-outline-primary ml-2" style="font-size:0.75rem;padding:1px 6px;">
-                                        <i class="fas fa-external-link-alt"></i> Open CRM
+                                        @icon('fa-external-link-alt') Open CRM
                                     </a>
                                 </dd>
                                 @endif
@@ -119,7 +119,7 @@
 
                     <div class="card">
                         <div class="card-header">
-                            <h4 class="mb-0"><i class="fas fa-stream"></i> Activity Timeline</h4>
+                            <h4 class="mb-0">@icon('fa-stream') Activity Timeline</h4>
                         </div>
                         <div class="card-body">
                             @include('partials.email-event-timeline', [
@@ -132,7 +132,7 @@
 
                     @if($email->message)
                     <div class="card">
-                        <div class="card-header"><h4 class="mb-0"><i class="fas fa-align-left"></i> Message</h4></div>
+                        <div class="card-header"><h4 class="mb-0">@icon('fa-align-left') Message</h4></div>
                         <div class="card-body">{!! $email->message !!}</div>
                     </div>
                     @endif

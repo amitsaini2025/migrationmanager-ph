@@ -87,11 +87,11 @@
 								<div class="clearfix"></div>
 								<div class="author-box-name">
 									<a href="#">{{$fetchedData->first_name}} {{$fetchedData->last_name}}</a>
-									<p class="text-muted text-center"><i class="fa fa-ticket"></i> LEAD-{{str_pad($fetchedData->id, 3, '0', STR_PAD_LEFT)}}</p>
+									<p class="text-muted text-center">@icon('fa-ticket') LEAD-{{str_pad($fetchedData->id, 3, '0', STR_PAD_LEFT)}}</p>
 								</div>
 								<div class="author-mail_sms">
-								<a href="javascript:;" data-id="{{@$fetchedData->id}}" data-email="{{@$fetchedData->email}}" data-name="{{@$fetchedData->first_name}} {{@$fetchedData->last_name}}" class="clientemail" title="Compose Mail"><i class="fa fa-envelope"></i></a>
-								<a href="{{route('leads.edit', base64_encode(convert_uuencode(@$fetchedData->id)))}}" title="Edit"><i class="fa fa-edit"></i></a>								
+								<a href="javascript:;" data-id="{{@$fetchedData->id}}" data-email="{{@$fetchedData->email}}" data-name="{{@$fetchedData->first_name}} {{@$fetchedData->last_name}}" class="clientemail" title="Compose Mail">@icon('fa-envelope')</a>
+								<a href="{{route('leads.edit', base64_encode(convert_uuencode(@$fetchedData->id)))}}" title="Edit">@icon('fa-edit')</a>								
 							</div>
 							</div>
 							
@@ -163,7 +163,7 @@
 								    <p class="clearfix"> 
 								<span class="float-left">Lead Quality:</span>
 								<span class="float-right text-muted">
-								    <div class="lead_stars"><i class="fa fa-star"></i><span>{{@$fetchedData->lead_quality}}</span></div>
+								    <div class="lead_stars">@icon('fa-star')<span>{{@$fetchedData->lead_quality}}</span></div>
 								 </span>
 							</p>
 								@endif
@@ -223,12 +223,12 @@
 								<ul class="navbar-nav" style="display: block;">
 									<li class="nav-item d-sm-inline-block">
 										<a style="background: #6777ef;border-radius: 4px;padding: 7px 10px;font-size: 14px;line-height: 18px;color: #fff;border: 0px;" class="nav-link" href="{{route('leads.edit', base64_encode(convert_uuencode(@$fetchedData->id)))}}">
-										  <i class="fa fa-edit"></i> Edit Lead
+										  @icon('fa-edit') Edit Lead
 										</a>
 									</li>
 									<li class="nav-item d-sm-inline-block">
 										<a style="background: #f59a0e;border-radius: 4px;padding: 7px 10px;font-size: 14px;line-height: 18px;color: #fff;border: 0px;" class="nav-link" href="{{route('leads.history', base64_encode(convert_uuencode(@$fetchedData->id)))}}">
-										  <i class="fa fa-history"></i> View History
+										  @icon('fa-history') View History
 										</a>
 									</li>
 								@if($fetchedData->converted == 0)
@@ -237,14 +237,14 @@
 								        @csrf
 								        <input type="hidden" name="lead_id" value="{{base64_encode(convert_uuencode($fetchedData->id))}}">
 								        <button type="submit" style="background: #54ca68;border-radius: 4px;padding: 7px 10px;font-size: 14px;line-height: 18px;color: #fff;border: 0px;cursor: pointer;" class="nav-link" onclick="return confirm('Are you sure you want to convert this lead to a client?')">
-								            <i class="fa fa-user"></i> Convert To Client
+								            @icon('fa-user') Convert To Client
 								        </button>
 								    </form>
 								    </li>
 									@else
 									<li class="nav-item d-sm-inline-block">
 									    <span style="background: #95a5a6;border-radius: 4px;padding: 7px 10px;font-size: 14px;line-height: 18px;color: #fff;border: 0px;" class="nav-link">
-										  <i class="fa fa-check"></i> Converted to Client
+										  @icon('fa-check') Converted to Client
 										</span>
 									    </li>
 									    @endif
@@ -253,7 +253,7 @@
 							<div class="history_timeline">
 								<ul class="nav nav-tabs" id="myTab" role="tablist">
 									<li class="nav-item"><a class="nav-link active" href="#overview" data-bs-toggle="tab">Overview</a></li>
-									<li class="nav-item"><a class="nav-link" href="#emails" data-bs-toggle="tab"><i class="fa fa-inbox"></i> Emails</a></li>
+									<li class="nav-item"><a class="nav-link" href="#emails" data-bs-toggle="tab">@icon('fa-inbox') Emails</a></li>
 									<li class="nav-item"><a class="nav-link" href="#notes" data-bs-toggle="tab">Notes</a></li>
 								</ul>
 								<div class="tab-content">								

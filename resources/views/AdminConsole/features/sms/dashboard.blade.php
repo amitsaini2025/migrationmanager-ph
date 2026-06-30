@@ -18,7 +18,7 @@
                 <div class="col-9 col-md-9 col-lg-9">
                     <div class="card">
                         <div class="card-header">
-                            <h4><i class="fas fa-sms"></i> SMS Management Dashboard</h4>
+                            <h4>@icon('fa-sms') SMS Management Dashboard</h4>
                             <p class="text-muted">Monitor SMS activity, manage templates, and send messages</p>
                         </div>
                         <div class="card-body">
@@ -27,7 +27,7 @@
                                 <div class="col-lg-3 col-md-6 col-sm-6 col-12">
                                     <div class="card card-statistic-1">
                                         <div class="card-icon bg-primary">
-                                            <i class="fas fa-paper-plane"></i>
+                                            @icon('fa-paper-plane')
                                         </div>
                                         <div class="card-wrap">
                                             <div class="card-header">
@@ -42,7 +42,7 @@
                                 <div class="col-lg-3 col-md-6 col-sm-6 col-12">
                                     <div class="card card-statistic-1">
                                         <div class="card-icon bg-danger">
-                                            <i class="fas fa-flag"></i>
+                                            @icon('fa-flag')
                                         </div>
                                         <div class="card-wrap">
                                             <div class="card-header">
@@ -57,7 +57,7 @@
                                 <div class="col-lg-3 col-md-6 col-sm-6 col-12">
                                     <div class="card card-statistic-1">
                                         <div class="card-icon bg-info">
-                                            <i class="fas fa-globe"></i>
+                                            @icon('fa-globe')
                                         </div>
                                         <div class="card-wrap">
                                             <div class="card-header">
@@ -72,7 +72,7 @@
                                 <div class="col-lg-3 col-md-6 col-sm-6 col-12">
                                     <div class="card card-statistic-1">
                                         <div class="card-icon bg-warning">
-                                            <i class="fas fa-exclamation-triangle"></i>
+                                            @icon('fa-exclamation-triangle')
                                         </div>
                                         <div class="card-wrap">
                                             <div class="card-header">
@@ -97,22 +97,22 @@
                                             <div class="row">
                                                 <div class="col-lg-3 col-md-6 col-sm-6 col-12">
                                                     <a href="{{ route('adminconsole.features.sms.send.create') }}" class="btn btn-primary btn-block">
-                                                        <i class="fas fa-plus"></i> Send SMS
+                                                        @icon('fa-plus') Send SMS
                                                     </a>
                                                 </div>
                                                 <div class="col-lg-3 col-md-6 col-sm-6 col-12">
                                                     <a href="{{ route('adminconsole.features.sms.history') }}" class="btn btn-info btn-block">
-                                                        <i class="fas fa-history"></i> View History
+                                                        @icon('fa-history') View History
                                                     </a>
                                                 </div>
                                                 <div class="col-lg-3 col-md-6 col-sm-6 col-12">
                                                     <a href="{{ route('adminconsole.features.sms.templates.index') }}" class="btn btn-success btn-block">
-                                                        <i class="fas fa-file-alt"></i> Manage Templates
+                                                        @icon('fa-file-alt') Manage Templates
                                                     </a>
                                                 </div>
                                                 <div class="col-lg-3 col-md-6 col-sm-6 col-12">
                                                     <a href="{{ route('adminconsole.features.sms.statistics') }}" class="btn btn-warning btn-block">
-                                                        <i class="fas fa-chart-bar"></i> View Statistics
+                                                        @icon('fa-chart-bar') View Statistics
                                                     </a>
                                                 </div>
                                             </div>
@@ -127,10 +127,10 @@
                                     <div class="card">
                                         <div class="card-header">
                                             <h4>
-                                                <i class="fas fa-clock"></i> Recent SMS Activity
+                                                @icon('fa-clock') Recent SMS Activity
                                                 <small class="float-right">
                                                     <span class="badge badge-success">
-                                                        <i class="fas fa-circle"></i> Services Online
+                                                        @icon('fa-circle') Services Online
                                                     </span>
                                                 </small>
                                             </h4>
@@ -179,11 +179,11 @@
                                             </div>
                                             @else
                                             <div class="text-center py-4">
-                                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                                @icon('fa-inbox', ['class' => 'fa-3x text-muted mb-3'])
                                                 <h5>No SMS Activity Yet</h5>
                                                 <p class="text-muted">Send your first SMS message to see activity here!</p>
                                                 <a href="{{ route('adminconsole.features.sms.send.create') }}" class="btn btn-primary">
-                                                    <i class="fas fa-paper-plane"></i> Send First SMS
+                                                    @icon('fa-paper-plane') Send First SMS
                                                 </a>
                                             </div>
                                             @endif

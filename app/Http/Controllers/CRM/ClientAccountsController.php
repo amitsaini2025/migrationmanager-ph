@@ -3357,7 +3357,7 @@ class ClientAccountsController extends Controller
                ?>
                <tr class="drow" id="id_<?php echo $fetch->id; ?>">
                    <td><div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo $fetch->file_name; ?>" class="doc-row">
-                       <i class="fas fa-file-image"></i> <span><?php echo $fetch->file_name; ?><?php echo '.'.$fetch->filetype; ?></span>
+                       <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo $fetch->file_name; ?><?php echo '.'.$fetch->filetype; ?></span>
                    </div></td>
                    <td><?php echo $admin->first_name; ?></td>
 
@@ -3396,12 +3396,12 @@ class ClientAccountsController extends Controller
                <div class="grid_list">
                    <div class="grid_col">
                        <div class="grid_icon">
-                           <i class="fas fa-file-image"></i>
+                           <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?>
                        </div>
                        <div class="grid_content">
                            <span id="grid_<?php echo $fetch->id; ?>" class="gridfilename"><?php echo $fetch->file_name; ?></span>
                            <div class="dropdown d-inline dropdown_ellipsis_icon">
-                               <a class="dropdown-toggle" type="button" id="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
+                               <a class="dropdown-toggle" type="button" id="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?php echo \App\Helpers\IconHelper::fromLegacy('fa fa-ellipsis-v'); ?></a>
                                <div class="dropdown-menu">
                                    <?php
                                    $url = 'https://'.env('AWS_BUCKET').'.s3.'. env('AWS_DEFAULT_REGION') . '.amazonaws.com/';
@@ -3586,7 +3586,7 @@ class ClientAccountsController extends Controller
                ?>
                <tr class="drow" id="id_<?php echo $fetch->id; ?>">
                    <td><div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo $fetch->file_name; ?>" class="doc-row">
-                       <i class="fas fa-file-image"></i> <span><?php echo $fetch->file_name; ?><?php echo '.'.$fetch->filetype; ?></span>
+                       <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo $fetch->file_name; ?><?php echo '.'.$fetch->filetype; ?></span>
                    </div></td>
                    <td><?php echo $admin->first_name; ?></td>
 
@@ -3625,12 +3625,12 @@ class ClientAccountsController extends Controller
                <div class="grid_list">
                    <div class="grid_col">
                        <div class="grid_icon">
-                           <i class="fas fa-file-image"></i>
+                           <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?>
                        </div>
                        <div class="grid_content">
                            <span id="grid_<?php echo $fetch->id; ?>" class="gridfilename"><?php echo $fetch->file_name; ?></span>
                            <div class="dropdown d-inline dropdown_ellipsis_icon">
-                               <a class="dropdown-toggle" type="button" id="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
+                               <a class="dropdown-toggle" type="button" id="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?php echo \App\Helpers\IconHelper::fromLegacy('fa fa-ellipsis-v'); ?></a>
                                <div class="dropdown-menu">
                                    <?php
                                    $url = 'https://'.env('AWS_BUCKET').'.s3.'. env('AWS_DEFAULT_REGION') . '.amazonaws.com/';
@@ -3813,7 +3813,7 @@ class ClientAccountsController extends Controller
                ?>
                <tr class="drow" id="id_<?php echo $fetch->id; ?>">
                    <td><div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo $fetch->file_name; ?>" class="doc-row">
-                       <i class="fas fa-file-image"></i> <span><?php echo $fetch->file_name; ?><?php echo '.'.$fetch->filetype; ?></span>
+                       <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo $fetch->file_name; ?><?php echo '.'.$fetch->filetype; ?></span>
                    </div></td>
                    <td><?php echo $admin->first_name; ?></td>
 
@@ -3852,12 +3852,12 @@ class ClientAccountsController extends Controller
                <div class="grid_list">
                    <div class="grid_col">
                        <div class="grid_icon">
-                           <i class="fas fa-file-image"></i>
+                           <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?>
                        </div>
                        <div class="grid_content">
                            <span id="grid_<?php echo $fetch->id; ?>" class="gridfilename"><?php echo $fetch->file_name; ?></span>
                            <div class="dropdown d-inline dropdown_ellipsis_icon">
-                               <a class="dropdown-toggle" type="button" id="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
+                               <a class="dropdown-toggle" type="button" id="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?php echo \App\Helpers\IconHelper::fromLegacy('fa fa-ellipsis-v'); ?></a>
                                <div class="dropdown-menu">
                                    <?php
                                    $url = 'https://'.env('AWS_BUCKET').'.s3.'. env('AWS_DEFAULT_REGION') . '.amazonaws.com/';

@@ -20,11 +20,11 @@
                 <div class="col-9 col-md-9 col-lg-9">
                     <div class="card">
                         <div class="card-header">
-                            <h4><i class="fas fa-search"></i> Activity Search</h4>
+                            <h4>@icon('fa-search') Activity Search</h4>
                             <div class="card-header-action">
                                 @if(isset($totalActivities) && $totalActivities > 0)
                                     <button type="button" class="btn btn-success" onclick="exportActivities()">
-                                        <i class="fas fa-file-export"></i> Export Results
+                                        @icon('fa-file-export') Export Results
                                     </button>
                                 @endif
                             </div>
@@ -39,7 +39,7 @@
                                     <!-- Assigner Filter -->
                                     <div class="col-md-6 mb-3">
                                         <label for="assigner_id" class="form-label">
-                                            <i class="fas fa-user-tag"></i> Assigner (Who Created)
+                                            @icon('fa-user-tag') Assigner (Who Created)
                                         </label>
                                         <select name="assigner_id" id="assigner_id" class="form-control mm-select">
                                             <option value="">All Assigners</option>
@@ -55,7 +55,7 @@
                                     <!-- Assignee Filter -->
                                     <div class="col-md-6 mb-3">
                                         <label for="assignee_id" class="form-label">
-                                            <i class="fas fa-user-check"></i> Assignee (Assigned To)
+                                            @icon('fa-user-check') Assignee (Assigned To)
                                         </label>
                                         <select name="assignee_id" id="assignee_id" class="form-control mm-select">
                                             <option value="">All Assignees</option>
@@ -73,7 +73,7 @@
                                     <!-- Client Filter -->
                                     <div class="col-md-6 mb-3">
                                         <label for="client_id" class="form-label">
-                                            <i class="fas fa-user"></i> Client
+                                            @icon('fa-user') Client
                                         </label>
                                         <select name="client_id" id="client_id" class="form-control mm-select-ajax">
                                             <option value="">All Clients</option>
@@ -88,7 +88,7 @@
                                     <!-- Activity Type Filter -->
                                     <div class="col-md-6 mb-3">
                                         <label for="activity_type" class="form-label">
-                                            <i class="fas fa-list"></i> Activity Type
+                                            @icon('fa-list') Activity Type
                                         </label>
                                         <select name="activity_type" id="activity_type" class="form-control mm-select">
                                             <option value="">All Types</option>
@@ -106,7 +106,7 @@
                                     <!-- Action Category Filter -->
                                     <div class="col-md-4 mb-3">
                                         <label for="task_group" class="form-label">
-                                            <i class="fas fa-tasks"></i> Action Category
+                                            @icon('fa-tasks') Action Category
                                         </label>
                                         <select name="task_group" id="task_group" class="form-control mm-select">
                                             <option value="">All Categories</option>
@@ -122,7 +122,7 @@
                                     <!-- Action Status Filter -->
                                     <div class="col-md-4 mb-3">
                                         <label for="task_status" class="form-label">
-                                            <i class="fas fa-check-circle"></i> Action Status
+                                            @icon('fa-check-circle') Action Status
                                         </label>
                                         <select name="task_status" id="task_status" class="form-control mm-select">
                                             <option value="">All Statuses</option>
@@ -134,7 +134,7 @@
                                     <!-- Keyword Filter -->
                                     <div class="col-md-4 mb-3">
                                         <label for="keyword" class="form-label">
-                                            <i class="fas fa-search"></i> Keyword
+                                            @icon('fa-search') Keyword
                                         </label>
                                         <input type="text" name="keyword" id="keyword" class="form-control" 
                                                placeholder="Search in subject/description" 
@@ -146,7 +146,7 @@
                                     <!-- Date From -->
                                     <div class="col-md-6 mb-3">
                                         <label for="date_from" class="form-label">
-                                            <i class="fas fa-calendar"></i> Date From
+                                            @icon('fa-calendar') Date From
                                         </label>
                                         <input type="date" name="date_from" id="date_from" class="form-control" 
                                                value="{{ request('date_from') }}">
@@ -155,7 +155,7 @@
                                     <!-- Date To -->
                                     <div class="col-md-6 mb-3">
                                         <label for="date_to" class="form-label">
-                                            <i class="fas fa-calendar"></i> Date To
+                                            @icon('fa-calendar') Date To
                                         </label>
                                         <input type="date" name="date_to" id="date_to" class="form-control" 
                                                value="{{ request('date_to') }}">
@@ -165,10 +165,10 @@
                                 <div class="row">
                                     <div class="col-md-12 text-right">
                                         <button type="button" class="btn btn-secondary" onclick="resetForm()">
-                                            <i class="fas fa-redo"></i> Reset
+                                            @icon('fa-redo') Reset
                                         </button>
                                         <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-search"></i> Search Activities
+                                            @icon('fa-search') Search Activities
                                         </button>
                                     </div>
                                 </div>
@@ -180,7 +180,7 @@
                             @if(request('search'))
                                 <div class="mt-4">
                                     <h5 class="mb-3">
-                                        <i class="fas fa-list-alt"></i> Search Results 
+                                        @icon('fa-list-alt') Search Results 
                                         <span class="badge badge-primary">{{ $totalActivities }} activities found</span>
                                     </h5>
                                     
@@ -261,9 +261,9 @@
                                                             <td>
                                                                 @if($activity->task_group)
                                                                     @if($activity->task_status == 1)
-                                                                        <span class="badge badge-success"><i class="fas fa-check"></i> Complete</span>
+                                                                        <span class="badge badge-success">@icon('fa-check') Complete</span>
                                                                     @else
-                                                                        <span class="badge badge-warning"><i class="fas fa-clock"></i> Pending</span>
+                                                                        <span class="badge badge-warning">@icon('fa-clock') Pending</span>
                                                                     @endif
                                                                 @else
                                                                     <span class="text-muted">-</span>
@@ -273,14 +273,14 @@
                                                                 <button type="button" class="btn btn-sm btn-info" 
                                                                         onclick="viewActivityDetails({{ $activity->id }})"
                                                                         data-bs-toggle="tooltip" title="View Details">
-                                                                    <i class="fas fa-eye"></i>
+                                                                    @icon('fa-eye')
                                                                 </button>
                                                                 @if($activity->client_id)
                                                                     <a href="{{ route('clients.detail', base64_encode(convert_uuencode($activity->client_id))) }}" 
                                                                        target="_blank" 
                                                                        class="btn btn-sm btn-primary"
                                                                        data-bs-toggle="tooltip" title="View Client">
-                                                                        <i class="fas fa-user"></i>
+                                                                        @icon('fa-user')
                                                                     </a>
                                                                 @endif
                                                             </td>
@@ -296,13 +296,13 @@
                                         </div>
                                     @else
                                         <div class="alert alert-info">
-                                            <i class="fas fa-info-circle"></i> No activities found matching your search criteria. Try adjusting your filters.
+                                            @icon('fa-info-circle') No activities found matching your search criteria. Try adjusting your filters.
                                         </div>
                                     @endif
                                 </div>
                             @else
                                 <div class="alert alert-light text-center">
-                                    <i class="fas fa-search" style="font-size: 3rem; opacity: 0.3;"></i>
+                                    @icon('fa-search', ['style' => 'font-size: 3rem; opacity: 0.3;'])
                                     <h5 class="mt-3">Search Staff Activities</h5>
                                     <p class="text-muted">Use the filters above to search for activities by assigner, assignee, date range, and more.</p>
                                 </div>
@@ -327,7 +327,7 @@
             </div>
             <div class="modal-body" id="activityDetailsContent">
                 <div class="text-center">
-                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                    @icon('fa-spinner', ['spin' => true]) Loading...
                 </div>
             </div>
         </div>
@@ -406,7 +406,7 @@ function exportActivities() {
 
 function viewActivityDetails(activityId) {
     $('#activityDetailsModal').modal('show');
-    $('#activityDetailsContent').html('<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> Loading...</div>');
+    $('#activityDetailsContent').html('<div class="text-center py-3">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Loading...</div>');
     
     var detailUrl = @json($activitySearchJsonUrlPrefix) + '/' + encodeURIComponent(activityId);
     

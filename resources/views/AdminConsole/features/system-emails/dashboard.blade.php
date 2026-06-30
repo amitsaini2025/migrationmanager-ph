@@ -48,19 +48,19 @@
                 <div class="col-9 col-md-9 col-lg-9">
 
                     <div class="d-flex align-items-center justify-content-between mb-3">
-                        <h4 class="mb-0"><i class="fas fa-robot"></i> System Emails — Dashboard</h4>
+                        <h4 class="mb-0">@icon('fa-robot') System Emails — Dashboard</h4>
                         <div>
                             <a href="{{ route('adminconsole.features.sent-emails.dashboard') }}" class="btn btn-outline-secondary btn-sm mr-1">
-                                <i class="fas fa-paper-plane"></i> CRM Sent Emails
+                                @icon('fa-paper-plane') CRM Sent Emails
                             </a>
                             <a href="{{ route('adminconsole.features.system-emails.index') }}" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-list"></i> Search All
+                                @icon('fa-list') Search All
                             </a>
                         </div>
                     </div>
 
                     <div class="alert alert-info coverage-notice mb-4" role="alert" style="font-size:0.875rem;">
-                        <i class="fas fa-info-circle"></i>
+                        @icon('fa-info-circle')
                         Analytics for automated system emails — invoices, receipts, appointment confirmations &amp; reminders, visa expiry notices, e-signatures, and similar. Staff-composed CRM emails are on the
                         <a href="{{ route('adminconsole.features.sent-emails.dashboard') }}">Sent Emails</a> dashboard.
                     </div>
@@ -68,7 +68,7 @@
                     <div class="row">
                         <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-3">
                             <div class="card card-statistic-1 stat-card">
-                                <div class="card-icon bg-primary"><i class="fas fa-paper-plane"></i></div>
+                                <div class="card-icon bg-primary">@icon('fa-paper-plane')</div>
                                 <div class="card-wrap">
                                     <div class="card-header"><h4>Sent Today</h4></div>
                                     <div class="card-body">{{ number_format($stats['totalToday']) }}</div>
@@ -77,7 +77,7 @@
                         </div>
                         <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-3">
                             <div class="card card-statistic-1 stat-card">
-                                <div class="card-icon bg-success"><i class="fas fa-calendar-week"></i></div>
+                                <div class="card-icon bg-success">@icon('fa-calendar-week')</div>
                                 <div class="card-wrap">
                                     <div class="card-header"><h4>This Week</h4></div>
                                     <div class="card-body">{{ number_format($stats['totalWeek']) }}</div>
@@ -86,7 +86,7 @@
                         </div>
                         <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-3">
                             <div class="card card-statistic-1 stat-card">
-                                <div class="card-icon bg-info"><i class="fas fa-calendar-alt"></i></div>
+                                <div class="card-icon bg-info">@icon('fa-calendar-alt')</div>
                                 <div class="card-wrap">
                                     <div class="card-header"><h4>This Month</h4></div>
                                     <div class="card-body">{{ number_format($stats['totalMonth']) }}</div>
@@ -95,7 +95,7 @@
                         </div>
                         <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-3">
                             <div class="card card-statistic-1 stat-card">
-                                <div class="card-icon bg-danger"><i class="fas fa-exclamation-triangle"></i></div>
+                                <div class="card-icon bg-danger">@icon('fa-exclamation-triangle')</div>
                                 <div class="card-wrap">
                                     <div class="card-header"><h4>Failed This Month</h4></div>
                                     <div class="card-body">{{ number_format($stats['failedCount']) }}</div>
@@ -108,7 +108,7 @@
                         <div class="col-lg-5 col-md-12 mb-3">
                             <div class="card h-100">
                                 <div class="card-header">
-                                    <h4><i class="fas fa-tags"></i> Top Categories This Month</h4>
+                                    <h4>@icon('fa-tags') Top Categories This Month</h4>
                                 </div>
                                 <div class="card-body">
                                     @if($stats['topCategories']->isNotEmpty())
@@ -135,44 +135,44 @@
                         <div class="col-lg-7 col-md-12 mb-3">
                             <div class="card h-100 sent-emails-quick-searches">
                                 <div class="card-header">
-                                    <h4><i class="fas fa-bolt"></i> Quick Searches</h4>
+                                    <h4>@icon('fa-bolt') Quick Searches</h4>
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col-6 mb-2">
                                             <a href="{{ route('adminconsole.features.system-emails.index', ['filter'=>1,'date_from'=>now()->toDateString(),'date_to'=>now()->toDateString()]) }}"
                                                class="btn btn-outline-primary btn-block">
-                                                <i class="fas fa-sun"></i> Today's Emails
+                                                @icon('fa-sun') Today's Emails
                                             </a>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <a href="{{ route('adminconsole.features.system-emails.index', ['filter'=>1,'category'=>'invoice']) }}"
                                                class="btn btn-outline-secondary btn-block">
-                                                <i class="fas fa-file-invoice"></i> Invoices
+                                                @icon('fa-file-invoice') Invoices
                                             </a>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <a href="{{ route('adminconsole.features.system-emails.index', ['filter'=>1,'category'=>'appointment']) }}"
                                                class="btn btn-outline-success btn-block">
-                                                <i class="fas fa-calendar-check"></i> Appointments
+                                                @icon('fa-calendar-check') Appointments
                                             </a>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <a href="{{ route('adminconsole.features.system-emails.index', ['filter'=>1,'category'=>'signature']) }}"
                                                class="btn btn-outline-primary btn-block">
-                                                <i class="fas fa-signature"></i> E-Signatures
+                                                @icon('fa-signature') E-Signatures
                                             </a>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <a href="{{ route('adminconsole.features.system-emails.index', ['filter'=>1,'failed'=>1]) }}"
                                                class="btn btn-outline-danger btn-block">
-                                                <i class="fas fa-times-circle"></i> Failed / Undelivered
+                                                @icon('fa-times-circle') Failed / Undelivered
                                             </a>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <a href="{{ route('adminconsole.features.system-emails.index') }}"
                                                class="btn btn-outline-dark btn-block">
-                                                <i class="fas fa-search"></i> Full Search
+                                                @icon('fa-search') Full Search
                                             </a>
                                         </div>
                                     </div>
@@ -183,7 +183,7 @@
 
                     <div class="card">
                         <div class="card-header">
-                            <h4><i class="fas fa-history"></i> Recent System Emails</h4>
+                            <h4>@icon('fa-history') Recent System Emails</h4>
                             <div class="card-header-action">
                                 <a href="{{ route('adminconsole.features.system-emails.index', ['filter'=>1]) }}" class="btn btn-sm btn-primary">View All</a>
                             </div>
@@ -237,7 +237,7 @@
                                             </td>
                                             <td>
                                                 <a href="{{ route('adminconsole.features.system-emails.show', $row['id']) }}" class="btn btn-sm btn-info">
-                                                    <i class="fas fa-eye"></i>
+                                                    @icon('fa-eye')
                                                 </a>
                                             </td>
                                         </tr>
@@ -247,7 +247,7 @@
                             </div>
                             @else
                             <div class="p-4 text-center text-muted">
-                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                @icon('fa-inbox', ['class' => 'fa-2x mb-2 d-block'])
                                 No system emails logged yet. New automated sends will appear here.
                             </div>
                             @endif

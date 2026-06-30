@@ -20,6 +20,7 @@ use Exception;
 use Carbon\Carbon;
 use App\Support\BansalSchedulingServiceType;
 use App\Support\StaffClientVisibility;
+use App\Helpers\IconHelper;
 use Yajra\DataTables\Facades\DataTables;
 
 class BookingAppointmentsController extends Controller
@@ -268,7 +269,7 @@ class BookingAppointmentsController extends Controller
             })
             ->addColumn('actions', function ($appointment) {
                 return '<a href="' . route('booking.appointments.show', $appointment->id) . '" class="btn btn-sm btn-primary">' .
-                       '<i class="fas fa-eye"></i> View' .
+                       IconHelper::fromLegacy('fas fa-eye') . ' View' .
                        '</a>';
             })
             ->rawColumns(['client_info', 'appointment_info', 'consultant_info', 'status_badge', 'payment_info', 'actions'])

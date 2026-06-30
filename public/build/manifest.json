@@ -4,7 +4,7 @@
     "name": "rolldown-runtime"
   },
   "resources/css/app.css": {
-    "file": "assets/app-BYP98eXc.css",
+    "file": "assets/app-PS1_k_Xz.css",
     "name": "app",
     "names": [
       "app.css"
@@ -61,7 +61,7 @@
     "isEntry": true
   },
   "resources/js/lucide-init.js": {
-    "file": "assets/lucide-init-1PMHR4tx.js",
+    "file": "assets/lucide-init-BuOm3fNB.js",
     "name": "lucide-init",
     "src": "resources/js/lucide-init.js",
     "isEntry": true,

@@ -210,7 +210,7 @@
             tbody.html(`
                 <tr class="no-data-row">
                     <td colspan="8" class="text-center">
-                        <i class="fas fa-info-circle"></i> No EOI/ROI records found. Click "Add New EOI" to get started.
+                        ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-info-circle') : '<i class="fas fa-info-circle"></i>'} No EOI/ROI records found. Click "Add New EOI" to get started.
                     </td>
                 </tr>
             `);
@@ -375,7 +375,7 @@
         const url = `/clients/${state.clientId}/eoi-roi`;
 
         // Show loading
-        $('#btn-save-eoi').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+        $('#btn-save-eoi').prop('disabled', true).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Saving...');
 
         $.ajax({
             url: url,
@@ -408,7 +408,7 @@
                 showNotification(errorMsg, 'error');
             },
             complete: function() {
-                $('#btn-save-eoi').prop('disabled', false).html('<i class="fas fa-save"></i> Save EOI');
+                $('#btn-save-eoi').prop('disabled', false).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-save') : '<i class="fas fa-save"></i>') + ' Save EOI');
             }
         });
 
@@ -461,7 +461,7 @@
         const url = `/clients/${state.clientId}/eoi-roi/calculate-points?subclass=${subclass || ''}`;
         console.log('[EOI-ROI] Loading points from URL:', url);
 
-        $('#points-summary-content').html('<div class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Calculating points...</div>');
+        $('#points-summary-content').html('<div class="text-center text-muted">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Calculating points...</div>');
 
         $.ajax({
             url: url,
@@ -476,7 +476,7 @@
                     renderPointsSummary(response.data);
                 } else {
                     console.error('[EOI-ROI] Points calculation failed:', response.message);
-                    $('#points-summary-content').html('<div class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Points calculation failed: ' + (response.message || 'Unknown error') + '</div>');
+                    $('#points-summary-content').html('<div class="text-center text-danger">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-exclamation-triangle') : '<i class="fas fa-exclamation-triangle"></i>') + ' Points calculation failed: ' + (response.message || 'Unknown error') + '</div>');
                 }
             },
             error: function(xhr) {
@@ -489,7 +489,7 @@
                 } else if (xhr.status === 500) {
                     errorMsg = 'Server error during points calculation (500)';
                 }
-                $('#points-summary-content').html('<div class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</div>');
+                $('#points-summary-content').html('<div class="text-center text-danger">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-exclamation-triangle') : '<i class="fas fa-exclamation-triangle"></i>') + ' ' + errorMsg + '</div>');
             }
         });
     }
@@ -538,7 +538,7 @@
                 const iconClass = warning.severity === 'high' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
                 warningsHtml += `
                     <div class="points-warning severity-${warning.severity}">
-                        <i class="${iconClass} points-warning-icon"></i>
+                        ${typeof crmIconLegacy === 'function' ? crmIconLegacy(iconClass, { class: 'points-warning-icon' }) : '<i class="' + iconClass + ' points-warning-icon"></i>'}
                         ${warning.message}
                     </div>
                 `;
@@ -594,14 +594,14 @@
     // Toggle password visibility
     function togglePasswordVisibility() {
         const input = $('#eoi-password');
-        const icon = $('#toggle-password i');
-        
+        const btn = $('#toggle-password');
+
         if (input.attr('type') === 'password') {
             input.attr('type', 'text');
-            icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            btn.html(typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-eye-slash') : '<i class="fas fa-eye-slash"></i>');
         } else {
             input.attr('type', 'password');
-            icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            btn.html(typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-eye') : '<i class="fas fa-eye"></i>');
         }
     }
 
@@ -867,11 +867,11 @@
         if (!eoi.staff_verified) {
             html += `
                 <div class="workflow-box warning">
-                    <h5><i class="fas fa-user-shield"></i> Staff Verification Required</h5>
+                    <h5>${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-user-shield') : '<i class="fas fa-user-shield"></i>'} Staff Verification Required</h5>
                     <p style="margin-bottom: 10px;">This EOI needs to be verified by staff before sending to the client.</p>
                     <div class="workflow-actions">
                         <button type="button" class="btn btn-success btn-sm" id="btn-verify-eoi" data-eoi-id="${eoi.id}">
-                            <i class="fas fa-check-circle"></i> Verify EOI Details
+                            ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-check-circle') : '<i class="fas fa-check-circle"></i>'} Verify EOI Details
                         </button>
                     </div>
                 </div>
@@ -879,7 +879,7 @@
         } else {
             html += `
                 <div class="workflow-box success">
-                    <h5><i class="fas fa-check-circle"></i> Staff Verification Complete</h5>
+                    <h5>${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-check-circle') : '<i class="fas fa-check-circle"></i>'} Staff Verification Complete</h5>
                     <div class="workflow-detail">
                         <strong>Verified By:</strong>
                         <span>${eoi.verified_by || 'N/A'}</span>
@@ -897,18 +897,18 @@
             if (eoi.client_confirmation_status === 'confirmed') {
                 html += `
                     <div class="workflow-box success">
-                        <h5><i class="fas fa-check-double"></i> Client Confirmed</h5>
+                        <h5>${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-check-double') : '<i class="fas fa-check-double"></i>'} Client Confirmed</h5>
                         <div class="workflow-detail">
                             <strong>Confirmed On:</strong>
                             <span>${eoi.client_confirmation_date || 'N/A'}</span>
                         </div>
-                        <p class="text-success" style="margin: 0; font-size: 12px;"><i class="fas fa-info-circle"></i> Client confirmed all details are correct.</p>
+                        <p class="text-success" style="margin: 0; font-size: 12px;">${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-info-circle') : '<i class="fas fa-info-circle"></i>'} Client confirmed all details are correct.</p>
                     </div>
                 `;
             } else if (eoi.client_confirmation_status === 'amendment_requested') {
                 html += `
                     <div class="workflow-box danger">
-                        <h5><i class="fas fa-exclamation-triangle"></i> Amendment Requested</h5>
+                        <h5>${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-exclamation-triangle') : '<i class="fas fa-exclamation-triangle"></i>'} Amendment Requested</h5>
                         <div class="workflow-detail">
                             <strong>Requested On:</strong>
                             <span>${eoi.client_confirmation_date || 'N/A'}</span>
@@ -919,10 +919,10 @@
                         </div>
                         <div class="workflow-actions">
                             <button type="button" class="btn btn-primary btn-sm" id="btn-resend-email" data-eoi-id="${eoi.id}">
-                                <i class="fas fa-envelope"></i> Resend Email
+                                ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : '<i class="fas fa-envelope"></i>'} Resend Email
                             </button>
                             <button type="button" class="btn btn-success btn-sm" id="btn-resolve-amendment" data-eoi-id="${eoi.id}">
-                                <i class="fas fa-check"></i> Mark Resolved
+                                ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-check') : '<i class="fas fa-check"></i>'} Mark Resolved
                             </button>
                         </div>
                     </div>
@@ -930,14 +930,14 @@
             } else if (eoi.email_sent_at) {
                 html += `
                     <div class="workflow-box info">
-                        <h5><i class="fas fa-clock"></i> Awaiting Client Response</h5>
+                        <h5>${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-clock') : '<i class="fas fa-clock"></i>'} Awaiting Client Response</h5>
                         <div class="workflow-detail">
                             <strong>Email Sent:</strong>
                             <span>${typeof formatDisplayDateTime === 'function' ? formatDisplayDateTime(eoi.email_sent_at) : (eoi.email_sent_at || 'N/A')}</span>
                         </div>
                         <div class="workflow-actions">
                             <button type="button" class="btn btn-primary btn-sm" id="btn-resend-email" data-eoi-id="${eoi.id}">
-                                <i class="fas fa-envelope"></i> Resend Email
+                                ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : '<i class="fas fa-envelope"></i>'} Resend Email
                             </button>
                         </div>
                     </div>
@@ -945,11 +945,11 @@
             } else {
                 html += `
                     <div class="workflow-box info">
-                        <h5><i class="fas fa-envelope"></i> Ready to Send</h5>
+                        <h5>${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-envelope') : '<i class="fas fa-envelope"></i>'} Ready to Send</h5>
                         <p style="margin-bottom: 10px;">EOI verified. Send confirmation email to client.</p>
                         <div class="workflow-actions">
                             <button type="button" class="btn btn-primary btn-sm" id="btn-send-email" data-eoi-id="${eoi.id}">
-                                <i class="fas fa-paper-plane"></i> Send to Client
+                                ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-paper-plane') : '<i class="fas fa-paper-plane"></i>'} Send to Client
                             </button>
                         </div>
                     </div>
@@ -1059,7 +1059,7 @@
         
         const notification = $(`
             <div class="notification-toast" style="position: fixed; top: 20px; right: 20px; z-index: 9999; background: ${bgColor}; color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; min-width: 300px;">
-                <i class="fas ${icon}"></i>
+                ${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas ' + icon) : '<i class="fas ' + icon + '"></i>'}
                 <span>${message}</span>
             </div>
         `);
@@ -1169,7 +1169,7 @@
     function loadEoiVisaDocuments(clientId, eoiNumber) {
         console.log('[EOI-COMPOSE] Loading visa documents for client:', clientId, 'eoi:', eoiNumber);
         
-        $('#eoi-attachment-list').html('<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> Loading documents...</div>');
+        $('#eoi-attachment-list').html('<div class="text-center text-muted py-3">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Loading documents...</div>');
         
         const url = `/clients/${clientId}/eoi-roi/visa-documents`;
         console.log('[EOI-COMPOSE] Documents URL:', url, 'params:', { eoi_number: eoiNumber });
@@ -1204,7 +1204,7 @@
         // Group 1: Documents referencing this EOI
         if (data.eoi_references && data.eoi_references.length > 0) {
             html += `<div class="mb-3">
-                        <h6 class="mb-2"><i class="fas fa-star text-warning"></i> Documents referencing ${eoiNumber}</h6>
+                        <h6 class="mb-2">${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-star text-warning') : '<i class="fas fa-star text-warning"></i>'} Documents referencing ${eoiNumber}</h6>
                         <div class="pl-3">`;
             
             data.eoi_references.forEach(doc => {
@@ -1225,7 +1225,7 @@
         // Group 2: Other visa documents
         if (data.other_documents && data.other_documents.length > 0) {
             html += `<div class="mb-3">
-                        <h6 class="mb-2"><i class="fas fa-folder text-secondary"></i> Other Visa Documents</h6>
+                        <h6 class="mb-2">${typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-folder text-secondary') : '<i class="fas fa-folder text-secondary"></i>'} Other Visa Documents</h6>
                         <div class="pl-3">`;
             
             data.other_documents.forEach(doc => {
@@ -1245,7 +1245,7 @@
         
         // No documents found
         if (totalDocs === 0) {
-            html = '<div class="text-center text-muted py-3"><i class="fas fa-info-circle"></i> No visa documents available. You can still send the email without attachments.</div>';
+            html = '<div class="text-center text-muted py-3">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-info-circle') : '<i class="fas fa-info-circle"></i>') + ' No visa documents available. You can still send the email without attachments.</div>';
         }
         
         $('#eoi-attachment-list').html(html);
@@ -1323,7 +1323,7 @@
         
         // Disable button and show loading
         const $btn = $('#btn-eoi-send-email');
-        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+        $btn.prop('disabled', true).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Sending...');
         
         // Send AJAX request
         $.ajax({
@@ -1352,7 +1352,7 @@
                 showNotification(msg, 'error');
             },
             complete: function() {
-                $btn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Send Email');
+                $btn.prop('disabled', false).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-paper-plane') : '<i class="fas fa-paper-plane"></i>') + ' Send Email');
             }
         });
     });

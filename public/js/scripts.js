@@ -553,10 +553,10 @@ $(function () {
     me.click(function () {
       $(target).collapse("toggle");
       $(target).on("shown.bs.collapse", function () {
-        me.html('<i class="fas fa-minus"></i>');
+        me.html((typeof crmIconAny === 'function' ? crmIconAny('fas fa-minus') : '<i class="fas fa-minus"></i>'));
       });
       $(target).on("hidden.bs.collapse", function () {
-        me.html('<i class="fas fa-plus"></i>');
+        me.html((typeof crmIconAny === 'function' ? crmIconAny('fas fa-plus') : '<i class="fas fa-plus"></i>'));
       });
       return false;
     });

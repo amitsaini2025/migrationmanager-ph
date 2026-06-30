@@ -20,14 +20,14 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title mb-0">
-                        <i class="fas fa-briefcase"></i> ANZSCO Occupations Database
+                        @icon('fa-briefcase') ANZSCO Occupations Database
                     </h3>
                     <div>
                         <a href="{{ route('adminconsole.database.anzsco.import') }}" class="btn btn-info btn-sm mr-2">
-                            <i class="fas fa-file-import"></i> Import Data
+                            @icon('fa-file-import') Import Data
                         </a>
                         <a href="{{ route('adminconsole.database.anzsco.create') }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-plus"></i> Add Occupation
+                            @icon('fa-plus') Add Occupation
                         </a>
                     </div>
                 </div>
@@ -57,7 +57,7 @@
                             <label>&nbsp;</label>
                             <div>
                                 <button type="button" id="resetFilters" class="btn btn-secondary">
-                                    <i class="fas fa-redo"></i> Reset Filters
+                                    @icon('fa-redo') Reset Filters
                                 </button>
                             </div>
                         </div>

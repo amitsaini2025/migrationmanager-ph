@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Success - EOI Confirmation</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <x-standalone-lucide />
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -26,10 +26,15 @@
             padding: 60px 40px;
         }
         .success-icon {
-            font-size: 100px;
             color: #28a745;
             margin-bottom: 30px;
+            line-height: 0;
             animation: scaleIn 0.5s ease-in-out;
+        }
+        .success-icon svg.lucide {
+            width: 100px;
+            height: 100px;
+            stroke: currentColor;
         }
         @keyframes scaleIn {
             0% {
@@ -87,7 +92,7 @@
 <body>
     <div class="success-container">
         <div class="success-icon">
-            <i class="fas fa-check-circle"></i>
+            @icon('fa-check-circle')
         </div>
         
         @if(session('success'))
@@ -99,14 +104,14 @@
         @endif
 
         <div class="info-box">
-            <h4><i class="fas fa-info-circle"></i> What Happens Next?</h4>
+            <h4>@icon('fa-info-circle') What Happens Next?</h4>
             
             @if($eoi->client_confirmation_status === 'confirmed')
-                <p><i class="fas fa-check text-success"></i> Your migration agent has been notified that you have confirmed your EOI details.</p>
-                <p><i class="fas fa-clock text-info"></i> They will proceed with the next steps in your migration process.</p>
+                <p>@icon('fa-check', ['class' => 'text-success']) Your migration agent has been notified that you have confirmed your EOI details.</p>
+                <p>@icon('fa-clock', ['class' => 'text-info']) They will proceed with the next steps in your migration process.</p>
             @elseif($eoi->client_confirmation_status === 'amendment_requested')
-                <p><i class="fas fa-edit text-warning"></i> Your migration agent has been notified about your amendment request.</p>
-                <p><i class="fas fa-phone text-info"></i> They will review your request and contact you shortly to discuss the changes.</p>
+                <p>@icon('fa-edit', ['class' => 'text-warning']) Your migration agent has been notified about your amendment request.</p>
+                <p>@icon('fa-phone', ['class' => 'text-info']) They will review your request and contact you shortly to discuss the changes.</p>
             @endif
 
             <hr>

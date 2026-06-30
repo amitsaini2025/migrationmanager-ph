@@ -108,17 +108,17 @@
 
             <!-- Mobile Sidebar Toggle -->
             <button class="sidebar-toggle" onclick="toggleSidebar()">
-                <i class="fas fa-bars"></i>
+                @icon('fa-bars')
             </button>
 
             <!-- Sidebar Navigation -->
             <div class="sidebar-navigation" id="sidebarNav">
                 <div class="nav-header">
-                    <h3><i class="fas fa-user-plus"></i> Create New Lead</h3>
+                    <h3>@icon('fa-user-plus') Create New Lead</h3>
                 </div>
                 <nav class="nav-menu">
                     <button class="nav-item active" onclick="scrollToSection('personalSection')">
-                        <i class="fas fa-user-circle"></i>
+                        @icon('fa-user-circle')
                         <span>Personal</span>
                     </button>
                 </nav>
@@ -126,11 +126,11 @@
                 <!-- Actions in Sidebar -->
                 <div class="sidebar-actions">
                     <button class="nav-item back-btn" onclick="window.location.href='{{ route('dashboard') }}'">
-                        <i class="fas fa-arrow-left"></i>
+                        @icon('fa-arrow-left')
                         <span>Back</span>
                     </button>
                     <button type="submit" form="createLeadForm" class="nav-item save-btn">
-                        <i class="fas fa-save"></i>
+                        @icon('fa-save')
                         <span>Save Lead</span>
                     </button>
                 </div>
@@ -143,7 +143,7 @@
                 @if($errors->any())
                     <div class="alert alert-danger" style="margin: 20px 0; padding: 15px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px;">
                         <h4 style="margin: 0 0 10px 0; color: #721c24; font-size: 16px;">
-                            <i class="fas fa-exclamation-triangle"></i> Please fix the following errors:
+                            @icon('fa-exclamation-triangle') Please fix the following errors:
                         </h4>
                         <ul style="margin: 0; padding-left: 20px;">
                             @foreach($errors->all() as $error)
@@ -156,7 +156,7 @@
                 @if(session('error'))
                     <div class="alert alert-danger" style="margin: 20px 0; padding: 15px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px;">
                         <h4 style="margin: 0; color: #721c24; font-size: 16px;">
-                            <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+                            @icon('fa-exclamation-circle') {{ session('error') }}
                         </h4>
                     </div>
                 @endif
@@ -164,7 +164,7 @@
                 @if(session('success'))
                     <div class="alert alert-success" style="margin: 20px 0; padding: 15px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px;">
                         <h4 style="margin: 0; color: #155724; font-size: 16px;">
-                            <i class="fas fa-check-circle"></i> {{ session('success') }}
+                            @icon('fa-check-circle') {{ session('success') }}
                         </h4>
                     </div>
                 @endif
@@ -178,7 +178,7 @@
                         <!-- Lead Type Toggle -->
                         <section class="form-section" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                             <div class="section-header">
-                                <h3><i class="fas fa-building"></i> Lead Type</h3>
+                                <h3>@icon('fa-building') Lead Type</h3>
                             </div>
                             
                             <div class="content-grid">
@@ -210,7 +210,7 @@
                         <!-- Basic Information -->
                         <section class="form-section">
                             <div class="section-header">
-                                <h3><i class="fas fa-user-circle"></i> Basic Information</h3>
+                                <h3>@icon('fa-user-circle') Basic Information</h3>
                             </div>
                             
                             {{-- Personal Information Fields (shown when is_company = no) --}}
@@ -305,11 +305,11 @@
                                             <div class="trading-name-row" style="display: flex; gap: 10px; margin-bottom: 8px; align-items: center;">
                                                 <input type="text" name="trading_names[]" value="{{ is_string($tn) ? $tn : '' }}" placeholder="Trading name" class="company-field" style="flex: 1;">
                                                 <label><input type="radio" name="trading_name_primary" value="{{ $idx }}" {{ $idx === 0 ? 'checked' : '' }}> Primary</label>
-                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeLeadTradingName(this)"><i class="fas fa-times"></i></button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeLeadTradingName(this)">@icon('fa-times')</button>
                                             </div>
                                             @endforeach
                                         </div>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addLeadTradingName()"><i class="fas fa-plus"></i> Add another</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addLeadTradingName()">@icon('fa-plus') Add another</button>
                                     </div>
                                     
                                     <div class="form-group">
@@ -384,7 +384,7 @@
                                 {{-- Primary Contact Person Section --}}
                                 <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
                                     <h4 style="margin-bottom: 15px;">
-                                        <i class="fas fa-user-tie"></i> Primary Contact Person
+                                        @icon('fa-user-tie') Primary Contact Person
                                     </h4>
                                     
                                     <div class="content-grid">
@@ -410,7 +410,7 @@
                                                 Search existing clients/leads by email, name, phone, or client ID. Selected person's details will auto-fill below. Or enter phone/email below — if they match an existing person, they will be auto-associated.
                                             </small>
                                             <div id="associatedPersonAlert" class="alert alert-info mt-2" style="display: none;">
-                                                <i class="fas fa-link"></i> <strong>Associated:</strong> This phone/email belongs to <span id="associatedPersonName"></span>. They will be set as the contact person.
+                                                @icon('fa-link') <strong>Associated:</strong> This phone/email belongs to <span id="associatedPersonName"></span>. They will be set as the contact person.
                                             </div>
                                             @error('contact_person_id')
                                                 <span class="text-danger">{{ $message }}</span>
@@ -466,7 +466,7 @@
                         <!-- Phone Numbers -->
                         <section class="form-section">
                             <div class="section-header">
-                                <h3><i class="fas fa-phone"></i> Phone Number <span class="text-danger">*</span></h3>
+                                <h3>@icon('fa-phone') Phone Number <span class="text-danger">*</span></h3>
                             </div>
                             
                             <div class="repeatable-section">
@@ -524,7 +524,7 @@
                         <!-- Email Addresses -->
                         <section class="form-section">
                             <div class="section-header">
-                                <h3><i class="fas fa-envelope"></i> Email Address <span class="text-danger">*</span></h3>
+                                <h3>@icon('fa-envelope') Email Address <span class="text-danger">*</span></h3>
                             </div>
                             
                             <div class="repeatable-section">
@@ -595,10 +595,10 @@
                     <!-- Form Actions (Hidden for floating button) -->
                     <div class="form-actions" style="margin-top: 30px; padding: 20px; background: white; border-radius: 8px; display: flex; gap: 15px; justify-content: flex-end; visibility: hidden;">
                         <button type="button" class="btn btn-secondary" onclick="window.history.back()">
-                            <i class="fas fa-times"></i> Cancel
+                            @icon('fa-times') Cancel
                         </button>
                         <button type="submit" class="btn btn-primary" id="hiddenSubmitBtn">
-                            <i class="fas fa-save"></i> Save Lead
+                            @icon('fa-save') Save Lead
                         </button>
                     </div>
                     
@@ -611,11 +611,11 @@
     <div class="floating-save-container">
         <div class="floating-save-buttons">
             <button type="button" class="btn btn-floating btn-cancel" onclick="window.history.back()">
-                <i class="fas fa-times"></i>
+                @icon('fa-times')
                 <span>Cancel</span>
             </button>
             <button type="button" class="btn btn-floating btn-save" id="floatingSaveBtn">
-                <i class="fas fa-save"></i>
+                @icon('fa-save')
                 <span>Save Lead</span>
             </button>
         </div>
@@ -853,7 +853,7 @@
         container.append('<div class="trading-name-row" style="display: flex; gap: 10px; margin-bottom: 8px; align-items: center;">' +
             '<input type="text" name="trading_names[]" placeholder="Trading name" class="company-field" style="flex: 1;">' +
             '<label><input type="radio" name="trading_name_primary" value="' + idx + '"> Primary</label>' +
-            '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeLeadTradingName(this)"><i class="fas fa-times"></i></button></div>');
+            '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeLeadTradingName(this)">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-times') : '<i class="fas fa-times"></i>') + '</button></div>');
         container.find('.trading-name-row').each(function(i) { $(this).find('input[name="trading_name_primary"]').val(i); });
     }
     function removeLeadTradingName(btn) {

@@ -18,7 +18,7 @@
 							<div class="card-header">
 								<h4>Add Roles and Permissions</h4>
 								<div class="card-header-action">
-									<a href="{{route('adminconsole.system.roles.index')}}" class="btn btn-primary"><i class="fa fa-arrow-left"></i> Back</a>
+									<a href="{{route('adminconsole.system.roles.index')}}" class="btn btn-primary">@icon('fa-arrow-left') Back</a>
 								</div>
 							</div>
 						</div>

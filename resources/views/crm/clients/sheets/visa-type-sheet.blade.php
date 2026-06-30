@@ -205,10 +205,12 @@
         padding: 8px !important;
     }
     .visa-sheet-page .pin-star {
-        font-size: 18px;
+        width: 18px;
+        height: 18px;
         cursor: pointer;
         color: #cbd5e0;
-        transition: all 0.2s ease;
+        transition: color 0.2s ease, transform 0.2s ease;
+        vertical-align: middle;
     }
     .visa-sheet-page .pin-star:hover {
         color: #f59e0b;
@@ -216,7 +218,7 @@
     }
     .visa-sheet-page .pin-star.pinned {
         color: #f59e0b;
-        text-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+        filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.35));
     }
     .visa-sheet-page .pin-star.pinned:hover {
         color: #cbd5e0;
@@ -350,23 +352,24 @@
         background: rgba(0, 87, 146, 0.08) !important;
     }
     .visa-sheet-page .sortable::after {
-        content: '\f0dc';
-        font-family: 'Font Awesome 5 Free';
-        font-weight: 900;
+        content: '⇅';
+        font-family: inherit;
+        font-weight: 600;
         position: absolute;
         right: 8px;
         top: 50%;
         transform: translateY(-50%);
         opacity: 0.35;
         font-size: 11px;
+        line-height: 1;
     }
     .visa-sheet-page .sortable.asc::after {
-        content: '\f0de';
+        content: '↑';
         opacity: 1;
         color: #005792;
     }
     .visa-sheet-page .sortable.desc::after {
-        content: '\f0dd';
+        content: '↓';
         opacity: 1;
         color: #005792;
     }
@@ -401,9 +404,9 @@
             <div class="card art-sheet-card">
                 <div class="art-sheet-sticky-header">
                     <div class="art-sheet-top-bar">
-                        <h4 class="art-sheet-title"><i class="fas fa-clipboard-list"></i> {{ $config['title'] ?? 'Visa Sheet' }}</h4>
+                        <h4 class="art-sheet-title">@icon('fa-clipboard-list') {{ $config['title'] ?? 'Visa Sheet' }}</h4>
                         <a href="{{ route('clients.index') }}" class="btn btn-theme btn-theme-sm">
-                            <i class="fas fa-arrow-left"></i> Back to Clients
+                            @icon('fa-arrow-left') Back to Clients
                         </a>
                     </div>
                     <div class="visa-tabs-row">
@@ -419,14 +422,14 @@
                     </div>
                     <div class="art-sheet-filter-bar">
                         <button type="button" class="btn btn-theme btn-theme-sm filter_btn">
-                            <i class="fas fa-filter"></i> Filters
+                            @icon('fa-filter') Filters
                             @if($activeFilterCount > 0)
                                 <span class="active-filters-badge">{{ $activeFilterCount }}</span>
                             @endif
                         </button>
                         @if($activeFilterCount > 0)
                             <a href="{{ route($sheetRoute, array_merge($sheetRouteParams, ['tab' => $tab, 'clear_filters' => 1])) }}" class="clear-filter-btn">
-                                <i class="fas fa-undo"></i> Clear Filters
+                                @icon('fa-undo') Clear Filters
                             </a>
                         @endif
                         <label class="mb-0 ml-2 mr-2" style="font-size: 13px; color: #374151;">Migration Agent:</label>
@@ -453,7 +456,7 @@
                             <input type="hidden" name="assignee" value="{{ request('assignee') }}">
                             <div class="row mb-3">
                                 <div class="col-md-12">
-                                    <label class="mb-2" style="font-weight: 600; color: #374151;"><i class="fas fa-building"></i> Filter by Branch:</label>
+                                    <label class="mb-2" style="font-weight: 600; color: #374151;">@icon('fa-building') Filter by Branch:</label>
                                     <div class="d-flex flex-wrap gap-3">
                                         @foreach($branches as $b)
                                             <div class="form-check">
@@ -529,12 +532,12 @@
                 <div class="card-body">
                     @if($setupRequired ?? false)
                         <div class="alert alert-warning mb-3" role="alert">
-                            <i class="fas fa-tools mr-1"></i>
+                            @icon('fa-tools', ['class' => 'mr-1'])
                             <strong>Setup required:</strong> Run <code>php artisan migrate</code> to create <code>{{ $config['reference_table'] ?? 'client_matter_references' }}</code>, <code>{{ $config['checklist_status_column'] ?? 'tr_checklist_status' }}</code> (on client_matters), and <code>{{ $config['reminders_table'] ?? 'matter_reminders' }}</code>. Until then, the 4 tabs and filters are visible for structure review but no data will load.
                         </div>
                     @endif
                     <div class="visa-sheet-scroll-hint px-3 pt-2 mb-2" style="font-size: 13px; color: #64748b;">
-                        <i class="fas fa-arrows-alt-h"></i> Scroll inside the table to browse rows and columns. Hold <kbd>Shift</kbd> while scrolling to move horizontally.
+                        @icon('fa-arrows-alt-h') Scroll inside the table to browse rows and columns. Hold <kbd>Shift</kbd> while scrolling to move horizontally.
                     </div>
                     <div class="table-container">
                         <div class="scroll-indicator scroll-indicator-left"></div>
@@ -543,7 +546,7 @@
                             <table class="table table-bordered table-hover art-table" id="visa-sheet-table">
                                 <thead>
                                     <tr>
-                                        <th class="pin-cell frozen-col frozen-col-1" title="Click star to pin row to top"><i class="fas fa-star"></i></th>
+                                        <th class="pin-cell frozen-col frozen-col-1" title="Click star to pin row to top">@icon('fa-star')</th>
                                         <th class="matter-col frozen-col frozen-col-2 sortable {{ $sortThClass('matter') }}" data-sort="matter">Matter / Course</th>
                                         @if($showRefusedVisaType)
                                         <th class="frozen-col frozen-col-3 frozen-col-last">{{ $refusedVisaTypeLabel ?? 'Category' }}</th>
@@ -588,9 +591,9 @@
                                         <tr>
                                             <td colspan="{{ $emptyColspan }}" class="text-center text-muted py-4">
                                                 @if($setupRequired ?? false)
-                                                    <i class="fas fa-info-circle"></i> Run migrations to enable data. Add a {{ strtoupper($visaType) }} matter type and assign matters to clients.
+                                                    @icon('fa-info-circle') Run migrations to enable data. Add a {{ strtoupper($visaType) }} matter type and assign matters to clients.
                                                 @else
-                                                    <i class="fas fa-info-circle"></i> No {{ $config['title'] ?? $visaType }} records found for this tab. Add a {{ strtoupper($visaType) }} matter type and assign matters to clients.
+                                                    @icon('fa-info-circle') No {{ $config['title'] ?? $visaType }} records found for this tab. Add a {{ strtoupper($visaType) }} matter type and assign matters to clients.
                                                 @endif
                                             </td>
                                         </tr>
@@ -610,11 +613,13 @@
                                             <tr style="cursor: pointer;" onclick="window.location.href='{{ $detailUrl }}'">
                                                 <td class="pin-cell frozen-col frozen-col-1" onclick="event.stopPropagation();">
                                                     @if(!$isLead || !empty($row->matter_internal_id))
-                                                    <i class="fas fa-star pin-star {{ ($row->is_pinned ?? false) ? 'pinned' : '' }}" 
-                                                       data-client-id="{{ $row->client_id }}" 
-                                                       data-matter-id="{{ $matterId }}"
-                                                       data-visa-type="{{ $visaType }}"
-                                                       title="{{ ($row->is_pinned ?? false) ? 'Unpin from top' : 'Pin to top' }}"></i>
+                                                    {!! \App\Helpers\IconHelper::fromLegacy('fas fa-star', [
+                                                        'class' => 'pin-star ' . (($row->is_pinned ?? false) ? 'pinned' : ''),
+                                                        'data-client-id' => $row->client_id,
+                                                        'data-matter-id' => $matterId,
+                                                        'data-visa-type' => $visaType,
+                                                        'title' => ($row->is_pinned ?? false) ? 'Unpin from top' : 'Pin to top',
+                                                    ]) !!}
                                                     @else
                                                     <span class="text-muted" title="Lead">{{ __('Lead') }}</span>
                                                     @endif
@@ -1549,7 +1554,7 @@ jQuery(document).ready(function($) {
         resetSheetSmsReminderForm();
         $('#sheet_sms_client_id').val(clientId);
         $('#sheet_sms_matter_id').val(matterId);
-        $('#sheetSmsReminderLabel').html('<i class="fas fa-sms"></i> SMS Reminder — ' + (clientName || 'Client'));
+        $('#sheetSmsReminderLabel').html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sms') : '<i class="fas fa-sms"></i>') + ' SMS Reminder — ' + (clientName || 'Client'));
         loadSheetSmsTemplates();
         loadSheetSmsPhones(clientId, function() {
             var hasPhone = false;
@@ -1683,7 +1688,7 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         var $submitBtn = $('#sheetSendSmsBtn');
         var originalText = $submitBtn.html();
-        $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+        $submitBtn.prop('disabled', true).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Sending...');
 
         $.ajax({
             url: '{{ route("clients.sms.send") }}',

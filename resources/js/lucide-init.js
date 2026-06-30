@@ -156,6 +156,20 @@ function crmIconLegacy(classString, options = {}) {
 }
 
 /**
+ * Render from a stored icon value: Lucide kebab name, fa-* token, or legacy class string.
+ */
+function crmIconAny(stored, options = {}) {
+    const icon = (stored || 'tag').trim();
+    if (icon.includes(' ') || /\b(fas|far|fab|fal|fad)\b/.test(icon)) {
+        return crmIconLegacy(icon, options);
+    }
+    if (icon.startsWith('fa-')) {
+        return crmIconLegacy('fas ' + icon, options);
+    }
+    return crmIcon(icon, options);
+}
+
+/**
  * Replace [data-lucide] placeholders with SVG (Blade @icon output).
  *
  * @param {Element|Document|DocumentFragment} [root]
@@ -180,8 +194,12 @@ function initLucideIcons() {
 
 window.crmIcon = crmIcon;
 window.crmIconLegacy = crmIconLegacy;
+window.crmIconAny = crmIconAny;
 /** Shorthand for crmIconLegacy — use in template literals / dynamic HTML. */
 window.crmI = function crmI(legacyClass, options) {
+    if (typeof crmIconAny === 'function') {
+        return crmIconAny(legacyClass, options || {});
+    }
     if (typeof crmIconLegacy === 'function') {
         return crmIconLegacy(legacyClass, options || {});
     }
@@ -195,4 +213,4 @@ if (document.readyState === 'loading') {
     initLucideIcons();
 }
 
-export { crmIcon, crmIconLegacy, refreshLucideIcons };
+export { crmIcon, crmIconLegacy, crmIconAny, refreshLucideIcons };

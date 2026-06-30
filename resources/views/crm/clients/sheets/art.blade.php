@@ -262,9 +262,9 @@
     .per-page-select { width: auto; display: inline-block; margin-left: 10px; }
     .sortable { cursor: pointer; user-select: none; position: relative; padding-right: 20px !important; }
     .sortable:hover { background: rgba(71, 85, 105, 0.08); }
-    .sortable::after { content: '\f0dc'; font-family: 'Font Awesome 5 Free'; font-weight: 900; position: absolute; right: 8px; opacity: 0.3; }
-    .sortable.asc::after { content: '\f0de'; opacity: 1; color: #475569; }
-    .sortable.desc::after { content: '\f0dd'; opacity: 1; color: #475569; }
+    .sortable::after { content: '⇅'; font-family: inherit; font-weight: 600; position: absolute; right: 8px; opacity: 0.35; font-size: 11px; line-height: 1; }
+    .sortable.asc::after { content: '↑'; opacity: 1; color: #475569; }
+    .sortable.desc::after { content: '↓'; opacity: 1; color: #475569; }
     .table-responsive { position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .table-container { position: relative; }
     .scroll-indicator { position: absolute; top: 0; bottom: 20px; width: 40px; pointer-events: none; z-index: 14; transition: opacity 0.3s; }
@@ -274,10 +274,12 @@
     /* Pin star styles */
     .art-sheet-page .pin-cell { width: 40px; text-align: center; }
     .art-sheet-page .pin-star {
-        font-size: 18px;
+        width: 18px;
+        height: 18px;
         cursor: pointer;
         color: #cbd5e0;
-        transition: all 0.2s ease;
+        transition: color 0.2s ease, transform 0.2s ease;
+        vertical-align: middle;
     }
     .art-sheet-page .pin-star:hover {
         color: #f59e0b;
@@ -285,7 +287,7 @@
     }
     .art-sheet-page .pin-star.pinned {
         color: #f59e0b;
-        text-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+        filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.35));
     }
     .art-sheet-page .pin-star.pinned:hover {
         color: #cbd5e0;
@@ -301,18 +303,18 @@
                 {{-- Sticky: title + tabs + filter bar --}}
                 <div class="art-sheet-sticky-header">
                     <div class="art-sheet-top-bar">
-                        <h4 class="art-sheet-title"><i class="fas fa-gavel"></i> ART Submission and Hearing Files</h4>
+                        <h4 class="art-sheet-title">@icon('fa-gavel') ART Submission and Hearing Files</h4>
                         <div class="art-sheet-top-bar-right">
                             <a href="{{ route('clients.index') }}" class="btn btn-theme btn-theme-sm" title="Back to Clients">
-                                <i class="fas fa-arrow-left"></i> Back to Clients
+                                @icon('fa-arrow-left') Back to Clients
                             </a>
                             <div class="sheet-tabs">
                                 <a href="{{ route('clients.sheets.art') }}" class="sheet-tab active">
-                                    <i class="fas fa-list"></i> List
+                                    @icon('fa-list') List
                                 </a>
                                 @if(Auth::user() && in_array(Auth::user()->role, [1, 12]))
                                 <a href="{{ route('clients.sheets.art.insights') }}" class="sheet-tab">
-                                    <i class="fas fa-chart-bar"></i> Insights
+                                    @icon('fa-chart-bar') Insights
                                 </a>
                                 @endif
                             </div>
@@ -320,14 +322,14 @@
                     </div>
                     <div class="art-sheet-filter-bar">
                         <button type="button" class="btn btn-theme btn-theme-sm filter_btn">
-                            <i class="fas fa-filter"></i> Filters
+                            @icon('fa-filter') Filters
                             @if($activeFilterCount > 0)
                                 <span class="active-filters-badge">{{ $activeFilterCount }}</span>
                             @endif
                         </button>
                         @if($activeFilterCount > 0)
                             <a href="{{ route('clients.sheets.art') }}" class="clear-filter-btn">
-                                <i class="fas fa-undo"></i> Clear Filters
+                                @icon('fa-undo') Clear Filters
                             </a>
                         @endif
                         <div class="office-filter-section" style="background: #f8f9fa; border-radius: 5px; border: 1px solid #e3e6f0;">
@@ -344,7 +346,7 @@
                                 @endforeach
                                 <div class="d-flex align-items-center flex-wrap">
                                     <label class="mb-0 mr-2" style="font-weight: 600; color: #6c757d; font-size: 13px;">
-                                        <i class="fas fa-building"></i> Office:
+                                        @icon('fa-building') Office:
                                     </label>
                                     @foreach(\App\Models\Branch::orderBy('office_name')->get() as $office)
                                         <div class="form-check form-check-inline mr-2 mb-0">
@@ -362,7 +364,7 @@
                                     @if(request('office'))
                                         <a href="{{ route('clients.sheets.art', array_merge(request()->except(['office', 'page']), ['per_page' => $perPage])) }}" 
                                            class="btn btn-sm btn-secondary ml-1">
-                                            <i class="fas fa-times"></i> Clear
+                                            @icon('fa-times') Clear
                                         </a>
                                     @endif
                                 </div>
@@ -440,7 +442,7 @@
                     </div>
 
                     <div class="px-1 pt-1 mb-2" style="font-size: 13px; color: #64748b;">
-                        <i class="fas fa-arrows-alt-h"></i> Scroll inside the table to browse rows and columns. Hold <kbd>Shift</kbd> while scrolling to move horizontally.
+                        @icon('fa-arrows-alt-h') Scroll inside the table to browse rows and columns. Hold <kbd>Shift</kbd> while scrolling to move horizontally.
                     </div>
                     <div class="table-container">
                         <div class="scroll-indicator scroll-indicator-left"></div>
@@ -449,7 +451,7 @@
                             <table class="table table-bordered table-hover art-table" id="art-sheet-table">
                                 <thead>
                                     <tr>
-                                        <th class="pin-cell frozen-col frozen-col-1" title="Click star to pin row to top"><i class="fas fa-star"></i></th>
+                                        <th class="pin-cell frozen-col frozen-col-1" title="Click star to pin row to top">@icon('fa-star')</th>
                                         <th class="sortable frozen-col frozen-col-2 {{ request('sort') == 'crm_ref' ? (request('direction') == 'asc' ? 'asc' : 'desc') : '' }}" data-sort="crm_ref">CRM Ref</th>
                                         <th class="sortable frozen-col frozen-col-3 frozen-col-last {{ request('sort') == 'other_reference' ? (request('direction') == 'asc' ? 'asc' : 'desc') : '' }}" data-sort="other_reference">Other Reference</th>
                                         <th class="sortable {{ request('sort') == 'client_name' ? (request('direction') == 'asc' ? 'asc' : 'desc') : '' }}" data-sort="client_name">Name</th>
@@ -469,7 +471,7 @@
                                     @if($rows->isEmpty())
                                         <tr>
                                             <td colspan="15" class="text-center text-muted py-4">
-                                                <i class="fas fa-info-circle"></i> No ART records found. Add an ART matter type and assign matters to clients to see data here.
+                                                @icon('fa-info-circle') No ART records found. Add an ART matter type and assign matters to clients to see data here.
                                             </td>
                                         </tr>
                                     @else
@@ -485,10 +487,12 @@
                                             @endphp
                                             <tr style="cursor: pointer;" onclick="window.location.href='{{ $clientDetailUrl }}'">
                                                 <td class="pin-cell frozen-col frozen-col-1" onclick="event.stopPropagation();">
-                                                    <i class="fas fa-star pin-star {{ ($row->is_pinned ?? false) ? 'pinned' : '' }}"
-                                                       data-client-id="{{ $row->client_id }}"
-                                                       data-matter-internal-id="{{ $matterInternalId }}"
-                                                       title="{{ ($row->is_pinned ?? false) ? 'Unpin from top' : 'Pin to top' }}"></i>
+                                                    {!! \App\Helpers\IconHelper::fromLegacy('fas fa-star', [
+                                                        'class' => 'pin-star ' . (($row->is_pinned ?? false) ? 'pinned' : ''),
+                                                        'data-client-id' => $row->client_id,
+                                                        'data-matter-internal-id' => $matterInternalId,
+                                                        'title' => ($row->is_pinned ?? false) ? 'Unpin from top' : 'Pin to top',
+                                                    ]) !!}
                                                 </td>
                                                 <td class="frozen-col frozen-col-2" onclick="event.stopPropagation();"><a href="{{ $clientDetailUrl }}" class="art-link">{{ $row->crm_ref ?? '—' }}</a></td>
                                                 <td class="frozen-col frozen-col-3 frozen-col-last" onclick="event.stopPropagation();">{{ $otherRef }}</td>

@@ -6,22 +6,22 @@
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header">
-                    <h4><i class="fas fa-file-pdf"></i> DOCX to PDF Converter</h4>
+                    <h4>@icon('fa-file-pdf') DOCX to PDF Converter</h4>
                 </div>
                 <div class="card-body">
                     @if($isHealthy)
                         <div class="alert alert-success">
-                            <i class="fas fa-check-circle"></i> <strong>Service Status:</strong> Conversion service is ready and available
+                            @icon('fa-check-circle') <strong>Service Status:</strong> Conversion service is ready and available
                         </div>
                     @else
                         <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle"></i> <strong>Service Status:</strong> Conversion service is not available. Please check the Python service.
+                            @icon('fa-exclamation-triangle') <strong>Service Status:</strong> Conversion service is not available. Please check the Python service.
                         </div>
                     @endif
 
                     @if($errors->any())
                         <div class="alert alert-danger">
-                            <h6><i class="fas fa-exclamation-triangle"></i> Errors:</h6>
+                            <h6>@icon('fa-exclamation-triangle') Errors:</h6>
                             <ul class="mb-0">
                                 @foreach($errors->all() as $error)
                                     <li>{{ $error }}</li>
@@ -34,7 +34,7 @@
                         @csrf
                         <div class="form-group mb-3">
                             <label for="docx_file" class="form-label">
-                                <i class="fas fa-file-word"></i> Select DOCX or DOC File:
+                                @icon('fa-file-word') Select DOCX or DOC File:
                             </label>
                             <input type="file" 
                                    class="form-control @error('docx_file') is-invalid @enderror" 
@@ -43,7 +43,7 @@
                                    accept=".docx,.doc" 
                                    required>
                             <div class="form-text">
-                                <i class="fas fa-info-circle"></i> 
+                                @icon('fa-info-circle')
                                 Maximum file size: 50MB. Supported formats: .docx, .doc
                             </div>
                             @error('docx_file')
@@ -56,10 +56,10 @@
                                     class="btn btn-primary btn-lg" 
                                     id="convertBtn"
                                     {{ !$isHealthy ? 'disabled' : '' }}>
-                                <i class="fas fa-file-pdf"></i> 
+                                @icon('fa-file-pdf')
                                 <span id="btnText">Convert to PDF</span>
                                 <span id="loadingText" style="display: none;">
-                                    <i class="fas fa-spinner fa-spin"></i> Converting...
+                                    @icon('fa-spinner', ['spin' => true]) Converting...
                                 </span>
                             </button>
                         </div>
@@ -69,7 +69,7 @@
 
                     <div class="row">
                         <div class="col-md-6">
-                            <h6><i class="fas fa-cogs"></i> Service Information</h6>
+                            <h6>@icon('fa-cogs') Service Information</h6>
                             <ul class="list-unstyled">
                                 <li><strong>Service:</strong> Python LibreOffice Converter</li>
                                 <li><strong>Quality:</strong> High-quality with full formatting</li>
@@ -77,11 +77,11 @@
                             </ul>
                         </div>
                         <div class="col-md-6">
-                            <h6><i class="fas fa-shield-alt"></i> Security Features</h6>
+                            <h6>@icon('fa-shield-alt') Security Features</h6>
                             <ul class="list-unstyled">
-                                <li><i class="fas fa-check text-success"></i> File validation</li>
-                                <li><i class="fas fa-check text-success"></i> Size limits enforced</li>
-                                <li><i class="fas fa-check text-success"></i> Temporary file cleanup</li>
+                                <li>@icon('fa-check', ['class' => 'text-success']) File validation</li>
+                                <li>@icon('fa-check', ['class' => 'text-success']) Size limits enforced</li>
+                                <li>@icon('fa-check', ['class' => 'text-success']) Temporary file cleanup</li>
                             </ul>
                         </div>
                     </div>
@@ -91,23 +91,23 @@
             <!-- API Testing Section -->
             <div class="card mt-4">
                 <div class="card-header">
-                    <h6><i class="fas fa-code"></i> API Testing</h6>
+                    <h6>@icon('fa-code') API Testing</h6>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-4">
                             <button type="button" class="btn btn-outline-info btn-sm" onclick="testHealth()">
-                                <i class="fas fa-heartbeat"></i> Health Check
+                                @icon('fa-heartbeat') Health Check
                             </button>
                         </div>
                         <div class="col-md-4">
                             <button type="button" class="btn btn-outline-success btn-sm" onclick="testConversion()">
-                                <i class="fas fa-vial"></i> Test Conversion
+                                @icon('fa-vial') Test Conversion
                             </button>
                         </div>
                         <div class="col-md-4">
                             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearResults()">
-                                <i class="fas fa-trash"></i> Clear Results
+                                @icon('fa-trash') Clear Results
                             </button>
                         </div>
                     </div>

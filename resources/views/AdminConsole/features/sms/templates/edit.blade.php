@@ -18,10 +18,10 @@
                 <div class="col-9 col-md-9 col-lg-9">
                     <div class="card">
                         <div class="card-header">
-                            <h4><i class="fas fa-edit"></i> Edit SMS Template</h4>
+                            <h4>@icon('fa-edit') Edit SMS Template</h4>
                             <div class="card-header-action">
                                 <a href="{{ route('adminconsole.features.sms.templates.index') }}" class="btn btn-secondary">
-                                    <i class="fas fa-arrow-left"></i> Back to Templates
+                                    @icon('fa-arrow-left') Back to Templates
                                 </a>
                             </div>
                         </div>
@@ -82,10 +82,10 @@
                                 
                                 <div class="form-group">
                                     <button type="submit" class="btn btn-primary" id="saveBtn">
-                                        <i class="fas fa-save"></i> Update Template
+                                        @icon('fa-save') Update Template
                                     </button>
                                     <a href="{{ route('adminconsole.features.sms.templates.index') }}" class="btn btn-secondary">
-                                        <i class="fas fa-times"></i> Cancel
+                                        @icon('fa-times') Cancel
                                     </a>
                                 </div>
                             </form>
@@ -121,7 +121,7 @@ $(document).ready(function() {
             _method: 'PUT'
         };
         
-        $('#saveBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Updating...');
+        $('#saveBtn').prop('disabled', true).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Updating...');
         
         $.ajax({
             url: '{{ route("adminconsole.features.sms.templates.update", $template->id) }}',
@@ -144,7 +144,7 @@ $(document).ready(function() {
                 }
             },
             complete: function() {
-                $('#saveBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Update Template');
+                $('#saveBtn').prop('disabled', false).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-save') : '<i class="fas fa-save"></i>') + ' Update Template');
             }
         });
     });

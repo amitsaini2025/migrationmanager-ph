@@ -42,8 +42,8 @@
 						<div class="card-header">
 							<h4>Workflow Stages: {{ $workflow->name }}</h4>
 							<div class="card-header-action">
-								<a href="{{ route('adminconsole.features.workflow.index') }}" class="btn btn-secondary"><i class="fa fa-arrow-left"></i> Back to Workflows</a>
-								<a href="{{ route('adminconsole.features.workflow.createStage', base64_encode(convert_uuencode($workflow->id))) }}" class="btn btn-primary"><i class="fa fa-plus"></i> Add Stage</a>
+								<a href="{{ route('adminconsole.features.workflow.index') }}" class="btn btn-secondary">@icon('fa-arrow-left') Back to Workflows</a>
+								<a href="{{ route('adminconsole.features.workflow.createStage', base64_encode(convert_uuencode($workflow->id))) }}" class="btn btn-primary">@icon('fa-plus') Add Stage</a>
 							</div>
 						</div>
 						<div class="card-body">
@@ -72,12 +72,12 @@
 										<td>{{ $countmatters }}</td>
 										<td class="workflow-stage-actions-col">
 											<div class="workflow-stage-cell-actions">
-												<a class="btn btn-sm btn-primary" href="{{ route('adminconsole.features.workflow.edit', base64_encode(convert_uuencode($list->id))) }}" title="{{ $stageFrozen ? 'View (protected — name cannot be changed)' : 'Edit stage name' }}"><i class="far fa-edit"></i> Edit</a>
-												<a class="btn btn-sm btn-info" href="{{ route('adminconsole.features.workflow.createStage', base64_encode(convert_uuencode($workflow->id))) }}?after={{ rawurlencode(base64_encode(convert_uuencode($list->id))) }}" title="Insert a new stage immediately after this one"><i class="fa fa-plus"></i> Add After</a>
+												<a class="btn btn-sm btn-primary" href="{{ route('adminconsole.features.workflow.edit', base64_encode(convert_uuencode($list->id))) }}" title="{{ $stageFrozen ? 'View (protected — name cannot be changed)' : 'Edit stage name' }}">@icon('fa-edit') Edit</a>
+												<a class="btn btn-sm btn-info" href="{{ route('adminconsole.features.workflow.createStage', base64_encode(convert_uuencode($workflow->id))) }}?after={{ rawurlencode(base64_encode(convert_uuencode($list->id))) }}" title="Insert a new stage immediately after this one">@icon('fa-plus') Add After</a>
 												@if($stageFrozen)
-												<button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Protected stages cannot be deleted"><i class="fas fa-trash"></i> Delete</button>
+												<button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Protected stages cannot be deleted">@icon('fa-trash') Delete</button>
 												@else
-												<a class="btn btn-sm btn-outline-danger" href="javascript:;" onclick="deleteAction({{ $list->id }}, 'workflow_stages')"><i class="fas fa-trash"></i> Delete</a>
+												<a class="btn btn-sm btn-outline-danger" href="javascript:;" onclick="deleteAction({{ $list->id }}, 'workflow_stages')">@icon('fa-trash') Delete</a>
 												@endif
 											</div>
 										</td>

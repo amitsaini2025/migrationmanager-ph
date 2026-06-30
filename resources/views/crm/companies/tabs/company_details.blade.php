@@ -24,10 +24,10 @@
         {{-- Company Information Card --}}
         <div class="card" style="margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3><i class="fas fa-building"></i> Company Information</h3>
+                <h3>@icon('fa-building') Company Information</h3>
                 <a href="{{ route('clients.edit', base64_encode(convert_uuencode($fetchedData->id))) }}" 
                    class="btn btn-sm btn-primary">
-                    <i class="fas fa-edit"></i> Edit
+                    @icon('fa-edit') Edit
                 </a>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
@@ -93,7 +93,7 @@
         @if($comp && $comp->sponsorships->isNotEmpty())
             @php $sponsorshipCount = $comp->sponsorships->count(); @endphp
             <div class="card sponsorship-details-card{{ $sponsorshipCount === 1 ? ' sponsorship-details-card--single' : '' }}" style="margin-bottom: 20px;">
-                <h3><i class="fas fa-file-contract"></i> {{ $sponsorshipCount > 1 ? 'Sponsorships' : 'Sponsorship' }}</h3>
+                <h3>@icon('fa-file-contract') {{ $sponsorshipCount > 1 ? 'Sponsorships' : 'Sponsorship' }}</h3>
                 @foreach($comp->sponsorships as $idx => $s)
                 <div class="{{ $sponsorshipCount > 1 ? 'sponsorship-details-block' : '' }}">
                     @if($sponsorshipCount > 1)
@@ -114,7 +114,7 @@
             </div>
         @elseif($comp && ($comp->sponsorship_type || $comp->sponsorship_status || $comp->trn))
         <div class="card sponsorship-details-card sponsorship-details-card--single" style="margin-bottom: 20px;">
-            <h3><i class="fas fa-file-contract"></i> Sponsorship</h3>
+            <h3>@icon('fa-file-contract') Sponsorship</h3>
             <div class="sponsorship-details-fields">
                 @if($comp->sponsorship_type)<div class="field-group"><span class="field-label">Type:</span><span class="field-value">{{ $comp->sponsorship_type }}</span></div>@endif
                 @if($comp->sponsorship_status)<div class="field-group"><span class="field-label">Status:</span><span class="field-value">{{ $comp->sponsorship_status }}</span></div>@endif
@@ -128,7 +128,7 @@
         {{-- Directors Card --}}
         @if($comp && $comp->directors->isNotEmpty())
         <div class="card" style="margin-bottom: 20px;">
-            <h3><i class="fas fa-users-cog"></i> Directors</h3>
+            <h3>@icon('fa-users-cog') Directors</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
                 @foreach($comp->directors as $dir)
                 @php $dirName = $dir->directorClient ? trim($dir->directorClient->first_name.' '.$dir->directorClient->last_name) : ($dir->director_name ?? ''); @endphp
@@ -151,7 +151,7 @@
         @endphp
         @if($financialDetailRows->isNotEmpty())
         <div class="card" style="margin-bottom: 20px;">
-            <h3><i class="fas fa-dollar-sign"></i> Financial</h3>
+            <h3>@icon('fa-dollar-sign') Financial</h3>
             @foreach($financialDetailRows as $f)
             <div style="display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 1.75rem; row-gap: 0.35rem; margin-top: {{ $loop->first ? '15px' : '12px' }}; padding-bottom: 12px;{{ !$loop->last ? ' border-bottom: 1px solid #eee;' : '' }}">
                 @if(!empty($f->financial_year))
@@ -172,7 +172,7 @@
         @php $hasWorkforce = $comp && ($comp->workforce_australian_citizens !== null || $comp->workforce_permanent_residents !== null || $comp->workforce_temp_visa_holders !== null || $comp->workforce_total !== null || $comp->workforce_foreign_494 !== null || $comp->workforce_foreign_other_temp_activity !== null || $comp->workforce_foreign_overseas_students !== null || $comp->workforce_foreign_working_holiday !== null || $comp->workforce_foreign_other !== null); @endphp
         @if($hasWorkforce)
         <div class="card" style="margin-bottom: 20px;">
-            <h3><i class="fas fa-users"></i> Workforce</h3>
+            <h3>@icon('fa-users') Workforce</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 15px;">
                 @if($comp->workforce_australian_citizens !== null)<div class="field-group"><span class="field-label">workforce_aus_professionals:</span><span class="field-value">{{ $comp->workforce_australian_citizens }}</span></div>@endif
                 @if($comp->workforce_permanent_residents !== null)<div class="field-group"><span class="field-label">workforce_aus_tradespersons:</span><span class="field-value">{{ $comp->workforce_permanent_residents }}</span></div>@endif
@@ -190,7 +190,7 @@
         {{-- Operations Card --}}
         @if($comp && ($comp->business_operating_since || $comp->main_business_activity))
         <div class="card" style="margin-bottom: 20px;">
-            <h3><i class="fas fa-briefcase"></i> Operations</h3>
+            <h3>@icon('fa-briefcase') Operations</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
                 @if($comp->business_operating_since)<div class="field-group"><span class="field-label">Operating Since:</span><span class="field-value">{{ $comp->business_operating_since->format('d/m/Y') }}</span></div>@endif
                 @if($comp->main_business_activity)<div class="field-group"><span class="field-label">Main Activity:</span><span class="field-value">{{ $comp->main_business_activity }}</span></div>@endif
@@ -201,7 +201,7 @@
         {{-- Training Card --}}
         @if($comp && ($comp->training_position_title || $comp->trainer_name))
         <div class="card" style="margin-bottom: 20px;">
-            <h3><i class="fas fa-graduation-cap"></i> Training</h3>
+            <h3>@icon('fa-graduation-cap') Training</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
                 @if($comp->training_position_title)<div class="field-group"><span class="field-label">Position Title:</span><span class="field-value">{{ $comp->training_position_title }}</span></div>@endif
                 @if($comp->trainer_name)<div class="field-group"><span class="field-label">Trainer Name:</span><span class="field-value">{{ $comp->trainer_name }}</span></div>@endif
@@ -213,7 +213,7 @@
         @if($comp && $comp->nominations->isNotEmpty())
             @php $nominationCount = $comp->nominations->count(); @endphp
             <div class="card nomination-details-card{{ $nominationCount === 1 ? ' nomination-details-card--single' : '' }}" style="margin-bottom: 20px;">
-                <h3><i class="fas fa-user-check"></i> {{ $nominationCount > 1 ? 'Nominations' : 'Nomination' }}</h3>
+                <h3>@icon('fa-user-check') {{ $nominationCount > 1 ? 'Nominations' : 'Nomination' }}</h3>
                 @foreach($comp->nominations as $idx => $nom)
                 @php
                     $nomineeLabel = $nom->nominatedClient
@@ -258,7 +258,7 @@
 
         {{-- Company Phone & Email Card --}}
         <div class="card" style="margin-bottom: 20px;">
-            <h3><i class="fas fa-phone"></i> Contact Information</h3>
+            <h3>@icon('fa-phone') Contact Information</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
                 {{-- Company Phone Number --}}
                 <div class="field-group">
@@ -294,15 +294,15 @@
 
                                 if( isset($conVal->contact_type) && $conVal->contact_type != "" ){
                                     if ( $conVal->is_verified ) {
-                                        $phonenoStr .= $formattedPhone.' <i class="fas fa-check-circle verified-icon fa-lg" style="color: #28a745;" title="Verified on ' . ($conVal->verified_at ? $conVal->verified_at->format('M j, Y g:i A') : 'Unknown') . '"></i> <br/>';
+                                        $phonenoStr .= $formattedPhone.' ' . \App\Helpers\IconHelper::fromLegacy('fas fa-check-circle', ['class' => 'verified-icon fa-lg', 'style' => 'color: #28a745;', 'title' => 'Verified on ' . ($conVal->verified_at ? $conVal->verified_at->format('M j, Y g:i A') : 'Unknown')]) . ' <br/>';
                                     } else {
-                                        $phonenoStr .= $formattedPhone.' <i class="far fa-circle unverified-icon fa-lg" style="color: #6c757d;" title="Not verified"></i> <br/>';
+                                        $phonenoStr .= $formattedPhone.' ' . \App\Helpers\IconHelper::fromLegacy('far fa-circle', ['class' => 'unverified-icon fa-lg', 'style' => 'color: #6c757d;', 'title' => 'Not verified']) . ' <br/>';
                                     }
                                 } else {
                                     if ( isset($conVal->is_verified) && $conVal->is_verified ) {
-                                        $phonenoStr .= $formattedPhone.' <i class="fas fa-check-circle verified-icon fa-lg" style="color: #28a745;" title="Verified on ' . ($conVal->verified_at ? $conVal->verified_at->format('M j, Y g:i A') : 'Unknown') . '"></i> <br/>';
+                                        $phonenoStr .= $formattedPhone.' ' . \App\Helpers\IconHelper::fromLegacy('fas fa-check-circle', ['class' => 'verified-icon fa-lg', 'style' => 'color: #28a745;', 'title' => 'Verified on ' . ($conVal->verified_at ? $conVal->verified_at->format('M j, Y g:i A') : 'Unknown')]) . ' <br/>';
                                     } else {
-                                        $phonenoStr .= $formattedPhone.' <i class="far fa-circle unverified-icon fa-lg" style="color: #6c757d;" title="Not verified"></i> <br/>';
+                                        $phonenoStr .= $formattedPhone.' ' . \App\Helpers\IconHelper::fromLegacy('far fa-circle', ['class' => 'unverified-icon fa-lg', 'style' => 'color: #6c757d;', 'title' => 'Not verified']) . ' <br/>';
                                     }
                                 }
                             }
@@ -337,15 +337,15 @@
                                 $check_verified_email = $emailVal->email_type."".$emailVal->email;
                                 if( isset($emailVal->email_type) && $emailVal->email_type != "" ){
                                     if ( $emailVal->is_verified ) {
-                                        $emailStr .= $emailVal->email.' <i class="fas fa-check-circle verified-icon fa-lg" style="color: #28a745;" title="Verified on ' . ($emailVal->verified_at ? $emailVal->verified_at->format('M j, Y g:i A') : 'Unknown') . '"></i> <br/>';
+                                        $emailStr .= $emailVal->email.' ' . \App\Helpers\IconHelper::fromLegacy('fas fa-check-circle', ['class' => 'verified-icon fa-lg', 'style' => 'color: #28a745;', 'title' => 'Verified on ' . ($emailVal->verified_at ? $emailVal->verified_at->format('M j, Y g:i A') : 'Unknown')]) . ' <br/>';
                                     } else {
-                                        $emailStr .= $emailVal->email.' <i class="far fa-circle unverified-icon fa-lg" style="color: #6c757d;" title="Not verified"></i> <br/>';
+                                        $emailStr .= $emailVal->email.' ' . \App\Helpers\IconHelper::fromLegacy('far fa-circle', ['class' => 'unverified-icon fa-lg', 'style' => 'color: #6c757d;', 'title' => 'Not verified']) . ' <br/>';
                                     }
                                 } else {
                                     if ( isset($emailVal->is_verified) && $emailVal->is_verified ) {
-                                        $emailStr .= $emailVal->email.' <i class="fas fa-check-circle verified-icon fa-lg" style="color: #28a745;" title="Verified on ' . ($emailVal->verified_at ? $emailVal->verified_at->format('M j, Y g:i A') : 'Unknown') . '"></i> <br/>';
+                                        $emailStr .= $emailVal->email.' ' . \App\Helpers\IconHelper::fromLegacy('fas fa-check-circle', ['class' => 'verified-icon fa-lg', 'style' => 'color: #28a745;', 'title' => 'Verified on ' . ($emailVal->verified_at ? $emailVal->verified_at->format('M j, Y g:i A') : 'Unknown')]) . ' <br/>';
                                     } else {
-                                        $emailStr .= $emailVal->email.' <i class="far fa-circle unverified-icon fa-lg" style="color: #6c757d;" title="Not verified"></i> <br/>';
+                                        $emailStr .= $emailVal->email.' ' . \App\Helpers\IconHelper::fromLegacy('far fa-circle', ['class' => 'unverified-icon fa-lg', 'style' => 'color: #6c757d;', 'title' => 'Not verified']) . ' <br/>';
                                     }
                                 }
                             }
@@ -364,10 +364,10 @@
         @if($fetchedData->company->contactPerson)
             <div class="card" style="margin-bottom: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3><i class="fas fa-user-tie"></i> Primary Contact Person</h3>
+                    <h3>@icon('fa-user-tie') Primary Contact Person</h3>
                     <a href="{{ route('clients.detail', base64_encode(convert_uuencode($fetchedData->company->contactPerson->id))) }}" 
                        class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-external-link-alt"></i> View Profile
+                        @icon('fa-external-link-alt') View Profile
                     </a>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
@@ -414,11 +414,11 @@
 
         {{-- Tags Section --}}
         <div class="card">
-            <h3><i class="fas fa-address-card"></i> Tag(s):   
+            <h3>@icon('fa-address-card') Tag(s):   
                 <span class="float-right text-muted" style="margin-left:180px;">
                 <a href="javascript:;" data-id="{{$fetchedData->id}}" class="btn btn-primary opentagspopup btn-sm">Add Tag</a>
                 <a href="javascript:;" data-id="{{$fetchedData->id}}" class="btn btn-outline-danger openredtagspopup btn-sm ml-1" title="Add Tag (hidden by default)">
-                    <i class="fas fa-exclamation-triangle"></i> Add Tag
+                    @icon('fa-exclamation-triangle') Add Tag
                 </a>
                 </span>
             </h3>
@@ -501,7 +501,7 @@
                 if($redTagCount > 0) { ?>
                     <div class="red-tags-section" style="display: none; margin-top: 10px;">
                         <div style="margin-bottom: 5px; font-size: 11px; color: #dc3545; font-weight: bold;">
-                            <i class="fas fa-exclamation-triangle"></i> Red Tags:
+                            @icon('fa-exclamation-triangle') Red Tags:
                         </div>
                         <?php foreach($redTags as $tag) { ?>
                             <span class="ui label tag-red ag-flex ag-align-center ag-space-between" style="display: inline-flex; margin: 5px 5px 5px 0; background-color: #dc3545; border: 1px solid #c82333;">
@@ -512,7 +512,7 @@
                     
                     <div style="margin-top: 10px;">
                         <a href="javascript:;" id="toggleRedTags" class="btn btn-sm btn-outline-danger" data-client-id="{{$fetchedData->id}}" title="Show Red Tags">
-                            <i class="fas fa-eye"></i>
+                            @icon('fa-eye')
                         </a>
                     </div>
                 <?php }
@@ -589,7 +589,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set initial state
         if (isVisible) {
             redTagsSection.style.display = 'block';
-            toggleRedTagsBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+            toggleRedTagsBtn.innerHTML = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-eye-slash') : '<i class="fas fa-eye-slash"></i>');
             toggleRedTagsBtn.classList.remove('btn-outline-danger');
             toggleRedTagsBtn.classList.add('btn-danger');
             toggleRedTagsBtn.title = 'Hide Red Tags';
@@ -601,7 +601,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isCurrentlyVisible) {
                 // Hide red tags
                 redTagsSection.style.display = 'none';
-                this.innerHTML = '<i class="fas fa-eye"></i>';
+                this.innerHTML = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-eye') : '<i class="fas fa-eye"></i>');
                 this.classList.remove('btn-danger');
                 this.classList.add('btn-outline-danger');
                 this.title = 'Show Red Tags';
@@ -609,7 +609,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 // Show red tags
                 redTagsSection.style.display = 'block';
-                this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                this.innerHTML = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-eye-slash') : '<i class="fas fa-eye-slash"></i>');
                 this.classList.remove('btn-outline-danger');
                 this.classList.add('btn-danger');
                 this.title = 'Hide Red Tags';

@@ -118,23 +118,39 @@ class EmailLogAttachment extends Model
     }
 
     /**
-     * Get the icon class for the attachment type.
+     * Legacy Font Awesome class string (kept for backward compatibility).
      */
     public function getIconClassAttribute(): string
     {
         if ($this->isImage()) {
             return 'fas fa-image text-blue-500';
         }
-        
+
         if ($this->isPdf()) {
             return 'fas fa-file-pdf text-red-500';
         }
-        
+
         if ($this->isDocument()) {
             return 'fas fa-file-alt text-gray-500';
         }
-        
+
         return 'fas fa-paperclip text-gray-400';
+    }
+
+    /**
+     * Render attachment type icon as Lucide HTML.
+     */
+    public function iconHtml(): string
+    {
+        $legacy = $this->icon_class;
+        $colorClass = '';
+
+        if (preg_match('/\b(text-\S+)\b/', $legacy, $matches)) {
+            $colorClass = $matches[1];
+            $legacy = trim(preg_replace('/\b(text-\S+)\b/', '', $legacy) ?? $legacy);
+        }
+
+        return \App\Helpers\IconHelper::fromLegacy($legacy, ['class' => trim($colorClass)]);
     }
 
     /**

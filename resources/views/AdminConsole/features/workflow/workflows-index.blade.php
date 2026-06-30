@@ -98,8 +98,8 @@
 										<td>{{ $wf->stages->count() }}</td>
 										<td>
 											<div class="workflows-index-actions">
-												<a class="btn btn-sm btn-primary" href="{{ route('adminconsole.features.workflow.stages', base64_encode(convert_uuencode($wf->id))) }}"><i class="fas fa-list"></i> Manage Stages</a>
-												<a class="btn btn-sm btn-secondary" href="{{ route('adminconsole.features.workflow.editWorkflow', base64_encode(convert_uuencode($wf->id))) }}"><i class="far fa-edit"></i> Edit Workflow</a>
+												<a class="btn btn-sm btn-primary" href="{{ route('adminconsole.features.workflow.stages', base64_encode(convert_uuencode($wf->id))) }}">@icon('fa-list') Manage Stages</a>
+												<a class="btn btn-sm btn-secondary" href="{{ route('adminconsole.features.workflow.editWorkflow', base64_encode(convert_uuencode($wf->id))) }}">@icon('fa-edit') Edit Workflow</a>
 											</div>
 										</td>
 									</tr>

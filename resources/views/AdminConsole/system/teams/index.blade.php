@@ -19,7 +19,7 @@
 							<div class="card-header">
 								<h4>Checklists</h4>
 								<div class="card-header-action">
-									<a href="{{route('adminconsole.system.teams.index')}}" class="btn btn-primary"><i class="fa fa-arrow-left"></i> Back</a>
+									<a href="{{route('adminconsole.system.teams.index')}}" class="btn btn-primary">@icon('fa-arrow-left') Back</a>
 								</div>
 							</div>
 						</div>
@@ -98,7 +98,7 @@
 											<span style="background-color:{{$list->color}};width: 40px;display: inline-block;">&nbsp;</span>						  
 										</td>
 										<td>
-										<a class="dropdown-item has-icon" href="{{route('adminconsole.system.teams.edit', $list->id)}}" ><i class="fas fa-edit"></i> Edit</a>							  
+										<a class="dropdown-item has-icon" href="{{route('adminconsole.system.teams.edit', $list->id)}}" >@icon('fa-edit') Edit</a>							  
 										</td>
 									</tr>	
 								@endforeach	 

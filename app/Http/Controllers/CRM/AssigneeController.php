@@ -100,15 +100,18 @@ class AssigneeController extends Controller
                 $description = '';
                 if (!empty($data['completion_notes'])) {
                     $description .= '<p>';
-                    $description .= '<i class="fas fa-ellipsis-v convert-activity-to-note" ';
-                    $description .= 'style="cursor: pointer; color: #6c757d;" ';
-                    $description .= 'title="Convert to Note" ';
-                    $description .= 'data-activity-id="" ';
-                    $description .= 'data-activity-subject="Completion Notes" ';
-                    $description .= 'data-activity-description="'.htmlspecialchars($data['completion_notes'], ENT_QUOTES).'" ';
-                    $description .= 'data-activity-created-by="'.Auth::user()->id.'" ';
-                    $description .= 'data-activity-created-at="'.now().'" ';
-                    $description .= 'data-client-id="'.$note_data['client_id'].'"></i></p>';
+                    $description .= IconHelper::fromLegacy('fas fa-ellipsis-v', [
+                        'class' => 'convert-activity-to-note',
+                        'style' => 'cursor: pointer; color: #6c757d;',
+                        'title' => 'Convert to Note',
+                        'data-activity-id' => '',
+                        'data-activity-subject' => 'Completion Notes',
+                        'data-activity-description' => $data['completion_notes'],
+                        'data-activity-created-by' => Auth::user()->id,
+                        'data-activity-created-at' => now()->toIso8601String(),
+                        'data-client-id' => $note_data['client_id'],
+                    ]);
+                    $description .= '</p>';
                     $description .= '<p>'.nl2br(htmlspecialchars($data['completion_notes'])).'</p>';
                     $description .= '<hr>';
                 }

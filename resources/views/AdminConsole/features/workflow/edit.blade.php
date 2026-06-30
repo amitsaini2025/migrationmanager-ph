@@ -16,7 +16,7 @@
 							<div class="card-header">
 								<h4>Edit Workflow Stage</h4>
 							<div class="card-header-action">
-									<a href="{{ isset($workflow) && $workflow ? route('adminconsole.features.workflow.stages', base64_encode(convert_uuencode($workflow->id))) : route('adminconsole.features.workflow.index') }}" class="btn btn-primary"><i class="fa fa-arrow-left"></i> Back</a>
+									<a href="{{ isset($workflow) && $workflow ? route('adminconsole.features.workflow.stages', base64_encode(convert_uuencode($workflow->id))) : route('adminconsole.features.workflow.index') }}" class="btn btn-primary">@icon('fa-arrow-left') Back</a>
 							</div>
 							</div>
 						</div>
@@ -62,7 +62,7 @@
 								</div>
 								<div class="form-group float-right">
 									@if(isset($workflow) && $workflow)
-									<a href="{{ route('adminconsole.features.workflow.createStage', base64_encode(convert_uuencode($workflow->id))) }}?after={{ rawurlencode(base64_encode(convert_uuencode($fetchedData->id))) }}" class="btn btn-info mr-2"><i class="fa fa-plus"></i> Add stage after this one</a>
+									<a href="{{ route('adminconsole.features.workflow.createStage', base64_encode(convert_uuencode($workflow->id))) }}?after={{ rawurlencode(base64_encode(convert_uuencode($fetchedData->id))) }}" class="btn btn-info mr-2">@icon('fa-plus') Add stage after this one</a>
 									@endif
 									@if(!$stageFrozen)
 									<button type="submit" class="btn btn-primary">Save Workflow Stage</button>

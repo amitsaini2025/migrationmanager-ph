@@ -16,6 +16,7 @@
 
     <!-- Styles -->
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
+    <x-standalone-lucide />
 </head>
 <body>
     <div id="app">

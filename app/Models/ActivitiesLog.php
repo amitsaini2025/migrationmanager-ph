@@ -127,7 +127,7 @@ class ActivitiesLog extends Authenticatable
 	}
 
 	/**
-	 * Get activity icon based on type
+	 * Activity icon token (fa-* legacy name or Lucide kebab name).
 	 */
 	public function getIconAttribute()
 	{
@@ -147,6 +147,19 @@ class ActivitiesLog extends Authenticatable
 			'followup_cancelled' => 'fa-calendar-times',
 			default => 'fa-sticky-note',
 		};
+	}
+
+	/**
+	 * Render activity type icon as Lucide HTML.
+	 */
+	public function iconHtml(array $attributes = []): string
+	{
+		$classes = trim(($this->icon_color ?? '') . ' ' . ($attributes['class'] ?? ''));
+
+		return \App\Helpers\IconHelper::renderStored(
+			$this->icon,
+			array_merge($attributes, ['class' => $classes ?: null])
+		);
 	}
 
 	/**

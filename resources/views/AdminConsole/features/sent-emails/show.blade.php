@@ -58,7 +58,7 @@
                     {{-- Navigation --}}
                     <div class="mb-3">
                         <a href="{{ route('adminconsole.features.sent-emails.index') }}" class="btn btn-sm btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Back to Sent Emails
+                            @icon('fa-arrow-left') Back to Sent Emails
                         </a>
                     </div>
 
@@ -66,7 +66,7 @@
                     <div class="card">
                         <div class="card-header">
                             <h4 class="mb-0">
-                                <i class="fas fa-envelope-open-text"></i>
+                                @icon('fa-envelope-open-text')
                                 {{ $email->subject ?: '(no subject)' }}
                             </h4>
                             <div class="card-header-action">
@@ -150,7 +150,7 @@
                                     @endif
                                     <a href="{{ route('clients.detail', $email->client_id) }}" target="_blank"
                                        class="btn btn-xs btn-outline-primary ml-2" style="font-size:0.75rem;padding:1px 6px;">
-                                        <i class="fas fa-external-link-alt"></i> Open CRM
+                                        @icon('fa-external-link-alt') Open CRM
                                     </a>
                                 </dd>
                                 @endif
@@ -169,12 +169,12 @@
                     {{-- Event timeline --}}
                     <div class="card">
                         <div class="card-header">
-                            <h4 class="mb-0"><i class="fas fa-stream"></i> Activity Timeline</h4>
+                            <h4 class="mb-0">@icon('fa-stream') Activity Timeline</h4>
                         </div>
                         <div class="card-body">
                             @if($email->spam_reported_at)
                                 <div class="alert alert-danger py-2 px-3 mb-3" style="font-size:0.875rem;">
-                                    <i class="fas fa-exclamation-triangle"></i>
+                                    @icon('fa-exclamation-triangle')
                                     Recipient marked this email as spam on {{ $email->spam_reported_at->format('d M Y, H:i') }}.
                                 </div>
                             @endif
@@ -184,7 +184,7 @@
                                 'deliveryStatus' => $email->delivery_status,
                             ])
                             <p class="text-muted mb-0 mt-2" style="font-size:0.78rem;">
-                                <i class="fas fa-info-circle"></i>
+                                @icon('fa-info-circle')
                                 Delivery events (sent, delivered, bounced, etc.) are tracked via SendGrid.
                                 Open and click tracking are disabled to maximise deliverability and preserve link integrity.
                             </p>
@@ -196,7 +196,7 @@
                     <div class="card">
                         <div class="card-header">
                             <h4 class="mb-0">
-                                <i class="fas fa-paperclip"></i> Attachments
+                                @icon('fa-paperclip') Attachments
                                 <span class="badge badge-secondary ml-1">{{ $attachments->count() }}</span>
                             </h4>
                         </div>
@@ -204,11 +204,11 @@
                             @foreach($attachments->where('is_inline', false) as $att)
                             <div class="attach-item">
                                 @if(in_array($att->content_type, ['image/jpeg','image/png','image/gif','image/webp']))
-                                    <i class="fas fa-file-image text-info"></i>
+                                    @icon('fa-file-image', ['class' => 'text-info'])
                                 @elseif($att->content_type === 'application/pdf')
-                                    <i class="fas fa-file-pdf text-danger"></i>
+                                    @icon('fa-file-pdf', ['class' => 'text-danger'])
                                 @else
-                                    <i class="fas fa-paperclip text-secondary"></i>
+                                    @icon('fa-paperclip', ['class' => 'text-secondary'])
                                 @endif
                                 <span class="flex-grow-1">{{ $att->display_name ?? $att->filename }}</span>
                                 @if($att->file_size)
@@ -218,7 +218,7 @@
                                     {{-- S3 attachment: link via the document's stored URL --}}
                                     <a href="{{ $att->file_path ?? '#' }}" target="_blank" class="btn btn-xs btn-outline-secondary"
                                        style="font-size:0.75rem;padding:1px 6px;">
-                                        <i class="fas fa-download"></i> Download
+                                        @icon('fa-download') Download
                                     </a>
                                 @endif
                             </div>
@@ -230,11 +230,11 @@
                     {{-- Body preview --}}
                     <div class="card">
                         <div class="card-header">
-                            <h4 class="mb-0"><i class="fas fa-envelope"></i> Email Preview</h4>
+                            <h4 class="mb-0">@icon('fa-envelope') Email Preview</h4>
                             @if($previewUrl)
                             <div class="card-header-action">
                                 <a href="{{ $previewUrl }}" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-external-link-alt"></i> Open Full Preview
+                                    @icon('fa-external-link-alt') Open Full Preview
                                 </a>
                             </div>
                             @endif
@@ -247,7 +247,7 @@
                                         title="Email preview"></iframe>
                             @else
                                 <div class="preview-placeholder">
-                                    <i class="fas fa-file-alt fa-2x mb-2"></i>
+                                    @icon('fa-file-alt', ['class' => 'fa-2x mb-2'])
                                     <p class="mb-0">No preview available.</p>
                                     <small>A full HTML archive is only stored for emails sent via the CRM compose window.</small>
                                 </div>

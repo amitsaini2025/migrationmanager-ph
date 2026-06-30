@@ -10,6 +10,7 @@ use App\Models\ActivitiesLog;
 use App\Models\EmailLog;
 use App\Models\Workflow;
 use App\Models\WorkflowStage;
+use App\Helpers\IconHelper;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
@@ -693,15 +694,18 @@ class DashboardService
                 $description = '';
                 if (!empty($completionNotes)) {
                     $description .= '<p>';
-                    $description .= '<i class="fas fa-ellipsis-v convert-activity-to-note" ';
-                    $description .= 'style="cursor: pointer; color: #6c757d;" ';
-                    $description .= 'title="Convert to Note" ';
-                    $description .= 'data-activity-id="" ';
-                    $description .= 'data-activity-subject="Completion Notes" ';
-                    $description .= 'data-activity-description="' . htmlspecialchars($completionNotes, ENT_QUOTES) . '" ';
-                    $description .= 'data-activity-created-by="' . Auth::id() . '" ';
-                    $description .= 'data-activity-created-at="' . now() . '" ';
-                    $description .= 'data-client-id="' . $noteData->client_id . '"></i></p>';
+                    $description .= IconHelper::fromLegacy('fas fa-ellipsis-v', [
+                        'class' => 'convert-activity-to-note',
+                        'style' => 'cursor: pointer; color: #6c757d;',
+                        'title' => 'Convert to Note',
+                        'data-activity-id' => '',
+                        'data-activity-subject' => 'Completion Notes',
+                        'data-activity-description' => $completionNotes,
+                        'data-activity-created-by' => Auth::id(),
+                        'data-activity-created-at' => now()->toIso8601String(),
+                        'data-client-id' => $noteData->client_id,
+                    ]);
+                    $description .= '</p>';
                     $description .= '<p>' . nl2br(htmlspecialchars($completionNotes)) . '</p>';
                     $description .= '<hr>';
                 }

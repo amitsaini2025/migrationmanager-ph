@@ -18,7 +18,7 @@
                 <div class="col-9 col-md-9 col-lg-9">
                     <div class="card">
                         <div class="card-header">
-                            <h4><i class="fas fa-paper-plane"></i> Send SMS</h4>
+                            <h4>@icon('fa-paper-plane') Send SMS</h4>
                         </div>
                         <div class="card-body">
                             <form id="smsForm">
@@ -58,10 +58,10 @@
                                 
                                 <div class="form-group">
                                     <button type="submit" class="btn btn-primary" id="sendBtn">
-                                        <i class="fas fa-paper-plane"></i> Send SMS
+                                        @icon('fa-paper-plane') Send SMS
                                     </button>
                                     <a href="{{ route('adminconsole.features.sms.dashboard') }}" class="btn btn-secondary">
-                                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                                        @icon('fa-arrow-left') Back to Dashboard
                                     </a>
                                 </div>
                             </form>
@@ -114,7 +114,7 @@ $(document).ready(function() {
             _token: $('input[name="_token"]').val()
         };
         
-        $('#sendBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+        $('#sendBtn').prop('disabled', true).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-spinner fa-spin') : '<i class="fas fa-spinner fa-spin"></i>') + ' Sending...');
         
         $.ajax({
             url: '{{ route("adminconsole.features.sms.send") }}',
@@ -139,7 +139,7 @@ $(document).ready(function() {
                 }
             },
             complete: function() {
-                $('#sendBtn').prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Send SMS');
+                $('#sendBtn').prop('disabled', false).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-paper-plane') : '<i class="fas fa-paper-plane"></i>') + ' Send SMS');
             }
         });
     });

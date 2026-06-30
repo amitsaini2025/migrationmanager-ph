@@ -242,10 +242,10 @@
         <div class="listing-section-body">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-                    <h4><i class="fas fa-chart-bar"></i> EOI/ROI Sheet - Insights</h4>
+                    <h4>@icon('fa-chart-bar') EOI/ROI Sheet - Insights</h4>
                     <div class="card-header-actions">
                         <a href="{{ route('clients.index') }}" class="btn btn-theme btn-theme-sm" title="Back to Clients">
-                            <i class="fas fa-arrow-left"></i> Back to Clients
+                            @icon('fa-arrow-left') Back to Clients
                         </a>
                     </div>
                 </div>
@@ -253,11 +253,11 @@
                 {{-- Tabs --}}
                 <div class="sheet-tabs">
                     <a href="{{ route('clients.sheets.eoi-roi', request()->query()) }}" class="sheet-tab">
-                        <i class="fas fa-list"></i> List
+                        @icon('fa-list') List
                     </a>
                     @if(Auth::user() && in_array(Auth::user()->role, [1, 12]))
                     <a href="{{ route('clients.sheets.eoi-roi.insights', request()->query()) }}" class="sheet-tab active">
-                        <i class="fas fa-chart-bar"></i> Insights
+                        @icon('fa-chart-bar') Insights
                     </a>
                     @endif
                 </div>
@@ -265,7 +265,7 @@
                 <div class="card-body">
                     @if($activeFilterCount > 0)
                         <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> Showing insights for filtered data ({{ $activeFilterCount }} filter(s) active).
+                            @icon('fa-info-circle') Showing insights for filtered data ({{ $activeFilterCount }} filter(s) active).
                             <a href="{{ route('clients.sheets.eoi-roi.insights') }}" class="alert-link">View all data</a>
                         </div>
                     @endif
@@ -274,7 +274,7 @@
                     <div class="insights-grid">
                         <div class="insight-card">
                             <div class="insight-card-icon primary">
-                                <i class="fas fa-passport"></i>
+                                @icon('fa-passport')
                             </div>
                             <div class="insight-card-title">Total EOI Records</div>
                             <div class="insight-card-value">{{ $insights['total_records'] }}</div>
@@ -282,7 +282,7 @@
 
                         <div class="insight-card">
                             <div class="insight-card-icon success">
-                                <i class="fas fa-check-circle"></i>
+                                @icon('fa-check-circle')
                             </div>
                             <div class="insight-card-title">Average Points</div>
                             <div class="insight-card-value">{{ $insights['avg_individual_points'] }}</div>
@@ -290,7 +290,7 @@
 
                         <div class="insight-card">
                             <div class="insight-card-icon info">
-                                <i class="fas fa-calendar-week"></i>
+                                @icon('fa-calendar-week')
                             </div>
                             <div class="insight-card-title">Last 7 Days</div>
                             <div class="insight-card-value">{{ $insights['recent_submissions_7d'] }}</div>
@@ -298,7 +298,7 @@
 
                         <div class="insight-card">
                             <div class="insight-card-icon warning">
-                                <i class="fas fa-calendar-alt"></i>
+                                @icon('fa-calendar-alt')
                             </div>
                             <div class="insight-card-title">Last 30 Days</div>
                             <div class="insight-card-value">{{ $insights['recent_submissions_30d'] }}</div>
@@ -309,13 +309,13 @@
                         {{-- By Status --}}
                         <div class="col-md-6">
                             <div class="breakdown-section">
-                                <h5><i class="fas fa-tasks mr-2"></i>By Status</h5>
+                                <h5>@icon('fa-tasks', ['class' => 'mr-2'])By Status</h5>
                                 @if(!empty($insights['by_status']))
                                     @php $maxStatusCount = max($insights['by_status']); @endphp
                                     @foreach($insights['by_status'] as $status => $count)
                                         <div class="breakdown-item">
                                             <div class="breakdown-label">
-                                                <i class="fas fa-circle" style="font-size: 8px; color: #667eea;"></i>
+                                                @icon('fa-circle', ['style' => 'font-size: 8px; color: #667eea;'])
                                                 {{ ucfirst($status ?: 'Not Set') }}
                                             </div>
                                             <div class="breakdown-value">{{ $count }}</div>
@@ -333,13 +333,13 @@
                         {{-- By Subclass --}}
                         <div class="col-md-6">
                             <div class="breakdown-section">
-                                <h5><i class="fas fa-passport mr-2"></i>By Subclass</h5>
+                                <h5>@icon('fa-passport', ['class' => 'mr-2'])By Subclass</h5>
                                 @if(!empty($insights['by_subclass']))
                                     @php $maxSubclassCount = max($insights['by_subclass']); @endphp
                                     @foreach($insights['by_subclass'] as $subclass => $count)
                                         <div class="breakdown-item">
                                             <div class="breakdown-label">
-                                                <i class="fas fa-circle" style="font-size: 8px; color: #667eea;"></i>
+                                                @icon('fa-circle', ['style' => 'font-size: 8px; color: #667eea;'])
                                                 Subclass {{ $subclass }}
                                             </div>
                                             <div class="breakdown-value">{{ $count }}</div>
@@ -357,7 +357,7 @@
 
                     {{-- By State --}}
                     <div class="breakdown-section">
-                        <h5><i class="fas fa-map-marked-alt mr-2"></i>By State</h5>
+                        <h5>@icon('fa-map-marked-alt', ['class' => 'mr-2'])By State</h5>
                         @if(!empty($insights['by_state']))
                             <div class="row">
                                 @php $maxStateCount = max($insights['by_state']); @endphp
@@ -365,7 +365,7 @@
                                     <div class="col-md-3 mb-3">
                                         <div class="breakdown-item">
                                             <div class="breakdown-label">
-                                                <i class="fas fa-circle" style="font-size: 8px; color: #667eea;"></i>
+                                                @icon('fa-circle', ['style' => 'font-size: 8px; color: #667eea;'])
                                                 {{ $state }}
                                             </div>
                                             <div class="breakdown-value">{{ $count }}</div>
@@ -383,7 +383,7 @@
 
                     {{-- Submissions by Month --}}
                     <div class="chart-section">
-                        <h5><i class="fas fa-chart-line mr-2"></i>Submissions Over Last 6 Months</h5>
+                        <h5>@icon('fa-chart-line', ['class' => 'mr-2'])Submissions Over Last 6 Months</h5>
                         @if(!empty($insights['submissions_by_month']))
                             @php $maxMonthlyCount = max($insights['submissions_by_month']); @endphp
                             <div class="monthly-chart">

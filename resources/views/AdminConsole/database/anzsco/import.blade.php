@@ -20,21 +20,21 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">
-                        <i class="fas fa-file-import"></i> Import ANZSCO Occupation Data
+                        @icon('fa-file-import') Import ANZSCO Occupation Data
                     </h3>
                     <div class="card-tools">
                         <a href="{{ route('adminconsole.database.anzsco.download-template') }}" class="btn btn-success btn-sm">
-                            <i class="fas fa-download"></i> Download Template
+                            @icon('fa-download') Download Template
                         </a>
                         <a href="{{ route('adminconsole.database.anzsco.index') }}" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-arrow-left"></i> Back to List
+                            @icon('fa-arrow-left') Back to List
                         </a>
                     </div>
                 </div>
                 
                 <div class="card-body">
                     <div class="alert alert-info">
-                        <h5><i class="icon fas fa-info-circle"></i> Import Instructions</h5>
+                        <h5>@icon('fa-info-circle', ['class' => 'icon']) Import Instructions</h5>
                         <ul class="mb-0">
                             <li>Download the template file and fill in your occupation data</li>
                             <li>Supported formats: CSV, Excel (XLSX, XLS)</li>
@@ -69,7 +69,7 @@
 
                         <div class="form-group">
                             <button type="submit" class="btn btn-primary" id="importBtn">
-                                <i class="fas fa-upload"></i> Import Data
+                                @icon('fa-upload') Import Data
                             </button>
                         </div>
                     </form>
@@ -92,7 +92,7 @@
                         <div id="resultsStats" class="row mb-3">
                             <div class="col-md-2">
                                 <div class="info-box bg-info">
-                                    <span class="info-box-icon"><i class="fas fa-file"></i></span>
+                                    <span class="info-box-icon">@icon('fa-file')</span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Total Rows</span>
                                         <span class="info-box-number" id="stat-total">0</span>
@@ -101,7 +101,7 @@
                             </div>
                             <div class="col-md-2">
                                 <div class="info-box bg-success">
-                                    <span class="info-box-icon"><i class="fas fa-plus"></i></span>
+                                    <span class="info-box-icon">@icon('fa-plus')</span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Inserted</span>
                                         <span class="info-box-number" id="stat-inserted">0</span>
@@ -110,7 +110,7 @@
                             </div>
                             <div class="col-md-2">
                                 <div class="info-box bg-warning">
-                                    <span class="info-box-icon"><i class="fas fa-edit"></i></span>
+                                    <span class="info-box-icon">@icon('fa-edit')</span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Updated</span>
                                         <span class="info-box-number" id="stat-updated">0</span>
@@ -119,7 +119,7 @@
                             </div>
                             <div class="col-md-2">
                                 <div class="info-box bg-secondary">
-                                    <span class="info-box-icon"><i class="fas fa-ban"></i></span>
+                                    <span class="info-box-icon">@icon('fa-ban')</span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Skipped</span>
                                         <span class="info-box-number" id="stat-skipped">0</span>
@@ -128,7 +128,7 @@
                             </div>
                             <div class="col-md-2">
                                 <div class="info-box bg-danger">
-                                    <span class="info-box-icon"><i class="fas fa-exclamation-triangle"></i></span>
+                                    <span class="info-box-icon">@icon('fa-exclamation-triangle')</span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Errors</span>
                                         <span class="info-box-number" id="stat-errors">0</span>
@@ -139,14 +139,14 @@
 
                         <div id="errorsList" style="display: none;">
                             <div class="alert alert-danger">
-                                <h5><i class="icon fas fa-exclamation-triangle"></i> Errors</h5>
+                                <h5>@icon('fa-exclamation-triangle', ['class' => 'icon']) Errors</h5>
                                 <ul id="errorsContent"></ul>
                             </div>
                         </div>
 
                         <div id="warningsList" style="display: none;">
                             <div class="alert alert-warning">
-                                <h5><i class="icon fas fa-exclamation-circle"></i> Warnings</h5>
+                                <h5>@icon('fa-exclamation-circle', ['class' => 'icon']) Warnings</h5>
                                 <ul id="warningsContent"></ul>
                             </div>
                         </div>
@@ -158,7 +158,7 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">
-                        <i class="fas fa-table"></i> Template Structure
+                        @icon('fa-table') Template Structure
                     </h3>
                 </div>
                 <div class="card-body">

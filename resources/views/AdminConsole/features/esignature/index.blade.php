@@ -260,7 +260,7 @@
 						</div>
 						<a href="{{ route('adminconsole.features.esignature.export', ['format' => 'csv', 'start_date' => $startDate, 'end_date' => $endDate]) }}"
 						   class="btn btn-sm" style="background: rgba(255,255,255,0.2); color:#fff; border: 1px solid rgba(255,255,255,0.35); font-weight:500;">
-							<i class="fas fa-download mr-1"></i> Export CSV
+							@icon('fa-download', ['class' => 'mr-1']) Export CSV
 						</a>
 					</div>
 					<div class="card-body esignature-analytics-page">

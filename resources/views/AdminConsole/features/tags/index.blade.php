@@ -63,9 +63,9 @@
 										<td>{{ @$list->name == "" ? config('constants.empty') : Str::limit(@$list->name, '50', '...') }}</td> 	
 										<td>
 											@if(@$list->tag_type == 'red')
-												<span class="badge badge-danger"><i class="fas fa-tag"></i> Red Tag</span>
+												<span class="badge badge-danger">@icon('fa-tag') Red Tag</span>
 											@else
-												<span class="badge badge-primary"><i class="fas fa-tag"></i> Normal</span>
+												<span class="badge badge-primary">@icon('fa-tag') Normal</span>
 											@endif
 										</td>
 										<td>{{@$list->createddetail->first_name}}</td> 	
@@ -76,8 +76,8 @@
 											<div class="dropdown d-inline">
 												<button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Action</button>
 												<div class="dropdown-menu">
-													<a class="dropdown-item has-icon" href="{{route('adminconsole.features.tags.edit', base64_encode(convert_uuencode(@$list->id)))}}"><i class="far fa-edit"></i> Edit</a>
-													<a class="dropdown-item has-icon" href="javascript:;" onClick="deleteAction({{@$list->id}}, 'tags')"><i class="fas fa-trash"></i> Delete</a>
+													<a class="dropdown-item has-icon" href="{{route('adminconsole.features.tags.edit', base64_encode(convert_uuencode(@$list->id)))}}">@icon('fa-edit') Edit</a>
+													<a class="dropdown-item has-icon" href="javascript:;" onClick="deleteAction({{@$list->id}}, 'tags')">@icon('fa-trash') Delete</a>
 													
 												</div>
 											</div>								  

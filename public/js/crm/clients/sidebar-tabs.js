@@ -186,7 +186,7 @@
                             $tbody.html(`
                                 <tr class="no-data-row">
                                     <td colspan="9" class="text-center text-danger">
-                                        ${typeof crmI === 'function' ? crmI('fas fa-exclamation-triangle') : '<i class="fas fa-exclamation-triangle"></i>'} ${errorMsg}
+                                        ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-exclamation-triangle') : (typeof crmI === 'function' ? crmI('fas fa-exclamation-triangle') : '<i class="fas fa-exclamation-triangle"></i>')} ${errorMsg}
                                         <br><small>Error ${xhr.status}: ${xhr.statusText}</small>
                                     </td>
                                 </tr>

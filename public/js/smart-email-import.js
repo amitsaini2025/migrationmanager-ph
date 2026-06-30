@@ -114,7 +114,7 @@
             const size = (f.size / 1024).toFixed(1);
             $selectedFilesUl.append(
                 `<li class="list-group-item py-1 px-2">
-                    <i class="far fa-envelope mr-2 text-muted"></i>
+                    ${typeof crmIconAny === 'function' ? crmIconAny('far fa-envelope mr-2 text-muted') : '<i class="far fa-envelope mr-2 text-muted"></i>'}
                     <span>${escHtml(f.name)}</span>
                     <span class="text-muted ml-2 small">(${size} KB)</span>
                 </li>`
@@ -283,7 +283,7 @@
                 <div class="text-muted small text-truncate" style="max-width:280px">${escHtml(item.from || '')}</div>
                 <button type="button" class="btn btn-link btn-sm p-0 mt-1 btn-peek"
                     data-item-id="${escHtml(item.item_id)}">
-                    <i class="fas fa-eye mr-1"></i>Quick Peek
+                    ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-eye', { class: 'mr-1' }) : '<i class="fas fa-eye mr-1"></i>'}Quick Peek
                 </button>
             </td>
             <td class="align-middle">
@@ -321,7 +321,7 @@
             <td class="align-middle">
                 <button type="button" class="btn btn-sm btn-outline-success btn-confirm-row"
                     data-item-id="${escHtml(item.item_id)}">
-                    <i class="fas fa-check"></i>
+                    ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-check') : '<i class="fas fa-check"></i>'}
                 </button>
             </td>
         </tr>`;

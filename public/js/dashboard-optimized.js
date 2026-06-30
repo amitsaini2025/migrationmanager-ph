@@ -644,8 +644,8 @@ function updateTaskCount() {
     if (count === 0) {
         $('.todo-task-list').hide();
         if ($('.todo-empty-state').length === 0) {
-            const checkIcon = typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-check-circle') : '<i class="fas fa-check-circle"></i>';
-            const plusIcon = typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-plus') : '<i class="fas fa-plus"></i>';
+            const checkIcon = typeof crmIconAny === 'function' ? crmIconAny('fas fa-check-circle') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-check-circle') : '<i class="fas fa-check-circle"></i>');
+            const plusIcon = typeof crmIconAny === 'function' ? crmIconAny('fas fa-plus') : (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-plus') : '<i class="fas fa-plus"></i>');
             $('.todo-task-list-container').html(`
                 <div class="todo-empty-state">
                     <div class="todo-empty-icon">

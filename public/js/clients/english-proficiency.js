@@ -636,7 +636,7 @@ function showProficiencyDisplay(container, proficiencyLevel) {
     displayDiv.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="color: ${proficiencyLevel.color};">
-                <i class="fas fa-language"></i> ${proficiencyLevel.level}
+                ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-language') : '<i class="fas fa-language"></i>'} ${proficiencyLevel.level}
             </span>
             ${proficiencyLevel.points > 0 ? `<span style="color: #6c757d; font-size: 11px;">+${proficiencyLevel.points} points</span>` : ''}
         </div>
@@ -734,14 +734,14 @@ function calculateExistingTestScoreLevels() {
         
         if (proficiencyLevel) {
             displayElement.innerHTML = `
-                <i class="fas fa-language"></i> ${proficiencyLevel.level}
+                ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-language') : '<i class="fas fa-language"></i>'} ${proficiencyLevel.level}
                 ${proficiencyLevel.points > 0 ? ` <span style="font-size: 0.8em; opacity: 0.8;">(+${proficiencyLevel.points} points)</span>` : ''}
             `;
             displayElement.style.backgroundColor = `${proficiencyLevel.color}15`;
             displayElement.style.color = proficiencyLevel.color;
             displayElement.style.border = `2px solid ${proficiencyLevel.color}`;
         } else {
-            displayElement.innerHTML = '<i class="fas fa-question-circle"></i> Unable to Calculate';
+            displayElement.innerHTML = (typeof crmIconAny === 'function' ? crmIconAny('circle-question-mark') : '<i class="fas fa-question-circle"></i>') + ' Unable to Calculate';
             displayElement.style.backgroundColor = '#f8d7da';
             displayElement.style.color = '#721c24';
             displayElement.style.border = '1px solid #f5c6cb';
@@ -757,7 +757,7 @@ function showStoredProficiency(displayElement, level, points) {
     const color = getColorForLevel(level);
     
     displayElement.innerHTML = `
-        <i class="fas fa-language"></i> ${level}
+        ${typeof crmIconAny === 'function' ? crmIconAny('fas fa-language') : '<i class="fas fa-language"></i>'} ${level}
         ${numericPoints > 0 ? ` <span style="font-size: 0.8em; opacity: 0.8;">(+${numericPoints} points)</span>` : ''}
     `;
     displayElement.style.backgroundColor = `${color}15`;
@@ -779,7 +779,7 @@ function showIncompleteData(displayElement, storedLevel = null, storedPoints = n
         : '';
     
     displayElement.innerHTML = `
-        <div><i class="fas fa-exclamation-triangle"></i> Incomplete Data</div>
+        <div>${typeof crmIconAny === 'function' ? crmIconAny('fas fa-exclamation-triangle') : '<i class="fas fa-exclamation-triangle"></i>'} Incomplete Data</div>
         ${storedInfo}
     `;
     displayElement.style.backgroundColor = '#f8d7da';

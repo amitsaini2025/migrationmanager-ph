@@ -209,4 +209,14 @@ class IconHelper
 
         return implode(' ', $parts);
     }
+
+    /**
+     * Render an icon from a stored value (Lucide kebab name, fa-* token, or legacy class string).
+     */
+    public static function renderStored(?string $icon, array $attributes = [], string $fallback = 'tag'): string
+    {
+        $icon = trim((string) ($icon ?: $fallback));
+
+        return self::render($icon, $attributes);
+    }
 }

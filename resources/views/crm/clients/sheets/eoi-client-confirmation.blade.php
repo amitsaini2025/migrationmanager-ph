@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EOI Confirmation - {{ $action === 'confirm' ? 'Confirm Details' : 'Request Amendment' }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <x-standalone-lucide />
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -36,8 +36,13 @@
             font-weight: 600;
         }
         .confirmation-header .icon {
-            font-size: 60px;
             margin-bottom: 15px;
+            line-height: 0;
+        }
+        .confirmation-header .icon svg.lucide {
+            width: 60px;
+            height: 60px;
+            stroke: currentColor;
         }
         .confirmation-body {
             padding: 40px;
@@ -125,9 +130,9 @@
         <div class="confirmation-header">
             <div class="icon">
                 @if($action === 'confirm')
-                    <i class="fas fa-check-circle"></i>
+                    @icon('fa-check-circle')
                 @else
-                    <i class="fas fa-edit"></i>
+                    @icon('fa-edit')
                 @endif
             </div>
             <h1>
@@ -142,23 +147,23 @@
         <div class="confirmation-body">
             @if(session('success'))
                 <div class="alert alert-success alert-dismissible fade show">
-                    <i class="fas fa-check-circle"></i> {{ session('success') }}
+                    @icon('fa-check-circle') {{ session('success') }}
                 </div>
             @endif
 
             @if(session('error'))
                 <div class="alert alert-danger alert-dismissible fade show">
-                    <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+                    @icon('fa-exclamation-circle') {{ session('error') }}
                 </div>
             @endif
 
             @if($eoi->client_confirmation_status === 'confirmed')
                 <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> <strong>Already Confirmed!</strong> You have already confirmed these details on {{ $eoi->client_last_confirmation->format('d/m/Y H:i') }}.
+                    @icon('fa-check-circle') <strong>Already Confirmed!</strong> You have already confirmed these details on {{ $eoi->client_last_confirmation->format('d/m/Y H:i') }}.
                 </div>
             @elseif($eoi->client_confirmation_status === 'amendment_requested')
                 <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i> <strong>Amendment Requested!</strong> You have already requested an amendment on {{ $eoi->client_last_confirmation->format('d/m/Y H:i') }}.
+                    @icon('fa-exclamation-triangle') <strong>Amendment Requested!</strong> You have already requested an amendment on {{ $eoi->client_last_confirmation->format('d/m/Y H:i') }}.
                 </div>
             @endif
 
@@ -218,7 +223,7 @@
 
             @if($action === 'confirm')
                 <div class="alert-info-custom">
-                    <i class="fas fa-info-circle"></i> <strong>Important:</strong> By clicking "Confirm", you are verifying that all the information above is correct.
+                    @icon('fa-info-circle') <strong>Important:</strong> By clicking "Confirm", you are verifying that all the information above is correct.
                 </div>
 
                 <form action="{{ route('client.eoi.process', ['token' => $token]) }}" method="POST">
@@ -228,16 +233,16 @@
                     <div class="text-center">
                         <button type="submit" class="btn btn-confirm btn-custom" 
                                 @if($eoi->client_confirmation_status === 'confirmed') disabled @endif>
-                            <i class="fas fa-check-circle"></i> Confirm Details
+                            @icon('fa-check-circle') Confirm Details
                         </button>
                         <a href="{{ route('client.eoi.amend', ['token' => $token]) }}" class="btn btn-secondary-custom btn-custom">
-                            <i class="fas fa-edit"></i> Request Amendment
+                            @icon('fa-edit') Request Amendment
                         </a>
                     </div>
                 </form>
             @else
                 <div class="alert-warning-custom">
-                    <i class="fas fa-exclamation-triangle"></i> <strong>Request Amendment:</strong> Please provide details about what changes you would like to make.
+                    @icon('fa-exclamation-triangle') <strong>Request Amendment:</strong> Please provide details about what changes you would like to make.
                 </div>
 
                 <form action="{{ route('client.eoi.process', ['token' => $token]) }}" method="POST">
@@ -258,10 +263,10 @@
                     <div class="text-center">
                         <button type="submit" class="btn btn-confirm btn-custom"
                                 @if($eoi->client_confirmation_status === 'amendment_requested') disabled @endif>
-                            <i class="fas fa-paper-plane"></i> Submit Amendment Request
+                            @icon('fa-paper-plane') Submit Amendment Request
                         </button>
                         <a href="{{ route('client.eoi.confirm', ['token' => $token]) }}" class="btn btn-secondary-custom btn-custom">
-                            <i class="fas fa-arrow-left"></i> Back to Confirmation
+                            @icon('fa-arrow-left') Back to Confirmation
                         </a>
                     </div>
                 </form>
