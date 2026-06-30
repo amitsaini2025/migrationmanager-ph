@@ -11,7 +11,7 @@ Run `npm run audit:icons` to regenerate this file.
 | Files scanned | 1092 |
 | Files with FA icons | 200 |
 | Unique `fa-*` icon tokens | 214 |
-| Total references | 2499 |
+| Total references | 2498 |
 | Mapped in `config/icons.php` | 214 |
 | Unmapped (need review) | 0 |
 
@@ -20,7 +20,7 @@ Run `npm run audit:icons` to regenerate this file.
 | Token | Count | Lucide (config) |
 |-------|-------|-----------------|
 | `fa-check-circle` | 102 | `circle-check` |
-| `fa-spinner` | 95 | `loader-2` |
+| `fa-spinner` | 94 | `loader-2` |
 | `fa-info-circle` | 89 | `info` |
 | `fa-plus` | 87 | `plus` |
 | `fa-exclamation-triangle` | 84 | `triangle-alert` |

@@ -92,12 +92,12 @@
             <div class="card">
                 <div class="card-header">
                     <h4>
-                        <i class="fas fa-calendar-alt mr-2"></i>
+                        @icon('fa-calendar-alt', ['class' => 'mr-2'])
                         Visa Expiry Reports
                     </h4>
                     <div class="card-header-action">
                         <button onclick="location.reload()" class="btn btn-sm btn-info">
-                            <i class="fas fa-sync"></i> Refresh
+                            @icon('fa-sync') Refresh
                         </button>
                     </div>
                 </div>
@@ -134,7 +134,7 @@
         <div class="modal-content rounded-0">
             <div class="modal-header rounded-0">
                 <h5 class="modal-title">Visa Expiry Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><i class="fa fa-times"></i></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">@icon('fa-times')</button>
             </div>
             <div class="modal-body rounded-0">
                 <div class="container-fluid">

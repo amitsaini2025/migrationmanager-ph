@@ -234,7 +234,7 @@ The following were described as done on 26–27 Jun but are **not present** on `
 - [x] Remove duplicate `public/fonts/fa-*` SVGs *(2026-06-30)*
 - [x] Remove FA CDN from EOI sheets *(2026-06-30, Stage 8)*
 - [x] CSS pass: `emails.css`, `client-forms.css` — no `.fa-*` selectors *(2026-06-30)*
-- [x] Audit gate: `npm run audit:icons` exits 1 on unmapped; optional `audit:icons:strict` *(2026-06-30)*
+- [x] Audit gate: `npm run audit:icons` exits 1 on unmapped; `audit:icons:strict` exits 2 on raw static FA HTML *(2026-06-30, 0 hits)*
 - [x] Document brand icon exception (`IconHelper::brand()`) *(2026-06-30)*
 
 **Note:** `public/css/app.min.css` retains embedded FA 5 for login/non-CRM pages only. CRM pages do not depend on it for icons.

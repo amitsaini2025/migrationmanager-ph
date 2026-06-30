@@ -11,11 +11,11 @@
     ================================================================ --}}
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
-            <h4 class="mb-0"><i class="fas fa-mail-bulk mr-2 text-primary"></i> Smart Email Import</h4>
+            <h4 class="mb-0">@icon('fa-mail-bulk', ['class' => 'mr-2 text-primary']) Smart Email Import</h4>
             <small class="text-muted">Upload .msg files, review suggested client &amp; matter assignments, then confirm.</small>
         </div>
         <button id="btn-upload-more" class="btn btn-outline-secondary btn-sm d-none">
-            <i class="fas fa-upload mr-1"></i> Upload More
+            @icon('fa-upload', ['class' => 'mr-1']) Upload More
         </button>
     </div>
 
@@ -28,12 +28,12 @@
                 <div id="dropzone-area"
                      class="border-2 border-dashed rounded p-5 text-center"
                      style="border: 2px dashed #ced4da; cursor:pointer; transition: background .2s;">
-                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                    @icon('fa-cloud-upload-alt', ['class' => 'text-muted mb-3', 'style' => 'width: 3em; height: 3em;'])
                     <p class="mb-1 font-weight-semibold">Drag &amp; drop Outlook .msg files here</p>
                     <p class="text-muted small mb-3">or click to browse — up to 20 files, 30 MB each</p>
                     <input type="file" id="file-input" accept=".msg" multiple style="display:none">
                     <button type="button" class="btn btn-primary" id="btn-browse">
-                        <i class="fas fa-folder-open mr-1"></i> Browse Files
+                        @icon('fa-folder-open', ['class' => 'mr-1']) Browse Files
                     </button>
                 </div>
 
@@ -42,13 +42,13 @@
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <strong id="file-count-label">0 file(s) selected</strong>
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-clear-files">
-                            <i class="fas fa-times"></i> Clear
+                            @icon('fa-times') Clear
                         </button>
                     </div>
                     <ul id="selected-files-ul" class="list-group list-group-flush small"></ul>
                     <div class="mt-3 text-right">
                         <button type="button" class="btn btn-success" id="btn-analyze">
-                            <i class="fas fa-search mr-1"></i> Analyze Emails
+                            @icon('fa-search', ['class' => 'mr-1']) Analyze Emails
                         </button>
                     </div>
                 </div>
@@ -72,10 +72,10 @@
         <div class="card shadow-sm mb-3">
             <div class="card-body py-2 d-flex align-items-center flex-wrap gap-2">
                 <button id="btn-confirm-high-confidence" class="btn btn-success btn-sm mr-2">
-                    <i class="fas fa-check-double mr-1"></i> Confirm High Confidence (≥80%)
+                    @icon('fa-check-double', ['class' => 'mr-1']) Confirm High Confidence (≥80%)
                 </button>
                 <button id="btn-confirm-selected" class="btn btn-primary btn-sm mr-2">
-                    <i class="fas fa-check mr-1"></i> Confirm Selected
+                    @icon('fa-check', ['class' => 'mr-1']) Confirm Selected
                 </button>
                 <span class="text-muted small ml-2" id="bulk-status-text"></span>
             </div>
@@ -110,7 +110,7 @@
         {{-- Parse errors (if any) --}}
         <div id="parse-errors-panel" class="d-none mt-3">
             <div class="alert alert-warning">
-                <strong><i class="fas fa-exclamation-triangle mr-1"></i> The following files could not be parsed:</strong>
+                <strong>@icon('fa-exclamation-triangle', ['class' => 'mr-1']) The following files could not be parsed:</strong>
                 <ul id="parse-errors-ul" class="mb-0 mt-2 small"></ul>
             </div>
         </div>

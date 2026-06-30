@@ -23,9 +23,9 @@
 								</h4>
 								<div class="card-header-action">
 									@if(isset($matter))
-										<a href="{{route('adminconsole.features.matter.index')}}" class="btn btn-primary"><i class="fa fa-arrow-left"></i> Back to Matters</a>
+										<a href="{{route('adminconsole.features.matter.index')}}" class="btn btn-primary">@icon('fa-arrow-left') Back to Matters</a>
 									@else
-										<a href="{{route('adminconsole.features.documentchecklist.index')}}" class="btn btn-primary"><i class="fa fa-arrow-left"></i> Back</a>
+										<a href="{{route('adminconsole.features.documentchecklist.index')}}" class="btn btn-primary">@icon('fa-arrow-left') Back</a>
 									@endif
 								</div>
 							</div>
@@ -131,7 +131,7 @@
 																<a href="{{URL::to('/public/checklists/'.$list->file)}}">File</a>							  
 															</td>
 															<td>
-															<a style="background-color: #FFF;" class="dropdown-item has-icon" href="javascript:;" onClick="deleteAction({{@$list->id}}, 'matter_checklists')"><i class="fas fa-trash"></i> Delete</a>							  
+															<a style="background-color: #FFF;" class="dropdown-item has-icon" href="javascript:;" onClick="deleteAction({{@$list->id}}, 'matter_checklists')">@icon('fa-trash') Delete</a>							  
 															</td>
 														</tr>	
 														@endforeach	 

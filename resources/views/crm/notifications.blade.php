@@ -71,7 +71,7 @@
 							</div>
 							@else
 							<div class="text-center" style="padding: 40px;">
-								<i class="fas fa-bell" style="font-size: 48px; color: #ddd;"></i>
+								@icon('fa-bell', ['style' => 'width: 48px; height: 48px; color: #ddd;'])
 								<h5 class="mt-3">No Notifications</h5>
 								<p class="text-muted">You don't have any notifications yet.</p>
 							</div>

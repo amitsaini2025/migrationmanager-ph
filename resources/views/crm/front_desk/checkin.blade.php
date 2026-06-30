@@ -273,7 +273,7 @@
 <div class="fd-wizard-wrapper">
     <div class="fd-card">
         <div class="fd-card-header">
-            <h4><i class="fas fa-clipboard-check mr-2"></i>Front-Desk Check-In</h4>
+            <h4>@icon('fa-clipboard-check', ['class' => 'mr-2'])Front-Desk Check-In</h4>
             <p>Record a client or walk-in arrival at the front desk</p>
         </div>
         <div class="fd-card-body">
@@ -318,7 +318,7 @@
                 </div>
                 <div class="text-right">
                     <button type="button" class="btn btn-lg px-5 fd-btn-action" id="fdLookupBtn">
-                        <i class="fas fa-search mr-2"></i>Look Up
+                        @icon('fa-search', ['class' => 'mr-2'])Look Up
                     </button>
                 </div>
                 <div class="fd-spinner mt-3" id="fdLookupSpinner">
@@ -336,14 +336,14 @@
                 <div class="border-top pt-3 mt-2">
                     <p class="text-muted small mb-2">Not in the list?</p>
                     <button type="button" class="btn btn-sm fd-btn-walkin" id="fdWalkInBtn">
-                        <i class="fas fa-user-slash mr-1"></i>Continue as Walk-In (no CRM record)
+                        @icon('fa-user-slash', ['class' => 'mr-1'])Continue as Walk-In (no CRM record)
                     </button>
                 </div>
 
                 <div class="text-right mt-4">
-                    <button class="btn btn-light mr-2" id="fdStep2Back"><i class="fas fa-arrow-left mr-1"></i>Back</button>
+                    <button class="btn btn-light mr-2" id="fdStep2Back">@icon('fa-arrow-left', ['class' => 'mr-1'])Back</button>
                     <button type="button" class="btn fd-btn-action" id="fdStep2Next" disabled>
-                        Confirm Selection <i class="fas fa-arrow-right ml-1"></i>
+                        Confirm Selection @icon('fa-arrow-right', ['class' => 'ml-1'])
                     </button>
                 </div>
             </div>
@@ -355,15 +355,15 @@
 
                 <div class="fd-appt-choices mb-4">
                     <button type="button" class="fd-choice-btn fd-choice-yes" id="fdNewClientYes">
-                        <i class="fas fa-user-plus mr-2" aria-hidden="true"></i>Yes — I'm a new client
+                        @icon('fa-user-plus', ['class' => 'mr-2', 'aria-hidden' => 'true'])Yes — I'm a new client
                     </button>
                     <button type="button" class="fd-choice-btn fd-choice-no" id="fdNewClientNo">
-                        <i class="fas fa-user-check mr-2" aria-hidden="true"></i>No — I already have a file
+                        @icon('fa-user-check', ['class' => 'mr-2', 'aria-hidden' => 'true'])No — I already have a file
                     </button>
                 </div>
 
                 <div class="text-right mt-2">
-                    <button class="btn btn-light" id="fdStepNewClientBack"><i class="fas fa-arrow-left mr-1"></i>Back</button>
+                    <button class="btn btn-light" id="fdStepNewClientBack">@icon('fa-arrow-left', ['class' => 'mr-1'])Back</button>
                 </div>
             </div>
 
@@ -423,9 +423,9 @@
                 </div>
 
                 <div class="text-right mt-4">
-                    <button class="btn btn-light mr-2" id="fdStepLeadFormBack"><i class="fas fa-arrow-left mr-1"></i>Back</button>
+                    <button class="btn btn-light mr-2" id="fdStepLeadFormBack">@icon('fa-arrow-left', ['class' => 'mr-1'])Back</button>
                     <button type="button" class="btn btn-lg px-5 fd-btn-confirm" id="fdLeadSubmitBtn">
-                        <i class="fas fa-paper-plane mr-2"></i>Submit Check-In
+                        @icon('fa-paper-plane', ['class' => 'mr-2'])Submit Check-In
                     </button>
                 </div>
                 <div class="fd-spinner mt-3" id="fdLeadSubmitSpinner">
@@ -437,11 +437,11 @@
             {{-- ── STEP 2d: Not a client — dead end ─────────────── --}}
             <div class="fd-wizard-step" id="fdStepNotClient">
                 <div class="fd-success" style="padding: 30px 20px;">
-                    <i class="fas fa-hand-paper" style="font-size:3rem; color:#607d8b; margin-bottom:16px;"></i>
+                    @icon('fa-hand-paper', ['style' => 'font-size:3rem; color:#607d8b; margin-bottom:16px;'])
                     <h5 style="color:#212529;">Please speak with our receptionist</h5>
                     <p class="text-muted mb-4">Our front-desk team will be happy to help you locate your file.</p>
                     <button type="button" class="btn fd-btn-action" id="fdNotClientStartOver">
-                        <i class="fas fa-redo mr-2"></i>Start Over
+                        @icon('fa-redo', ['class' => 'mr-2'])Start Over
                     </button>
                 </div>
             </div>
@@ -451,9 +451,9 @@
                 <h6 class="fd-step-title mb-3 text-uppercase small">Step 3 — Confirm Details</h6>
                 <div id="fdConfirmSummary"></div>
                 <div class="text-right mt-4">
-                    <button class="btn btn-light mr-2" id="fdStep3Back"><i class="fas fa-arrow-left mr-1"></i>Back</button>
+                    <button class="btn btn-light mr-2" id="fdStep3Back">@icon('fa-arrow-left', ['class' => 'mr-1'])Back</button>
                     <button type="button" class="btn fd-btn-confirm" id="fdStep3Next">
-                        Details Correct <i class="fas fa-check ml-1"></i>
+                        Details Correct @icon('fa-check', ['class' => 'ml-1'])
                     </button>
                 </div>
             </div>
@@ -465,10 +465,10 @@
 
                 <div class="fd-appt-choices mb-4">
                     <button type="button" class="fd-choice-btn fd-choice-yes" id="fdHasApptYes">
-                        <i class="fas fa-calendar-check mr-2" aria-hidden="true"></i>Yes, has appointment
+                        @icon('fa-calendar-check', ['class' => 'mr-2', 'aria-hidden' => 'true'])Yes, has appointment
                     </button>
                     <button type="button" class="fd-choice-btn fd-choice-no" id="fdHasApptNo">
-                        <i class="fas fa-calendar-times mr-2" aria-hidden="true"></i>No appointment
+                        @icon('fa-calendar-times', ['class' => 'mr-2', 'aria-hidden' => 'true'])No appointment
                     </button>
                 </div>
 
@@ -484,9 +484,9 @@
                 </div>
 
                 <div class="text-right mt-4">
-                    <button class="btn btn-light mr-2" id="fdStep4Back"><i class="fas fa-arrow-left mr-1"></i>Back</button>
+                    <button class="btn btn-light mr-2" id="fdStep4Back">@icon('fa-arrow-left', ['class' => 'mr-1'])Back</button>
                     <button type="button" class="btn fd-btn-action" id="fdStep4Next" disabled>
-                        Continue <i class="fas fa-arrow-right ml-1"></i>
+                        Continue @icon('fa-arrow-right', ['class' => 'ml-1'])
                     </button>
                 </div>
             </div>
@@ -515,9 +515,9 @@
                 </div>
 
                 <div class="text-right mt-4">
-                    <button class="btn btn-light mr-2" id="fdStep5Back"><i class="fas fa-arrow-left mr-1"></i>Back</button>
+                    <button class="btn btn-light mr-2" id="fdStep5Back">@icon('fa-arrow-left', ['class' => 'mr-1'])Back</button>
                     <button type="button" class="btn btn-lg px-5 fd-btn-confirm" id="fdSubmitBtn">
-                        <i class="fas fa-paper-plane mr-2"></i>Submit Check-In
+                        @icon('fa-paper-plane', ['class' => 'mr-2'])Submit Check-In
                     </button>
                 </div>
                 <div class="fd-spinner mt-3" id="fdSubmitSpinner">
@@ -529,14 +529,14 @@
             {{-- ── SUCCESS ───────────────────────────────────────── --}}
             <div class="fd-wizard-step" id="fdStepSuccess">
                 <div class="fd-success">
-                    <i class="fas fa-check-circle"></i>
+                    @icon('fa-check-circle')
                     <h5>Check-In Recorded!</h5>
                     <p id="fdSuccessMsg" class="mb-4"></p>
                     <button type="button" class="btn fd-btn-action" id="fdStartOver">
-                        <i class="fas fa-redo mr-2"></i>New Check-In
+                        @icon('fa-redo', ['class' => 'mr-2'])New Check-In
                     </button>
                     <a href="{{ route('officevisits.waiting') }}" class="btn btn-outline-secondary ml-2">
-                        <i class="fas fa-list mr-2"></i>Office Visits
+                        @icon('fa-list', ['class' => 'mr-2'])Office Visits
                     </a>
                 </div>
             </div>
@@ -729,7 +729,7 @@
                     (m.is_company && m.company_name ? '<span class="text-muted small ml-1">(' + escHtml(m.company_name) + ')</span>' : '') +
                     '<br><small class="text-muted">' + escHtml(m.email || '—') + ' &bull; ' + escHtml(m.phone || '—') + '</small>' +
                 '</div>' +
-                '<i class="fas fa-check-circle text-primary mt-1" style="display:none;" data-checkmark></i>' +
+                '<span data-checkmark style="display:none;">' + crmI('fas fa-check-circle', { class: 'text-primary mt-1' }) + '</span>' +
                 '</div>';
 
             div.addEventListener('click', function () {
@@ -751,6 +751,10 @@
 
             container.appendChild(div);
         });
+
+        if (typeof refreshLucideIcons === 'function') {
+            refreshLucideIcons(container);
+        }
 
         setStep(2);
     }
@@ -935,9 +939,12 @@
 
         if (!state.adminId) {
             $('#fdApptList').innerHTML =
-                '<p class="text-muted"><i class="fas fa-info-circle mr-1"></i>' +
+                '<p class="text-muted">' + crmI('fas fa-info-circle', { class: 'mr-1' }) +
                 'Walk-in visitor — no CRM record to match an appointment against. ' +
                 'The visit will still be recorded.</p>';
+            if (typeof refreshLucideIcons === 'function') {
+                refreshLucideIcons($('#fdApptList'));
+            }
             hide($('#fdApptSpinner'));
             hide($('#fdApptNoneMsg'));
             $('#fdStep4Next').disabled = false;
@@ -994,7 +1001,7 @@
                     ' <span class="badge badge-' + statusBadge + '">' + escHtml(a.status) + '</span>' +
                     '<br><small class="text-muted">Consultant: ' + escHtml(a.consultant || '—') + ' &bull; ' + escHtml(a.location || '—') + '</small>' +
                 '</div>' +
-                '<i class="fas fa-check-circle text-info" style="display:none;" data-checkmark></i>' +
+                '<span data-checkmark style="display:none;">' + crmI('fas fa-check-circle', { class: 'text-info' }) + '</span>' +
                 '</div>';
 
             div.addEventListener('click', function () {
@@ -1010,6 +1017,10 @@
 
             container.appendChild(div);
         });
+
+        if (typeof refreshLucideIcons === 'function') {
+            refreshLucideIcons(container);
+        }
 
         // Allow proceeding without selecting one
         var skipP = document.createElement('p');

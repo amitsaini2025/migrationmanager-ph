@@ -1,13 +1,13 @@
 {{-- Address Information Section --}}
 <section class="form-section">
     <div class="section-header">
-        <h3><i class="fas fa-home"></i> Address Information</h3>
+        <h3>@icon('fa-home') Address Information</h3>
         <div class="section-actions">
             <button type="button" class="edit-section-btn" onclick="toggleEditMode('addressInfo')">
-                <i class="fas fa-pen"></i>
+                @icon('fa-pen')
             </button>
             <button type="button" class="add-section-btn" onclick="addAddress()" title="Add Address">
-                <i class="fas fa-plus"></i>
+                @icon('fa-plus')
             </button>
         </div>
     </div>
@@ -100,7 +100,7 @@
         </div>
         
         <button type="button" class="add-another-address" onclick="addAnotherAddress()">
-            <i class="fas fa-plus"></i> Add Another Address
+            @icon('fa-plus') Add Another Address
         </button>
 
         <div class="edit-actions">

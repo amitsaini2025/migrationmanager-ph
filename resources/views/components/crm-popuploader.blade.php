@@ -23,8 +23,7 @@
         text-align: center;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     }
-    .popuploader.crm-global-popuploader .popuploader__panel svg.lucide,
-    .popuploader.crm-global-popuploader .popuploader__panel i.fa-spinner {
+    .popuploader.crm-global-popuploader .popuploader__panel svg.lucide.icon-spin {
         width: 32px;
         height: 32px;
         color: #667eea;

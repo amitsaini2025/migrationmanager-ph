@@ -3,7 +3,7 @@ $matter_cnt = \App\Models\ClientMatter::select('id')->where('client_id', $fetche
 if ($matter_cnt > 0) {
 ?>
     <div class="card">
-        <h3><i class="fas fa-user"></i> Matter Assignee  <a style="margin-left: 110px;" class="changeMatterAssignee" href="javascript:;" role="button">Change Assignee</a></h3>
+        <h3>@icon('fa-user') Matter Assignee  <a style="margin-left: 110px;" class="changeMatterAssignee" href="javascript:;" role="button">Change Assignee</a></h3>
 
         <?php
         $matter_dis_ref_info_arr = [];

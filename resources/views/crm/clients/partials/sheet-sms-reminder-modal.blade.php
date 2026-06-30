@@ -4,7 +4,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="sheetSmsReminderLabel">
-                    <i class="fas fa-sms"></i> SMS Reminder
+                    @icon('fa-sms') SMS Reminder
                 </h5>
                 <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
@@ -24,7 +24,7 @@
                                     <option value="">Select phone number...</option>
                                 </select>
                                 <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle"></i>
+                                    @icon('fa-info-circle')
                                     Australian numbers will use Cellcast, international numbers will use Twilio
                                 </small>
                             </div>
@@ -54,7 +54,7 @@
                         </div>
                         <div class="col-12">
                             <button type="submit" class="btn btn-primary" id="sheetSendSmsBtn">
-                                <i class="fas fa-paper-plane"></i> Send SMS
+                                @icon('fa-paper-plane') Send SMS
                             </button>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         </div>

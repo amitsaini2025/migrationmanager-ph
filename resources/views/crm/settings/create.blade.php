@@ -18,7 +18,7 @@
 						<div class="card-header">
 							<h4>New Tax</h4>
 							<div class="card-header-action">
-								<a href="{{route('returnsetting')}}" class="btn btn-primary"><i class="fa fa-arrow-left"></i> Back</a>
+								<a href="{{route('returnsetting')}}" class="btn btn-primary">@icon('fa-arrow-left') Back</a>
 							</div>
 						</div>
 						<form action="{{ url('settings/taxes/savereturnsetting') }}" method="POST" name="add-city" autocomplete="off" enctype="multipart/form-data">
@@ -50,7 +50,7 @@
 								</div>
 								<div class="col-12">
 									<div class="form-group float-right">
-										<button type="submit" class="btn btn-primary" onClick="customValidate('add-city')"><i class="fa fa-save"></i> Save</button>
+										<button type="submit" class="btn btn-primary" onClick="customValidate('add-city')">@icon('fa-save') Save</button>
 									</div> 
 								</div> 
 							</div> 

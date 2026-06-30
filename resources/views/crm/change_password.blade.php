@@ -54,7 +54,7 @@
 											@endif
 										</div>
 										<div class="form-group">
-											<button type="submit" class="btn btn-primary px-4" onClick="customValidate('change-password')"><i class="fa fa-key"></i> Change Password</button>
+											<button type="submit" class="btn btn-primary px-4" onClick="customValidate('change-password')">@icon('fa-key') Change Password</button>
 										</div>
 									</div>
 								</div>

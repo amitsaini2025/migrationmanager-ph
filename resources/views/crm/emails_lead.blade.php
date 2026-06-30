@@ -29,7 +29,7 @@
         <!-- Left Email List Pane (no upload for leads - emails are from CRM send only) -->
         <div class="email-list-pane">
             <div class="upload-section-header lead-email-notice">
-                <span class="upload-title"><i class="fas fa-info-circle"></i> Emails sent to this lead from the CRM</span>
+                <span class="upload-title">@icon('fa-info-circle') Emails sent to this lead from the CRM</span>
             </div>
             <div class="upload-section-container" style="display: none;">
                 <!-- Upload hidden for leads - no .msg upload support yet -->
@@ -48,7 +48,7 @@
             <div class="email-list" id="emailList">
                 <div class="empty-state">
                     <div class="empty-state-icon">
-                        <i class="fas fa-inbox"></i>
+                        @icon('fa-inbox')
                     </div>
                     <div class="empty-state-text">
                         <h3>No emails found</h3>
@@ -62,7 +62,7 @@
         <div class="email-content-pane">
             <div class="email-content-placeholder" id="emailContentPlaceholder">
                 <div class="placeholder-content">
-                    <i class="fas fa-envelope-open"></i>
+                    @icon('fa-envelope-open')
                     <h3>Select an email to view its contents</h3>
                 </div>
             </div>
@@ -91,22 +91,22 @@
 <!-- Email Context Menu -->
 <div id="emailContextMenu" class="email-context-menu" style="display: none;">
     <div class="context-menu-item" data-action="apply-label">
-        <i class="fas fa-tag"></i>
+        @icon('fa-tag')
         <span>Apply Label</span>
-        <i class="fas fa-chevron-right context-menu-arrow"></i>
+        @icon('fa-chevron-right', ['class' => 'context-menu-arrow'])
     </div>
     <div class="context-menu-item" data-action="reply">
-        <i class="fas fa-reply"></i>
+        @icon('fa-reply')
         <span>Reply</span>
     </div>
     <div class="context-menu-item" data-action="forward">
-        <i class="fas fa-share"></i>
+        @icon('fa-share')
         <span>Forward</span>
     </div>
     @if($canDeleteEmail)
     <div class="context-menu-separator"></div>
     <div class="context-menu-item" data-action="delete">
-        <i class="fas fa-trash"></i>
+        @icon('fa-trash')
         <span>Delete</span>
     </div>
     @endif
@@ -115,7 +115,7 @@
 <!-- Label Submenu -->
 <div id="labelSubmenu" class="email-context-submenu" style="display: none;">
     <div class="submenu-header">
-        <i class="fas fa-arrow-left submenu-back"></i>
+        @icon('fa-arrow-left', ['class' => 'submenu-back'])
         <span>Select Label</span>
     </div>
     <div class="submenu-content" id="labelSubmenuContent">

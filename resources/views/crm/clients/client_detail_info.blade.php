@@ -74,7 +74,7 @@
                                             <div class="input-group" style="width: 90%;">
                                                 <div class="input-group-prepend">
                                                     <div class="input-group-text">
-                                                        <i class="fas fa-calendar-alt"></i>
+                                                        @icon('fa-calendar-alt')
                                                     </div>
                                                 </div>
                                                 <?php
@@ -98,7 +98,7 @@
                                             <div class="input-group">
                                                 <div class="input-group-prepend">
                                                     <div class="input-group-text">
-                                                        <i class="fas fa-calendar-alt"></i>
+                                                        @icon('fa-calendar-alt')
                                                     </div>
                                                 </div>
                                                 <input type="text" name="age" value="{{ @$fetchedData->age }}" class="form-control" data-valid="" autocomplete="off" placeholder="">
@@ -4067,13 +4067,13 @@
                                         @if($redTags->count() > 0)
                                             <optgroup label="Red Tags (Hidden)">
                                                 @foreach($redTags as $tags)
-                                                    <option <?php if(in_array($tags->id, $explodee)){ echo 'selected'; } ?> value="{{$tags->id}}" style="color: #dc3545;">{{$tags->name}} <i class="fas fa-exclamation-triangle"></i></option>
+                                                    <option <?php if(in_array($tags->id, $explodee)){ echo 'selected'; } ?> value="{{$tags->id}}" style="color: #dc3545;">{{$tags->name}} {!! \App\Helpers\IconHelper::fromLegacy('fas fa-exclamation-triangle') !!}</option>
                                                 @endforeach
                                             </optgroup>
                                         @endif
                                     </select>
                                     <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle"></i> Red tags are hidden by default on client detail pages.
+                                        @icon('fa-info-circle') Red tags are hidden by default on client detail pages.
                                     </small>
                                 </div>
                             </div>

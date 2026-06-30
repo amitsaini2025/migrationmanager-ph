@@ -178,7 +178,7 @@
 								</div>
 								<div class="form-group">
 									<button type="button" class="btn btn-primary px-4" onclick='customValidate("my-profile")'>
-                                        <i class="fa fa-edit"></i> Update
+                                        @icon('fa-edit') Update
                                     </button>
 
                                 </div>

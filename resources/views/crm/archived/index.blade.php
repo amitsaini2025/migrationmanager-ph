@@ -206,7 +206,7 @@
                     <h4>All Clients Archived</h4>
                     <div class="card-header-actions">
                         <a href="javascript:;" class="btn btn-theme btn-theme-sm filter_btn">
-                            <i class="fas fa-filter"></i> Filter
+                            @icon('fa-filter') Filter
                         </a>
                     </div>
                 </div>
@@ -241,13 +241,13 @@
                                 Search By Details
                                 @if($activeArchivedFilterCount > 0)
                                     <span class="active-filters-badge">
-                                        <i class="fas fa-filter"></i> {{ $activeArchivedFilterCount }} Active
+                                        @icon('fa-filter') {{ $activeArchivedFilterCount }} Active
                                     </span>
                                 @endif
                             </h4>
                             @if($activeArchivedFilterCount > 0)
                                 <button type="button" class="clear-filter-btn" id="clearArchivedFilters">
-                                    <i class="fas fa-undo"></i> Clear Filters
+                                    @icon('fa-undo') Clear Filters
                                 </button>
                             @endif
                         </div>
@@ -349,7 +349,7 @@
                                                 <div class="dropdown-menu">
                                                     <a class="dropdown-item has-icon" href="javascript:;" onclick="movetoclientAction({{$list->id}}, 'admins','is_archived')">Move to clients</a>
                                                     <a class="dropdown-item has-icon" href="javascript:;" onclick='unarchiveClientAction({{ $list->id }}, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))))'>
-                                                        <i class="fas fa-undo"></i> Unarchive
+                                                        @icon('fa-undo') Unarchive
                                                     </a>
                                                 </div>
                                             </div>

@@ -91,16 +91,16 @@
             <div class="card border-warning mb-4" id="crm-access-pending-card">
                 <div class="card-header d-flex justify-content-between align-items-center bg-warning text-white py-2">
                     <h5 class="mb-0">
-                        <i class="fas fa-clock mr-2"></i>
+                        @icon('fa-clock', ['class' => 'mr-2'])
                         Pending approvals
                         <span class="badge badge-light text-warning ml-2" id="crm-pending-badge">—</span>
                     </h5>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-sm btn-light" id="crm-pending-refresh" title="Refresh">
-                            <i class="fas fa-sync-alt"></i>
+                            @icon('fa-sync-alt')
                         </button>
                         <button type="button" class="btn btn-sm btn-light" id="crm-pending-toggle" data-collapsed="0" title="Collapse">
-                            <i class="fas fa-chevron-up"></i>
+                            @icon('fa-chevron-up')
                         </button>
                     </div>
                 </div>
@@ -562,7 +562,10 @@
                 var items = data.items || [];
 
                 if (items.length === 0) {
-                    tb.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3"><i class="fas fa-check-circle text-success mr-1"></i>No pending requests.</td></tr>';
+                    tb.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">' + (typeof crmI === 'function' ? crmI('fas fa-check-circle', { class: 'text-success mr-1' }) : '') + 'No pending requests.</td></tr>';
+                    if (typeof refreshLucideIcons === 'function') {
+                        refreshLucideIcons(tb);
+                    }
                     return;
                 }
 

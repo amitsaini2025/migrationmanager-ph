@@ -153,7 +153,7 @@
                 </div>
                 <div class="card-header">
                     <h4>All Clients Email List</h4>
-                    <a href="javascript:;" class="btn btn-theme btn-theme-sm filter_btn"><i class="fas fa-filter"></i> Filter</a>
+                    <a href="javascript:;" class="btn btn-theme btn-theme-sm filter_btn">@icon('fa-filter') Filter</a>
                 </div>
                 
                 <div class="card-body">
@@ -226,8 +226,8 @@
                                                 <div class="dropdown d-inline">
                                                     <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Action</button>
                                                     <div class="dropdown-menu">
-                                                        <a class="dropdown-item has-icon" href="{{URL::to('/clients/detail/'.base64_encode(convert_uuencode(@$list->id)) )}}"><i class="fas fa-eye"></i> View Details</a>
-                                                        <a class="dropdown-item has-icon" href="mailto:{{ @$list->email }}"><i class="fas fa-envelope"></i> Send Email</a>
+                                                        <a class="dropdown-item has-icon" href="{{URL::to('/clients/detail/'.base64_encode(convert_uuencode(@$list->id)) )}}">@icon('fa-eye') View Details</a>
+                                                        <a class="dropdown-item has-icon" href="mailto:{{ @$list->email }}">@icon('fa-envelope') Send Email</a>
                                                     </div>
                                                 </div>
                                             </td>

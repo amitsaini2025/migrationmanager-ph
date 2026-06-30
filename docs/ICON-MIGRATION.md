@@ -136,7 +136,7 @@ Lucide pattern:
 |--------|--------|
 | Removed FA `<link>` | `crm_client_detail.blade.php`, `crm_client_detail_dashboard.blade.php` |
 | Deleted FA bundle | `public/icons/font-awesome/` (css + fonts) |
-| Deleted duplicate fonts | `public/fonts/fa-brands-400.svg`, `fa-regular-400.svg`, `fa-solid-900.svg` |
+| Deleted duplicate fonts | `public/fonts/fa-*` (root copies; `public/fonts/webfonts/` kept for `app.min.css` login) |
 | EOI sheets | FA CDN removed in Stage 8; Bootstrap CDN only |
 | CSS pass | `emails.css`, `client-forms.css` — no `.fa-*` selectors; `client-detail.css` already clean |
 | Login / non-CRM | `public/css/app.min.css` retains embedded FA 5 CSS + `public/fonts/webfonts/` for legacy pages (e.g. `crm-login.blade.php`) |

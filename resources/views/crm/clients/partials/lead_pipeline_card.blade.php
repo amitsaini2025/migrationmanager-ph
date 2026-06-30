@@ -62,14 +62,14 @@
 
     <div id="leadPipelineView" class="lead-pipeline-view" role="region" aria-label="Lead pipeline summary">
         <div class="lead-pipeline-card-header">
-            <h3><i class="fas fa-route"></i> Lead pipeline</h3>
+            <h3>@icon('fa-route') Lead pipeline</h3>
             <button type="button"
                     class="btn btn-primary btn-sm lead-pipeline-open-edit lead-pipeline-open-edit--icon"
                     title="Edit pipeline"
                     aria-label="Edit pipeline"
                     aria-expanded="false"
                     aria-controls="leadPipelineEdit">
-                <i class="fas fa-pen" aria-hidden="true"></i>
+                @icon('fa-pen', ['aria-hidden' => 'true'])
             </button>
         </div>
         <div class="field-group">
@@ -109,7 +109,7 @@
          aria-label="Edit lead pipeline"
          aria-hidden="true">
         <div class="lead-pipeline-edit-banner">
-            <span id="leadPipelineEditHeading"><i class="fas fa-edit text-primary me-1"></i>Editing pipeline</span>
+            <span id="leadPipelineEditHeading">@icon('fa-edit', ['class' => 'text-primary me-1'])Editing pipeline</span>
             <button type="button"
                     class="btn btn-link btn-sm p-0 lead-pipeline-open-edit"
                     aria-expanded="false"

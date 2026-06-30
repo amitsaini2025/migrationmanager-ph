@@ -188,6 +188,9 @@ function main() {
 
     if (asJson) {
         console.log(JSON.stringify({ summary, icons: Object.fromEntries(sorted), unmapped }, null, 2));
+        if (summary.unmappedCount > 0) {
+            process.exit(1);
+        }
         return;
     }
 
@@ -246,7 +249,7 @@ function main() {
     console.log(`  ${summary.uniqueIconTokens} unique tokens, ${summary.unmappedCount} unmapped`);
 
     if (process.argv.includes('--strict')) {
-        const rawFaRe = /<i\s+class="fa[srb]?\s+fa-/g;
+        const rawFaLineRe = /<i\s+class="fa[srb]?\s+fa-/;
         const strictRoots = [
             path.join(ROOT, 'resources'),
             path.join(ROOT, 'app'),
@@ -258,11 +261,25 @@ function main() {
             }
             for (const file of walk(dir)) {
                 const content = fs.readFileSync(file, 'utf8');
-                const matches = content.match(rawFaRe);
-                if (matches && matches.length > 0) {
+                let count = 0;
+                for (const line of content.split('\n')) {
+                    if (!rawFaLineRe.test(line)) {
+                        continue;
+                    }
+                    // Skip crmIcon* / IconHelper fallbacks on the same line
+                    if (/crmIcon(Legacy|Any)?|crmI\(|IconHelper::/.test(line)) {
+                        continue;
+                    }
+                    // Skip JS ternary fallback HTML strings: : '<i class="fas ...
+                    if (/:\s*['"]<i class="fa/.test(line)) {
+                        continue;
+                    }
+                    count++;
+                }
+                if (count > 0) {
                     rawHits.push({
                         file: path.relative(ROOT, file).replace(/\\/g, '/'),
-                        count: matches.length,
+                        count,
                     });
                 }
             }

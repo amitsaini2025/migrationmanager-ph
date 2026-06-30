@@ -232,8 +232,10 @@
     pointer-events: none;
 }
 
-.drag-drop-icon {
-    font-size: 32px;
+.drag-drop-icon,
+.drag-drop-icon svg.lucide {
+    width: 32px;
+    height: 32px;
     color: #6c757d;
     margin-bottom: 8px;
     display: block;
@@ -241,7 +243,9 @@
 }
 
 .drag-drop-zone:hover .drag-drop-icon,
-.drag-drop-zone.drag-over .drag-drop-icon {
+.drag-drop-zone:hover .drag-drop-icon svg.lucide,
+.drag-drop-zone.drag-over .drag-drop-icon,
+.drag-drop-zone.drag-over .drag-drop-icon svg.lucide {
     color: #007bff;
 }
 
@@ -459,8 +463,10 @@
     text-align: center;
 }
 
-.placeholder-content i {
-    font-size: 48px;
+.placeholder-content svg.lucide,
+.placeholder-content i[data-lucide] {
+    width: 48px;
+    height: 48px;
     margin-bottom: 16px;
     color: #dee2e6;
 }
@@ -548,8 +554,10 @@
     color: #6c757d;
 }
 
-.empty-state-icon {
-    font-size: 48px;
+.empty-state-icon svg.lucide,
+.empty-state-icon i[data-lucide] {
+    width: 48px;
+    height: 48px;
     color: #dee2e6;
     margin-bottom: 16px;
 }
@@ -1282,9 +1290,11 @@
     background-color: #f5f5f5;
 }
 
-.context-menu-item i {
+.context-menu-item svg.lucide,
+.context-menu-item i[data-lucide] {
     width: 18px;
-    text-align: center;
+    height: 18px;
+    flex-shrink: 0;
     color: #666;
 }
 
