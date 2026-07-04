@@ -7,12 +7,12 @@
  * Each carries `e.params`; select/unselect include `params.data`.
  * Do not rely on Select2 class names (.select2-*) or select2:* jQuery events; runtime DOM is Tom Select (.ts-*).
  */
-(function (factory) {
-  if (typeof jQuery !== 'undefined' && typeof TomSelect !== 'undefined') {
-    factory(jQuery, TomSelect);
-  }
-})(function ($, TomSelect) {
+export function registerMmTomSelectBridge($, TomSelect) {
   'use strict';
+
+  if (!$ || !TomSelect || $.fn.mmSelect) {
+    return;
+  }
 
   var INIT_CLASS = 'mm-select-initialized';
   var DATA_KEY = 'mmSelect';
@@ -364,4 +364,4 @@
       applyWidth($(el), legacyOpts.width);
     });
   };
-});
+}
