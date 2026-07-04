@@ -1,5 +1,7 @@
 @extends('layouts.crm_client_detail_dashboard')
 
+@section('title', 'Dashboard')
+
 @section('content')
     <main class="main-content">
         <header class="header">
@@ -94,10 +96,15 @@
                         @icon('fa-exclamation-circle', ['style' => 'color: var(--warning-color);']) 
                         Cases Requiring Attention
                     </h3>
-                    <span class="badge-count">{{ count($cases_requiring_attention_data) }}</span>
+                    <span class="badge-count" id="dashboardCasesBadge">{{ $count_cases_requiring_attention_data }}</span>
                 </div>
-                <div class="case-list-container">
-                    @if(count($cases_requiring_attention_data) > 0)
+                <div class="case-list-container" id="dashboardCasesFragment">
+                    @if($defer_heavy_widgets ?? false)
+                        <div class="dashboard-widget-loading">
+                            <div class="spinner spinner-sm"></div>
+                            <p>Loading cases…</p>
+                        </div>
+                    @elseif(count($cases_requiring_attention_data) > 0)
                         <ul class="case-list">
                             @foreach($cases_requiring_attention_data as $case)
                                 <x-dashboard.case-item :case="$case" />
@@ -121,7 +128,13 @@
                     <h3>
                         @icon('fa-table') 
                         Client Matters 
-                        <span class="total-count">({{ $data->total() }} total)</span>
+                        <span class="total-count" id="dashboardMattersTotal">
+                            @if($defer_heavy_widgets ?? false)
+                                (…)
+                            @else
+                                ({{ $data->total() }} total)
+                            @endif
+                        </span>
                     </h3>
                 </div>
                 <div class="header-right">
@@ -133,10 +146,17 @@
             <x-dashboard.filter-form :filters="$filters" :workflowStages="$workflowStages" />
 
             <div id="dashboardMattersFragment" class="dashboard-matters-fragment">
-                @include('crm.partials.dashboard-client-matters-fragment', [
-                    'data' => $data,
-                    'filters' => $filters,
-                ])
+                @if($defer_heavy_widgets ?? false)
+                    <div class="dashboard-widget-loading">
+                        <div class="spinner spinner-sm"></div>
+                        <p>Loading client matters…</p>
+                    </div>
+                @else
+                    @include('crm.partials.dashboard-client-matters-fragment', [
+                        'data' => $data,
+                        'filters' => $filters,
+                    ])
+                @endif
             </div>
         </section>
     </main>
@@ -984,6 +1004,7 @@
     window.dashboardRoutes = {
         dashboard: "{{ route('dashboard') }}",
         mattersFragment: "{{ route('dashboard.matters-fragment') }}",
+        casesFragment: "{{ route('dashboard.cases-fragment') }}",
         columnPreferences: "{{ route('dashboard.column-preferences') }}",
         extendDeadline: "{{ route('dashboard.extend-deadline') }}",
         updateActionCompleted: "{{ route('dashboard.update-action-completed') }}",
@@ -991,7 +1012,8 @@
     };
     
     window.dashboardData = {
-        visibleColumns: {!! json_encode($visibleColumns, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}
+        visibleColumns: {!! json_encode($visibleColumns, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!},
+        deferHeavyWidgets: {{ ($defer_heavy_widgets ?? false) ? 'true' : 'false' }}
     };
     
     // Error handling for missing routes

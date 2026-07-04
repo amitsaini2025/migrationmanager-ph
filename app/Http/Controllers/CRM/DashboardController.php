@@ -29,6 +29,20 @@ class DashboardController extends Controller
     }
 
     /**
+     * HTML fragment for cases requiring attention widget (lazy-loaded).
+     */
+    public function casesFragment(DashboardRequest $request)
+    {
+        if (! $request->ajax()) {
+            return redirect()->route('dashboard');
+        }
+
+        $payload = $this->dashboardService->getCasesRequiringAttentionPayload(Auth::user());
+
+        return response()->view('crm.partials.dashboard-cases-attention-fragment', $payload);
+    }
+
+    /**
      * HTML fragment for client matters table + pagination (smooth pagination without full page reload).
      */
     public function mattersFragment(DashboardRequest $request)

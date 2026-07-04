@@ -10,7 +10,11 @@ use App\Models\ActivitiesLog;
 use App\Models\EmailLog;
 use App\Models\Workflow;
 use App\Models\WorkflowStage;
+use App\Models\Staff;
 use App\Helpers\IconHelper;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +33,7 @@ class DashboardService
      *
      * @return array{data: \Illuminate\Contracts\Pagination\LengthAwarePaginator, workflowStages: mixed, visibleColumns: array, filters: array<string, string>}
      */
-    public function getClientMattersTablePayload($request, $user): array
+    public function getClientMattersTablePayload(Request $request, Staff $user): array
     {
         return [
             'data' => $this->getClientMatters($request, $user),
@@ -43,50 +47,76 @@ class DashboardService
     }
 
     /**
-     * Get all dashboard data
+     * Get all dashboard data.
+     *
+     * When $deferHeavyWidgets is true (default), cases list and client matters table
+     * are omitted from the initial payload and loaded via AJAX fragments.
      */
-    public function getDashboardData($request): array
+    public function getDashboardData(Request $request, bool $deferHeavyWidgets = true): array
     {
+        /** @var Staff $user */
         $user = Auth::user();
-        
-        return [
-            'data' => $this->getClientMatters($request, $user),
+
+        $payload = [
             'notesData' => $this->getNotesData($user),
-            'cases_requiring_attention_data' => $this->getCasesRequiringAttention($user),
             'count_active_matter' => $this->getActiveMatterCount(),
             'count_note_deadline' => $this->getNoteDeadlineCount($user),
             'count_cases_requiring_attention_data' => $this->getCasesRequiringAttentionCount($user),
             'filters' => [
                 'client_name' => $request->client_name ?? '',
-                'client_stage' => $request->client_stage ?? ''
+                'client_stage' => $request->client_stage ?? '',
             ],
             'visibleColumns' => $this->getVisibleColumns(),
             'workflowStages' => $this->getWorkflowStages(),
-            'assignee' => $this->getAssignees()
+            'assignee' => $this->getAssignees(),
+            'defer_heavy_widgets' => $deferHeavyWidgets,
+        ];
+
+        if ($deferHeavyWidgets) {
+            $payload['data'] = null;
+            $payload['cases_requiring_attention_data'] = [];
+        } else {
+            $payload['data'] = $this->getClientMatters($request, $user);
+            $payload['cases_requiring_attention_data'] = $this->getCasesRequiringAttention($user);
+        }
+
+        return $payload;
+    }
+
+    /**
+     * HTML fragment payload for the cases requiring attention widget.
+     *
+     * @return array{cases_requiring_attention_data: \Illuminate\Support\Collection, count: int}
+     */
+    public function getCasesRequiringAttentionPayload(Staff $user): array
+    {
+        return [
+            'cases_requiring_attention_data' => $this->getCasesRequiringAttention($user),
+            'count' => $this->getCasesRequiringAttentionCount($user),
         ];
     }
 
     /**
      * Get client matters with proper relationships
      */
-    private function getClientMatters($request, $user)
+    private function getClientMatters(Request $request, Staff $user): LengthAwarePaginator
     {
         // Load all relationships without column restrictions
         // Column restrictions can prevent relationships from loading if data doesn't match exactly
         $query = ClientMatter::with([
-            'client',           // Load full client record
-            'migrationAgent',  // Load full migration agent record
-            'personResponsible', // Load full person responsible record
-            'personAssisting',  // Load full person assisting record
-            'workflowStage',    // Load workflow stage name (dashboard Stage column)
-            'matter',            // Load matter type
+            'client:id,first_name,last_name,client_id,dob',
+            'migrationAgent:id,first_name,last_name',
+            'personResponsible:id,first_name,last_name',
+            'personAssisting:id,first_name,last_name',
+            'workflowStage:id,name',
+            'matter:id,title',
         ]);
 
         // Apply role-based filtering
         $this->applyRoleBasedFiltering($query, $user);
 
         // Exclude discontinued matters (matter_status = 0)
-        $query->where('matter_status', 1);
+        $query->where('matter_status', '=', 1, 'and');
 
         // Apply client name filter
         if ($request->has('client_name') && !empty($request->client_name)) {
@@ -108,11 +138,11 @@ class DashboardService
 
             if ($stageName !== null) {
                 $query->whereHas('workflowStage', function ($q) use ($stageName) {
-                    $q->where('name', $stageName);
+                    $q->where('name', '=', $stageName, 'and');
                 });
             }
         } else {
-            $query->where('workflow_stage_id', '!=', 14);
+            $query->where('workflow_stage_id', '!=', 14, 'and');
         }
 
         $query->orderBy('updated_at', 'DESC');
@@ -159,18 +189,18 @@ class DashboardService
         }
 
         $query = EmailLog::query()
-            ->selectRaw('client_matter_id, COUNT(*) as dashboard_unread_cnt')
-            ->where('conversion_type', 'conversion_email_fetch')
+            ->selectRaw('client_matter_id, COUNT(*) as dashboard_unread_cnt', [])
+            ->where('conversion_type', '=', 'conversion_email_fetch', 'and')
             ->whereNull('mail_is_read')
             ->where(static function ($q): void {
-                $q->where('mail_body_type', 'inbox')
-                    ->orWhere('mail_body_type', 'sent');
+                $q->where('mail_body_type', '=', 'inbox', 'and')
+                    ->orWhere('mail_body_type', '=', 'sent', 'and');
             })
             ->where(static function ($q) use ($valid): void {
                 foreach ($valid as $m) {
                     $q->orWhere(static function ($q2) use ($m): void {
-                        $q2->where('client_matter_id', $m->id)
-                            ->where('client_id', $m->client_id);
+                        $q2->where('client_matter_id', '=', $m->id, 'and')
+                            ->where('client_id', '=', $m->client_id, 'and');
                     });
                 }
             })
@@ -189,21 +219,21 @@ class DashboardService
      * Shows actions with deadlines first (ordered by urgency), then actions without deadlines
      * Matches Action page: includes Personal Actions (null client_id) and all task groups
      */
-    private function getNotesData($user)
+    private function getNotesData(Staff $user): Collection
     {
         $query = Note::with([
             'client:id,first_name,last_name,client_id,is_company',
             'client.company:id,admin_id,company_name',
             'assignedUser:id,first_name,last_name',
         ])
-            ->where('type', 'client')
-            ->where('is_action', 1)
-            ->where('status', '!=', 1);
+            ->where('type', '=', 'client', 'and')
+            ->where('is_action', '=', 1, 'and')
+            ->where('status', '!=', 1, 'and');
 
         // Admin sees ALL actions (no assigned_to filter) - matching action page behavior
         // Other roles only see notes assigned to them
         if ($user->role != 1) {
-            $query->where('assigned_to', $user->id);
+            $query->where('assigned_to', '=', $user->id, 'and');
         }
 
         // Order: Actions with deadlines first (by deadline ASC), then actions without deadlines (by created_at DESC)
@@ -217,15 +247,15 @@ class DashboardService
     /**
      * Get cases requiring attention
      */
-    private function getCasesRequiringAttention($user)
+    private function getCasesRequiringAttention(Staff $user): Collection
     {
         $query = ClientMatter::with([
                 'client:id,first_name,last_name,client_id',
                 'matter:id,title',
                 'personResponsible:id,first_name,last_name'
             ])
-            ->where('matter_status', 1)
-            ->where('updated_at', '>=', Carbon::now()->subDays(100));
+            ->where('matter_status', '=', 1, 'and')
+            ->where('updated_at', '>=', Carbon::now()->subDays(100), 'and');
 
         if ((int) $user->role !== 1) {
             $query->whereHas('client', function ($q) use ($user) {
@@ -378,7 +408,7 @@ class DashboardService
     /**
      * Cache key for dashboard client matters paginator total (same filters as getClientMatters).
      */
-    private function dashboardClientMattersCountCacheKey($user, $request): string
+    private function dashboardClientMattersCountCacheKey(Staff $user, Request $request): string
     {
         $clientName = trim((string) ($request->input('client_name') ?? ''));
         $stage = trim((string) ($request->input('client_stage') ?? ''));
@@ -394,7 +424,7 @@ class DashboardService
     /**
      * Apply role-based filtering to queries
      */
-    private function applyRoleBasedFiltering($query, $user)
+    private function applyRoleBasedFiltering(Builder $query, Staff $user): void
     {
         $role = (int) $user->role;
         if ($role === 1) {
@@ -404,9 +434,9 @@ class DashboardService
         if (in_array($role, [12, 13, 16], true)) {
             $uid = (int) $user->id;
             $query->where(function ($q) use ($uid) {
-                $q->where('client_matters.sel_migration_agent', $uid)
-                    ->orWhere('client_matters.sel_person_responsible', $uid)
-                    ->orWhere('client_matters.sel_person_assisting', $uid);
+                $q->where('client_matters.sel_migration_agent', '=', $uid, 'and')
+                    ->orWhere('client_matters.sel_person_responsible', '=', $uid)
+                    ->orWhere('client_matters.sel_person_assisting', '=', $uid);
             });
         }
     }
@@ -417,7 +447,7 @@ class DashboardService
     private function getActiveMatterCount(): int
     {
         return Cache::remember('active_matter_count', 300, function () {
-            return ClientMatter::where('matter_status', 1)->count();
+            return ClientMatter::query()->where('matter_status', '=', 1, 'and')->count();
         });
     }
 
@@ -425,36 +455,63 @@ class DashboardService
      * Get note deadline count (all actions count)
      * Matches Action page getActionCounts: includes Personal Actions
      */
-    private function getNoteDeadlineCount($user): int
+    private function getNoteDeadlineCount(Staff $user): int
     {
-        $query = Note::where('type', 'client')
-            ->where('is_action', 1)
-            ->where('status', '!=', 1);
+        $role = (int) ($user->role ?? 0);
+        $ttl = max(1, (int) config('cache.dashboard_kpi_counts_ttl', 60));
+        $cacheKey = 'dashboard:note_deadline_count:v1:' . (int) $user->id . ':' . $role;
 
-        // Admin sees ALL actions (no assigned_to filter) - matching action page behavior
-        if ($user->role != 1) {
-            $query->where('assigned_to', $user->id);
-        }
+        return (int) Cache::remember($cacheKey, $ttl, function () use ($user) {
+            $query = Note::query()
+                ->where('type', '=', 'client', 'and')
+                ->where('is_action', '=', 1, 'and')
+                ->where('status', '!=', 1, 'and');
 
-        return $query->count();
+            if ($user->role != 1) {
+                $query->where('assigned_to', '=', $user->id, 'and');
+            }
+
+            return $query->count();
+        });
     }
 
     /**
      * Get cases requiring attention count
      */
-    private function getCasesRequiringAttentionCount($user): int
+    private function getCasesRequiringAttentionCount(Staff $user): int
     {
-        $query = ClientMatter::join('admins as clients', 'client_matters.client_id', '=', 'clients.id')
-            ->where('client_matters.matter_status', 1)
-            ->where('client_matters.updated_at', '>=', Carbon::now()->subDays(100));
+        $role = (int) ($user->role ?? 0);
+        $ttl = max(1, (int) config('cache.dashboard_kpi_counts_ttl', 60));
+        $cacheKey = 'dashboard:cases_attention_count:v1:' . (int) $user->id . ':' . $role;
 
-        if ((int) $user->role !== 1) {
-            StaffClientVisibility::applyExcludeSuperAdminOnlyLockedClientsOnAdminJoin($query, 'clients', $user);
+        return (int) Cache::remember($cacheKey, $ttl, function () use ($user) {
+            $query = ClientMatter::query()
+                ->join('admins as clients', 'client_matters.client_id', '=', 'clients.id', 'inner', false)
+                ->where('client_matters.matter_status', '=', 1, 'and')
+                ->where('client_matters.updated_at', '>=', Carbon::now()->subDays(100), 'and');
+
+            if ((int) $user->role !== 1) {
+                StaffClientVisibility::applyExcludeSuperAdminOnlyLockedClientsOnAdminJoin($query, 'clients', $user);
+            }
+
+            $this->applyRoleBasedFiltering($query, $user);
+
+            return $query->count();
+        });
+    }
+
+    private function forgetDashboardKpiCountCaches(?int $userId = null, ?int $role = null): void
+    {
+        $user = Auth::user();
+        $userId = $userId ?? (int) ($user->id ?? 0);
+        $role = $role ?? (int) ($user->role ?? 0);
+
+        if ($userId <= 0) {
+            return;
         }
 
-        $this->applyRoleBasedFiltering($query, $user);
-
-        return $query->count();
+        Cache::forget('dashboard:note_deadline_count:v1:' . $userId . ':' . $role);
+        Cache::forget('dashboard:cases_attention_count:v1:' . $userId . ':' . $role);
     }
 
     /**
@@ -484,14 +541,15 @@ class DashboardService
     private function getWorkflowStages(): Collection
     {
         $rows = Cache::remember('workflow_stages_v3_general', 3600, function () {
-            $query = WorkflowStage::query()->orderByRaw('COALESCE(sort_order, id) ASC');
+            $query = WorkflowStage::query()->orderByRaw('COALESCE(sort_order, id) ASC', []);
 
             $generalWorkflowId = Workflow::query()
-                ->whereRaw('LOWER(name) = ?', ['general'])
-                ->value('id');
+                ->where(DB::raw('LOWER(name)'), '=', 'general', 'and')
+                ->pluck('id')
+                ->first();
 
             if ($generalWorkflowId) {
-                $query->where('workflow_id', $generalWorkflowId);
+                $query->where('workflow_id', '=', $generalWorkflowId, 'and');
             }
 
             return $query
@@ -505,19 +563,31 @@ class DashboardService
     }
 
     /**
-     * Get assignees for action creation
+     * Get assignees for action creation.
+     *
+     * Cache plain rows only — caching Eloquent collections can deserialize as
+     * __PHP_Incomplete_Class and break the dashboard (see getWorkflowStages).
      */
-    private function getAssignees()
+    private function getAssignees(): Collection
     {
-        return \App\Models\Staff::select('id', 'first_name', 'email')
-            ->where('role', '!=', 1)
-            ->get();
+        $rows = Cache::remember('dashboard:assignees:v2', 3600, static function () {
+            return Staff::query()
+                ->select(['id', 'first_name', 'email'])
+                ->where('role', '!=', 1, 'and')
+                ->orderBy('first_name')
+                ->get()
+                ->map(fn (Staff $staff) => $staff->only(['id', 'first_name', 'email']))
+                ->values()
+                ->all();
+        });
+
+        return collect($rows)->map(fn (array $attrs) => (object) $attrs);
     }
 
     /**
      * Save column preferences
      */
-    public function saveColumnPreferences($request): void
+    public function saveColumnPreferences(Request $request): void
     {
         $visibleColumns = $request->input('visible_columns', []);
         
@@ -537,8 +607,9 @@ class DashboardService
      */
     public function getNotifications(): array
     {
-        $count = Notification::where('receiver_id', Auth::id())
-            ->where('receiver_status', 0)
+        $count = Notification::query()
+            ->where('receiver_id', '=', (int) Auth::id(), 'and')
+            ->where('receiver_status', '=', 0, 'and')
             ->count();
 
         return ['count' => $count];
@@ -550,9 +621,9 @@ class DashboardService
     public function getOfficeVisitNotifications(): array
     {
         $notifications = Notification::with(['sender:id,first_name,last_name'])
-            ->where('receiver_id', Auth::id())
-            ->where('notification_type', 'officevisit')
-            ->where('receiver_status', 0)
+            ->where('receiver_id', '=', (int) Auth::id(), 'and')
+            ->where('notification_type', '=', 'officevisit', 'and')
+            ->where('receiver_status', '=', 0, 'and')
             ->orderBy('created_at', 'DESC')
             ->get();
 
@@ -561,7 +632,7 @@ class DashboardService
 
         $data = [];
         foreach ($notifications as $notification) {
-            $checkinLog = CheckinLog::find($notification->module_id);
+            $checkinLog = CheckinLog::query()->whereKey((int) $notification->module_id)->first();
             
             if (!$checkinLog) {
                 continue;
@@ -597,9 +668,9 @@ class DashboardService
     /**
      * Mark notification as seen
      */
-    public function markNotificationAsSeen($notificationId): array
+    public function markNotificationAsSeen(int|string $notificationId): array
     {
-        $notification = Notification::find($notificationId);
+        $notification = Notification::query()->whereKey((int) $notificationId)->first();
         
         if (!$notification || $notification->receiver_id != Auth::id()) {
             return ['status' => 'error'];
@@ -614,10 +685,11 @@ class DashboardService
     /**
      * Extend note deadline
      */
-    public function extendNoteDeadline($data): array
+    public function extendNoteDeadline(array $data): array
     {
         try {
-            $notes = Note::where('unique_group_id', $data['unique_group_id'])
+            $notes = Note::query()
+                ->where('unique_group_id', '=', $data['unique_group_id'], 'and')
                 ->whereNotNull('unique_group_id')
                 ->get();
 
@@ -625,7 +697,8 @@ class DashboardService
                 return ['success' => false, 'message' => 'No notes found with the provided unique group ID'];
             }
 
-            $updated = Note::where('unique_group_id', $data['unique_group_id'])
+            $updated = Note::query()
+                ->where('unique_group_id', '=', $data['unique_group_id'], 'and')
                 ->whereNotNull('unique_group_id')
                 ->update([
                     'description' => $data['description'],
@@ -634,6 +707,8 @@ class DashboardService
                 ]);
 
             if ($updated > 0) {
+                $this->forgetDashboardKpiCountCaches();
+
                 // Create notification and activity log for the first note
                 $firstNote = $notes->first();
                 $this->createNotificationAndActivityLog($firstNote);
@@ -656,10 +731,11 @@ class DashboardService
      * Update action completion status and create completed action activity
      * Matches Action tab behavior: updates note(s), creates ActivitiesLog with optional completion notes
      */
-    public function updateActionCompleted($noteId, $uniqueGroupId, ?string $completionNotes = null): array
+    public function updateActionCompleted(int $noteId, ?string $uniqueGroupId, ?string $completionNotes = null): array
     {
-        $noteData = Note::where('id', $noteId)
-            ->where('unique_group_id', $uniqueGroupId)
+        $noteData = Note::query()
+            ->where('id', '=', $noteId, 'and')
+            ->where('unique_group_id', '=', $uniqueGroupId, 'and')
             ->first();
 
         if (!$noteData) {
@@ -669,16 +745,19 @@ class DashboardService
         // Update all notes in the group (matches Action tab behavior), or single note if no group
         $updated = 0;
         if (!empty(trim($uniqueGroupId ?? ''))) {
-            $updated = Note::where('unique_group_id', $uniqueGroupId)
+            $updated = Note::query()
+                ->where('unique_group_id', '=', $uniqueGroupId, 'and')
                 ->whereNotNull('unique_group_id')
                 ->update(['status' => 1]);
         }
         if (!$updated) {
-            $updated = Note::where('id', $noteId)->update(['status' => 1]);
+            $updated = Note::query()->where('id', '=', $noteId, 'and')->update(['status' => 1]);
         }
         if (!$updated) {
             return ['success' => false, 'message' => 'Failed to complete action'];
         }
+
+        $this->forgetDashboardKpiCountCaches();
 
         // Activity Feed: log completion for client-linked actions, except Client Portal category (matches AssigneeController).
         if ($noteData->client_id) {
@@ -687,7 +766,7 @@ class DashboardService
             if ((string) $taskGroup !== 'Client Portal') {
                 $assigneeName = 'N/A';
                 if ($noteData->assigned_to) {
-                    $assignee = \App\Models\Staff::find($noteData->assigned_to);
+                    $assignee = \App\Models\Staff::query()->whereKey((int) $noteData->assigned_to)->first();
                     $assigneeName = $assignee ? $assignee->first_name . ' ' . $assignee->last_name : 'N/A';
                 }
 
@@ -734,7 +813,10 @@ class DashboardService
                 // module_id = client matter id so notification appears in List API when client filters by client_matter_id
                 $moduleId = !empty($noteData->matter_id) ? (int) $noteData->matter_id : null;
                 if ($moduleId === null) {
-                    $moduleId = ClientMatter::where('client_id', $noteData->client_id)->orderByDesc('id')->value('id') ?? $noteData->client_id;
+                    $moduleId = ClientMatter::query()
+                        ->where('client_id', '=', $noteData->client_id, 'and')
+                        ->orderByDesc('id')
+                        ->value('id') ?? $noteData->client_id;
                 }
                 DB::table('notifications')->insert([
                     'sender_id' => Auth::id(),
@@ -760,7 +842,10 @@ class DashboardService
                     Log::warning('FCM send failed on action complete (Client Portal)', ['client_id' => $noteData->client_id, 'error' => $e->getMessage()]);
                 }
                 try {
-                    $clientCount = (int) DB::table('notifications')->where('receiver_id', $noteData->client_id)->where('receiver_status', 0)->count();
+                    $clientCount = (int) DB::table('notifications')
+                        ->where('receiver_id', '=', $noteData->client_id, 'and')
+                        ->where('receiver_status', '=', 0, 'and')
+                        ->count();
                     broadcast(new NotificationCountUpdated($noteData->client_id, $clientCount, $notificationMessage, '/activities'));
                 } catch (\Exception $e) {
                     Log::warning('Broadcast failed on action complete (Client Portal)', ['client_id' => $noteData->client_id, 'error' => $e->getMessage()]);
@@ -774,9 +859,10 @@ class DashboardService
     /**
      * Get visa expiry message
      */
-    public function getVisaExpiryMessage($clientId): string
+    public function getVisaExpiryMessage(int $clientId): string
     {
-        $visaInfo = ClientVisaCountry::where('client_id', $clientId)
+        $visaInfo = ClientVisaCountry::query()
+            ->where('client_id', '=', (int) $clientId, 'and')
             ->latest('id')
             ->first();
 
@@ -801,7 +887,7 @@ class DashboardService
     /**
      * Create notification and activity log
      */
-    private function createNotificationAndActivityLog($note): void
+    private function createNotificationAndActivityLog(Note $note): void
     {
         try {
             // Create notification only if assigned_to exists

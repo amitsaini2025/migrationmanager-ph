@@ -16,7 +16,111 @@ $(document).ready(function() {
 });
 
 function initializeDashboard() {
-    console.log('Dashboard initialized');
+    loadDeferredDashboardWidgets();
+}
+
+/**
+ * Lazy-load cases widget + client matters table after first paint.
+ */
+function loadDeferredDashboardWidgets() {
+    if (!window.dashboardData || !window.dashboardData.deferHeavyWidgets) {
+        return;
+    }
+
+    var tasks = [];
+
+    if (window.dashboardRoutes && window.dashboardRoutes.casesFragment) {
+        tasks.push(loadDashboardCasesFragment());
+    }
+
+    if (window.dashboardRoutes && window.dashboardRoutes.mattersFragment) {
+        tasks.push(loadInitialDashboardMattersFragment());
+    }
+
+    if (tasks.length) {
+        Promise.all(tasks).catch(function () {
+            console.warn('One or more deferred dashboard widgets failed to load');
+        });
+    }
+}
+
+function loadDashboardCasesFragment() {
+    var el = document.getElementById('dashboardCasesFragment');
+    if (!el || !window.dashboardRoutes.casesFragment) {
+        return Promise.resolve();
+    }
+
+    el.classList.add('dashboard-cases-fragment--loading');
+
+    return fetch(window.dashboardRoutes.casesFragment, {
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'text/html',
+        },
+    })
+        .then(function (res) {
+            if (!res.ok) {
+                throw new Error('Cases fragment request failed');
+            }
+            return res.text();
+        })
+        .then(function (html) {
+            el.innerHTML = html;
+            if (typeof refreshLucideIcons === 'function') {
+                refreshLucideIcons(el);
+            }
+        })
+        .catch(function () {
+            el.innerHTML = '<div class="empty-state-modern"><p>Could not load cases. <a href="#" onclick="location.reload();return false;">Retry</a></p></div>';
+        })
+        .finally(function () {
+            el.classList.remove('dashboard-cases-fragment--loading');
+        });
+}
+
+function loadInitialDashboardMattersFragment() {
+    var frag = document.getElementById('dashboardMattersFragment');
+    if (!frag || !window.dashboardRoutes.mattersFragment) {
+        return Promise.resolve();
+    }
+
+    var fetchParams = new URLSearchParams(window.location.search);
+    if (!fetchParams.has('page')) {
+        fetchParams.set('page', '1');
+    }
+    var qs = fetchParams.toString();
+    var fetchUrl = window.dashboardRoutes.mattersFragment + (qs ? '?' + qs : '');
+
+    frag.classList.add('dashboard-matters-fragment--loading');
+
+    return fetch(fetchUrl, {
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'text/html',
+        },
+    })
+        .then(function (res) {
+            if (!res.ok) {
+                throw new Error('Matters fragment request failed');
+            }
+            return res.text();
+        })
+        .then(function (html) {
+            frag.innerHTML = html;
+            syncDashboardMattersTotalFromFragment(frag);
+            applyInitialColumnVisibility();
+            if (typeof refreshLucideIcons === 'function') {
+                refreshLucideIcons(frag);
+            }
+        })
+        .catch(function () {
+            frag.innerHTML = '<div class="dashboard-widget-loading"><p>Could not load client matters. <a href="#" onclick="location.reload();return false;">Retry</a></p></div>';
+        })
+        .finally(function () {
+            frag.classList.remove('dashboard-matters-fragment--loading');
+        });
 }
 
 function initializeEventHandlers() {

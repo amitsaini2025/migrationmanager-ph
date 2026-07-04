@@ -114,6 +114,7 @@ Route::middleware(['auth:admin'])->group(function() {
 	/*---------- Dashboard Routes ----------*/
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/matters-fragment', [DashboardController::class, 'mattersFragment'])->name('dashboard.matters-fragment');
+    Route::get('/dashboard/cases-fragment', [DashboardController::class, 'casesFragment'])->name('dashboard.cases-fragment');
     Route::post('/dashboard/column-preferences', [DashboardController::class, 'saveColumnPreferences'])->name('dashboard.column-preferences');
     Route::post('/dashboard/extend-deadline', [DashboardController::class, 'extendDeadlineDate'])->name('dashboard.extend-deadline');
     Route::post('/dashboard/update-action-completed', [DashboardController::class, 'updateActionCompleted'])->name('dashboard.update-action-completed');

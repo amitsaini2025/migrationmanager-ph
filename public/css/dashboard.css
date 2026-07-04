@@ -816,3 +816,135 @@
         align-items: flex-start;
     }
 }
+
+/* Cases requiring attention — activity badges (single copy; was duplicated per case-item) */
+.case-activity-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8em;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    border: 2px solid;
+}
+
+.case-activity-badge i,
+.case-activity-badge svg.lucide {
+    font-size: 1em;
+}
+
+.activity-signed {
+    background: #d4edda;
+    color: #155724;
+    border-color: #28a745;
+}
+
+.activity-upload {
+    background: #cce5ff;
+    color: #004085;
+    border-color: #007bff;
+}
+
+.activity-note {
+    background: #fff3cd;
+    color: #856404;
+    border-color: #ffc107;
+}
+
+.activity-email {
+    background: #d1ecf1;
+    color: #0c5460;
+    border-color: #17a2b8;
+}
+
+.activity-status {
+    background: #e2d9f3;
+    color: #3d1d6b;
+    border-color: #6f42c1;
+}
+
+.activity-stage {
+    background: #ffe5d0;
+    color: #7a3d00;
+    border-color: #fd7e14;
+}
+
+.activity-appointment {
+    background: #d4f4dd;
+    color: #0a4d1d;
+    border-color: #20c997;
+}
+
+.activity-payment {
+    background: #d4edda;
+    color: #155724;
+    border-color: #28a745;
+}
+
+.activity-sms {
+    background: #d0f4f7;
+    color: #006978;
+    border-color: #00bcd4;
+}
+
+.activity-default {
+    background: #e9ecef;
+    color: #495057;
+    border-color: #6c757d;
+}
+
+.case-activity-badge:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Lazy-loaded dashboard widget placeholder */
+.dashboard-widget-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px 20px;
+    color: var(--text-muted-color, #777);
+    font-size: 0.9em;
+}
+
+.dashboard-widget-loading .spinner-sm {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(0, 87, 146, 0.15);
+    border-top-color: var(--primary-color, #005792);
+    border-radius: 50%;
+    animation: dashboardSpin 0.8s linear infinite;
+}
+
+@keyframes dashboardSpin {
+    to { transform: rotate(360deg); }
+}
+
+.dashboard-matters-fragment--loading,
+.dashboard-cases-fragment--loading {
+    opacity: 0.55;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+@media (max-width: 768px) {
+    .case-activity-badge {
+        font-size: 0.75em;
+        padding: 4px 8px;
+    }
+
+    .activity-label {
+        display: none;
+    }
+
+    .case-activity-badge i,
+    .case-activity-badge svg.lucide {
+        font-size: 1.2em;
+    }
+}

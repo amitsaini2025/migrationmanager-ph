@@ -10,7 +10,7 @@
                 <a href="{{ route('booking.appointments.index') }}" class="icon-btn" title="Website Bookings" style="position: relative;">
                     @icon('fa-globe')
                     @php
-                        $pendingCount = \App\Models\BookingAppointment::where('status', 'pending')->where('is_paid', 1)->count();
+                        $pendingCount = \App\Support\CachedHeaderCounts::bookingPendingPaid();
                     @endphp
                     @if($pendingCount > 0)
                         <span class="badge badge-danger" style="position: absolute; top: -5px; right: -5px; font-size: 10px; padding: 2px 5px; border-radius: 10px;">{{ $pendingCount }}</span>
@@ -133,7 +133,7 @@
         <a href="javascript:;" title="Add Office Check-In" class="icon-btn opencheckin">@icon('fa-person-booth')</a>
         @if(Auth::user())
             @php
-                $notifUnread = \App\Models\Notification::where('receiver_id', Auth::user()->id)->where('receiver_status', 0)->count();
+                $notifUnread = \App\Support\CachedHeaderCounts::notificationUnread((int) Auth::user()->id);
             @endphp
             <a href="#" class="icon-btn notification-toggle" title="Notifications">
                 @icon('fa-bell')<span class="countbell" id="countbell_notification">{{ $notifUnread > 0 ? $notifUnread : '' }}</span>

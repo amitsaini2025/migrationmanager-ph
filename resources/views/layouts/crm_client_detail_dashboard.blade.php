@@ -8,7 +8,7 @@
     <meta name="keyword" content="CRM">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="current-user-id" content="{{ optional(auth('admin')->user())->id }}">
-    <title>CRM | Client Details</title>
+    <title>CRM | @yield('title', 'Client Details')</title>
     <link rel="icon" type="image/png" href="{{asset('img/favicon.png')}}">
     <link rel="stylesheet" href="{{asset('css/app.min.css')}}">
     <!-- TinyMCE is self-hosted and loaded per page as needed -->
@@ -1822,8 +1822,15 @@
                 });
             };
             
-            // Initial load of office visit notifications (Echo listener is registered in resources/js/app.js)
-            loadOfficeVisitNotifications();
+            // Defer office visit notifications until after initial paint (Echo listener is in app.js)
+            function deferOfficeVisitNotificationsLoad() {
+                if (typeof requestIdleCallback === 'function') {
+                    requestIdleCallback(function () { loadOfficeVisitNotifications(); }, { timeout: 2000 });
+                } else {
+                    setTimeout(loadOfficeVisitNotifications, 300);
+                }
+            }
+            deferOfficeVisitNotificationsLoad();
         
         // Profile dropdown hover functionality
         let profileHoverTimeout;

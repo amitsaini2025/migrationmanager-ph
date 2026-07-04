@@ -39,8 +39,8 @@ class CRMUtilityController extends Controller
 {
     use EnsuresCrmRecordAccess;
 
-    protected $emailService;
-    protected $crmSentEmailS3Service;
+    protected EmailService $emailService;
+    protected CrmSentEmailS3Service $crmSentEmailS3Service;
 
     public function __construct(EmailService $emailService, CrmSentEmailS3Service $crmSentEmailS3Service)
     {
@@ -52,7 +52,10 @@ class CRMUtilityController extends Controller
 
     public function fetchnotification(Request $request){
         // $notificalists = \App\Models\Notification::where('receiver_id', Auth::user()->id)->where('receiver_status', 0)->orderby('created_at','DESC')->paginate(5);
-         $notificalistscount = \App\Models\Notification::where('receiver_id', Auth::user()->id)->where('receiver_status', 0)->count();
+         $notificalistscount = \App\Models\Notification::query()
+            ->where('receiver_id', '=', (int) Auth::user()->id)
+            ->where('receiver_status', '=', 0)
+            ->count();
         /* $output = '';
 	    foreach($notificalists as $listnoti){
 	        $output .= '<a href="'.$listnoti->url.'?t='.$listnoti->id.'" class="dropdown-item dropdown-item-unread">
@@ -71,9 +74,12 @@ class CRMUtilityController extends Controller
     }
 
     public function fetchmessages(Request $request){
-        $notificalists = \App\Models\Notification::where('receiver_id', Auth::user()->id)->where('seen', 0)->first();
+        $notificalists = \App\Models\Notification::query()
+            ->where('receiver_id', '=', (int) Auth::user()->id)
+            ->where('seen', '=', 0)
+            ->first();
         if($notificalists){
-            $obj = \App\Models\Notification::find($notificalists->id);
+            $obj = \App\Models\Notification::query()->whereKey($notificalists->id)->first();
             $obj->seen = 1;
             $obj->save();
             return $notificalists->message;
@@ -117,7 +123,7 @@ class CRMUtilityController extends Controller
 										'zip' => 'required'
 									  ]);
 
-			$obj							= 	\App\Models\Staff::find(Auth::user()->id);
+			$obj							= 	\App\Models\Staff::query()->whereKey((int) Auth::user()->id)->first();
 
 			$obj->first_name				=	@$requestData['first_name'];
 			$obj->last_name					=	@$requestData['last_name'];
@@ -140,7 +146,7 @@ class CRMUtilityController extends Controller
 		else
 		{
 			$id = Auth::user()->id;
-			$fetchedData = \App\Models\Staff::find($id);
+			$fetchedData = \App\Models\Staff::query()->whereKey((int) $id)->first();
 
 			return view('crm.my_profile', compact(['fetchedData', 'countries']));
 		}
@@ -171,7 +177,7 @@ class CRMUtilityController extends Controller
 			$requestData 	= 	$request->all();
 			$admin_id = Auth::user()->id;
 
-			$fetchedData = \App\Models\Staff::where('id', '=', $admin_id)->first();
+			$fetchedData = \App\Models\Staff::query()->where('id', '=', $admin_id, 'and')->first();
 			if(!empty($fetchedData))
 				{
 					if($admin_id == trim($requestData['admin_id']))
@@ -182,7 +188,7 @@ class CRMUtilityController extends Controller
 								}
 							else
 								{
-									$admin = \App\Models\Staff::find($requestData['admin_id']);
+									$admin = \App\Models\Staff::query()->whereKey((int) $requestData['admin_id'])->first();
 									$admin->password = Hash::make($requestData['password']);
 									if($admin->save())
 										{
@@ -270,7 +276,7 @@ class CRMUtilityController extends Controller
 		//check authorization end
 		if ($request->isMethod('post'))
 		{
-			$obj	= 	\App\Models\Staff::find(Auth::user()->id);
+			$obj	= 	\App\Models\Staff::query()->whereKey((int) Auth::user()->id)->first();
 			$obj->client_id	=	md5(Auth::user()->id.time());
 			$saved				=	$obj->save();
 			if(!$saved)
@@ -634,6 +640,7 @@ class CRMUtilityController extends Controller
 	public function archiveAction(Request $request)
 	{
 		$status 			= 	0;
+		$astatus            =   '';
 		$method 			= 	$request->method();
 		if ($request->isMethod('post'))
 		{
@@ -727,7 +734,7 @@ class CRMUtilityController extends Controller
                     if($recordExist)
 					{
 						if($requestData['table'] == 'admins'){
-                            $o = \App\Models\Admin::where('id', $requestData['id'])->first();
+                            $o = \App\Models\Admin::query()->where('id', '=', $requestData['id'], 'and')->first();
 							if($o->status == 1){
 								$is_status = 0;
 							}else{
@@ -893,7 +900,7 @@ class CRMUtilityController extends Controller
 
 			if(isset($requestData['id']) && !empty($requestData['id']))
 			{
-				$recordExist = Country::where('id', $requestData['id'])->exists();
+				$recordExist = Country::query()->where('id', '=', $requestData['id'], 'and')->exists();
 
 			if($recordExist)
 			{
@@ -934,11 +941,11 @@ public function getChapters(Request $request)
 
 			if(isset($requestData['id']) && !empty($requestData['id']))
 			{
-				$recordExist = McqSubject::where('id', $requestData['id'])->exists();
+				$recordExist = McqSubject::query()->where('id', '=', $requestData['id'], 'and')->exists();
 
 				if($recordExist)
 				{
-					$data 	= 	McqChapter::where('subject_id', '=', $requestData['id'])->get();
+					$data 	= 	McqChapter::query()->where('subject_id', '=', $requestData['id'], 'and')->get();
 
 					if($data)
 					{
@@ -985,7 +992,7 @@ public function getChapters(Request $request)
 
 			if(isset($requestData['id']) && !empty($requestData['id']))
 			{
-			$recordExist = Country::where('id', $requestData['id'])->exists();
+			$recordExist = Country::query()->where('id', '=', $requestData['id'], 'and')->exists();
 
 			if($recordExist)
 			{
@@ -1014,7 +1021,7 @@ public function getChapters(Request $request)
 
 	public function gettemplates(Request $request){
 		$id = $request->id;
-		$template = \App\Models\EmailTemplate::find($id);
+		$template = \App\Models\EmailTemplate::query()->whereKey((int) $id)->first();
 		if ($template) {
 			echo json_encode(array('subject' => $template->subject, 'description' => $template->description));
 		} else {
@@ -1032,7 +1039,7 @@ public function getChapters(Request $request)
 		if (!$clientMatterId) {
 			return response()->json(['template' => null, 'checklist_ids' => [], 'macro_values' => null]);
 		}
-		$clientMatter = ClientMatter::find($clientMatterId);
+		$clientMatter = ClientMatter::query()->whereKey((int) $clientMatterId)->first();
 		if (!$clientMatter || !$clientMatter->sel_matter_id) {
 			return response()->json(['template' => null, 'checklist_ids' => [], 'macro_values' => null]);
 		}
@@ -1054,7 +1061,7 @@ public function getChapters(Request $request)
 			$allTemplates[] = ['id' => $t->id, 'name' => $t->name, 'subject' => $t->subject, 'description' => $t->description];
 		}
 
-		$checklistIds = \App\Models\UploadChecklist::where('matter_id', $matterId)->pluck('id')->toArray();
+		$checklistIds = \App\Models\UploadChecklist::query()->where('matter_id', '=', $matterId, 'and')->pluck('id')->toArray();
 
 		// Build macro values for First email template replacement
 		$macroValues = $this->getComposeMacroValues($clientId, $clientMatterId);
@@ -1070,14 +1077,14 @@ public function getChapters(Request $request)
 	/**
 	 * Get macro replacement values for a client matter (ClientID, ApplicantGivenNames, visa_apply, fees, etc.)
 	 */
-	protected function getComposeMacroValues($clientId, $clientMatterId)
+	protected function getComposeMacroValues(int $clientId, int $clientMatterId)
 	{
-		$client = Admin::find($clientId);
+		$client = Admin::query()->whereKey((int) $clientId)->first();
 		if (!$client) {
 			return null;
 		}
 
-		$clientMatter = ClientMatter::find($clientMatterId);
+		$clientMatter = ClientMatter::query()->whereKey((int) $clientMatterId)->first();
 		if (!$clientMatter) {
 			return null;
 		}
@@ -1098,7 +1105,10 @@ public function getChapters(Request $request)
 
 		// Get matter/cost assignment info
 		$matterInfo = null;
-		$costAssignment = \App\Models\CostAssignmentForm::where('client_id', $clientId)->where('client_matter_id', $clientMatterId)->first();
+		$costAssignment = \App\Models\CostAssignmentForm::query()
+            ->where('client_id', '=', $clientId, 'and')
+            ->where('client_matter_id', '=', $clientMatterId, 'and')
+            ->first();
 		if ($costAssignment) {
 			$matterInfo = DB::table('cost_assignment_forms')->where('client_id', $clientId)->where('client_matter_id', $clientMatterId)->first();
 		}
@@ -1159,10 +1169,11 @@ public function getChapters(Request $request)
 	 * Resolve the pending agreement signing URL for a client matter (compose email / First email macro).
 	 * Matches checklist logic: latest agreement doc with signature_doc_link when not yet signed.
 	 */
-	protected function getAgreementSigningUrlForMatter($clientMatterId): string
+	protected function getAgreementSigningUrlForMatter(int $clientMatterId): string
 	{
-		$agreementDoc = Document::where('client_matter_id', $clientMatterId)
-			->where('doc_type', 'agreement')
+		$agreementDoc = Document::query()
+            ->where('client_matter_id', '=', $clientMatterId, 'and')
+			->where('doc_type', '=', 'agreement', 'and')
 			->latest()
 			->first();
 
@@ -1277,7 +1288,7 @@ public function getChapters(Request $request)
 				continue;
 			}
 			if (($requestData['type'] ?? '') === 'agent') {
-				$r = \App\Models\AgentDetails::where('id', $recipientId)->first();
+				$r = \App\Models\AgentDetails::query()->where('id', '=', $recipientId, 'and')->first();
 				if ($r) {
 					$em = $r->email ?: $r->business_email;
 					if ($em) {
@@ -1285,7 +1296,7 @@ public function getChapters(Request $request)
 					}
 				}
 			} else {
-				$r = \App\Models\Admin::where('id', $recipientId)->first();
+				$r = \App\Models\Admin::query()->where('id', '=', $recipientId, 'and')->first();
 				if ($r && ! empty($r->email)) {
 					$resolvedTo[] = $r->email;
 				}
@@ -1315,7 +1326,7 @@ public function getChapters(Request $request)
                 $checklistfiles = $requestData['checklistfile'];
                 $attachments = array();
                 foreach($checklistfiles as $checklistfile){
-                    $filechecklist =  \App\Models\UploadChecklist::where('id', $checklistfile)->first();
+                    $filechecklist =  \App\Models\UploadChecklist::query()->where('id', '=', $checklistfile, 'and')->first();
                     if($filechecklist){
                         $attachments[] = array('file_name' => $filechecklist->name,'file_url' => $filechecklist->file);
                     }
@@ -1330,7 +1341,7 @@ public function getChapters(Request $request)
                 $checklistfiles_documents = $requestData['checklistfile_document'];
                 $attachments2 = array();
                 foreach($checklistfiles_documents as $checklistfile1){
-                    $filechecklist_doc =  \App\Models\Document::where('id', $checklistfile1)->first();
+                    $filechecklist_doc =  \App\Models\Document::query()->where('id', '=', $checklistfile1, 'and')->first();
                     if($filechecklist_doc){
                         if( $filechecklist_doc->doc_type == "education" || $filechecklist_doc->doc_type == "migration" ){
                             $attachments2[] = array('file_name' => $filechecklist_doc->name,'file_url' => $filechecklist_doc->file);
@@ -1440,7 +1451,7 @@ public function getChapters(Request $request)
 		$preparedSendPaths = [];
 		if (isset($requestData['checklistfile']) && !empty($requestData['checklistfile'])) {
 			foreach ($requestData['checklistfile'] as $checklistfile) {
-				$filechecklist = \App\Models\UploadChecklist::where('id', $checklistfile)->first();
+				$filechecklist = \App\Models\UploadChecklist::query()->where('id', '=', $checklistfile, 'and')->first();
 				if ($filechecklist) {
 					$preparedSendPaths[] = public_path('checklists' . DIRECTORY_SEPARATOR . $filechecklist->file);
 				}
@@ -1448,7 +1459,7 @@ public function getChapters(Request $request)
 		}
 		if (isset($requestData['checklistfile_document']) && !empty($requestData['checklistfile_document'])) {
 			foreach ($requestData['checklistfile_document'] as $checklistfile1) {
-				$filechecklist_doc = \App\Models\Document::where('id', $checklistfile1)->first();
+				$filechecklist_doc = \App\Models\Document::query()->where('id', '=', $checklistfile1, 'and')->first();
 				if ($filechecklist_doc) {
 					if ($filechecklist_doc->doc_type == 'education' || $filechecklist_doc->doc_type == 'migration') {
 						$preparedSendPaths[] = public_path('img' . DIRECTORY_SEPARATOR . 'documents' . DIRECTORY_SEPARATOR . $filechecklist_doc->myfile);
@@ -1507,14 +1518,14 @@ public function getChapters(Request $request)
 			$subject = $baseSubject;
 			$message = $baseMessage;
 			if (@$requestData['type'] == 'agent') {
-				$client = \App\Models\AgentDetails::where('id', $l)->first();
+				$client = \App\Models\AgentDetails::query()->where('id', '=', $l, 'and')->first();
 				if (!$client) {
 					continue;
 				}
 				$subject = str_replace('{Client First Name}', $client->full_name, $subject);
 				$message = str_replace('{Client First Name}', $client->full_name, $message);
 			} else {
-				$client = \App\Models\Admin::where('id', $l)->first();
+				$client = \App\Models\Admin::query()->where('id', '=', $l, 'and')->first();
 				if (!$client) {
 					continue;
 				}
@@ -1622,7 +1633,7 @@ public function getChapters(Request $request)
 	/**
 	 * Log a visa-sheet email reminder when staff sent from the checklist reminder popup.
 	 */
-	private function recordChecklistEmailReminderIfRequested(array $requestData, $clientMatterId, bool $checklistWasSent): void
+	private function recordChecklistEmailReminderIfRequested(array $requestData, int $clientMatterId, bool $checklistWasSent): void
 	{
 		if (($requestData['checklist_reminder_type'] ?? '') !== 'email') {
 			return;
@@ -1633,7 +1644,7 @@ public function getChapters(Request $request)
 			return;
 		}
 
-		$clientMatter = ClientMatter::find($matterId);
+		$clientMatter = ClientMatter::query()->whereKey((int) $matterId)->first();
 		if ($clientMatter) {
 			$clientMatter->recordMatterReminder('email', Auth::user()->id);
 		}
@@ -1664,7 +1675,7 @@ public function getChapters(Request $request)
 				continue;
 			}
 
-			$ccRow = Admin::where('id', (int) $ccValue)->first();
+			$ccRow = Admin::query()->where('id', '=', (int) $ccValue, 'and')->first();
 			if ($ccRow && ! empty($ccRow->email)) {
 				$ccEmails[] = $ccRow->email;
 			}
@@ -1788,21 +1799,21 @@ public function getChapters(Request $request)
 
     public function checkclientexist(Request $request){
         if($request->type == 'email'){
-         $clientexists = \App\Models\Admin::where('email', $request->vl)->whereIn('type', ['client', 'lead'])->exists();
+         $clientexists = \App\Models\Admin::query()->where('email', '=', $request->vl, 'and')->whereIn('type', ['client', 'lead'], 'and', false)->exists();
             if($clientexists){
                 echo 1;
             }else{
                 echo 0;
             }
         }else if($request->type == 'clientid'){
-         $clientexists = \App\Models\Admin::where('client_id', $request->vl)->whereIn('type', ['client', 'lead'])->exists();
+         $clientexists = \App\Models\Admin::query()->where('client_id', '=', $request->vl, 'and')->whereIn('type', ['client', 'lead'], 'and', false)->exists();
             if($clientexists){
                 echo 1;
             }else{
                 echo 0;
             }
         }else{
-            $clientexists = \App\Models\Admin::where('phone', $request->vl)->whereIn('type', ['client', 'lead'])->exists();
+            $clientexists = \App\Models\Admin::query()->where('phone', '=', $request->vl, 'and')->whereIn('type', ['client', 'lead'], 'and', false)->exists();
             if($clientexists){
                 echo 1;
             }else{
@@ -1812,7 +1823,10 @@ public function getChapters(Request $request)
     }
 
 	public function allnotification(Request $request){
-		$lists = \App\Models\Notification::where('receiver_id', Auth::user()->id)->orderby('created_at','DESC')->paginate(20);
+		$lists = \App\Models\Notification::query()
+            ->where('receiver_id', '=', (int) Auth::user()->id, 'and')
+            ->orderby('created_at','DESC')
+            ->paginate(20);
 		// Fix URLs for notifications that point to non-existent or wrong routes
 		$lists->getCollection()->transform(function ($notification) {
 			// Message notifications: /messages (404) -> client detail + client portal tab
@@ -1843,7 +1857,7 @@ public function getChapters(Request $request)
 	//Get matter templates
 	public function getmattertemplates(Request $request){
 		$id = $request->id;
-		$template = \App\Models\EmailTemplate::find($id);
+		$template = \App\Models\EmailTemplate::query()->whereKey((int) $id)->first();
 		if ($template) {
 			echo json_encode(array('subject' => $template->subject, 'description' => $template->description));
 		} else {
@@ -1860,9 +1874,9 @@ public function getChapters(Request $request)
     {
         // Fetch notifications with sender relationship eager loaded
         $notifications = \App\Models\Notification::with(['sender:id,first_name,last_name'])
-            ->where('receiver_id', Auth::id())
-            ->where('notification_type', 'officevisit')
-            ->where('receiver_status', 0)
+            ->where('receiver_id', '=', (int) Auth::id(), 'and')
+            ->where('notification_type', '=', 'officevisit', 'and')
+            ->where('receiver_status', '=', 0, 'and')
             ->orderBy('created_at', 'DESC')
             ->get();
 
@@ -1875,12 +1889,12 @@ public function getChapters(Request $request)
         $receptionUserId = (int) config('constants.reception_user_id', 36730);
         $viewerIsReception = (int) Auth::id() === $receptionUserId;
 
-        $checkinQuery = \App\Models\CheckinLog::whereIn('id', $checkinLogIds);
+        $checkinQuery = \App\Models\CheckinLog::query()->whereIn('id', $checkinLogIds->all(), 'and', false);
         if (!$viewerIsReception) {
-            $checkinQuery->where('status', 0);
+            $checkinQuery->where('status', '=', 0, 'and');
         } else {
             // Reception: include attending (e.g. after "Pls Send") so poll/fetch can still show unread alerts
-            $checkinQuery->whereIn('status', [0, 2]);
+            $checkinQuery->whereIn('status', [0, 2], 'and', false);
         }
         $checkinLogs = $checkinQuery->get()->keyBy('id');
 
@@ -1890,7 +1904,11 @@ public function getChapters(Request $request)
 
         $clientIds = $checkinLogs->pluck('client_id')->filter()->unique()->values();
         $contacts = $clientIds->isNotEmpty()
-            ? \App\Models\Admin::whereIn('type', ['client', 'lead'])->whereIn('id', $clientIds)->get()->keyBy('id')
+            ? \App\Models\Admin::query()
+                ->whereIn('type', ['client', 'lead'], 'and', false)
+                ->whereIn('id', $clientIds->all(), 'and', false)
+                ->get()
+                ->keyBy('id')
             : collect();
 
         // Build response data
@@ -1941,16 +1959,18 @@ public function getChapters(Request $request)
     public function fetchTotalActivityCount(Request $request)
     {
         if (Auth::user()->role == 1) {
-            $assigneesCount = \App\Models\Note::where('type', 'client')
+            $assigneesCount = \App\Models\Note::query()
+                ->where('type', '=', 'client', 'and')
                 ->whereNotNull('client_id')
-                ->where('is_action', 1)
-                ->where('status', 0)
+                ->where('is_action', '=', 1, 'and')
+                ->where('status', '=', 0, 'and')
                 ->count();
         } else {
-            $assigneesCount = \App\Models\Note::where('assigned_to', Auth::user()->id)
-                ->where('type', 'client')
-                ->where('is_action', 1)
-                ->where('status', 0)
+            $assigneesCount = \App\Models\Note::query()
+                ->where('assigned_to', '=', (int) Auth::user()->id, 'and')
+                ->where('type', '=', 'client', 'and')
+                ->where('is_action', '=', 1, 'and')
+                ->where('status', '=', 0, 'and')
                 ->count();
         }
         
@@ -1968,7 +1988,8 @@ public function getChapters(Request $request)
 
         $this->ensureCrmRecordAccess((int) $request->client_id);
 
-        $visaInfo = \App\Models\ClientVisaCountry::where('client_id', $request->client_id)
+        $visaInfo = \App\Models\ClientVisaCountry::query()
+            ->where('client_id', '=', (int) $request->client_id, 'and')
             ->latest('id')
             ->first();
 
@@ -1995,7 +2016,7 @@ public function getChapters(Request $request)
      */
     public function markNotificationSeen(Request $request)
     {
-        $notification = \App\Models\Notification::find($request->notification_id);
+        $notification = \App\Models\Notification::query()->whereKey((int) $request->notification_id)->first();
         
         if (!$notification || $notification->receiver_id != Auth::id()) {
             return response()->json(['status' => 'error']);
@@ -2003,6 +2024,8 @@ public function getChapters(Request $request)
 
         $notification->receiver_status = 1;
         $notification->save();
+
+        \App\Support\CachedHeaderCounts::forgetNotificationUnread((int) Auth::id());
 
         return response()->json(['status' => 'success']);
     }
