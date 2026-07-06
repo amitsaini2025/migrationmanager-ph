@@ -63,6 +63,14 @@ function mmSetDocumentUploadFile(formData, file) {
 	formData.set('document_upload', file, mmSanitizeDocumentUploadFilename(file.name));
 }
 
+/** Append bulk document upload file with WAF-safe multipart filename (personal/visa/nomination tabs). */
+function mmAppendBulkDocumentUploadFile(formData, file) {
+	if (!formData || !file) {
+		return;
+	}
+	formData.append('files[]', file, mmSanitizeDocumentUploadFilename(file.name));
+}
+
 /** Sanitize .msg upload filename for multipart POST (WAF-safe; matches backend EmailUploadController). */
 function mmSanitizeEmailUploadFilename(filename) {
 	if (!filename || typeof filename !== 'string') {

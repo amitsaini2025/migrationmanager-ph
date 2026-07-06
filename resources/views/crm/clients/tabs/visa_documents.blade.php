@@ -1268,6 +1268,12 @@
                             invalidFiles.push(file.name + ' (invalid file type)');
                             return;
                         }
+
+                        // Check filename characters (same rules as single upload; WAF-safe name applied on POST)
+                        if (typeof mmIsAllowedDocumentFilename === 'function' ? !mmIsAllowedDocumentFilename(file.name) : !/^[a-zA-Z0-9_\-\.\s\$\(\),&+']+$/.test(file.name)) {
+                            invalidFiles.push(file.name + ' (invalid characters in name)');
+                            return;
+                        }
                         
                         // Check if file already exists
                         const exists = bulkUploadVisaFiles[categoryId].some(f => f.name === file.name && f.size === file.size);
@@ -1600,9 +1606,16 @@
                     formData.append('doctype', 'visa');
                     formData.append('type', 'client');
                     
-                    // Add files
+                    // Add files (sanitize multipart filename for WAF — same as single upload)
                     Array.from(files).forEach((file, index) => {
-                        formData.append('files[]', file);
+                        if (typeof mmAppendBulkDocumentUploadFile === 'function') {
+                            mmAppendBulkDocumentUploadFile(formData, file);
+                        } else {
+                            const safeName = (typeof mmSanitizeDocumentUploadFilename === 'function')
+                                ? mmSanitizeDocumentUploadFilename(file.name)
+                                : String(file.name).replace(/[^a-zA-Z0-9\-_.]/g, '_');
+                            formData.append('files[]', file, safeName);
+                        }
                         const mapping = mappings[index] || { type: 'new', name: extractChecklistNameFromFile(file.name) };
                         formData.append('mappings[]', JSON.stringify(mapping));
                     });
