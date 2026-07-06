@@ -102,42 +102,71 @@
     // =========================================================================
 
     /**
-     * Get client ID from the DOM (kept for backward compatibility)
+     * Normalize an id from data attributes, config, or form fields.
+     */
+    function normalizeRecordId(value) {
+        if (value === null || value === undefined) {
+            return null;
+        }
+        const normalized = String(value).trim();
+        return normalized === '' ? null : normalized;
+    }
+
+    /**
+     * Get client ID — data attribute first, then ClientDetailConfig / page container fallbacks.
      */
     function getClientId() {
         const container = document.querySelector('.email-interface-container');
         if (!container) {
-            // Page doesn't have email interface - this is normal for pages that don't support emails
             return null;
         }
-        
-        // Check if the container has the required attribute
-        const clientId = container.dataset.clientId;
-        if (!clientId || clientId === '') {
-            // Container exists but client ID is not set - page may not be configured for emails
-            // This is not an error, just return null silently
-            return null;
+
+        const fromContainer = normalizeRecordId(container.dataset.clientId);
+        if (fromContainer) {
+            return fromContainer;
         }
-        
-        return clientId;
+
+        if (window.ClientDetailConfig) {
+            const fromConfig = normalizeRecordId(window.ClientDetailConfig.clientId);
+            if (fromConfig) {
+                return fromConfig;
+            }
+        }
+
+        const crmContainer = document.querySelector('.crm-container');
+        if (crmContainer) {
+            const fromPage = normalizeRecordId(crmContainer.dataset.clientId);
+            if (fromPage) {
+                return fromPage;
+            }
+        }
+
+        return null;
     }
 
     /**
-     * Get matter ID from the DOM
+     * Get numeric client_matters.id — data attribute first, then matter dropdown on client detail.
      */
     function getMatterId() {
         const container = document.querySelector('.email-interface-container');
         if (!container) {
-            // Page doesn't have email interface - this is normal for pages that don't support emails
             return null;
         }
-        
-        // Check if the container has the required attribute
-        const matterId = container.dataset.matterId;
-        if (!matterId || matterId === '') {
-            return null;
+
+        const fromContainer = normalizeRecordId(container.dataset.matterId);
+        if (fromContainer) {
+            return fromContainer;
         }
-        return matterId;
+
+        if (!isLeadContext()) {
+            const matterDropdown = document.getElementById('sel_matter_id_client_detail');
+            const fromDropdown = matterDropdown ? normalizeRecordId(matterDropdown.value) : null;
+            if (fromDropdown) {
+                return fromDropdown;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -978,10 +1007,10 @@
             return;
         }
         const isLead = isLeadContext();
-        if (!container.dataset.clientId) {
+        if (!getClientId()) {
             return;
         }
-        if (!isLead && !container.dataset.matterId) {
+        if (!isLead && !getMatterId()) {
             return;
         }
         console.log('Loading emails...' + (isLead ? ' (lead context)' : ''));

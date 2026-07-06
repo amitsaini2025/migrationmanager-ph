@@ -1,21 +1,28 @@
 <!-- Emails Interface -->
 @php
-    // Support both $client and $fetchedData variable names
-    $clientData = $client ?? $fetchedData ?? null;
-    
-    // Get the matter ID from URL or most recent matter
+    // Prefer $fetchedData (client detail page) over $client — a stray $client in view scope must not shadow it
+    $clientData = $fetchedData ?? $client ?? null;
+    $clientRecordId = $clientData ? ($clientData->id ?? null) : null;
+
+    // Numeric client_matters.id for upload/list APIs (not the URL matter ref slug)
     $matterId = null;
-    if (isset($id1) && $id1 != "") {
-        $clientMatter = \App\Models\ClientMatter::where('client_id', $clientData->id)
-            ->where('client_unique_matter_no', $id1)
-            ->first();
-        $matterId = $clientMatter ? $clientMatter->id : null;
-    } else {
-        $clientMatter = \App\Models\ClientMatter::where('client_id', $clientData->id)
-            ->where('matter_status', 1)
-            ->orderBy('id', 'desc')
-            ->first();
-        $matterId = $clientMatter ? $clientMatter->id : null;
+    if ($clientRecordId) {
+        if (isset($id1) && $id1 != "") {
+            $clientMatter = \App\Models\ClientMatter::where('client_id', $clientRecordId)
+                ->where('client_unique_matter_no', $id1)
+                ->first();
+            $matterId = $clientMatter ? $clientMatter->id : null;
+        } else {
+            $clientMatter = \App\Models\ClientMatter::where('client_id', $clientRecordId)
+                ->where('matter_status', 1)
+                ->orderBy('id', 'desc')
+                ->first();
+            $matterId = $clientMatter ? $clientMatter->id : null;
+        }
+
+        if (! $matterId && ! empty($latestClientMatterId)) {
+            $matterId = $latestClientMatterId;
+        }
     }
 @endphp
 @php
@@ -26,7 +33,7 @@
     );
     $canSendEmailBodiesToS3 = Auth::user() && (int) Auth::user()->role === 1;
 @endphp
-<div class="email-interface-container" data-client-id="{{ $clientData->id ?? '' }}" data-matter-id="{{ $matterId ?? '' }}" data-can-delete-email="{{ $canDeleteEmail ? '1' : '0' }}" data-can-send-email-bodies-to-s3="{{ $canSendEmailBodiesToS3 ? '1' : '0' }}">
+<div class="email-interface-container" data-client-id="{{ $clientRecordId ?? '' }}" data-matter-id="{{ $matterId ?? '' }}" data-can-delete-email="{{ $canDeleteEmail ? '1' : '0' }}" data-can-send-email-bodies-to-s3="{{ $canSendEmailBodiesToS3 ? '1' : '0' }}">
     <!-- Top Control Bar (Search & Filters) -->
     <div class="email-control-bar">
         <div class="control-section search-section">
