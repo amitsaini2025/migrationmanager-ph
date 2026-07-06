@@ -424,7 +424,7 @@
             </h3>
            
 
-            <div class="" style="overflow-wrap: break-word; word-wrap: break-word; max-width: 100%;">
+            <div class="client-tags-list">
                 <?php 
                 $normalTags = [];
                 $redTags = [];
@@ -569,6 +569,14 @@
             #toggleRedTags:hover {
                 transform: translateY(-1px);
                 box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+            }
+            .client-tags-list {
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+                max-width: 100%;
+                max-height: 280px;
+                overflow-y: auto;
+                padding-right: 4px;
             }
         </style>
     </div>

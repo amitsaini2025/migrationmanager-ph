@@ -681,7 +681,7 @@ use App\Http\Controllers\Controller;
 </div>
 
 <div class="modal fade custom_modal" id="tags_clients" tabindex="-1" role="dialog" aria-labelledby="matterModalLabel" aria-hidden="true">
-	<div class="modal-dialog">
+	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
 			<div class="modal-header">
 				<h5 class="modal-title" id="appliationModalLabel">Tags</h5>
@@ -727,7 +727,7 @@ use App\Http\Controllers\Controller;
 							</div>
 						</div>
 
-						<div class="col-12 col-md-12 col-lg-12">
+						<div class="col-12 col-md-12 col-lg-12 mt-2">
 							<button onclick="customValidate('stags_matter')" type="button" class="btn btn-primary">Save</button>
 							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
 						</div>
@@ -739,11 +739,23 @@ use App\Http\Controllers\Controller;
 </div>
 
 <style>
-.tags-modal-container { min-height: 42px; padding: 6px 10px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.tags-pills-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1; }
-.tag-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background-color: #6A60E3; color: #fff; border-radius: 6px; font-size: 13px; }
-.tag-pill-text { white-space: nowrap; }
-.tag-pill-remove { background: none; border: none; color: #fff; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; opacity: 0.8; }
+.tags-modal-container {
+	min-height: 42px;
+	max-height: 220px;
+	height: auto;
+	padding: 6px 10px;
+	display: flex;
+	align-items: flex-start;
+	flex-wrap: wrap;
+	gap: 6px;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+.tags-modal-container.form-control { height: auto; }
+.tags-pills-inner { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px; flex: 1; width: 100%; min-width: 0; }
+.tag-pill { display: inline-flex; align-items: flex-start; gap: 6px; padding: 4px 10px; background-color: #6A60E3; color: #fff; border-radius: 6px; font-size: 13px; max-width: 100%; }
+.tag-pill-text { white-space: normal; word-break: break-word; line-height: 1.3; min-width: 0; }
+.tag-pill-remove { flex-shrink: 0; background: none; border: none; color: #fff; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; opacity: 0.8; }
 .tag-pill-remove:hover { opacity: 1; }
 .tag-input-inline { flex: 1; min-width: 120px; border: none; outline: none; font-size: 14px; background: transparent; }
 </style>
