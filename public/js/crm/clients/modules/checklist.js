@@ -13,6 +13,26 @@
         }
     }
 
+    var INLINE_RENAME_BTN_STYLE = 'display:inline-flex;align-items:center;justify-content:center;min-width:28px;min-height:28px;padding:0.25rem 0.5rem;';
+
+    function buildChecklistRenameField(value, saveClass, cancelClass) {
+        return [
+            $('<input style="display: inline-block;width: auto;" class="form-control opentime" type="text">').prop('value', value),
+            $('<button type="button" class="btn ' + saveClass + ' btn-sm mb-1 checklist-rename-save" style="' + INLINE_RENAME_BTN_STYLE + '">' + crmI('fas fa-check') + '</button>'),
+            $('<button type="button" class="btn ' + cancelClass + ' btn-sm mb-1 checklist-rename-cancel" style="' + INLINE_RENAME_BTN_STYLE + '">' + crmI('far fa-trash-alt') + '</button>')
+        ];
+    }
+
+    function showRenameToast(type, message) {
+        if (typeof iziToast === 'undefined') return;
+        var msg = message || (type === 'success' ? 'Saved successfully' : 'Could not save');
+        if (type === 'success' && typeof iziToast.success === 'function') {
+            iziToast.success({ message: msg, position: 'topRight', timeout: 3000 });
+        } else if (typeof iziToast.error === 'function') {
+            iziToast.error({ message: msg, position: 'topRight' });
+        }
+    }
+
     // uploadFormData, file_explorer, .openfileupload, .opendocnote, #ddArea handlers REMOVED - workflow checklist upload flow dead
 
     $(document).ready(function() {
@@ -47,15 +67,11 @@
                 return false;
             }
             $parent.data('current-html', $parent.html());
-            $parent.empty().append(
-                $('<input style="display: inline-block;width: auto;" class="form-control opentime" type="text">').prop('value', opentime),
-                $('<button class="btn btn-personalprimary btn-sm mb-1">' + crmI('fas fa-check') + '</button>'),
-                $('<button class="btn btn-personaldanger btn-sm mb-1">' + crmI('far fa-trash-alt') + '</button>')
-            );
+            $parent.empty().append.apply($parent, buildChecklistRenameField(opentime, 'btn-personalprimary', 'btn-personaldanger'));
             return false;
         });
 
-        $(document).on('click', '.persdocumnetlist .btn-personaldanger', function(e){
+        $(document).on('click', '.persdocumnetlist .checklist-rename-cancel', function(e){
             e.preventDefault();
             e.stopPropagation();
             var parent = $(this).closest('.drow').find('.personalchecklist-row');
@@ -72,7 +88,7 @@
             return false;
         });
 
-        $(document).on('click', '.persdocumnetlist .btn-personalprimary', function(e){
+        $(document).on('click', '.persdocumnetlist .checklist-rename-save', function(e){
             e.preventDefault();
             e.stopPropagation();
             var parent = $(this).closest('.drow').find('.personalchecklist-row');
@@ -105,15 +121,18 @@
                         if ($('#grid_'+obj.Id).length) {
                             $('#grid_'+obj.Id).html(obj.checklist);
                         }
+                        showRenameToast('success', obj.data || obj.message || 'Checklist saved successfully');
                     } else {
                         parent.find('.opentime').addClass('is-invalid').css({ 'background-image': 'none', 'padding-right': '0.75em' });
                         parent.append($('<div class="invalid-feedback">' + obj.message + '</div>'));
+                        showRenameToast('error', obj.message || 'Please try again');
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('Ajax error:', error);
                     parent.find('.opentime').addClass('is-invalid').css({ 'background-image': 'none', 'padding-right': '0.75em' });
                     parent.append($('<div class="invalid-feedback">An error occurred while saving</div>'));
+                    showRenameToast('error', 'An error occurred while saving');
                 }
             });
             return false;
@@ -131,15 +150,11 @@
             var opentime = parent.data('visachecklistname');
             if (!opentime) return false;
             parent.data('current-html', parent.html());
-            parent.empty().append(
-                $('<input style="display: inline-block;width: auto;" class="form-control opentime" type="text">').prop('value', opentime),
-                $('<button class="btn btn-personalprimary btn-sm mb-1">' + crmI('fas fa-check') + '</button>'),
-                $('<button class="btn btn-personaldanger btn-sm mb-1">' + crmI('far fa-trash-alt') + '</button>')
-            );
+            parent.empty().append.apply(parent, buildChecklistRenameField(opentime, 'btn-visaprimary', 'btn-visadanger'));
             return false;
         });
 
-        $(document).on('click', '.migdocumnetlist1 .btn-visadanger', function(e){
+        $(document).on('click', '.migdocumnetlist1 .checklist-rename-cancel', function(e){
             e.preventDefault();
             e.stopPropagation();
             var parent = $(this).closest('.drow').find('.visachecklist-row');
@@ -153,7 +168,7 @@
             return false;
         });
 
-        $(document).on('click', '.migdocumnetlist1 .btn-visaprimary', function(e){
+        $(document).on('click', '.migdocumnetlist1 .checklist-rename-save', function(e){
             e.preventDefault();
             e.stopPropagation();
             var parent = $(this).closest('.drow').find('.visachecklist-row');
@@ -183,16 +198,19 @@
                         if ($('#grid_'+obj.Id).length) {
                             $('#grid_'+obj.Id).html(obj.checklist);
                         }
+                        showRenameToast('success', obj.data || obj.message || 'Checklist saved successfully');
                     } else {
                         parent.find('.opentime').addClass('is-invalid').css({ 'background-image': 'none', 'padding-right': '0.75em' });
                         parent.append($('<div class="invalid-feedback">' + obj.message + '</div>'));
                         console.error('Failed to rename visa checklist:', obj.message);
+                        showRenameToast('error', obj.message || 'Please try again');
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('Ajax error:', error);
                     parent.find('.opentime').addClass('is-invalid').css({ 'background-image': 'none', 'padding-right': '0.75em' });
                     parent.append($('<div class="invalid-feedback">An error occurred while saving</div>'));
+                    showRenameToast('error', 'An error occurred while saving');
                 }
             });
             return false;
@@ -217,11 +235,7 @@
             }
             var saveBtnClass = isVisa ? 'btn-visaprimary' : 'btn-personalprimary';
             var cancelBtnClass = isVisa ? 'btn-visadanger' : 'btn-personaldanger';
-            $parent.empty().append(
-                $('<input style="display: inline-block;width: auto;" class="form-control opentime" type="text">').prop('value', currentChecklist),
-                $('<button class="btn ' + saveBtnClass + ' btn-sm mb-1">' + crmI('fas fa-check') + '</button>'),
-                $('<button class="btn ' + cancelBtnClass + ' btn-sm mb-1">' + crmI('far fa-trash-alt') + '</button>')
-            );
+            $parent.empty().append.apply($parent, buildChecklistRenameField(currentChecklist, saveBtnClass, cancelBtnClass));
             return false;
         });
 

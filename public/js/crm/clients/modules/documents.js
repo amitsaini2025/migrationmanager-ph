@@ -7,6 +7,26 @@
     'use strict';
     if (!$) return;
 
+    var INLINE_RENAME_BTN_STYLE = 'display:inline-flex;align-items:center;justify-content:center;min-width:28px;min-height:28px;padding:0.25rem 0.5rem;';
+
+    function buildDocRenameField(value) {
+        return [
+            $('<input style="display: inline-block;width: auto;" class="form-control opentime" type="text">').prop('value', value),
+            $('<button type="button" class="btn btn-primary btn-sm mb-1 doc-rename-save" style="' + INLINE_RENAME_BTN_STYLE + '">' + crmI('fas fa-check') + '</button>'),
+            $('<button type="button" class="btn btn-danger btn-sm mb-1 doc-rename-cancel" style="' + INLINE_RENAME_BTN_STYLE + '">' + crmI('far fa-trash-alt') + '</button>')
+        ];
+    }
+
+    function showRenameToast(type, message) {
+        if (typeof iziToast === 'undefined') return;
+        var msg = message || (type === 'success' ? 'Saved successfully' : 'Could not save');
+        if (type === 'success' && typeof iziToast.success === 'function') {
+            iziToast.success({ message: msg, position: 'topRight', timeout: 3000 });
+        } else if (typeof iziToast.error === 'function') {
+            iziToast.error({ message: msg, position: 'topRight' });
+        }
+    }
+
     $(document).ready(function() {
         // ---- Update Personal Document Category ----
         $(document).on('click', '.update-personal-cat-title', function() {
@@ -203,15 +223,11 @@
                 console.error('Document name not found');
                 return false;
             }
-            parent.empty().append(
-                $('<input style="display: inline-block;width: auto;" class="form-control opentime" type="text">').prop('value', opentime),
-                $('<button class="btn btn-primary btn-sm mb-1">' + crmI('fas fa-check') + '</button>'),
-                $('<button class="btn btn-danger btn-sm mb-1">' + crmI('far fa-trash-alt') + '</button>')
-            );
+            parent.empty().append.apply(parent, buildDocRenameField(opentime));
             return false;
         });
 
-        $(document).on('click', '.persdocumnetlist .btn-danger', function(e) {
+        $(document).on('click', '.persdocumnetlist .doc-rename-cancel', function(e) {
             e.preventDefault();
             e.stopPropagation();
             var parent = $(this).closest('.drow').find('.doc-row');
@@ -228,7 +244,7 @@
             return false;
         });
 
-        $(document).on('click', '.persdocumnetlist .btn-primary', function(e) {
+        $(document).on('click', '.persdocumnetlist .doc-rename-save', function(e) {
             e.preventDefault();
             e.stopPropagation();
             var parent = $(this).closest('.drow').find('.doc-row');
@@ -280,16 +296,19 @@
                         }).attr('href', previewUrl);
                         // Update all download links in the row (hidden + dropdown) so context menu and download use new URL after rename
                         $row.find('.download-file').attr('data-filelink', previewUrl).attr('data-filename', fileName);
+                        showRenameToast('success', obj.message || obj.data || 'Document saved successfully');
                     } else {
                         parent.find('.opentime').addClass('is-invalid').css({ 'background-image': 'none', 'padding-right': '0.75em' });
                         parent.append($('<div class="invalid-feedback">' + obj.message + '</div>'));
                         console.error('Failed to rename document:', obj.message);
+                        showRenameToast('error', obj.message || 'Please try again');
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('Ajax error:', error);
                     parent.find('.opentime').addClass('is-invalid').css({ 'background-image': 'none', 'padding-right': '0.75em' });
                     parent.append($('<div class="invalid-feedback">An error occurred while saving</div>'));
+                    showRenameToast('error', 'An error occurred while saving');
                 }
             });
             return false;
@@ -310,15 +329,11 @@
                 console.error('Visa document name not found');
                 return false;
             }
-            parent.empty().append(
-                $('<input style="display: inline-block;width: auto;" class="form-control opentime" type="text">').prop('value', opentime),
-                $('<button class="btn btn-primary btn-sm mb-1">' + crmI('fas fa-check') + '</button>'),
-                $('<button class="btn btn-danger btn-sm mb-1">' + crmI('far fa-trash-alt') + '</button>')
-            );
+            parent.empty().append.apply(parent, buildDocRenameField(opentime));
             return false;
         });
 
-        $(document).on('click', '.migdocumnetlist1 .btn-danger', function(e) {
+        $(document).on('click', '.migdocumnetlist1 .doc-rename-cancel', function(e) {
             e.preventDefault();
             e.stopPropagation();
             var parent = $(this).closest('.drow').find('.doc-row');
@@ -335,7 +350,7 @@
             return false;
         });
 
-        $(document).on('click', '.migdocumnetlist1 .btn-primary', function(e) {
+        $(document).on('click', '.migdocumnetlist1 .doc-rename-save', function(e) {
             e.preventDefault();
             e.stopPropagation();
             var parent = $(this).closest('.drow').find('.doc-row');
@@ -387,16 +402,19 @@
                         }).attr('href', previewUrl);
                         // Update all download links in the row (hidden + dropdown) so context menu and download use new URL after rename
                         $row.find('.download-file').attr('data-filelink', previewUrl).attr('data-filename', fileName);
+                        showRenameToast('success', obj.message || obj.data || 'Document saved successfully');
                     } else {
                         parent.find('.opentime').addClass('is-invalid').css({ 'background-image': 'none', 'padding-right': '0.75em' });
                         parent.append($('<div class="invalid-feedback">' + obj.message + '</div>'));
                         console.error('Failed to rename visa document:', obj.message);
+                        showRenameToast('error', obj.message || 'Please try again');
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('Ajax error:', error);
                     parent.find('.opentime').addClass('is-invalid').css({ 'background-image': 'none', 'padding-right': '0.75em' });
                     parent.append($('<div class="invalid-feedback">An error occurred while saving</div>'));
+                    showRenameToast('error', 'An error occurred while saving');
                 }
             });
             return false;

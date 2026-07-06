@@ -2073,6 +2073,7 @@ class ClientDocumentsController extends Controller
                 
                 $response['status'] = true;
                 $response['data'] = 'Checklist saved successfully';
+                $response['message'] = 'Checklist saved successfully';
                 $response['Id'] = $id;
                 $response['checklist'] = $checklist;
                 $response['html'] = $html;
