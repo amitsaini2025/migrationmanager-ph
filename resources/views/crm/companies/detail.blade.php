@@ -930,8 +930,8 @@ use App\Http\Controllers\Controller;
 
 <style>
 .tags-modal-container {
-	min-height: 42px;
-	max-height: 220px;
+	min-height: 80px;
+	max-height: 320px;
 	height: auto;
 	padding: 6px 10px;
 	display: flex;
