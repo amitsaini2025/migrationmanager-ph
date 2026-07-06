@@ -1415,13 +1415,50 @@ $(document).ready(function() {
         }
     };
     
-    // Global function to load activities feed
-    window.loadActivities = function() {
+    // Global function to load activities feed (paginated via /get-activities)
+    window.ActivityFeedState = window.ActivityFeedState || { page: 1, hasMore: false, loading: false };
+
+    window.loadActivities = function(options) {
+        var opts = options || {};
+        var reset = opts.reset !== false;
+        var append = opts.append === true;
+
+        if (window.ActivityFeedState.loading) {
+            return;
+        }
+
+        if (reset) {
+            window.ActivityFeedState.page = 1;
+            window.ActivityFeedState.hasMore = false;
+        } else if (append) {
+            window.ActivityFeedState.page = (window.ActivityFeedState.page || 1) + 1;
+        }
+
+        window.ActivityFeedState.loading = true;
+        $('#activity-feed-loading').show();
+        $('#activity-feed-load-more').prop('disabled', true);
+
+        var requestData = {
+            id: window.ClientDetailConfig.clientId,
+            page: window.ActivityFeedState.page,
+            per_page: 40
+        };
+
+        var urlParams = new URLSearchParams(window.location.search);
+        var staffFilter = urlParams.get('staff') || urlParams.get('user');
+        var keywordFilter = urlParams.get('keyword');
+        if (staffFilter) {
+            requestData.staff = staffFilter;
+        }
+        if (keywordFilter) {
+            requestData.keyword = keywordFilter;
+        }
+
         $.ajax({
             url: window.ClientDetailConfig.urls.getActivities,
             type: 'GET',
             dataType: 'json',
-            data: { id: window.ClientDetailConfig.clientId },
+            data: requestData,
             success: function(response) {
                 if (response.status && response.data) {
                     // Escape template literal special characters to prevent syntax errors
@@ -1539,7 +1576,15 @@ $(document).ready(function() {
                         '</li>';
                     });
 
-                    $('.feed-list').html(html);
+                    if (append) {
+                        $('.feed-list .feed-item.activity').last().after(html);
+                    } else {
+                        $('.feed-list .feed-item.activity').remove();
+                        $('.feed-list .feed-item--empty').before(html);
+                    }
+
+                    window.ActivityFeedState.hasMore = !!response.has_more;
+                    $('#activity-feed-load-more-wrap').toggle(window.ActivityFeedState.hasMore);
 
                     if (typeof adjustActivityFeedHeight === 'function') {
                         adjustActivityFeedHeight();
@@ -1553,9 +1598,20 @@ $(document).ready(function() {
             },
             error: function(xhr, status, error) {
                 console.error('Error loading activities:', error);
+            },
+            complete: function() {
+                window.ActivityFeedState.loading = false;
+                $('#activity-feed-loading').hide();
+                $('#activity-feed-load-more').prop('disabled', false);
             }
         });
     };
+
+    $(document).ready(function() {
+        if ($('.activity-feed').length && typeof window.loadActivities === 'function') {
+            window.loadActivities({ reset: true });
+        }
+    });
 </script>
 
 {{-- Newly added external JS placeholders for progressive migration --}}

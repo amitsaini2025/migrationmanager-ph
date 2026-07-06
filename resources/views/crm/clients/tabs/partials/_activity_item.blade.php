@@ -1,4 +1,7 @@
 @php
+    $admin = $admin ?? ($activity->staff ?? $activity->creator ?? null);
+@endphp
+@php
     // Determine note type for specific styling
     $noteTypeClass = '';
     $noteIcon = 'fa-sticky-note';

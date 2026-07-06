@@ -71,6 +71,14 @@ class ActivitiesLog extends Authenticatable
 	}
 
 	/**
+	 * Alias for creator() — activity feed and filters use this name.
+	 */
+	public function staff()
+	{
+		return $this->belongsTo(Staff::class, 'created_by');
+	}
+
+	/**
 	 * Get the SMS log if this is an SMS activity
 	 */
 	public function smsLog()

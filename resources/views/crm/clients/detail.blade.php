@@ -24,15 +24,12 @@ use App\Http\Controllers\Controller;
             <div class="client-info">
                 <h3 class="client-id">
                     <?php
-                    if($id1) { //if client unique reference id is present in url
-                        $matter_info_arr = \App\Models\ClientMatter::select('client_unique_matter_no')->where('client_id',$fetchedData->id)->where('client_unique_matter_no',$id1)->first();
+                    if($id1) {
                     ?>
                         {{$fetchedData->client_id}}-{{$matter_info_arr ? $matter_info_arr->client_unique_matter_no : 'N/A'}}
                     <?php
                     } else {
-                        $matter_cnt = \App\Models\ClientMatter::select('id')->where('client_id',$fetchedData->id)->where('matter_status',1)->count();
-                        if($matter_cnt >0){
-                            $matter_info_arr = \App\Models\ClientMatter::select('client_unique_matter_no')->where('client_id',$fetchedData->id)->where('matter_status',1)->orderBy('id', 'desc')->first();
+                        if(($matter_cnt ?? 0) > 0){
                         ?>
                             {{$fetchedData->client_id}}-{{$matter_info_arr ? $matter_info_arr->client_unique_matter_no : 'N/A'}}
                         <?php
@@ -87,174 +84,30 @@ use App\Http\Controllers\Controller;
             
             <!-- Matter Selection Dropdown in Sidebar -->
             <div class="sidebar-matter-selection">
-                <?php
-                $assign_info_arr = \App\Models\Admin::select('type')->where('id',@$fetchedData->id)->first();
-                ?>
-                @if($assign_info_arr->type)
-                    <?php 
-                    if($id1)
-                    {
-                        //if client_unique_matter_no is present in url
-                        $matter_cnt = DB::table('client_matters')
-                        ->select('client_matters.id')
-                        ->where('client_matters.client_id',@$fetchedData->id)
-                        ->where('client_matters.client_unique_matter_no',$id1)
-                        ->where('client_matters.matter_status',1)
-                        ->whereNotNull('client_matters.sel_matter_id')
-                        ->count();  
-                        if( $matter_cnt >0 )
-                        {
-                            // Fetch all matters, but we'll sort them in Blade to prioritize the URL matter
-                            $matter_list_arr = DB::table('client_matters')
-                            ->leftJoin('matters', 'client_matters.sel_matter_id', '=', 'matters.id')
-                            ->select('client_matters.id','client_matters.client_unique_matter_no','matters.title','client_matters.sel_matter_id')
-                            ->where('client_matters.client_id',@$fetchedData->id)
-                            ->where('client_matters.matter_status',1)
-                            ->get();
-                            $clientmatter_info_arr = \App\Models\ClientMatter::select('id')->where('client_id',$fetchedData->id)->where('client_unique_matter_no',$id1)->first();
-                            $latestClientMatterId = $clientmatter_info_arr ? $clientmatter_info_arr->id : null;
-
-                            // Convert matter_list_arr to an array for sorting
-                            $matter_list_arr = $matter_list_arr->toArray();
-                            // Sort matters: URL matter ($id1) comes first, others follow
-                            usort($matter_list_arr, function($a, $b) use ($id1) {
-                                if ($a->client_unique_matter_no == $id1 && $b->client_unique_matter_no != $id1) {
-                                    return -1; // $a (URL matter) comes first
-                                } elseif ($a->client_unique_matter_no != $id1 && $b->client_unique_matter_no == $id1) {
-                                    return 1; // $b (URL matter) comes first
-                                }
-                                return 0; // Maintain original order for other matters
-                            });
-                            ?>
-                            <select name="matter_id" id="sel_matter_id_client_detail" class="form-control mm-select visa-dropdown" data-valid="required">
-                                <option value="">Select Matters</option>
-                                @foreach($matter_list_arr as $matterlist)
-                                    @php
-                                        // If sel_matter_id is 1 or title is null, use "General Matter"
-                                        $matterName = 'General Matter';
-                                        if ($matterlist->sel_matter_id != 1 && !empty($matterlist->title)) {
-                                            $matterName = $matterlist->title;
-                                        }
-                                    @endphp
-                                    <option value="{{$matterlist->id}}" {{ $matterlist->id == $latestClientMatterId ? 'selected' : '' }} data-clientuniquematterno="{{@$matterlist->client_unique_matter_no}}" data-sel-matter-id="{{@$matterlist->sel_matter_id}}">{{$matterName}}({{@$matterlist->client_unique_matter_no}})</option>
-                                @endforeach
-                            </select>
-                        <?php
-                        }  
-                        else 
-                        {
-                            $matter_cnt = DB::table('client_matters')
-                            ->select('client_matters.id')
-                            ->where('client_matters.client_id',@$fetchedData->id)
-                            ->where('client_matters.matter_status',1)
-                            ->whereNotNull('client_matters.sel_matter_id')
-                            ->count();
-                            if( $matter_cnt >0 )
-                            {
-                                $matter_list_arr = DB::table('client_matters')
-                                ->leftJoin('matters', 'client_matters.sel_matter_id', '=', 'matters.id')
-                                ->select('client_matters.id','client_matters.client_unique_matter_no','matters.title','client_matters.sel_matter_id')
-                                ->where('client_matters.client_id',@$fetchedData->id)
-                                ->where('client_matters.matter_status',1)
-                                ->orderBy('client_matters.created_at', 'desc')
-                                ->get();
-                                $latestClientMatter = \App\Models\ClientMatter::where('client_id',$fetchedData->id)->where('matter_status',1)->latest()->first();
-                                $latestClientMatterId = $latestClientMatter ? $latestClientMatter->id : null;
-                                ?>
-                                <select name="matter_id" id="sel_matter_id_client_detail" class="form-control mm-select visa-dropdown" data-valid="required">
-                                    <option value="">Select Matters</option>
-                                    @foreach($matter_list_arr as $matterlist)
-                                        @php
-                                            // If sel_matter_id is 1 or title is null, use "General Matter"
-                                            $matterName = 'General Matter';
-                                            if ($matterlist->sel_matter_id != 1 && !empty($matterlist->title)) {
-                                                $matterName = $matterlist->title;
-                                            }
-                                        @endphp
-                                        <option value="{{$matterlist->id}}" {{ $matterlist->id == $latestClientMatterId ? 'selected' : '' }} data-clientuniquematterno="{{@$matterlist->client_unique_matter_no}}" data-sel-matter-id="{{@$matterlist->sel_matter_id}}">{{$matterName}}({{@$matterlist->client_unique_matter_no}})</option>
-                                    @endforeach
-                                </select>
-                            <?php
-                            }
-                        } 
-                    }
-                    else
-                    {
-                        $matter_cnt = DB::table('client_matters')
-                        ->select('client_matters.id')
-                        ->where('client_matters.client_id',@$fetchedData->id)
-                        ->where('client_matters.matter_status',1)
-                        ->whereNotNull('client_matters.sel_matter_id')
-                        ->count();
-                        if( $matter_cnt >0 )
-                        {
-                            $matter_list_arr = DB::table('client_matters')
-                            ->leftJoin('matters', 'client_matters.sel_matter_id', '=', 'matters.id')
-                            ->select('client_matters.id','client_matters.client_unique_matter_no','matters.title','client_matters.sel_matter_id')
-                            ->where('client_matters.client_id',@$fetchedData->id)
-                            ->where('client_matters.matter_status',1)
-                            ->orderBy('client_matters.created_at', 'desc')
-                            ->get();
-                            $latestClientMatter = \App\Models\ClientMatter::where('client_id',$fetchedData->id)->where('matter_status',1)->latest()->first();
-                            $latestClientMatterId = $latestClientMatter ? $latestClientMatter->id : null;
-                            ?>
-                            <select name="matter_id" id="sel_matter_id_client_detail" class="form-control mm-select visa-dropdown" data-valid="required">
-                                <option value="">Select Matters</option>
-                                @foreach($matter_list_arr as $matterlist)
-                                    @php
-                                        // If sel_matter_id is 1 or title is null, use "General Matter"
-                                        $matterName = 'General Matter';
-                                        if ($matterlist->sel_matter_id != 1 && !empty($matterlist->title)) {
-                                            $matterName = $matterlist->title;
-                                        }
-                                    @endphp
-                                    <option value="{{$matterlist->id}}" {{ $matterlist->id == $latestClientMatterId ? 'selected' : '' }} data-clientuniquematterno="{{@$matterlist->client_unique_matter_no}}" data-sel-matter-id="{{@$matterlist->sel_matter_id}}">{{$matterName}}({{@$matterlist->client_unique_matter_no}})</option>
-                                @endforeach
-                            </select>
-                        <?php
-                        }
-                    }
-                    ?>
+                @if($fetchedData->type)
+                    @if(!empty($showMatterDropdown) && !empty($matter_list_arr))
+                        <select name="matter_id" id="sel_matter_id_client_detail" class="form-control mm-select visa-dropdown" data-valid="required">
+                            <option value="">Select Matters</option>
+                            @foreach($matter_list_arr as $matterlist)
+                                @php
+                                    $matterName = 'General Matter';
+                                    if ($matterlist->sel_matter_id != 1 && !empty($matterlist->title)) {
+                                        $matterName = $matterlist->title;
+                                    }
+                                @endphp
+                                <option value="{{$matterlist->id}}" {{ $matterlist->id == ($latestClientMatterId ?? null) ? 'selected' : '' }} data-clientuniquematterno="{{@$matterlist->client_unique_matter_no}}" data-sel-matter-id="{{@$matterlist->sel_matter_id}}">{{$matterName}}({{@$matterlist->client_unique_matter_no}})</option>
+                            @endforeach
+                        </select>
+                    @endif
                 @endif
             </div>
             
             <div class="matter-status-badge">
                 <?php
-                // Get the current workflow stage for this client matter
-                $workflow_stage_arr = null;
-                
-                if ($id1) {
-                    // If client unique reference id is present in url
-                    $workflow_stage_arr = DB::table('client_matters')
-                        ->join('workflow_stages', 'client_matters.workflow_stage_id', '=', 'workflow_stages.id')
-                        ->select('workflow_stages.name')
-                        ->where('client_id', $fetchedData->id)
-                        ->where('client_unique_matter_no', $id1)
-                        ->first();
-                } else {
-                    // Get the most recent active matter
-                    $clientMatterInfo = DB::table('client_matters')
-                        ->select('client_unique_matter_no')
-                        ->where('client_id', $fetchedData->id)
-                        ->where('matter_status', 1)
-                        ->orderBy('id', 'desc')
-                        ->first();
-
-                    if ($clientMatterInfo) {
-                        $workflow_stage_arr = DB::table('client_matters')
-                            ->join('workflow_stages', 'client_matters.workflow_stage_id', '=', 'workflow_stages.id')
-                            ->select('workflow_stages.name')
-                            ->where('client_id', $fetchedData->id)
-                            ->where('client_unique_matter_no', $clientMatterInfo->client_unique_matter_no)
-                            ->first();
-                    }
-                }
-
-                // Display the workflow stage name or default to N/A
                 if ($workflow_stage_arr && $workflow_stage_arr->name) {
                     echo $workflow_stage_arr->name;
                 } else {
-                    echo "N/A";
+                    echo 'N/A';
                 }
                 ?>
             </div>
@@ -262,26 +115,6 @@ use App\Http\Controllers\Controller;
             <!-- Matter References Section -->
             <div class="sidebar-references">
                 <div class="sidebar-references-label" style="font-size: 0.75rem; font-weight: 600; color: #374151; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Reference</div>
-                <?php
-                // Load reference values - SAME LOGIC AS ACCOUNTS TAB
-                $matter__ref_info_arr = [];
-                if($id1) {
-                    // If client unique reference id is present in url
-                    $matter__ref_info_arr = \App\Models\ClientMatter::select('department_reference','other_reference')
-                        ->where('client_id', $fetchedData->id)
-                        ->where('client_unique_matter_no', $id1)
-                        ->first();
-                } else {
-                    $matter_cnt = \App\Models\ClientMatter::select('id')->where('client_id', $fetchedData->id)->where('matter_status', 1)->count();
-                    if($matter_cnt > 0) {
-                        $matter__ref_info_arr = \App\Models\ClientMatter::select('department_reference','other_reference')
-                            ->where('client_id', $fetchedData->id)
-                            ->where('matter_status', 1)
-                            ->orderBy('id', 'desc')
-                            ->first();
-                    }
-                }
-                ?>
                 
                 <!-- Hidden inputs - SAME IDs AS ORIGINAL -->
                 <input type="hidden" 
@@ -320,20 +153,8 @@ use App\Http\Controllers\Controller;
         </div>
         <nav class="client-sidebar-nav">
             <?php
-            $matter_cnt = \App\Models\ClientMatter::select('id')->where('client_id',$fetchedData->id)->where('matter_status',1)->count();
-            
-            // Valid tab names that should NOT be treated as matter IDs
-            $validTabNames = ['personaldetails', 'activityfeed', 'noteterm', 'personaldocuments', 'visadocuments', 'nominationdocuments', 
-                              'eoiroi', 'emails', 
-                              // Legacy removed tab slugs
-                              'formgenerations', 'formgenerationsl',
-                              'client_portal', 'application', 'workflow', 'checklists'];
-            
-            // Check if $id1 is a valid matter ID (not a tab name)
-            $isMatterIdInUrl = isset($id1) && $id1 != "" && !in_array(strtolower($id1), array_map('strtolower', $validTabNames));
-            
             // Show client menu if: valid matter ID in URL OR client has any matters
-            if( $isMatterIdInUrl || $matter_cnt > 0 )
+            if( ($isMatterIdInUrl ?? false) || ($matter_cnt ?? 0) > 0 )
             {  //if client unique reference id is present in url
             ?>
                 <button class="client-nav-button active" data-tab="personaldetails">
@@ -442,15 +263,7 @@ use App\Http\Controllers\Controller;
             
             @include('crm.clients.tabs.personal_documents')
             
-            <?php
-            // Mirror the same condition used to render sidebar buttons so that
-            // only panes for visible tabs are included (prevents duplicates)
-            $matter_cnt = \App\Models\ClientMatter::select('id')
-                ->where('client_id',$fetchedData->id)
-                ->where('matter_status',1)
-                ->count();
-            ?>
-            @if((isset($id1) && $id1 != "") || $matter_cnt > 0)
+            @if((isset($id1) && $id1 != "") || ($matter_cnt ?? 0) > 0)
                 @include('crm.clients.tabs.visa_documents')
                 
                 @if(isset($isEoiMatter) && $isEoiMatter)
@@ -1440,13 +1253,50 @@ $(document).ready(function() {
         }
     };
     
-    // Global function to load activities feed
-    window.loadActivities = function() {
+    // Global function to load activities feed (paginated via /get-activities)
+    window.ActivityFeedState = window.ActivityFeedState || { page: 1, hasMore: false, loading: false };
+
+    window.loadActivities = function(options) {
+        var opts = options || {};
+        var reset = opts.reset !== false;
+        var append = opts.append === true;
+
+        if (window.ActivityFeedState.loading) {
+            return;
+        }
+
+        if (reset) {
+            window.ActivityFeedState.page = 1;
+            window.ActivityFeedState.hasMore = false;
+        } else if (append) {
+            window.ActivityFeedState.page = (window.ActivityFeedState.page || 1) + 1;
+        }
+
+        window.ActivityFeedState.loading = true;
+        $('#activity-feed-loading').show();
+        $('#activity-feed-load-more').prop('disabled', true);
+
+        var requestData = {
+            id: window.ClientDetailConfig.clientId,
+            page: window.ActivityFeedState.page,
+            per_page: 40
+        };
+
+        var urlParams = new URLSearchParams(window.location.search);
+        var staffFilter = urlParams.get('staff') || urlParams.get('user');
+        var keywordFilter = urlParams.get('keyword');
+        if (staffFilter) {
+            requestData.staff = staffFilter;
+        }
+        if (keywordFilter) {
+            requestData.keyword = keywordFilter;
+        }
+
         $.ajax({
             url: window.ClientDetailConfig.urls.getActivities,
             type: 'GET',
             dataType: 'json',
-            data: { id: window.ClientDetailConfig.clientId },
+            data: requestData,
             success: function(response) {
                 if (response.status && response.data) {
                     // Escape template literal special characters to prevent syntax errors
@@ -1564,7 +1414,15 @@ $(document).ready(function() {
                         '</li>';
                     });
 
-                    $('.feed-list').html(html);
+                    if (append) {
+                        $('.feed-list .feed-item.activity').last().after(html);
+                    } else {
+                        $('.feed-list .feed-item.activity').remove();
+                        $('.feed-list .feed-item--empty').before(html);
+                    }
+
+                    window.ActivityFeedState.hasMore = !!response.has_more;
+                    $('#activity-feed-load-more-wrap').toggle(window.ActivityFeedState.hasMore);
 
                     if (typeof adjustActivityFeedHeight === 'function') {
                         adjustActivityFeedHeight();
@@ -1578,9 +1436,20 @@ $(document).ready(function() {
             },
             error: function(xhr, status, error) {
                 console.error('Error loading activities:', error);
+            },
+            complete: function() {
+                window.ActivityFeedState.loading = false;
+                $('#activity-feed-loading').hide();
+                $('#activity-feed-load-more').prop('disabled', false);
             }
         });
     };
+
+    $(document).ready(function() {
+        if ($('.activity-feed').length && typeof window.loadActivities === 'function') {
+            window.loadActivities({ reset: true });
+        }
+    });
 </script>
 
 {{-- Newly added external JS placeholders for progressive migration --}}

@@ -69,15 +69,16 @@
                             <span class="field-label">Client Email</span>
                             <span class="field-value">
                                 <?php
-                                if( \App\Models\ClientEmail::where('client_id', $fetchedData->id)->exists()) {
-                                    $clientEmails = \App\Models\ClientEmail::select('email','email_type','is_verified','verified_at')->where('client_id', $fetchedData->id)->get();
-                                } else {
-                                    if( \App\Models\Admin::where('id', $fetchedData->id)->exists()){
-                                        $clientEmails = \App\Models\Admin::select('email','email_type')->where('id', $fetchedData->id)->get();
-                                    } else {
-                                        $clientEmails = [];
-                                    }
-                                } //dd($clientEmails);
+                                $clientEmails = ($emails ?? collect())->isNotEmpty()
+                                    ? ($emails ?? collect())
+                                    : collect([(object) [
+                                        'email' => $fetchedData->email ?? null,
+                                        'email_type' => $fetchedData->email_type ?? null,
+                                        'is_verified' => $fetchedData->is_verified ?? null,
+                                        'verified_at' => $fetchedData->verified_at ?? null,
+                                    ]])->filter(function ($row) {
+                                        return ! empty($row->email);
+                                    });
                                 if( !empty($clientEmails) && count($clientEmails)>0 ){
                                     $emailStr = "";
                                     foreach($clientEmails as $emailKey=>$emailVal){
@@ -111,15 +112,17 @@
                             <span class="field-label">Client Phone</span>
                             <span class="field-value">
                                 <?php
-                                if( \App\Models\ClientContact::where('client_id', $fetchedData->id)->exists()) {
-                                    $clientContacts = \App\Models\ClientContact::select('phone','country_code','contact_type','is_verified','verified_at')->where('client_id', $fetchedData->id)->where('contact_type', '!=', 'Not In Use')->get();
-                                } else {
-                                    if( \App\Models\Admin::where('id', $fetchedData->id)->exists()){
-                                        $clientContacts = \App\Models\Admin::select('phone','country_code','contact_type')->where('id', $fetchedData->id)->get();
-                                    } else {
-                                        $clientContacts = [];
-                                    }
-                                } //dd($clientContacts);
+                                $clientContacts = ($personalDetailContacts ?? collect())->isNotEmpty()
+                                    ? ($personalDetailContacts ?? collect())
+                                    : collect([(object) [
+                                        'phone' => $fetchedData->phone ?? null,
+                                        'country_code' => $fetchedData->country_code ?? null,
+                                        'contact_type' => $fetchedData->contact_type ?? null,
+                                        'is_verified' => $fetchedData->is_verified ?? null,
+                                        'verified_at' => $fetchedData->verified_at ?? null,
+                                    ]])->filter(function ($row) {
+                                        return ! empty($row->phone);
+                                    });
                                 if( !empty($clientContacts) && count($clientContacts)>0 ){
                                     $phonenoStr = "";
                                     foreach($clientContacts as $conKey=>$conVal){

@@ -6108,6 +6108,12 @@ success: function(response) {
 
         function getallactivities(){
 
+            if (typeof window.loadActivities === 'function') {
+                window.loadActivities({ reset: true });
+                $('.popuploader').hide();
+                return;
+            }
+
             $.ajax({
 
                 url: site_url+'/get-activities',
@@ -6116,7 +6122,7 @@ success: function(response) {
 
                 dataType:'json', // Fixed: changed from dataType to dataType (case-sensitive)
 
-                data:{id:window.ClientDetailConfig.clientId},
+                data:{id:window.ClientDetailConfig.clientId, page: 1, per_page: 40},
 
                 success: function(responses){
                     try {

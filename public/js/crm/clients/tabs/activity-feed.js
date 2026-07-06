@@ -14,6 +14,7 @@
         setupWidthToggle();
         setupExtendedFilters();
         setupRefreshButton();
+        setupLoadMoreButton();
     }
 
     /**
@@ -24,12 +25,20 @@
             var $btn = $(this).find('i');
             $btn.addClass('fa-spin');
             if (typeof window.loadActivities === 'function') {
-                window.loadActivities();
+                window.loadActivities({ reset: true });
             }
             if (typeof getallactivities === 'function') {
                 getallactivities();
             }
             setTimeout(function() { $btn.removeClass('fa-spin'); }, 800);
+        });
+    }
+
+    function setupLoadMoreButton() {
+        $('#activity-feed-load-more').on('click', function() {
+            if (typeof window.loadActivities === 'function') {
+                window.loadActivities({ reset: false, append: true });
+            }
         });
     }
 

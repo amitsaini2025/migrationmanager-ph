@@ -2939,11 +2939,16 @@ async function getInvoiceAmount(invoiceNo) {
 
 //Fetch All Activities
 function getallactivities(client_id){
+	if (typeof window.loadActivities === 'function') {
+		window.loadActivities({ reset: true });
+		$('.popuploader').hide();
+		return;
+	}
 	$.ajax({
 		url: site_url+'/get-activities',
 		type:'GET',
 		datatype:'json',
-		data:{id:client_id},
+		data:{id:client_id, page: 1, per_page: 40},
 		success: function(responses, textStatus, xhr){
 			// Check if response is empty or invalid
 			if (!responses || responses === '' || (typeof responses === 'string' && responses.trim() === '')) {

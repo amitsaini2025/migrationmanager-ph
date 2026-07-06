@@ -2072,8 +2072,158 @@ class ClientsController extends Controller
         }
     }
 
+    /**
+     * Resolve matter dropdown, header ref, workflow stage, and references once for client detail.
+     */
+    protected function buildClientDetailMatterContext(int $clientId, ?string $matterRefNo, array $validTabNames): array
+    {
+        $matterCount = ClientMatter::where('client_id', $clientId)
+            ->where('matter_status', 1)
+            ->count();
+
+        $matterListQuery = DB::table('client_matters')
+            ->leftJoin('matters', 'client_matters.sel_matter_id', '=', 'matters.id')
+            ->select(
+                'client_matters.id',
+                'client_matters.client_unique_matter_no',
+                'matters.title',
+                'client_matters.sel_matter_id'
+            )
+            ->where('client_matters.client_id', $clientId)
+            ->where('client_matters.matter_status', 1)
+            ->whereNotNull('client_matters.sel_matter_id');
+
+        $matterListArr = $matterListQuery->orderBy('client_matters.created_at', 'desc')->get()->all();
+
+        $showMatterDropdown = false;
+        $latestClientMatterId = null;
+
+        if ($matterRefNo) {
+            $urlMatterCount = DB::table('client_matters')
+                ->where('client_id', $clientId)
+                ->where('client_unique_matter_no', $matterRefNo)
+                ->where('matter_status', 1)
+                ->whereNotNull('sel_matter_id')
+                ->count();
+
+            if ($urlMatterCount > 0) {
+                $showMatterDropdown = true;
+                usort($matterListArr, function ($a, $b) use ($matterRefNo) {
+                    if ($a->client_unique_matter_no == $matterRefNo && $b->client_unique_matter_no != $matterRefNo) {
+                        return -1;
+                    }
+                    if ($a->client_unique_matter_no != $matterRefNo && $b->client_unique_matter_no == $matterRefNo) {
+                        return 1;
+                    }
+                    return 0;
+                });
+                $urlMatter = ClientMatter::select('id')
+                    ->where('client_id', $clientId)
+                    ->where('client_unique_matter_no', $matterRefNo)
+                    ->first();
+                $latestClientMatterId = $urlMatter ? $urlMatter->id : null;
+            } elseif (count($matterListArr) > 0) {
+                $showMatterDropdown = true;
+                $latestClientMatter = ClientMatter::where('client_id', $clientId)
+                    ->where('matter_status', 1)
+                    ->latest()
+                    ->first();
+                $latestClientMatterId = $latestClientMatter ? $latestClientMatter->id : null;
+            }
+        } elseif (count($matterListArr) > 0) {
+            $showMatterDropdown = true;
+            $latestClientMatter = ClientMatter::where('client_id', $clientId)
+                ->where('matter_status', 1)
+                ->latest()
+                ->first();
+            $latestClientMatterId = $latestClientMatter ? $latestClientMatter->id : null;
+        }
+
+        if ($matterRefNo) {
+            $matterInfoArr = ClientMatter::select('client_unique_matter_no')
+                ->where('client_id', $clientId)
+                ->where('client_unique_matter_no', $matterRefNo)
+                ->first();
+        } elseif ($matterCount > 0) {
+            $matterInfoArr = ClientMatter::select('client_unique_matter_no')
+                ->where('client_id', $clientId)
+                ->where('matter_status', 1)
+                ->orderBy('id', 'desc')
+                ->first();
+        } else {
+            $matterInfoArr = null;
+        }
+
+        $workflowStageArr = null;
+        if ($matterRefNo) {
+            $workflowStageArr = DB::table('client_matters')
+                ->join('workflow_stages', 'client_matters.workflow_stage_id', '=', 'workflow_stages.id')
+                ->select('workflow_stages.name')
+                ->where('client_id', $clientId)
+                ->where('client_unique_matter_no', $matterRefNo)
+                ->first();
+        } else {
+            $clientMatterInfo = DB::table('client_matters')
+                ->select('client_unique_matter_no')
+                ->where('client_id', $clientId)
+                ->where('matter_status', 1)
+                ->orderBy('id', 'desc')
+                ->first();
+
+            if ($clientMatterInfo) {
+                $workflowStageArr = DB::table('client_matters')
+                    ->join('workflow_stages', 'client_matters.workflow_stage_id', '=', 'workflow_stages.id')
+                    ->select('workflow_stages.name')
+                    ->where('client_id', $clientId)
+                    ->where('client_unique_matter_no', $clientMatterInfo->client_unique_matter_no)
+                    ->first();
+            }
+        }
+
+        if ($matterRefNo) {
+            $matterRefInfoArr = ClientMatter::select('department_reference', 'other_reference')
+                ->where('client_id', $clientId)
+                ->where('client_unique_matter_no', $matterRefNo)
+                ->first();
+        } elseif ($matterCount > 0) {
+            $matterRefInfoArr = ClientMatter::select('department_reference', 'other_reference')
+                ->where('client_id', $clientId)
+                ->where('matter_status', 1)
+                ->orderBy('id', 'desc')
+                ->first();
+        } else {
+            $matterRefInfoArr = null;
+        }
+
+        $isMatterIdInUrl = $matterRefNo !== null
+            && $matterRefNo !== ''
+            && ! in_array(strtolower($matterRefNo), array_map('strtolower', $validTabNames), true);
+
+        return [
+            'matter_cnt' => $matterCount,
+            'matter_list_arr' => $matterListArr,
+            'latestClientMatterId' => $latestClientMatterId,
+            'matter_info_arr' => $matterInfoArr,
+            'workflow_stage_arr' => $workflowStageArr,
+            'matter__ref_info_arr' => $matterRefInfoArr,
+            'showMatterDropdown' => $showMatterDropdown,
+            'isMatterIdInUrl' => $isMatterIdInUrl,
+            'validTabNames' => $validTabNames,
+        ];
+    }
+
     public function detail(Request $request, $id = NULL, $id1 = NULL, $tab = NULL)
     {
+        $clientDetailQueryCount = 0;
+        $clientDetailQueryTimeMs = 0.0;
+        $shouldLogClientDetailQueries = (bool) env('CLIENT_DETAIL_QUERY_LOG', false);
+
+        if ($shouldLogClientDetailQueries) {
+            DB::listen(function ($query) use (&$clientDetailQueryCount, &$clientDetailQueryTimeMs) {
+                $clientDetailQueryCount++;
+                $clientDetailQueryTimeMs += (float) $query->time;
+            });
+        }
 
         if (isset($request->t)) {
             if (\App\Models\Notification::where('id', $request->t)->exists()) {
@@ -2291,16 +2441,46 @@ class ClientsController extends Controller
                     })
                     ->values();
 
+                $validTabNames = [
+                    'personaldetails', 'activityfeed', 'noteterm', 'personaldocuments', 'visadocuments', 'nominationdocuments',
+                    'eoiroi', 'emails',
+                    'formgenerations', 'formgenerationsl',
+                    'client_portal', 'application', 'workflow', 'checklists',
+                ];
+                $matterContext = $this->buildClientDetailMatterContext((int) $id, $id1, $validTabNames);
+
+                $clientNotes = Note::where('client_id', $id)
+                    ->whereNull('assigned_to')
+                    ->where('type', 'client')
+                    ->with('user')
+                    ->orderby('pin', 'DESC')
+                    ->orderBy('updated_at', 'DESC')
+                    ->get();
+
+                $personalDetailContacts = $clientContacts->filter(function ($contact) {
+                    return ($contact->contact_type ?? '') !== 'Not In Use';
+                })->values();
+
+                if ($shouldLogClientDetailQueries) {
+                    Log::info('Client detail query profile', [
+                        'client_id' => (int) $id,
+                        'matter_ref' => $id1,
+                        'tab' => $activeTab,
+                        'query_count' => $clientDetailQueryCount,
+                        'query_time_ms' => round($clientDetailQueryTimeMs, 2),
+                    ]);
+                }
+
                 //Return the view with all data
-                return view('crm.clients.detail', compact(
+                return view('crm.clients.detail', array_merge(compact(
                     'fetchedData', 'clientAddresses', 'clientContacts', 'emails', 'qualifications',
                     'experiences', 'testScores', 'visaCountries', 'clientOccupations','ClientPoints', 'clientSpouseDetail',
                     'encodeId', 'id1','clientFamilyDetails', 'activeTab', 'isEoiMatter',
                     'staffName', 'matterNumber', 'officePhone', 'officeCountryCode',
                     'visibleNomineeNominations', 'notPickedCallSmsDefault',
                     'assignableStaff', 'leadStageLabels', 'showGoogleReviewReminderModal',
-                    'primaryContactCompaniesForClient'
-                ));
+                    'primaryContactCompaniesForClient', 'clientNotes', 'personalDetailContacts'
+                ), $matterContext));
             } else {
                 return redirect()->route('clients.index')->with('error', 'Clients Not Exist');
             }
@@ -3238,14 +3418,43 @@ class ClientsController extends Controller
 			}
 			
 			if($clientExists){
-				$activities = ActivitiesLog::where('client_id', $request->id)
+				$perPage = min(max((int) $request->input('per_page', 40), 1), 100);
+				$page = max((int) $request->input('page', 1), 1);
+				$staffSearch = trim((string) ($request->input('staff', $request->input('user', ''))));
+				$keywordSearch = trim((string) $request->input('keyword', ''));
+
+				$query = ActivitiesLog::where('client_id', $request->id)
+					->with('staff');
+
+				if ($staffSearch !== '') {
+					$query->whereHas('staff', function ($staffQuery) use ($staffSearch) {
+						$staffSearchLower = strtolower($staffSearch);
+						$staffQuery->whereRaw('LOWER(first_name) LIKE ?', ['%'.$staffSearchLower.'%']);
+					});
+				}
+
+				if ($keywordSearch !== '') {
+					$query->where(function ($keywordQuery) use ($keywordSearch) {
+						$keywordQuery->where('description', 'like', '%'.$keywordSearch.'%')
+							->orWhere('subject', 'like', '%'.$keywordSearch.'%');
+					});
+				}
+
+				$activities = (clone $query)
 					->orderby('created_at', 'DESC')
+					->skip(($page - 1) * $perPage)
+					->take($perPage + 1)
 					->get();
+
+				$hasMore = $activities->count() > $perPage;
+				if ($hasMore) {
+					$activities = $activities->take($perPage);
+				}
 				
 				$data = array();
 				
 				foreach($activities as $activit){
-					$admin = Staff::where('id', $activit->created_by)->first();
+					$admin = $activit->staff;
 					$fullName = $admin ? trim(($admin->first_name ?? '') . ' ' . ($admin->last_name ?? '')) : 'Unknown';
 					if (empty(trim($fullName))) $fullName = $admin ? $admin->first_name : 'Unknown';
 					$subjectWithoutStaffPrefix = ActivitiesLog::displaySubjectWithoutStaffPrefix(
@@ -3270,6 +3479,9 @@ class ClientsController extends Controller
 
 				$response['status'] 	= 	true;
 				$response['data']	=	$data;
+				$response['page'] = $page;
+				$response['per_page'] = $perPage;
+				$response['has_more'] = $hasMore;
 				unset($response['message']); // Remove error message on success
 			}else{
 				$response['status'] 	= 	false;

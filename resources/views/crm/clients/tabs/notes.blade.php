@@ -200,18 +200,19 @@
 
                     <!-- Notes List -->
                     <div class="note_term_list subtab8-content">
-                        <?php
-                        $notelist = \App\Models\Note::where('client_id', $fetchedData->id)
-                            ->whereNull('assigned_to')
-                            ->where('type', 'client')
-                            ->orderby('pin', 'DESC')
-                            ->orderBy('updated_at', 'DESC')
-                            ->get();
-                        foreach($notelist as $list) {
-                            $admin = \App\Models\Staff::where('id', $list->user_id)->first();
-                            // Determine type label and color
+                        @php
+                            $notelist = $clientNotes ?? \App\Models\Note::where('client_id', $fetchedData->id)
+                                ->whereNull('assigned_to')
+                                ->where('type', 'client')
+                                ->with('user')
+                                ->orderby('pin', 'DESC')
+                                ->orderBy('updated_at', 'DESC')
+                                ->get();
+                        @endphp
+                        @foreach($notelist as $list)
+                            @php
+                            $admin = $list->user;
                             if($list->task_group === null || $list->task_group === '') {
-                                // Handle NULL or empty task_group - assign to "Others"
                                 $typeLabel = 'Others';
                                 $typeClass = 'note-type-others';
                                 $typeInlineClass = 'others';
@@ -247,15 +248,13 @@
                                     $typeInlineClass = 'attention';
                                 }
                             }
-
-                            //$desc = strip_tags($list->description);
-                        ?>
-                        <div class="note-card-redesign <?php if($list->pin == 1) echo 'pinned'; ?>" data-matterid="{{ $list->matter_id }}" id="note_id_{{$list->id}}" data-id="{{$list->id}}" data-type="{{ $typeLabel }}">
-                            <?php if($list->pin == 1) { ?>
+                            @endphp
+                        <div class="note-card-redesign @if($list->pin == 1) pinned @endif" data-matterid="{{ $list->matter_id }}" id="note_id_{{$list->id}}" data-id="{{$list->id}}" data-type="{{ $typeLabel }}">
+                            @if($list->pin == 1)
                                 <div class="pined_note">
                                     @icon('fa-thumb-tack')
                                 </div>
-                            <?php } ?>
+                            @endif
 
                             <div class="date-time-menu-container">
                                 <span class="author-updated-date-time">{{date('d/m/Y h:i A', strtotime($list->updated_at))}}</span>
@@ -270,11 +269,11 @@
                                                 <a class="dropdown-item editdatetime" data-id="{{$list->id}}" href="javascript:;">Edit Date Time</a>
                                             @endif
                                             <a data-id="{{$list->id}}" data-href="deletenote" class="dropdown-item deletenote" href="javascript:;">Delete</a>
-                                            <?php if($list->pin == 1) { ?>
+                                            @if($list->pin == 1)
                                                 <a data-id="{{$list->id}}" class="dropdown-item pinnote" href="javascript:;">Unpin</a>
-                                            <?php } else { ?>
+                                            @else
                                                 <a data-id="{{$list->id}}" class="dropdown-item pinnote" href="javascript:;">Pin</a>
-                                            <?php } ?>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -290,14 +289,13 @@
                                 </div>
                             @endif
 
-                            <!--<div class="note-content-redesign">{--!! nl2br(e($desc)) !!--}</div>-->
                             <div class="note-content-redesign">
                                 @if(!empty($list->description))
                                     {!! \App\Support\NoteDescriptionHtml::forDisplay($list->description) !!}
                                 @endif
                             </div>
                         </div>
-                        <?php } ?>
+                        @endforeach
                     </div>
                 </div>
             </div>
