@@ -5,7 +5,7 @@ namespace App\Services\BansalAppointmentSync;
 use App\Models\BookingAppointment;
 use App\Models\AppointmentSyncLog;
 use App\Models\ActivitiesLog;
-use App\Models\Admin;
+use App\Support\AppointmentActivityDescription;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -521,133 +521,14 @@ class AppointmentSyncService
      */
     protected function createActivityLogForSyncedAppointment(BookingAppointment $appointment, ?int $serviceId, ?int $noeId): void
     {
-        // Determine subject based on service type
-        $subject = 'scheduled an appointment';
-        $serviceTitle = 'Appointment';
-        
-        if ($serviceId == 2) {
-            $subject = 'scheduled an free appointment';
-            $serviceTitle = 'Free Consultation';
-        } elseif ($serviceId == 1) {
-            $subject = 'scheduled an paid appointment';
-            $serviceTitle = 'Comprehensive Migration Advice';
-        } elseif ($serviceId == 3) {
-            $subject = 'scheduled an paid appointment';
-            $serviceTitle = 'Overseas Applicant Enquiry';
-        }
-
-        // Determine enquiry title based on noe_id
-        $enquiryTitle = 'Appointment';
-        if ($noeId == 1) {
-            $enquiryTitle = 'GSM Visas: 491, 190, 189, 191';
-        } elseif ($noeId == 2) {
-            $enquiryTitle = 'TR: 485 visa';
-        } elseif ($noeId == 3) {
-            $enquiryTitle = 'JRP/Skill Assessment';
-        } elseif ($noeId == 4) {
-            $enquiryTitle = 'Tourist Visa';
-        } elseif ($noeId == 5) {
-            $enquiryTitle = 'Education/Course Change/Student Visa/Student Dependent Visa (for education selection only)';
-        } elseif ($noeId == 6) {
-            $enquiryTitle = 'Complex matters: ART, Protection visa, Federal Case';
-        } elseif ($noeId == 7) {
-            $enquiryTitle = 'Visa Cancellation/ NOICC/ Visa refusals';
-        } elseif ($noeId == 8) {
-            $enquiryTitle = 'Anyone who is outside Australia';
-        } elseif ($noeId == 9) {
-            $enquiryTitle = 'EOI/ROI';
-        } elseif ($noeId == 10) {
-            $enquiryTitle = 'Employer Sponsored Visas: 494, 482, 186, DAMA';
-        } elseif ($noeId == 11) {
-            $enquiryTitle = 'Family Visas (Parent Visa, Partner Visa, Child Visa)';
-        } elseif ($noeId == 12) {
-            $enquiryTitle = 'Citizenship';
-        }
-
-        // Format meeting type
-        $appointmentDetails = '';
-        if ($appointment->meeting_type) {
-            $meetingType = strtolower($appointment->meeting_type);
-            if ($meetingType === 'in_person') {
-                $appointmentDetails = 'In Person';
-            } elseif ($meetingType === 'phone') {
-                $appointmentDetails = 'Phone';
-            } elseif ($meetingType === 'video') {
-                $appointmentDetails = 'Video Call';
-            }
-        }
-
-        // Format appointment date
-        $appointmentDate = $appointment->appointment_datetime;
-        $activityLogDate = $appointmentDate ? $appointmentDate->format('Y-m-d') : date('Y-m-d');
-        
-        // Format appointment time
-        $appointmentTime = $appointment->timeslot_full ?? ($appointmentDate ? $appointmentDate->format('h:i A') : '');
-
-        // Build description HTML (similar to manual appointment creation)
-        $description = '<div style="display: -webkit-inline-box;">
-                <span style="height: 60px; width: 60px; border: 1px solid rgb(3, 169, 244); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px;overflow: hidden;">
-                    <span  style="flex: 1 1 0%; width: 100%; text-align: center; background: rgb(237, 237, 237); border-top-left-radius: 120px; border-top-right-radius: 120px; font-size: 12px;line-height: 24px;">
-                        ' . date('d M', strtotime($activityLogDate)) . '
-                    </span>
-                    <span style="background: rgb(84, 178, 75); color: rgb(255, 255, 255); flex: 1 1 0%; width: 100%; border-bottom-left-radius: 120px; border-bottom-right-radius: 120px; text-align: center;font-size: 12px; line-height: 21px;">
-                        ' . date('Y', strtotime($activityLogDate)) . '
-                    </span>
-                </span>
-            </div>
-            <div style="display:inline-grid;">
-                <span class="text-semi-bold">' . e($enquiryTitle) . '</span> 
-                <span class="text-semi-bold">' . e($serviceTitle) . '</span>';
-        
-        if ($appointmentDetails) {
-            $description .= '  <span class="text-semi-bold">' . e($appointmentDetails) . '</span>';
-        }
-        
-        if ($appointment->enquiry_details) {
-            $description .= '  <span class="text-semi-bold">' . e($appointment->enquiry_details) . '</span>';
-        }
-        
-        if ($appointmentTime) {
-            $description .= '  <p class="text-semi-light-grey col-v-1">@ ' . e($appointmentTime) . '</p>';
-        }
-        
-        $description .= '</div>';
-
-        // Get client name for subject
-        $clientName = '';
-        if ($appointment->client_id) {
-            // Try to get client name from Admin model (first_name + last_name)
-            $client = Admin::where('id', $appointment->client_id)
-                ->whereIn('type', ['client', 'lead'])
-                ->select('first_name', 'last_name')
-                ->first();
-            
-            if ($client) {
-                $clientName = trim(($client->first_name ?? '') . ' ' . ($client->last_name ?? ''));
-            }
-        }
-        
-        // Fallback to client_name field if Admin lookup didn't work
-        if (empty($clientName) && $appointment->client_name) {
-            $clientName = trim($appointment->client_name);
-        }
-        
-        // Prepend client name to subject (format: "Client Name scheduled an appointment")
-        $finalSubject = $subject;
-        /*if (!empty($clientName)) {
-            $finalSubject = $clientName . ' ' . $subject;
-        }*/
-
-        // Create activity log entry
-        ActivitiesLog::create([
-            'client_id' => $appointment->client_id,
-            'created_by' => $appointment->client_id, // System sync, not a user action
-            'subject' => $finalSubject,
-            'description' => $description,
-            'activity_type' => 'activity',
-            'task_status' => 0,
-            'pin' => 0,
-        ]);
+        ActivitiesLog::create(
+            AppointmentActivityDescription::buildActivityLogPayload(
+                $appointment,
+                (int) $appointment->client_id,
+                $serviceId,
+                $noeId
+            )
+        );
     }
 }
 

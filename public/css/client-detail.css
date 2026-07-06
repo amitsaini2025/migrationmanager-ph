@@ -1500,3 +1500,74 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
     }
 }
 
+/* Appointment activity log entries in the client Activity Feed */
+.appointment-activity-detail {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-top: 4px;
+}
+
+.appointment-activity-detail__badge {
+    flex-shrink: 0;
+}
+
+.appointment-activity-detail__badge-inner {
+    height: 60px;
+    width: 60px;
+    border: 1px solid rgb(3, 169, 244);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    overflow: hidden;
+}
+
+.appointment-activity-detail__badge-day {
+    flex: 1 1 0%;
+    width: 100%;
+    text-align: center;
+    background: rgb(237, 237, 237);
+    border-top-left-radius: 120px;
+    border-top-right-radius: 120px;
+    font-size: 12px;
+    line-height: 24px;
+}
+
+.appointment-activity-detail__badge-year {
+    background: rgb(84, 178, 75);
+    color: rgb(255, 255, 255);
+    flex: 1 1 0%;
+    width: 100%;
+    border-bottom-left-radius: 120px;
+    border-bottom-right-radius: 120px;
+    text-align: center;
+    font-size: 12px;
+    line-height: 21px;
+}
+
+.appointment-activity-detail__body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+}
+
+.appointment-activity-detail__row {
+    font-size: 0.88em;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.appointment-activity-detail__label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.appointment-activity-detail__value {
+    color: #212529;
+}
+
