@@ -103,14 +103,14 @@ class AppointmentActivityDescription
         $language = trim((string) ($appointment->preferred_language ?? ''));
         $location = self::locationLabel($appointment);
 
-        $rows = '';
+        $rows = '<div class="appointment-activity-detail__chip">Appointment</div>';
         $rows .= self::detailRow('Category:', $category);
         $rows .= self::detailRow('Appt. Type:', $apptType);
         if ($query !== '') {
             $rows .= self::detailRow('Query:', $query);
         }
         if ($dateTime !== null && $dateTime !== '') {
-            $rows .= self::detailRow('Date & Time:', $dateTime);
+            $rows .= self::detailRow('Date & Time:', $dateTime, 'datetime');
         }
         if ($language !== '') {
             $rows .= self::detailRow('Language:', $language);
@@ -147,15 +147,23 @@ class AppointmentActivityDescription
         ];
     }
 
-    private static function detailRow(string $label, string $value): string
+    private static function detailRow(string $label, string $value, ?string $field = null): string
     {
         if ($value === '') {
             return '';
         }
 
-        return '<div class="appointment-activity-detail__row">'
-            . '<span class="appointment-activity-detail__label">' . e($label) . '</span> '
-            . '<span class="appointment-activity-detail__value">' . e($value) . '</span>'
+        $rowClass = 'appointment-activity-detail__row';
+        $fieldAttr = '';
+
+        if ($field !== null && $field !== '') {
+            $rowClass .= ' appointment-activity-detail__row--'.$field;
+            $fieldAttr = ' data-field="'.e($field).'"';
+        }
+
+        return '<div class="'.$rowClass.'"'.$fieldAttr.'>'
+            . '<span class="appointment-activity-detail__label">'.e($label).'</span> '
+            . '<span class="appointment-activity-detail__value">'.e($value).'</span>'
             . '</div>';
     }
 

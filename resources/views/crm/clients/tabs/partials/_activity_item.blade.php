@@ -53,13 +53,20 @@
         }
     }
 @endphp
+@php
+    $isAppointmentActivity = str_contains($activity->description ?? '', 'appointment-activity-detail');
+    $appointmentFeedClass = $isAppointmentActivity ? 'feed-item--appointment' : '';
+    $appointmentIconClass = $isAppointmentActivity ? 'feed-icon-appointment' : '';
+@endphp
 
-<li class="feed-item feed-item--{{ $activity->activity_type === 'stage' ? 'stage' : 'email' }} activity {{ $activity->activity_type ? 'activity-type-' . $activity->activity_type : $legacyActivityTypeClass }} {{ $noteTypeClass }}" id="activity_{{ $activity->id }}" data-created-at="{{ $activity->created_at ? \Carbon\Carbon::parse($activity->created_at)->format('Y-m-d') : '' }}">
-    <span class="feed-icon {{ $activity->activity_type === 'sms' ? 'feed-icon-sms' : '' }} {{ $activity->activity_type === 'activity' ? 'feed-icon-activity' : '' }} {{ $activity->activity_type === 'stage' ? 'feed-icon-stage' : '' }} {{ $activity->activity_type === 'financial' || $legacyActivityTypeClass === 'activity-type-financial' ? 'feed-icon-financial' : '' }} {{ $activity->activity_type === 'email' || $legacyActivityTypeClass === 'activity-type-email' ? 'feed-icon-email' : '' }} {{ $activity->activity_type === 'signature' ? 'feed-icon-signature' : '' }} {{ $activity->activity_type === 'note' ? 'feed-icon-note ' . str_replace('activity-type-', 'feed-icon-', $noteTypeClass) : '' }}">
+<li class="feed-item feed-item--{{ $activity->activity_type === 'stage' ? 'stage' : 'email' }} activity {{ $activity->activity_type ? 'activity-type-' . $activity->activity_type : $legacyActivityTypeClass }} {{ $noteTypeClass }} {{ $appointmentFeedClass }}" id="activity_{{ $activity->id }}" data-created-at="{{ $activity->created_at ? \Carbon\Carbon::parse($activity->created_at)->format('Y-m-d') : '' }}">
+    <span class="feed-icon {{ $activity->activity_type === 'sms' ? 'feed-icon-sms' : '' }} {{ $activity->activity_type === 'activity' && $isAppointmentActivity ? $appointmentIconClass : '' }} {{ $activity->activity_type === 'activity' && ! $isAppointmentActivity ? 'feed-icon-activity' : '' }} {{ $activity->activity_type === 'stage' ? 'feed-icon-stage' : '' }} {{ $activity->activity_type === 'financial' || $legacyActivityTypeClass === 'activity-type-financial' ? 'feed-icon-financial' : '' }} {{ $activity->activity_type === 'email' || $legacyActivityTypeClass === 'activity-type-email' ? 'feed-icon-email' : '' }} {{ $activity->activity_type === 'signature' ? 'feed-icon-signature' : '' }} {{ $activity->activity_type === 'note' ? 'feed-icon-note ' . str_replace('activity-type-', 'feed-icon-', $noteTypeClass) : '' }}">
         @if($activity->activity_type === 'sms')
             @icon('fa-sms')
         @elseif($activity->activity_type === 'note')
             @icon($noteIcon)
+        @elseif($activity->activity_type === 'activity' && $isAppointmentActivity)
+            @icon('fa-calendar-check')
         @elseif($activity->activity_type === 'activity')
             @icon('fa-bolt')
         @elseif($activity->activity_type === 'stage')

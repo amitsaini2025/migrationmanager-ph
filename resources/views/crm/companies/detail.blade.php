@@ -1491,6 +1491,8 @@ $(document).ready(function() {
                         var iconClass = '';
                         var subject = escapeTemplateLiteral(v.subject ?? '');
                         var subjectLower = subject.toLowerCase();
+                        var rawMessage = v.message ?? '';
+                        var isAppointmentActivity = String(rawMessage).indexOf('appointment-activity-detail') !== -1;
 
                         if (activityType === 'sms') {
                             subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-sms') : '<i class="fas fa-sms"></i>');
@@ -1505,8 +1507,13 @@ $(document).ready(function() {
                             subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas ' + noteIcon) : '<i class="fas ' + noteIcon + '"></i>');
                             iconClass = 'feed-icon-note';
                         } else if (activityType === 'activity') {
-                            subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-bolt') : '<i class="fas fa-bolt"></i>');
-                            iconClass = 'feed-icon-activity';
+                            if (isAppointmentActivity) {
+                                subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-calendar-check') : '<i class="fas fa-calendar-check"></i>');
+                                iconClass = 'feed-icon-appointment';
+                            } else {
+                                subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-bolt') : '<i class="fas fa-bolt"></i>');
+                                iconClass = 'feed-icon-activity';
+                            }
                         } else if (activityType === 'stage') {
                             subjectIcon = (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-route') : '<i class="fas fa-route"></i>');
                             iconClass = 'feed-icon-stage';
@@ -1539,7 +1546,7 @@ $(document).ready(function() {
                             iconClass = '';
                         }
 
-                        var description = escapeTemplateLiteral(v.message ?? '');
+                        var description = escapeTemplateLiteral(rawMessage);
                         var taskGroup = escapeTemplateLiteral(v.task_group ?? '');
                         var followupDate = escapeTemplateLiteral(v.followup_date ?? '');
                         var date = escapeTemplateLiteral(v.date ?? '');
@@ -1580,7 +1587,8 @@ $(document).ready(function() {
                         }
 
                         var createdAtYmd = v.created_at_ymd || '';
-                        html += '<li class="feed-item ' + feedItemClass + ' activity ' + activityTypeClass + noteSubtypeClass + '" id="activity_' + v.activity_id + '" data-created-at="' + createdAtYmd + '">' +
+                        var appointmentFeedClass = isAppointmentActivity ? ' feed-item--appointment' : '';
+                        html += '<li class="feed-item ' + feedItemClass + ' activity ' + activityTypeClass + noteSubtypeClass + appointmentFeedClass + '" id="activity_' + v.activity_id + '" data-created-at="' + createdAtYmd + '">' +
                             '<span class="feed-icon ' + iconClass + '">' +
                                 subjectIcon +
                             '</span>' +
@@ -1603,6 +1611,9 @@ $(document).ready(function() {
                     }
                     if (window.ActivityFeed && typeof window.ActivityFeed.reapplyCurrentFilter === 'function') {
                         window.ActivityFeed.reapplyCurrentFilter();
+                    }
+                    if (window.ActivityFeed && typeof window.ActivityFeed.enhanceAppointmentActivityRows === 'function') {
+                        window.ActivityFeed.enhanceAppointmentActivityRows();
                     }
                 } else {
                     console.error('Failed to load activities:', response.message);

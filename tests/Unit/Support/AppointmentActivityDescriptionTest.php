@@ -25,7 +25,9 @@ class AppointmentActivityDescriptionTest extends TestCase
 
         $html = AppointmentActivityDescription::buildDescription($appointment);
 
-        $this->assertStringContainsString('appointment-activity-detail', $html);
+        $this->assertStringContainsString('appointment-activity-detail__chip', $html);
+        $this->assertStringContainsString('appointment-activity-detail__row--datetime', $html);
+        $this->assertStringContainsString('data-field="datetime"', $html);
         $this->assertStringContainsString('Category:', $html);
         $this->assertStringContainsString('Family Visas (Parent Visa, Partner Visa, Child Visa)', $html);
         $this->assertStringContainsString('Appt. Type:', $html);

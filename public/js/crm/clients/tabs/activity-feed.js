@@ -380,9 +380,35 @@
         $('.feed-item-no-results').toggle(visible === 0 && $('.feed-item.activity').length > 0);
     }
 
+    /**
+     * Tag legacy backfilled appointment rows and add missing highlight classes/chip.
+     */
+    function enhanceAppointmentActivityRows() {
+        $('.appointment-activity-detail__body').each(function() {
+            var $body = $(this);
+            if ($body.find('.appointment-activity-detail__chip').length === 0) {
+                $body.prepend('<div class="appointment-activity-detail__chip">Appointment</div>');
+            }
+        });
+
+        $('.appointment-activity-detail__row').each(function() {
+            var $row = $(this);
+            if ($row.is('[data-field="datetime"], .appointment-activity-detail__row--datetime')) {
+                return;
+            }
+            var label = ($row.find('.appointment-activity-detail__label').first().text() || '').trim();
+            if (label === 'Date & Time:') {
+                $row.addClass('appointment-activity-detail__row--datetime').attr('data-field', 'datetime');
+            }
+        });
+    }
+
     // Initialize when DOM is ready
     $(document).ready(function() {
         init();
+        if ($('.activity-feed').length) {
+            enhanceAppointmentActivityRows();
+        }
     });
 
     /**
@@ -398,6 +424,7 @@
             var activeFilter = $('.activity-filter-btn.active').data('filter') || 'all';
             filterActivities(activeFilter);
         }
+        enhanceAppointmentActivityRows();
     }
 
     // Expose public API
@@ -405,7 +432,8 @@
         init: init,
         filterActivities: filterActivities,
         applyExtendedFilters: applyExtendedFilters,
-        reapplyCurrentFilter: reapplyCurrentFilter
+        reapplyCurrentFilter: reapplyCurrentFilter,
+        enhanceAppointmentActivityRows: enhanceAppointmentActivityRows
     };
 
 })(jQuery);

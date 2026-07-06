@@ -6148,6 +6148,8 @@ success: function(response) {
                         var iconClass = '';
                         var subject = v.subject ?? '';
                         var subjectLower = subject.toLowerCase();
+                        var rawMessage = v.message ?? '';
+                        var isAppointmentActivity = String(rawMessage).indexOf('appointment-activity-detail') !== -1;
 
                         if (activityType === 'sms') {
                             subjectIcon = crmI('fas fa-sms');
@@ -6162,8 +6164,13 @@ success: function(response) {
                             subjectIcon = crmI('fas ' + noteIcon);
                             iconClass = 'feed-icon-note';
                         } else if (activityType === 'activity') {
-                            subjectIcon = crmI('fas fa-bolt');
-                            iconClass = 'feed-icon-activity';
+                            if (isAppointmentActivity) {
+                                subjectIcon = crmI('fas fa-calendar-check');
+                                iconClass = 'feed-icon-appointment';
+                            } else {
+                                subjectIcon = crmI('fas fa-bolt');
+                                iconClass = 'feed-icon-activity';
+                            }
                         } else if (activityType === 'stage') {
                             subjectIcon = crmI('fas fa-route');
                             iconClass = 'feed-icon-stage';
@@ -6214,6 +6221,7 @@ success: function(response) {
                         var headline = v.subject_without_staff_prefix === true ? subject : (fullName + ' ' + subject);
                         var feedItemClass = activityType === 'stage' ? 'feed-item--stage' : 'feed-item--email';
                         var createdAtYmd = v.created_at_ymd || '';
+                        var appointmentFeedClass = isAppointmentActivity ? ' feed-item--appointment' : '';
 
                         var innerContent;
                         if (activityType === 'stage') {
@@ -6235,7 +6243,7 @@ success: function(response) {
                         }
 
                         html += `
-                            <li class="feed-item ${feedItemClass} activity ${activityTypeClass}${noteSubtypeClass}" id="activity_${v.activity_id}" data-created-at="${createdAtYmd}">
+                            <li class="feed-item ${feedItemClass} activity ${activityTypeClass}${noteSubtypeClass}${appointmentFeedClass}" id="activity_${v.activity_id}" data-created-at="${createdAtYmd}">
                                 <span class="feed-icon ${iconClass}">
                                     ${subjectIcon}
                                 </span>
@@ -6263,6 +6271,9 @@ success: function(response) {
 
                     if (window.ActivityFeed && typeof window.ActivityFeed.reapplyCurrentFilter === 'function') {
                         window.ActivityFeed.reapplyCurrentFilter();
+                    }
+                    if (window.ActivityFeed && typeof window.ActivityFeed.enhanceAppointmentActivityRows === 'function') {
+                        window.ActivityFeed.enhanceAppointmentActivityRows();
                     }
 
                     } catch (error) {

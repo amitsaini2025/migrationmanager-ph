@@ -1501,11 +1501,33 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
 }
 
 /* Appointment activity log entries in the client Activity Feed */
+.feed-item.feed-item--appointment {
+    border-left: 3px solid #20c997 !important;
+}
+
+.feed-item.feed-item--appointment .feed-icon-appointment {
+    background: linear-gradient(135deg, #20c997, #17a589) !important;
+    color: #fff !important;
+}
+
+.feed-item.feed-item--appointment .feed-icon-appointment i {
+    color: #fff !important;
+}
+
+.feed-item.feed-item--appointment .feed-content {
+    background: #f0fdf4;
+    border-radius: 4px;
+}
+
 .appointment-activity-detail {
     display: flex;
     gap: 12px;
     align-items: flex-start;
     margin-top: 4px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 10px 12px;
 }
 
 .appointment-activity-detail__badge {
@@ -1551,9 +1573,24 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
 .appointment-activity-detail__body {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
     min-width: 0;
     flex: 1;
+}
+
+.appointment-activity-detail__chip {
+    display: inline-block;
+    align-self: flex-start;
+    font-size: 0.68em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #0f5132;
+    background: #d1fae5;
+    border: 1px solid #86efac;
+    border-radius: 999px;
+    padding: 2px 8px;
+    margin-bottom: 2px;
 }
 
 .appointment-activity-detail__row {
@@ -1569,5 +1606,21 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
 
 .appointment-activity-detail__value {
     color: #212529;
+}
+
+.appointment-activity-detail__row--datetime .appointment-activity-detail__label,
+.appointment-activity-detail__row[data-field="datetime"] .appointment-activity-detail__label {
+    color: #15803d;
+}
+
+.appointment-activity-detail__row--datetime .appointment-activity-detail__value,
+.appointment-activity-detail__row[data-field="datetime"] .appointment-activity-detail__value {
+    display: inline-block;
+    color: #166534;
+    font-weight: 700;
+    background: #dcfce7;
+    border: 1px solid #86efac;
+    border-radius: 4px;
+    padding: 1px 8px;
 }
 
