@@ -524,26 +524,30 @@
         /* Tom Select strips chevron on .form-control; restore + keep label clear of icon */
         .sidebar-matter-selection .ts-wrapper.single {
             --ts-pr-caret: 2.25rem;
+            height: auto;
         }
         .sidebar-matter-selection .ts-wrapper.single .ts-control {
             height: auto !important;
             min-height: 38px;
-            align-items: center;
-            padding-right: 2.25rem !important;
+            align-items: flex-start;
+            padding: 8px 2.25rem 8px 10px !important;
             background-color: #ffffff !important;
             background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23374151' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E") !important;
             background-position: right 0.65rem center !important;
             background-repeat: no-repeat !important;
             background-size: 16px 12px !important;
-            overflow: visible !important;
+            overflow: hidden;
         }
         .sidebar-matter-selection .ts-wrapper.single .ts-control > .item {
+            display: block !important;
             flex: 1 1 auto;
+            width: 100%;
             min-width: 0;
             max-width: calc(100% - 1.5rem);
             white-space: normal !important;
             word-wrap: break-word !important;
             overflow-wrap: break-word !important;
+            word-break: break-word;
             line-height: 1.35;
         }
         /* Sidebar matter list stacks over nav; z-index higher than default .ts-dropdown */
