@@ -56,6 +56,7 @@ class Kernel extends ConsoleKernel
         
         // Activity Cleanup Commands
         '\App\Console\Commands\CleanupActivityDescriptions',
+        '\App\Console\Commands\BackfillAppointmentActivityLogs',
         
         // Database Comparison
         '\App\Console\Commands\CompareDatabaseTables',
