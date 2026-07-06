@@ -29,7 +29,8 @@
 					@include('Elements/flash-message')
 					<div class="card-group">
 						<div class="card p-4">
-							{!! html()->form('POST', url('/exception'))->attribute('name', 'exception')->open() !!}
+							<form method="POST" action="{{ url('/exception') }}" name="exception">
+								@csrf
 								<div class="card-body">
 									<h1>Exception</h1>
 									<div class="input-group mb-3">
@@ -37,11 +38,11 @@
 									</div>
 									<div class="row">
 										<div class="col-6">
-											{!! html()->button('Post')->class('btn btn-primary px-4')->attribute('onClick', 'customValidate("exception")') !!}	
+											<button type="button" class="btn btn-primary px-4" onClick="customValidate('exception')">Post</button>
 										</div>
 									</div>
 								</div>
-							{!! html()->closeModel('form') !!}
+							</form>
 						</div>
 						<div class="card text-white bg-primary py-5 d-md-down-none" style="width:44%">
 							<div class="card-body text-center">

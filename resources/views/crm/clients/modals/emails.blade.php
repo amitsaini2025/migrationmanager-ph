@@ -115,7 +115,7 @@
 						<div class="col-12 col-md-12 col-lg-12">
 							<div class="form-group">
 								<label for="subject">Subject <span class="span_req">*</span></label>
-								{!! html()->text('subject')->class('form-control selectedappsubject')->attribute('data-valid', 'required')->attribute('autocomplete', 'off')->attribute('placeholder', 'Enter Subject') !!}
+								<input type="text" name="subject" class="form-control selectedappsubject" data-valid="required" autocomplete="off" placeholder="Enter Subject">
 								@if ($errors->has('subject'))
 									<span class="custom-error" role="alert">
 										<strong>{{ @$errors->first('subject') }}</strong>

@@ -606,7 +606,7 @@
 						<div class="col-3 col-md-3 col-lg-3">
 							<div class="form-group">
 								<label for="client">Client <span class="span_req">*</span></label>
-								{!! html()->text('client')->class('form-control')->attribute('data-valid', 'required')->attribute('autocomplete', 'off')->attribute('placeholder', '') !!}
+								<input type="text" name="client" class="form-control" data-valid="required" autocomplete="off" placeholder="">
 								<span class="custom-error title_error" role="alert">
 									<strong></strong>
 								</span>
@@ -716,7 +716,7 @@
 						<div class="col-6 col-md-6 col-lg-6">
 							<div class="form-group">
 								<label for="client">Client <span class="span_req">*</span></label>
-								{!! html()->text('client')->class('form-control')->attribute('data-valid', 'required')->attribute('autocomplete', 'off')->attribute('placeholder', '') !!}
+								<input type="text" name="client" class="form-control" data-valid="required" autocomplete="off" placeholder="">
 								<span class="custom-error title_error" role="alert">
 									<strong></strong>
 								</span>
@@ -847,7 +847,7 @@
 						<div class="col-6 col-md-6 col-lg-6">
 							<div class="form-group">
 								<label for="client">Client <span class="span_req">*</span></label>
-								{!! html()->text('client')->class('form-control')->attribute('data-valid', 'required')->attribute('autocomplete', 'off')->attribute('placeholder', '') !!}
+								<input type="text" name="client" class="form-control" data-valid="required" autocomplete="off" placeholder="">
 								<span class="custom-error title_error" role="alert">
 									<strong></strong>
 								</span>
@@ -984,7 +984,7 @@
 						<div class="col-6 col-md-6 col-lg-6">
 							<div class="form-group">
 								<label for="client">Client <span class="span_req">*</span></label>
-								{!! html()->text('client')->class('form-control')->attribute('data-valid', 'required')->attribute('autocomplete', 'off')->attribute('placeholder', '') !!}
+								<input type="text" name="client" class="form-control" data-valid="required" autocomplete="off" placeholder="">
 								<span class="custom-error title_error" role="alert">
 									<strong></strong>
 								</span>
@@ -1136,7 +1136,7 @@
 						<div class="col-6 col-md-6 col-lg-6">
 							<div class="form-group">
 								<label for="client">Client <span class="span_req">*</span></label>
-								{!! html()->text('client')->class('form-control')->attribute('data-valid', 'required')->attribute('autocomplete', 'off')->attribute('placeholder', '') !!}
+								<input type="text" name="client" class="form-control" data-valid="required" autocomplete="off" placeholder="">
 								<span class="custom-error title_error" role="alert">
 									<strong></strong>
 								</span>

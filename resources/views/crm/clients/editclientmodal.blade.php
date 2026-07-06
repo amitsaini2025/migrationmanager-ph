@@ -21,7 +21,7 @@
 						<div class="col-12 col-md-12 col-lg-12">
 							<div class="form-group">
 								<label for="title">Title <span class="span_req">*</span></label>
-								{!! html()->text('title', '')->class('form-control')->attribute('data-valid', 'required')->attribute('autocomplete', 'off')->attribute('placeholder', 'Enter Title') !!}
+								<input type="text" name="title" value="" class="form-control" data-valid="required" autocomplete="off" placeholder="Enter Title">
 								<select name="title" class="form-control" data-valid="required">
 								    <option value="">Please Select Note</option>
 								    <option value="Call" <?php if($fetchedData->title = 'Call') { echo 'selected'; } ?>>Call</option>
