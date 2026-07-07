@@ -286,6 +286,31 @@
         transform: translateY(-1px);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
+
+    /* Icon-only edit buttons in the Action column (AJAX DataTable rows) */
+    .dataTables_scrollBody .yajra-datatable .update_task,
+    .yajra-datatable .update_task {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: auto;
+        min-width: 36px;
+        min-height: 36px;
+        padding: 8px 10px !important;
+        margin-top: 0;
+        text-transform: none;
+        letter-spacing: normal;
+        line-height: 1;
+    }
+
+    .dataTables_scrollBody .yajra-datatable .update_task svg.lucide,
+    .dataTables_scrollBody .yajra-datatable .update_task i[data-lucide],
+    .yajra-datatable .update_task svg.lucide,
+    .yajra-datatable .update_task i[data-lucide] {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+    }
     
     /* Pagination */
     .pagination { 
@@ -1064,6 +1089,38 @@ $(function () {
     } else {
         console.error('Add My Task: bootstrap.Popover is not available.');
     }
+
+    var actionDataTable = null;
+
+    function getActionTableIconRoot() {
+        if (actionDataTable && actionDataTable.table) {
+            return actionDataTable.table().node();
+        }
+        var scrollBodyTable = document.querySelector('.dataTables_scrollBody .yajra-datatable');
+        if (scrollBodyTable) {
+            return scrollBodyTable;
+        }
+        return document.querySelector('.yajra-datatable');
+    }
+
+    function refreshActionTableIcons() {
+        if (typeof refreshLucideIcons !== 'function') {
+            return false;
+        }
+        var root = getActionTableIconRoot();
+        if (root) {
+            refreshLucideIcons(root);
+        }
+        return true;
+    }
+
+    function refreshActionTableIconsWhenReady() {
+        if (typeof refreshLucideIcons !== 'function') {
+            window.addEventListener('load', refreshActionTableIcons, { once: true });
+            return;
+        }
+        refreshActionTableIcons();
+    }
     
     var table = $('.yajra-datatable').DataTable({
         processing: true,
@@ -1110,9 +1167,7 @@ $(function () {
             // Update badge counts
             updateBadgeCounts();
 
-            if (typeof refreshLucideIcons === 'function') {
-                refreshLucideIcons(document.querySelector('.yajra-datatable'));
-            }
+            refreshActionTableIconsWhenReady();
         },
         "bAutoWidth": false,
         "scrollX": true,
@@ -1124,6 +1179,7 @@ $(function () {
         "responsive": false,
         "autoWidth": false
     });
+    actionDataTable = table;
 
     // Search functionality
     $('#searchInput').on('keyup', function() {
@@ -1533,6 +1589,7 @@ $(function () {
         document.querySelectorAll('.btn_readmore, .update_task').forEach(function(el) {
             disposeBsPopover(el);
         });
+        refreshActionTableIconsWhenReady();
     });
 
     // Handle Update Task submission

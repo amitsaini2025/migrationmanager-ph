@@ -538,7 +538,7 @@ class AssigneeController extends Controller
                             $encoded_client_id = $list->client_id ? base64_encode(convert_uuencode($list->client_id)) : '';
                             
                             // No data-role="popover": action page uses Bootstrap 5 native popover (see action.blade.php)
-                            $actionBtn .= '<button type="button" data-assignedto="'.$list->assigned_to.'" data-noteid="'.$safe_note_b64.'" data-note-b64="1" data-taskid="'.$list->id.'" data-taskgroupid="'.$safe_task_group.'" data-actiondate="'.$current_date1.'" data-clientid="'.$encoded_client_id.'" class="btn btn-primary btn-block update_task" style="width: 40px;display: inline;margin-top:0px;">'.IconHelper::fromLegacy('fa fa-edit', ['aria-hidden' => 'true']).'</button>';
+                            $actionBtn .= '<button type="button" data-assignedto="'.$list->assigned_to.'" data-noteid="'.$safe_note_b64.'" data-note-b64="1" data-taskid="'.$list->id.'" data-taskgroupid="'.$safe_task_group.'" data-actiondate="'.$current_date1.'" data-clientid="'.$encoded_client_id.'" class="btn btn-primary btn-sm update_task" title="Update Task">'.IconHelper::fromLegacy('fa fa-edit', ['aria-hidden' => 'true']).'</button>';
 
                             // Delete button removed from action tab
 
