@@ -339,36 +339,6 @@
     transform: translateY(-1px);
 }
 
-/* Fix Layout - Remove blank space on the side */
-.main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 20px !important;
-    box-sizing: border-box !important;
-}
-
-.sidebar-expanded + .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-}
-
-/* Ensure all sections take full width */
-.kpi-cards,
-.priority-focus,
-.cases-overview,
-.quick-stats-banner {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box;
-}
-
-.table-responsive {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: auto !important;
-}
-
 /* Test Page Specific Styles */
 .header-title-section h1 {
     margin: 0;
@@ -585,7 +555,7 @@
     text-decoration: none;
     border-radius: 6px;
     width: 100%;
-    min-width: 180px;
+    min-width: 0;
     transition: background-color 0.15s ease, color 0.15s ease;
     word-break: break-word;
     white-space: normal;
@@ -602,9 +572,9 @@
     outline-offset: 2px;
 }
 
-/* Fix stage column width */
+/* Fix stage column width — allow shrink; table scrolls inside .table-responsive */
 .col-stage {
-    min-width: 200px;
+    min-width: 0;
     max-width: 250px;
 }
 
