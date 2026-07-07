@@ -24,13 +24,34 @@
     }
 
     function showRenameToast(type, message) {
-        if (typeof iziToast === 'undefined') return;
         var msg = message || (type === 'success' ? 'Saved successfully' : 'Could not save');
-        if (type === 'success' && typeof iziToast.success === 'function') {
-            iziToast.success({ message: msg, position: 'topRight', timeout: 3000 });
-        } else if (typeof iziToast.error === 'function') {
-            iziToast.error({ message: msg, position: 'topRight' });
+        var isSuccess = type === 'success';
+        var izi = (typeof window !== 'undefined' && window.iziToast) ||
+            (typeof iziToast !== 'undefined' ? iziToast : null);
+
+        if (izi) {
+            if (isSuccess && typeof izi.success === 'function') {
+                izi.success({ message: msg, position: 'topRight', timeout: 3000 });
+                return;
+            }
+            if (typeof izi.error === 'function') {
+                izi.error({ message: msg, position: 'topRight' });
+                return;
+            }
         }
+
+        if (typeof toastr !== 'undefined') {
+            if (isSuccess && typeof toastr.success === 'function') {
+                toastr.success(msg);
+            } else if (typeof toastr.error === 'function') {
+                toastr.error(msg);
+            } else {
+                alert(msg);
+            }
+            return;
+        }
+
+        alert(msg);
     }
 
     // uploadFormData, file_explorer, .openfileupload, .opendocnote, #ddArea handlers REMOVED - workflow checklist upload flow dead
