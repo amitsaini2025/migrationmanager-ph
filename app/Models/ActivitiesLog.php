@@ -207,4 +207,25 @@ class ActivitiesLog extends Authenticatable
 		return strpos($lower, 'signed document') !== false
 			|| strpos($lower, 'signed cost agreement') !== false;
 	}
+
+	/**
+	 * Format followup_date for activity feed display (handles raw DB values and ISO strings).
+	 */
+	public static function formatFollowupDateForDisplay(mixed $value): string
+	{
+		if ($value === null || $value === '') {
+			return '';
+		}
+
+		try {
+			$dt = \Carbon\Carbon::parse($value);
+			if ($dt->format('H:i:s') === '00:00:00') {
+				return $dt->format('d M Y');
+			}
+
+			return $dt->format('d M Y, H:i A');
+		} catch (\Exception $e) {
+			return is_string($value) ? $value : '';
+		}
+	}
 }

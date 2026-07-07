@@ -131,7 +131,7 @@ class AssigneeController extends Controller
                     } else {
                         $objs->use_for = null;
                     }
-                    $objs->followup_date = @$note_data['updated_at']; // ActivitiesLog uses followup_date
+                    $objs->followup_date = $note_data['action_date'] ?? null;
                     $objs->task_group = $taskGroup;
                     $objs->task_status = 1; //marked completed
                     $objs->pin = 0;
@@ -850,7 +850,7 @@ class AssigneeController extends Controller
                 } else {
                     $completionLog->use_for = null;
                 }
-                $completionLog->followup_date = $currentAction->updated_at;
+                $completionLog->followup_date = $currentAction->action_date ?? null;
                 $completionLog->task_group = $currentAction->task_group;
                 $completionLog->task_status = 1; // Marked as completed
                 $completionLog->pin = 0;

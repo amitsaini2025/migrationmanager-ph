@@ -796,7 +796,7 @@ class DashboardService
                     'subject' => 'completed action for ' . $assigneeName,
                     'description' => $description,
                     'use_for' => (Auth::id() != $noteData->assigned_to) ? $noteData->assigned_to : null,
-                    'followup_date' => $noteData->updated_at,
+                    'followup_date' => $noteData->action_date ?? null,
                     'task_group' => $noteData->task_group ?? null,
                     'task_status' => 1,
                     'pin' => 0,

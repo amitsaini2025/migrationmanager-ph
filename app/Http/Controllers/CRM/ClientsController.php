@@ -3471,7 +3471,7 @@ class ClientsController extends Controller
 						'message' => NoteDescriptionHtml::forDisplay($activit->description ?? ''),
 						'date' => date('d M Y, H:i A', strtotime($activit->created_at)),
 						'created_at_ymd' => $activit->created_at ? \Carbon\Carbon::parse($activit->created_at)->format('Y-m-d') : '',
-						'followup_date' => $activit->followup_date ?? '',
+						'followup_date' => ActivitiesLog::formatFollowupDateForDisplay($activit->followup_date),
 						'task_group' => $activit->task_group ?? '',
 						'pin' => $activit->pin ?? 0,
 						'activity_type' => $activit->activity_type
