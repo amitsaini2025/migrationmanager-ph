@@ -295,7 +295,7 @@
                 wsPort: reverbPort,
                 wssPort: reverbPort,
                 disableStats: true,
-                enabledTransports: ['ws', 'wss']
+                enabledTransports: reverbUseTLS ? ['wss'] : ['ws']
             };
             pusher = new Pusher(pusherAppKey, cfg);
             pusher.connection.bind('connected', function () {

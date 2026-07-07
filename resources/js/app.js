@@ -142,68 +142,101 @@ window.updateNotificationBell = function (count, options = {}) {
 | - Production: wss://host:443 (REVERB_SCHEME=https, Nginx proxies to Reverb)
 */
 
+function attachCrmEchoUserChannelListeners() {
+    if (window.__crmEchoUserListenersAttached || !window.Echo) {
+        return;
+    }
+
+    const userId = document.querySelector('meta[name="current-user-id"]')?.content;
+    if (!userId) {
+        return;
+    }
+
+    window.__crmEchoUserListenersAttached = true;
+
+    const userChannel = window.Echo.private('user.' + userId);
+    userChannel.listen('.notification.count.updated', function (e) {
+        try {
+            const count = e.unread_count !== undefined ? parseInt(e.unread_count, 10) : 0;
+            const opts = { showToast: true };
+            if (e.message) opts.message = e.message;
+            if (e.url) opts.url = e.url;
+            window.updateNotificationBell(count, opts);
+        } catch (err) {
+            console.warn('Notification count update error:', err);
+        }
+    });
+
+    // Office visit popups: deliverOfficeVisitNotificationPayload queues until showTeamsNotification exists.
+    if (!window.__officeVisitEchoAttached) {
+        userChannel.listen('.OfficeVisitNotificationCreated', function (e) {
+            try {
+                const payload = normalizeOfficeVisitEchoPayload(e);
+                if (payload) {
+                    window.deliverOfficeVisitNotificationPayload(payload);
+                }
+            } catch (err) {
+                console.warn('Office visit notification handler error:', err);
+            }
+        });
+        window.__officeVisitEchoAttached = true;
+        console.log('✅ Office visit notification listener attached (Echo)');
+    }
+}
+
+function whenEchoConnected(callback) {
+    const connection = window.Echo?.connector?.pusher?.connection;
+    if (!connection) {
+        return;
+    }
+
+    if (connection.state === 'connected') {
+        callback();
+        return;
+    }
+
+    connection.bind('connected', callback);
+}
+
 if (import.meta.env.VITE_REVERB_APP_KEY) {
     try {
-        const useTLS = import.meta.env.VITE_REVERB_SCHEME === 'https';
-        const port = parseInt(import.meta.env.VITE_REVERB_PORT, 10);
-        const wsPort = !isNaN(port) ? port : (useTLS ? 443 : 8080);
+        if (!window.Echo) {
+            const useTLS = import.meta.env.VITE_REVERB_SCHEME === 'https';
+            const port = parseInt(import.meta.env.VITE_REVERB_PORT, 10);
+            const wsPort = !isNaN(port) ? port : (useTLS ? 443 : 8080);
+            const configuredHost = import.meta.env.VITE_REVERB_HOST || 'localhost';
+            const wsHost =
+                configuredHost === 'localhost' || configuredHost === '127.0.0.1'
+                    ? (window.location.hostname || configuredHost)
+                    : configuredHost;
 
-        window.Echo = new Echo({
-            broadcaster: 'reverb',
-            key: import.meta.env.VITE_REVERB_APP_KEY,
+            window.Echo = new Echo({
+                broadcaster: 'reverb',
+                key: import.meta.env.VITE_REVERB_APP_KEY,
 
-            wsHost: import.meta.env.VITE_REVERB_HOST || 'localhost',
-            wsPort,
-            wssPort: wsPort,
+                wsHost,
+                wsPort,
+                wssPort: wsPort,
 
-            forceTLS: useTLS,
-            enabledTransports: useTLS ? ['wss'] : ['ws', 'wss'],
+                forceTLS: useTLS,
+                enabledTransports: useTLS ? ['wss'] : ['ws'],
+                disableStats: true,
 
-            authEndpoint: '/broadcasting/auth',
-            auth: {
-                headers: {
-                    'X-CSRF-TOKEN': document
-                        .querySelector('meta[name="csrf-token"]')
-                        ?.getAttribute('content'),
+                authEndpoint: '/broadcasting/auth',
+                auth: {
+                    headers: {
+                        'X-CSRF-TOKEN': document
+                            .querySelector('meta[name="csrf-token"]')
+                            ?.getAttribute('content'),
+                    },
                 },
-            },
-        });
-
-        console.log('✅ Laravel Echo initialized with Reverb', useTLS ? '(wss)' : '(ws)');
-
-        // Subscribe to notification count updates (works whether Messages tab is open or not)
-        const userId = document.querySelector('meta[name="current-user-id"]')?.content;
-        if (userId) {
-            const userChannel = window.Echo.private('user.' + userId);
-            userChannel.listen('.notification.count.updated', function (e) {
-                try {
-                    const count = e.unread_count !== undefined ? parseInt(e.unread_count, 10) : 0;
-                    const opts = { showToast: true };
-                    if (e.message) opts.message = e.message;
-                    if (e.url) opts.url = e.url;
-                    window.updateNotificationBell(count, opts);
-                } catch (err) {
-                    console.warn('Notification count update error:', err);
-                }
             });
 
-            // Office visit popups: subscribe immediately so events are not missed while layout loads.
-            // deliverOfficeVisitNotificationPayload queues until showTeamsNotification exists (drain in layout).
-            if (!window.__officeVisitEchoAttached) {
-                userChannel.listen('.OfficeVisitNotificationCreated', function (e) {
-                    try {
-                        const payload = normalizeOfficeVisitEchoPayload(e);
-                        if (payload) {
-                            window.deliverOfficeVisitNotificationPayload(payload);
-                        }
-                    } catch (err) {
-                        console.warn('Office visit notification handler error:', err);
-                    }
-                });
-                window.__officeVisitEchoAttached = true;
-                console.log('✅ Office visit notification listener attached (Echo)');
-            }
+            console.log('✅ Laravel Echo initialized with Reverb', useTLS ? '(wss)' : '(ws)');
         }
+
+        // Wait for the WebSocket handshake before private-channel auth (avoids console noise).
+        whenEchoConnected(attachCrmEchoUserChannelListeners);
     } catch (error) {
         console.warn('⚠️ Failed to initialize Laravel Echo:', error);
         window.EchoDisabled = true;

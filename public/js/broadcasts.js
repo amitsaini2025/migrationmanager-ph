@@ -41,6 +41,8 @@
         isPolling: false,
         dismissed: new Set(),
         navigating: false,
+        broadcastEchoSubscribed: false,
+        legacyEchoListenersAttached: false,
     };
 
     function formatTimestamp(timestamp) {
@@ -253,45 +255,62 @@
             return;
         }
         
-        console.log('✅ Subscribing to broadcast notifications for user:', currentUserId);
-        
-        window.Echo.private(`user.${currentUserId}`)
-            .listen('.BroadcastNotificationCreated', (e) => {
-                console.log('📢 Received broadcast notification:', e);
-                
-                // Fetch the full notification details to get notification_id
-                fetch(endpoints.unread, {
-                    method: 'GET',
-                    headers: {
-                        Accept: 'application/json',
-                    },
-                    credentials: 'include',
-                })
-                .then((response) => response.json())
-                .then((payload) => {
-                    if (Array.isArray(payload?.data)) {
-                        // Find the notification with matching batch_uuid
-                        const fullNotification = payload.data.find(n => n.batch_uuid === e.batch_uuid);
-                        if (fullNotification) {
-                            enqueueBroadcasts([fullNotification]);
+        const connection = window.Echo.connector.pusher.connection;
+
+        function subscribeToBroadcastChannel() {
+            if (state.broadcastEchoSubscribed) {
+                return;
+            }
+
+            state.broadcastEchoSubscribed = true;
+            console.log('✅ Subscribing to broadcast notifications for user:', currentUserId);
+
+            window.Echo.private(`user.${currentUserId}`)
+                .listen('.BroadcastNotificationCreated', (e) => {
+                    console.log('📢 Received broadcast notification:', e);
+
+                    // Fetch the full notification details to get notification_id
+                    fetch(endpoints.unread, {
+                        method: 'GET',
+                        headers: {
+                            Accept: 'application/json',
+                        },
+                        credentials: 'include',
+                    })
+                    .then((response) => response.json())
+                    .then((payload) => {
+                        if (Array.isArray(payload?.data)) {
+                            // Find the notification with matching batch_uuid
+                            const fullNotification = payload.data.find(n => n.batch_uuid === e.batch_uuid);
+                            if (fullNotification) {
+                                enqueueBroadcasts([fullNotification]);
+                            }
                         }
-                    }
-                })
-                .catch((error) => {
-                    console.error('Error fetching notification details:', error);
+                    })
+                    .catch((error) => {
+                        console.error('Error fetching notification details:', error);
+                    });
                 });
-            });
-        
-        // Monitor connection status
-        window.Echo.connector.pusher.connection.bind('connected', () => {
+        }
+
+        function onBroadcastEchoConnected() {
             console.log('✅ Reverb connected for broadcast notifications');
+            subscribeToBroadcastChannel();
+            setupEchoListeners();
             if (state.pollingTimer) {
                 clearInterval(state.pollingTimer);
                 state.pollingTimer = null;
             }
-        });
-        
-        window.Echo.connector.pusher.connection.bind('disconnected', () => {
+        }
+
+        // Monitor connection status; defer private auth until WebSocket is open.
+        if (connection.state === 'connected') {
+            onBroadcastEchoConnected();
+        } else {
+            connection.bind('connected', onBroadcastEchoConnected);
+        }
+
+        connection.bind('disconnected', () => {
             console.warn('⚠️ Reverb disconnected, falling back to polling for broadcasts');
             startPolling();
         });
@@ -308,9 +327,11 @@
 
     function setupEchoListeners() {
         const echo = window.Echo;
-        if (!echo || !currentUserId) {
+        if (!echo || !currentUserId || state.legacyEchoListenersAttached) {
             return;
         }
+
+        state.legacyEchoListenersAttached = true;
 
         try {
             echo.channel('broadcasts').listen('.BroadcastNotificationCreated', (event) => {
@@ -339,12 +360,7 @@
         
         // Use real-time listener with polling fallback
         startRealtimeListener();
-        
-        // Setup Echo listeners for legacy code (if Echo is configured differently)
-        if (window.Echo && typeof setupEchoListeners === 'function') {
-            setupEchoListeners();
-        }
-        
+
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         if (dismissBtn && dismissBtn.length > 0) {

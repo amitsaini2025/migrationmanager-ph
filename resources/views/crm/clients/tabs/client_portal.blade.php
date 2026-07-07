@@ -4273,7 +4273,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 pusherConfig.wsPort = reverbPort;
                 pusherConfig.wssPort = reverbPort;
                 pusherConfig.disableStats = true;
-                pusherConfig.enabledTransports = ['ws', 'wss'];
+                pusherConfig.enabledTransports = reverbUseTLS ? ['wss'] : ['ws'];
                 console.log('🔌 Configuring for Laravel Reverb:', { host: reverbHost, port: reverbPort, scheme: reverbScheme });
             }
             

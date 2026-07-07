@@ -56,7 +56,7 @@ class RealtimeChat {
                 wsPort,
                 wssPort: wsPort,
                 forceTLS: useTLS,
-                enabledTransports: useTLS ? ['wss'] : ['ws', 'wss'],
+                enabledTransports: useTLS ? ['wss'] : ['ws'],
                 authEndpoint: `${this.config.apiBaseUrl}/broadcasting/auth`,
                 auth: {
                     headers: {
