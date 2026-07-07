@@ -190,18 +190,8 @@ class ClientDocumentsController extends Controller
                         ?>
                         <tr class="drow" id="id_<?php echo $fetch->id; ?>">
                             <td style="white-space: initial;">
-                                <div data-id="<?php echo $fetch->id;?>" data-personalchecklistname="<?php echo htmlspecialchars($fetch->checklist); ?>" class="personalchecklist-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" style="display: flex; align-items: center; gap: 8px;">
+                                <div data-id="<?php echo $fetch->id;?>" data-personalchecklistname="<?php echo htmlspecialchars($fetch->checklist); ?>" class="personalchecklist-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" style="display: flex; align-items: center; gap: 8px;" oncontextmenu="showPersonalChecklistContextMenu(event, <?php echo $fetch->id; ?>); return false;">
                                     <span style="flex: 1;"><?php echo htmlspecialchars($fetch->checklist); ?></span>
-                                    <div class="checklist-actions" style="display: flex; gap: 5px;">
-                                        <?php if (!$fetch->file_name): ?>
-                                        <a href="javascript:;" class="edit-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" title="Edit Checklist Name" style="color: #007bff; cursor: pointer;">
-                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-edit'); ?>
-                                        </a>
-                                        <a href="javascript:;" class="delete-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" title="Delete Checklist" style="color: #dc3545; cursor: pointer;">
-                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-trash'); ?>
-                                        </a>
-                                        <?php endif; ?>
-                                    </div>
                                 </div>
                             </td>
                             <td style="white-space: initial;">
@@ -245,8 +235,11 @@ class ClientDocumentsController extends Controller
                             </td>
                             <td>
                                 <!-- Hidden elements for context menu actions -->
+                                <a class="renamechecklist" data-id="<?php echo $fetch->id; ?>" href="javascript:;" style="display: none;"></a>
+                                <?php if (!$fetch->file_name): ?>
+                                <a class="delete-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" href="javascript:;" style="display: none;"></a>
+                                <?php endif; ?>
                                 <?php if ($fetch->myfile): ?>
-                                    <a class="renamechecklist" data-id="<?php echo $fetch->id; ?>" href="javascript:;" style="display: none;"></a>
                                     <a class="renamedoc" data-id="<?php echo $fetch->id; ?>" href="javascript:;" style="display: none;"></a>
                                     <a class="download-file" data-filelink="<?php echo $fetch->myfile; ?>" data-filename="<?php echo $fetch->myfile_key; ?>" href="#" style="display: none;"></a>
                                     <a class="notuseddoc" data-id="<?php echo $fetch->id; ?>" data-doctype="personal" data-doccategory="<?php echo $request->doccategory;?>" data-href="documents/not-used" href="javascript:;" style="display: none;"></a>
@@ -641,6 +634,7 @@ class ClientDocumentsController extends Controller
                         $admin = $fetch->staff;
                         $VisaDocumentType = VisaDocumentType::query()->where('id', $fetch->folder_name)->first();
                         $fileUrl = $fetch->myfile_key ? $fetch->myfile : 'https://' . env('AWS_BUCKET') . '.s3.' . env('AWS_DEFAULT_REGION') . '.amazonaws.com/' . $fetch->client_id . '/visa/' . $fetch->myfile;
+                        $isForm956 = !empty($fetch->form956_id);
                         
                         // Hide non-matching documents with CSS (original behavior)
                         if (
@@ -654,18 +648,8 @@ class ClientDocumentsController extends Controller
                         ?>
                         <tr class="drow" data-matterid="<?php echo $fetch->client_matter_id;?>" data-catid="<?php echo $fetch->folder_name;?>" id="id_<?php echo $fetch->id; ?>" <?php echo $showCls;?>>
                             <td style="white-space: initial;">
-                                <div data-id="<?php echo $fetch->id;?>" data-visachecklistname="<?php echo htmlspecialchars($fetch->checklist); ?>" class="visachecklist-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" style="display: flex; align-items: center; gap: 8px;">
+                                <div data-id="<?php echo $fetch->id;?>" data-visachecklistname="<?php echo htmlspecialchars($fetch->checklist); ?>" class="visachecklist-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" style="display: flex; align-items: center; gap: 8px;"<?php if (!$isForm956) { ?> oncontextmenu="showVisaChecklistContextMenu(event, <?php echo $fetch->id; ?>); return false;"<?php } ?>>
                                     <span style="flex: 1;"><?php echo htmlspecialchars($fetch->checklist); ?></span>
-                                    <div class="checklist-actions" style="display: flex; gap: 5px;">
-                                        <?php if (!$fetch->file_name): ?>
-                                        <a href="javascript:;" class="edit-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" title="Edit Checklist Name" style="color: #007bff; cursor: pointer;">
-                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-edit'); ?>
-                                        </a>
-                                        <a href="javascript:;" class="delete-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" title="Delete Checklist" style="color: #dc3545; cursor: pointer;">
-                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-trash'); ?>
-                                        </a>
-                                        <?php endif; ?>
-                                    </div>
                                 </div>
                             </td>
                             <td style="white-space: initial;">
@@ -715,8 +699,11 @@ class ClientDocumentsController extends Controller
                             </td>
                             <td>
                                 <!-- Hidden elements for context menu actions -->
+                                <a class="renamechecklist" data-id="<?php echo $fetch->id; ?>" href="javascript:;" style="display: none;"></a>
+                                <?php if (!$fetch->file_name && !$isForm956): ?>
+                                <a class="delete-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" href="javascript:;" style="display: none;"></a>
+                                <?php endif; ?>
                                 <?php if ($fetch->myfile): ?>
-                                    <a class="renamechecklist" data-id="<?php echo $fetch->id; ?>" href="javascript:;" style="display: none;"></a>
                                     <a class="renamedoc" data-id="<?php echo $fetch->id; ?>" href="javascript:;" style="display: none;"></a>
                                     <a class="download-file" data-filelink="<?php echo $fetch->myfile; ?>" data-filename="<?php echo $fetch->myfile_key; ?>" href="#" style="display: none;"></a>
                                     <a class="notuseddoc" data-id="<?php echo $fetch->id; ?>" data-doctype="visa" data-href="documents/not-used" href="javascript:;" style="display: none;"></a>
@@ -2060,16 +2047,8 @@ class ClientDocumentsController extends Controller
             }
             $res = DB::table('documents')->where('id', @$id)->update(['checklist' => $checklist]);
             if($res){
-                // Build complete HTML structure to restore UI state
+                // Build complete HTML structure to restore UI state (actions via right-click only)
                 $html = '<span style="flex: 1;">' . htmlspecialchars($checklist) . '</span>';
-                
-                // Only show edit/delete buttons if no file uploaded
-                if (!$doc->file_name) {
-                    $html .= '<div class="checklist-actions" style="display: flex; gap: 5px;">';
-                    $html .= '<a href="javascript:;" class="edit-checklist-btn" data-id="' . $doc->id . '" data-checklist="' . htmlspecialchars($checklist) . '" title="Edit Checklist Name" style="color: #007bff; cursor: pointer;">' . IconHelper::fromLegacy('fas fa-edit') . '</a>';
-                    $html .= '<a href="javascript:;" class="delete-checklist-btn" data-id="' . $doc->id . '" data-checklist="' . htmlspecialchars($checklist) . '" title="Delete Checklist" style="color: #dc3545; cursor: pointer;">' . IconHelper::fromLegacy('fas fa-trash') . '</a>';
-                    $html .= '</div>';
-                }
                 
                 $response['status'] = true;
                 $response['data'] = 'Checklist saved successfully';

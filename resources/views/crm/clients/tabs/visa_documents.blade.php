@@ -204,18 +204,8 @@
                                                     ?>
                                                     <tr class="drow" data-matterid="<?= $fetch->client_matter_id ?>" data-catid="<?= $fetch->folder_name ?>" id="id_<?= $fetch->id ?>">
                                                         <td style="white-space: initial;">
-                                                            <div data-id="<?= $fetch->id ?>" data-visachecklistname="<?= htmlspecialchars($fetch->checklist) ?>" class="visachecklist-row" title="Uploaded by: <?= htmlspecialchars($admin->first_name ?? 'NA') ?> on <?= date('d/m/Y H:i', strtotime($fetch->created_at)) ?>" style="display: flex; align-items: center; gap: 8px;">
+                                                            <div data-id="<?= $fetch->id ?>" data-visachecklistname="<?= htmlspecialchars($fetch->checklist) ?>" class="visachecklist-row" title="Uploaded by: <?= htmlspecialchars($admin->first_name ?? 'NA') ?> on <?= date('d/m/Y H:i', strtotime($fetch->created_at)) ?>" style="display: flex; align-items: center; gap: 8px;"<?php if (!$isForm956): ?> oncontextmenu="showVisaChecklistContextMenu(event, <?= $fetch->id ?>); return false;"<?php endif; ?>>
                                                                 <span style="flex: 1;"><?= htmlspecialchars($fetch->checklist) ?></span>
-                                                                <div class="checklist-actions" style="display: flex; gap: 5px;">
-                                                                    <?php if (!$fetch->file_name && !$isForm956): ?>
-                                                                    <a href="javascript:;" class="edit-checklist-btn" data-id="<?= $fetch->id ?>" data-checklist="<?= htmlspecialchars($fetch->checklist) ?>" title="Edit Checklist Name" style="color: #007bff; cursor: pointer;">
-                                                                        @icon('fa-edit')
-                                                                    </a>
-                                                                    <a href="javascript:;" class="delete-checklist-btn" data-id="<?= $fetch->id ?>" data-checklist="<?= htmlspecialchars($fetch->checklist) ?>" title="Delete Checklist" style="color: #dc3545; cursor: pointer;">
-                                                                        @icon('fa-trash')
-                                                                    </a>
-                                                                    <?php endif; ?>
-                                                                </div>
                                                             </div>
                                                         </td>
                                                         <td style="white-space: initial;">
@@ -274,8 +264,11 @@
                                                             <?php endif; ?>
                                                         </td>
                                                         <td>
+                                                            <a class="renamechecklist" data-id="<?= $fetch->id ?>" href="javascript:;" style="display: none;"></a>
+                                                            <?php if (!$fetch->file_name && !$isForm956): ?>
+                                                            <a class="delete-checklist-btn" data-id="<?= $fetch->id ?>" data-checklist="<?= htmlspecialchars($fetch->checklist) ?>" href="javascript:;" style="display: none;"></a>
+                                                            <?php endif; ?>
                                                             <?php if ($fetch->myfile): ?>
-                                                                <a class="renamechecklist" data-id="<?= $fetch->id ?>" href="javascript:;" style="display: none;"></a>
                                                                 <a class="renamedoc" data-id="<?= $fetch->id ?>" href="javascript:;" style="display: none;"></a>
                                                                 <a class="download-file" data-filelink="<?= e($downloadUrl ?? $fileUrl) ?>" data-filename="<?= e($fetch->myfile_key ?: basename($fetch->myfile ?? '')) ?>" data-id="<?= $fetch->id ?>" href="#" style="display: none;"></a>
                                                                 <a class="notuseddoc" data-id="<?= $fetch->id ?>" data-doctype="visa" data-href="documents/not-used" href="javascript:;" style="display: none;"></a>
@@ -335,7 +328,7 @@
                                                     ?>
                                                     <tr class="drow visa-signed-row" data-matterid="<?= $signedDoc->client_matter_id ?>" data-catid="<?= $signedDoc->folder_name ?>" id="id_<?= $signedDoc->id ?>">
                                                         <td style="white-space: initial;">
-                                                            <div data-id="<?= $signedDoc->id ?>" class="visachecklist-row" style="display: flex; align-items: center; gap: 8px;">
+                                                            <div data-id="<?= $signedDoc->id ?>" data-visachecklistname="<?= htmlspecialchars($signedDoc->checklist) ?>" class="visachecklist-row" style="display: flex; align-items: center; gap: 8px;"<?php if (!$signedIsForm956): ?> oncontextmenu="showVisaChecklistContextMenu(event, <?= $signedDoc->id ?>); return false;"<?php endif; ?>>
                                                                 <span style="flex: 1;"><?= htmlspecialchars($signedDoc->checklist) ?></span>
                                                             </div>
                                                         </td>
@@ -380,7 +373,7 @@
                                                 ?>
                                                     <tr class="drow visa-signed-row" data-matterid="<?= $signedDoc->client_matter_id ?>" data-catid="<?= $signedDoc->folder_name ?>" id="id_<?= $signedDoc->id ?>">
                                                         <td style="white-space: initial;">
-                                                            <div data-id="<?= $signedDoc->id ?>" class="visachecklist-row" style="display: flex; align-items: center; gap: 8px;">
+                                                            <div data-id="<?= $signedDoc->id ?>" data-visachecklistname="<?= htmlspecialchars($signedDoc->checklist) ?>" class="visachecklist-row" style="display: flex; align-items: center; gap: 8px;"<?php if (!$signedIsForm956): ?> oncontextmenu="showVisaChecklistContextMenu(event, <?= $signedDoc->id ?>); return false;"<?php endif; ?>>
                                                                 <span style="flex: 1;"><?= htmlspecialchars($signedDoc->checklist) ?></span>
                                                             </div>
                                                         </td>
@@ -451,13 +444,20 @@
                 </div>
             </div>
 
+            <!-- Context menu for visa checklist column (right-click checklist name) -->
+            <div id="visaChecklistContextMenu" class="context-menu" style="display: none; position: fixed; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10000; min-width: 180px;">
+                <div id="visa-checklist-context-rename" class="context-menu-item" onclick="handleVisaChecklistContextAction('rename-checklist')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
+                    @icon('fa-edit', ['style' => 'margin-right: 8px;']) Rename Checklist
+                </div>
+                <div id="visa-checklist-context-delete" class="context-menu-item" onclick="handleVisaChecklistContextAction('delete-checklist')" style="padding: 8px 12px; cursor: pointer;">
+                    @icon('fa-trash', ['style' => 'margin-right: 8px;']) Delete Checklist
+                </div>
+            </div>
+
             <!-- Custom Context Menu for Visa Documents -->
             <div id="visaFileContextMenu" class="context-menu" style="display: none; position: fixed; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10000; min-width: 180px;">
                 <div id="visa-context-send-signature" class="context-menu-item" onclick="handleVisaContextAction('send-for-signature')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; display: none;">
                     @icon('fa-pen-fancy', ['style' => 'margin-right: 8px;']) Send for Signature
-                </div>
-                <div class="context-menu-item" onclick="handleVisaContextAction('rename-checklist')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
-                    @icon('fa-edit', ['style' => 'margin-right: 8px;']) Rename Checklist
                 </div>
                 <div class="context-menu-item" onclick="handleVisaContextAction('rename-doc')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
                     @icon('fa-file-text', ['style' => 'margin-right: 8px;']) Rename File Name
@@ -528,10 +528,89 @@
             <script>
                 let currentVisaContextFile = null;
                 let currentVisaContextData = {};
+                let currentVisaChecklistContextFile = null;
+
+                function positionContextMenuAtCursor(menu, event) {
+                    const MIN_PADDING = 5;
+                    const CURSOR_OFFSET = 2;
+                    menu.style.visibility = 'hidden';
+                    menu.style.display = 'block';
+                    const menuWidth = menu.offsetWidth;
+                    const menuHeight = menu.offsetHeight;
+                    menu.style.visibility = 'visible';
+
+                    let menuLeft = event.clientX + CURSOR_OFFSET;
+                    let menuTop = event.clientY + CURSOR_OFFSET;
+                    if (menuLeft + menuWidth > window.innerWidth - MIN_PADDING) {
+                        menuLeft = event.clientX - menuWidth - CURSOR_OFFSET;
+                    }
+                    if (menuTop + menuHeight > window.innerHeight - MIN_PADDING) {
+                        menuTop = event.clientY - menuHeight - CURSOR_OFFSET;
+                    }
+                    menuLeft = Math.max(MIN_PADDING, Math.min(menuLeft, window.innerWidth - menuWidth - MIN_PADDING));
+                    menuTop = Math.max(MIN_PADDING, Math.min(menuTop, window.innerHeight - menuHeight - MIN_PADDING));
+                    menu.style.left = menuLeft + 'px';
+                    menu.style.top = menuTop + 'px';
+                    menu.style.display = 'block';
+                }
+
+                function configureVisaChecklistContextMenu(docId) {
+                    const menu = document.getElementById('visaChecklistContextMenu');
+                    if (!menu) return;
+                    const hasFile = $('#id_' + docId).find('.doc-row').length > 0;
+                    const deleteItem = document.getElementById('visa-checklist-context-delete');
+                    const renameItem = document.getElementById('visa-checklist-context-rename');
+                    if (deleteItem) {
+                        deleteItem.style.display = hasFile ? 'none' : 'block';
+                    }
+                    if (renameItem) {
+                        renameItem.style.borderBottom = hasFile ? 'none' : '1px solid #eee';
+                    }
+                }
+
+                function showVisaChecklistContextMenu(event, docId) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    hideVisaContextMenu();
+                    hideVisaChecklistContextMenu();
+
+                    currentVisaChecklistContextFile = docId;
+                    const menu = document.getElementById('visaChecklistContextMenu');
+                    configureVisaChecklistContextMenu(docId);
+                    positionContextMenuAtCursor(menu, event);
+
+                    setTimeout(function() {
+                        document.addEventListener('click', hideVisaChecklistContextMenu);
+                    }, 100);
+                }
+
+                function hideVisaChecklistContextMenu() {
+                    const menu = document.getElementById('visaChecklistContextMenu');
+                    if (menu) {
+                        menu.style.display = 'none';
+                    }
+                    document.removeEventListener('click', hideVisaChecklistContextMenu);
+                }
+
+                function handleVisaChecklistContextAction(action) {
+                    if (!currentVisaChecklistContextFile) return;
+                    var docId = currentVisaChecklistContextFile;
+                    hideVisaChecklistContextMenu();
+
+                    switch (action) {
+                        case 'rename-checklist':
+                            $('.renamechecklist[data-id="' + docId + '"]').first().click();
+                            break;
+                        case 'delete-checklist':
+                            $('.delete-checklist-btn[data-id="' + docId + '"]').first().click();
+                            break;
+                    }
+                }
 
                 function showVisaFileContextMenu(event, fileId, fileType, fileUrl, categoryId, fileStatus) {
                     event.preventDefault();
                     event.stopPropagation();
+                    hideVisaChecklistContextMenu();
                     
                     currentVisaContextFile = fileId;
                     currentVisaContextData = {
@@ -612,9 +691,6 @@
                             if (typeof $ !== 'undefined') {
                                 $(document).trigger('openSignaturePlacementModal', { documentId: currentVisaContextFile });
                             }
-                            break;
-                        case 'rename-checklist':
-                            $('.renamechecklist[data-id="' + currentVisaContextFile + '"]').click();
                             break;
                         case 'rename-doc':
                             $('.renamedoc[data-id="' + currentVisaContextFile + '"]').click();

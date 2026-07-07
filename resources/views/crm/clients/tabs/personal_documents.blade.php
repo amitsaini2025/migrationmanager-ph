@@ -153,18 +153,8 @@
                                                     ?>
                                                     <tr class="drow" id="id_<?= $fetch->id ?>">
                                                         <td style="white-space: initial;">
-                                                            <div data-id="<?= $fetch->id ?>" data-personalchecklistname="<?= htmlspecialchars($fetch->checklist) ?>" class="personalchecklist-row" title="Uploaded by: <?= htmlspecialchars($admin->first_name ?? 'NA') ?> on <?= date('d/m/Y H:i', strtotime($fetch->created_at)) ?>" style="display: flex; align-items: center; gap: 8px;">
+                                                            <div data-id="<?= $fetch->id ?>" data-personalchecklistname="<?= htmlspecialchars($fetch->checklist) ?>" class="personalchecklist-row" title="Uploaded by: <?= htmlspecialchars($admin->first_name ?? 'NA') ?> on <?= date('d/m/Y H:i', strtotime($fetch->created_at)) ?>" style="display: flex; align-items: center; gap: 8px;" oncontextmenu="showPersonalChecklistContextMenu(event, <?= $fetch->id ?>); return false;">
                                                                 <span style="flex: 1;"><?= htmlspecialchars($fetch->checklist) ?></span>
-                                                                <div class="checklist-actions" style="display: flex; gap: 5px;">
-                                                                    <?php if (!$fetch->file_name): ?>
-                                                                    <a href="javascript:;" class="edit-checklist-btn" data-id="<?= $fetch->id ?>" data-checklist="<?= htmlspecialchars($fetch->checklist) ?>" title="Edit Checklist Name" style="color: #007bff; cursor: pointer;">
-                                                                        @icon('fa-edit')
-                                                                    </a>
-                                                                    <a href="javascript:;" class="delete-checklist-btn" data-id="<?= $fetch->id ?>" data-checklist="<?= htmlspecialchars($fetch->checklist) ?>" title="Delete Checklist" style="color: #dc3545; cursor: pointer;">
-                                                                        @icon('fa-trash')
-                                                                    </a>
-                                                                    <?php endif; ?>
-                                                                </div>
                                                             </div>
                                                         </td>
                                                         <td style="white-space: initial;">
@@ -208,8 +198,11 @@
                                                         </td>
                                                         <td>
                                                             <!-- Hidden elements for context menu actions -->
+                                                            <a class="renamechecklist" data-id="<?= $fetch->id ?>" href="javascript:;" style="display: none;"></a>
+                                                            <?php if (!$fetch->file_name): ?>
+                                                            <a class="delete-checklist-btn" data-id="<?= $fetch->id ?>" data-checklist="<?= htmlspecialchars($fetch->checklist) ?>" href="javascript:;" style="display: none;"></a>
+                                                            <?php endif; ?>
                                                             <?php if ($fetch->myfile): ?>
-                                                                <a class="renamechecklist" data-id="<?= $fetch->id ?>" href="javascript:;" style="display: none;"></a>
                                                                 <a class="renamedoc" data-id="<?= $fetch->id ?>" href="javascript:;" style="display: none;"></a>
                                                                 <a class="download-file" data-filelink="<?= $fileUrl ?>" data-filename="<?= $fetch->myfile_key ?: basename($fetch->myfile) ?>" data-id="<?= $fetch->id ?>" href="#" style="display: none;"></a>
                                                                 <a class="notuseddoc" data-id="<?= $fetch->id ?>" data-doctype="personal" data-doccategory="<?= $catVal->title ?>" data-href="documents/not-used" href="javascript:;" style="display: none;"></a>
@@ -257,11 +250,18 @@
                 </div>
             </div>
 
-            <!-- Custom Context Menu -->
-            <div id="fileContextMenu" class="context-menu" style="display: none; position: fixed; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10000; min-width: 180px;">
-                <div class="context-menu-item" onclick="handleContextAction('rename-checklist')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
+            <!-- Context menu for personal checklist column (right-click checklist name) -->
+            <div id="personalChecklistContextMenu" class="context-menu" style="display: none; position: fixed; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10000; min-width: 180px;">
+                <div id="personal-checklist-context-rename" class="context-menu-item" onclick="handlePersonalChecklistContextAction('rename-checklist')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
                     @icon('fa-edit', ['style' => 'margin-right: 8px;']) Rename Checklist
                 </div>
+                <div id="personal-checklist-context-delete" class="context-menu-item" onclick="handlePersonalChecklistContextAction('delete-checklist')" style="padding: 8px 12px; cursor: pointer;">
+                    @icon('fa-trash', ['style' => 'margin-right: 8px;']) Delete Checklist
+                </div>
+            </div>
+
+            <!-- Custom Context Menu -->
+            <div id="fileContextMenu" class="context-menu" style="display: none; position: fixed; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10000; min-width: 180px;">
                 <div class="context-menu-item" onclick="handleContextAction('rename-doc')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
                     @icon('fa-file-text', ['style' => 'margin-right: 8px;']) Rename File Name
                 </div>
@@ -768,10 +768,89 @@
                 
                 let currentContextFile = null;
                 let currentContextData = {};
+                let currentPersonalChecklistContextFile = null;
+
+                function positionPersonalContextMenuAtCursor(menu, event) {
+                    const MIN_PADDING = 5;
+                    const CURSOR_OFFSET = 2;
+                    menu.style.visibility = 'hidden';
+                    menu.style.display = 'block';
+                    const menuWidth = menu.offsetWidth;
+                    const menuHeight = menu.offsetHeight;
+                    menu.style.visibility = 'visible';
+
+                    let menuLeft = event.clientX + CURSOR_OFFSET;
+                    let menuTop = event.clientY + CURSOR_OFFSET;
+                    if (menuLeft + menuWidth > window.innerWidth - MIN_PADDING) {
+                        menuLeft = event.clientX - menuWidth - CURSOR_OFFSET;
+                    }
+                    if (menuTop + menuHeight > window.innerHeight - MIN_PADDING) {
+                        menuTop = event.clientY - menuHeight - CURSOR_OFFSET;
+                    }
+                    menuLeft = Math.max(MIN_PADDING, Math.min(menuLeft, window.innerWidth - menuWidth - MIN_PADDING));
+                    menuTop = Math.max(MIN_PADDING, Math.min(menuTop, window.innerHeight - menuHeight - MIN_PADDING));
+                    menu.style.left = menuLeft + 'px';
+                    menu.style.top = menuTop + 'px';
+                    menu.style.display = 'block';
+                }
+
+                function configurePersonalChecklistContextMenu(docId) {
+                    const menu = document.getElementById('personalChecklistContextMenu');
+                    if (!menu) return;
+                    const hasFile = $('#id_' + docId).find('.doc-row').length > 0;
+                    const deleteItem = document.getElementById('personal-checklist-context-delete');
+                    const renameItem = document.getElementById('personal-checklist-context-rename');
+                    if (deleteItem) {
+                        deleteItem.style.display = hasFile ? 'none' : 'block';
+                    }
+                    if (renameItem) {
+                        renameItem.style.borderBottom = hasFile ? 'none' : '1px solid #eee';
+                    }
+                }
+
+                function showPersonalChecklistContextMenu(event, docId) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    hideContextMenu();
+                    hidePersonalChecklistContextMenu();
+
+                    currentPersonalChecklistContextFile = docId;
+                    const menu = document.getElementById('personalChecklistContextMenu');
+                    configurePersonalChecklistContextMenu(docId);
+                    positionPersonalContextMenuAtCursor(menu, event);
+
+                    setTimeout(function() {
+                        document.addEventListener('click', hidePersonalChecklistContextMenu);
+                    }, 100);
+                }
+
+                function hidePersonalChecklistContextMenu() {
+                    const menu = document.getElementById('personalChecklistContextMenu');
+                    if (menu) {
+                        menu.style.display = 'none';
+                    }
+                    document.removeEventListener('click', hidePersonalChecklistContextMenu);
+                }
+
+                function handlePersonalChecklistContextAction(action) {
+                    if (!currentPersonalChecklistContextFile) return;
+                    var docId = currentPersonalChecklistContextFile;
+                    hidePersonalChecklistContextMenu();
+
+                    switch (action) {
+                        case 'rename-checklist':
+                            $('.renamechecklist[data-id="' + docId + '"]').first().click();
+                            break;
+                        case 'delete-checklist':
+                            $('.delete-checklist-btn[data-id="' + docId + '"]').first().click();
+                            break;
+                    }
+                }
 
                 function showFileContextMenu(event, fileId, fileType, fileUrl, categoryId, fileStatus) {
                     event.preventDefault();
                     event.stopPropagation();
+                    hidePersonalChecklistContextMenu();
                     
                     currentContextFile = fileId;
                     currentContextData = {
@@ -846,9 +925,6 @@
                     hideContextMenu();
 
                     switch(action) {
-                        case 'rename-checklist':
-                            $('.renamechecklist[data-id="' + currentContextFile + '"]').click();
-                            break;
                         case 'rename-doc':
                             $('.renamedoc[data-id="' + currentContextFile + '"]').click();
                             break;
