@@ -1442,6 +1442,7 @@ $(document).ready(function() {
         if (reset) {
             window.ActivityFeedState.page = 1;
             window.ActivityFeedState.hasMore = false;
+            $('.activity-feed').scrollTop(0);
         } else if (append) {
             window.ActivityFeedState.page = (window.ActivityFeedState.page || 1) + 1;
         }
@@ -1626,6 +1627,9 @@ $(document).ready(function() {
                 window.ActivityFeedState.loading = false;
                 $('#activity-feed-loading').hide();
                 $('#activity-feed-load-more').prop('disabled', false);
+                if (window.ActivityFeed && typeof window.ActivityFeed.afterActivitiesLoaded === 'function') {
+                    window.ActivityFeed.afterActivitiesLoaded();
+                }
             }
         });
     };

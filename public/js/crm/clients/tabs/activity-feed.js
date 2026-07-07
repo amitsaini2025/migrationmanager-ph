@@ -9,12 +9,84 @@
     /**
      * Initialize Activity Feed functionality
      */
+    var SCROLL_LOAD_THRESHOLD_PX = 120;
+
     function init() {
         setupFilterButtons();
         setupWidthToggle();
         setupExtendedFilters();
         setupRefreshButton();
         setupLoadMoreButton();
+        setupInfiniteScroll();
+    }
+
+    function getActivityFeedScroller() {
+        return $('.activity-feed').first();
+    }
+
+    function canLoadMoreActivities() {
+        if (typeof window.loadActivities !== 'function') {
+            return false;
+        }
+        var state = window.ActivityFeedState || {};
+        return !state.loading && !!state.hasMore;
+    }
+
+    /**
+     * Load the next page when the user scrolls near the bottom of the feed sidebar.
+     */
+    function maybeLoadMoreOnScroll() {
+        if (!canLoadMoreActivities()) {
+            return;
+        }
+
+        var $feed = getActivityFeedScroller();
+        var el = $feed[0];
+        if (!el) {
+            return;
+        }
+
+        var distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+        if (distanceFromBottom <= SCROLL_LOAD_THRESHOLD_PX) {
+            window.loadActivities({ reset: false, append: true });
+        }
+    }
+
+    /**
+     * If the first page does not fill the scrollable feed, keep loading until it does or no more pages remain.
+     */
+    function fillFeedIfNotScrollable() {
+        if (!canLoadMoreActivities()) {
+            return;
+        }
+
+        var $feed = getActivityFeedScroller();
+        var el = $feed[0];
+        if (!el) {
+            return;
+        }
+
+        if (el.scrollHeight <= el.clientHeight + 10) {
+            window.loadActivities({ reset: false, append: true });
+        }
+    }
+
+    /**
+     * Called after each /get-activities request completes (initial load, append, refresh).
+     */
+    function afterActivitiesLoaded() {
+        fillFeedIfNotScrollable();
+    }
+
+    function setupInfiniteScroll() {
+        var $feed = getActivityFeedScroller();
+        if (!$feed.length) {
+            return;
+        }
+
+        $feed.off('scroll.activityFeedInfinite').on('scroll.activityFeedInfinite', function() {
+            maybeLoadMoreOnScroll();
+        });
     }
 
     /**
@@ -433,7 +505,8 @@
         filterActivities: filterActivities,
         applyExtendedFilters: applyExtendedFilters,
         reapplyCurrentFilter: reapplyCurrentFilter,
-        enhanceAppointmentActivityRows: enhanceAppointmentActivityRows
+        enhanceAppointmentActivityRows: enhanceAppointmentActivityRows,
+        afterActivitiesLoaded: afterActivitiesLoaded
     };
 
 })(jQuery);
