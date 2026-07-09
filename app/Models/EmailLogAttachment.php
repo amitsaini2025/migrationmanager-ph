@@ -64,6 +64,47 @@ class EmailLogAttachment extends Model
     }
 
     /**
+     * Get the file extension (lowercase), from stored extension or filename.
+     */
+    public function getFileExtension(): string
+    {
+        $extension = $this->extension ?? pathinfo($this->filename ?? '', PATHINFO_EXTENSION);
+
+        return strtolower((string) $extension);
+    }
+
+    /**
+     * Effective MIME type for serving files (falls back from extension when generic).
+     */
+    public function getEffectiveMimeType(): string
+    {
+        if ($this->content_type && $this->content_type !== 'application/octet-stream') {
+            return $this->content_type;
+        }
+
+        $mimeMap = [
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'bmp' => 'image/bmp',
+            'webp' => 'image/webp',
+            'pdf' => 'application/pdf',
+            'doc' => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls' => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'txt' => 'text/plain',
+            'csv' => 'text/csv',
+            'html' => 'text/html',
+            'json' => 'application/json',
+            'xml' => 'application/xml',
+        ];
+
+        return $mimeMap[$this->getFileExtension()] ?? 'application/octet-stream';
+    }
+
+    /**
      * Check if the attachment is an image.
      */
     public function isImage(): bool

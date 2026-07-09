@@ -185,6 +185,9 @@ class EmailLogAttachmentController extends Controller
                 abort(400, 'This file type cannot be previewed');
             }
 
+            $mimeType = $attachment->getEffectiveMimeType();
+            $displayName = $attachment->display_name ?? $attachment->filename;
+
             $localPath = CrmSentEmailS3Service::resolveLocalDiskAbsolutePath($attachment->file_path);
             if ($localPath) {
                 $content = @file_get_contents($localPath);
@@ -192,8 +195,8 @@ class EmailLogAttachmentController extends Controller
                     abort(404, 'Attachment file not found');
                 }
                 return Response::make($content, 200, [
-                    'Content-Type' => $attachment->content_type ?: 'application/octet-stream',
-                    'Content-Disposition' => 'inline; filename="' . $attachment->filename . '"',
+                    'Content-Type' => $mimeType,
+                    'Content-Disposition' => 'inline; filename="' . $displayName . '"',
                 ]);
             }
 
@@ -204,8 +207,8 @@ class EmailLogAttachmentController extends Controller
             $content = Storage::disk('s3')->get($attachment->s3_key);
 
             return Response::make($content, 200, [
-                'Content-Type' => $attachment->content_type,
-                'Content-Disposition' => 'inline; filename="' . $attachment->filename . '"',
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'inline; filename="' . $displayName . '"',
             ]);
         } catch (HttpExceptionInterface $e) {
             throw $e;
