@@ -125,7 +125,7 @@ class EmailUploadController extends Controller
                 ], 400);
             }
 
-            $parsedData = $this->parseEmailWithPython($file);
+            $parsedData = $this->parseEmailMetadataWithPython($file);
             if (! $parsedData || isset($parsedData['error']) || (isset($parsedData['success']) && ! $parsedData['success'])) {
                 return response()->json([
                     'status' => false,
@@ -949,26 +949,52 @@ class EmailUploadController extends Controller
         }
     }
 
+    protected function pythonEmailPreviewTimeout(): int
+    {
+        return max(5, (int) config('services.python.preview_timeout', 30));
+    }
+
+    protected function pythonEmailUploadTimeout(): int
+    {
+        return max(30, (int) config('services.python.timeout', 180));
+    }
+
     /**
-     * Parse email file using Python microservice
-     * 
+     * Parse email metadata only — used for attachment preview before upload.
+     *
+     * @param \Illuminate\Http\UploadedFile $file
+     * @return array|null
+     */
+    protected function parseEmailMetadataWithPython($file)
+    {
+        return $this->callPythonEmailParseEndpoint($file, $this->pythonEmailPreviewTimeout());
+    }
+
+    /**
+     * Parse email file using Python microservice (upload + smart import).
+     *
      * @param \Illuminate\Http\UploadedFile $file
      * @return array|null
      */
     protected function parseEmailWithPython($file)
     {
+        return $this->callPythonEmailParseEndpoint($file, $this->pythonEmailUploadTimeout());
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function callPythonEmailParseEndpoint($file, int $timeout)
+    {
         try {
-            // Sanitize filename for Python service to prevent issues with special characters
             $originalFileName = $file->getClientOriginalName();
             $sanitizedFileName = $this->sanitizeFilename($originalFileName);
-            
-            // Call Python microservice (use sanitized filename in attachment)
-            $response = Http::timeout(30)
+
+            $response = Http::timeout($timeout)
                 ->attach('file', file_get_contents($file->getPathname()), $sanitizedFileName)
                 ->post($this->pythonServiceUrl . '/email/parse');
 
             if ($response->successful()) {
-                // Safely parse JSON response - handle cases where service returns HTML error pages
                 try {
                     $result = $response->json();
                 } catch (\Exception $jsonException) {
@@ -976,44 +1002,45 @@ class EmailUploadController extends Controller
                         'status' => $response->status(),
                         'content_type' => $response->header('Content-Type'),
                         'body_preview' => substr($response->body(), 0, 500),
-                        'error' => $jsonException->getMessage()
+                        'error' => $jsonException->getMessage(),
+                        'timeout_seconds' => $timeout,
                     ]);
                     return [
                         'success' => false,
-                        'error' => 'Invalid response from email processing service. The service may be experiencing issues.'
+                        'error' => 'Invalid response from email processing service. The service may be experiencing issues.',
                     ];
                 }
-                
-                // Python service returns data directly on success, or {'success': False, 'error': ...} on error
-                // Check if response contains error (even with 200 status)
-                if (isset($result['error']) || (isset($result['success']) && !$result['success'])) {
+
+                if (isset($result['error']) || (isset($result['success']) && ! $result['success'])) {
                     return [
                         'success' => false,
-                        'error' => $result['error'] ?? 'Email parsing failed'
+                        'error' => $result['error'] ?? 'Email parsing failed',
                     ];
                 }
-                return $result;
-            } else {
-                Log::error('Python service error', [
-                    'status' => $response->status(),
-                    'body' => $response->body()
-                ]);
 
-                return [
-                    'success' => false,
-                    'error' => 'Python service returned status: ' . $response->status()
-                ];
+                return $result;
             }
 
-        } catch (\Exception $e) {
-            Log::error('Python service connection error', [
-                'error' => $e->getMessage(),
-                'url' => $this->pythonServiceUrl
+            Log::error('Python service error', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'timeout_seconds' => $timeout,
             ]);
 
             return [
                 'success' => false,
-                'error' => 'Failed to connect to Python service: ' . $e->getMessage()
+                'error' => 'Python service returned status: ' . $response->status(),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Python service connection error', [
+                'error' => $e->getMessage(),
+                'url' => $this->pythonServiceUrl,
+                'timeout_seconds' => $timeout,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to connect to Python service: ' . $e->getMessage(),
             ];
         }
     }

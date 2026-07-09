@@ -54,7 +54,8 @@ return [
 
     'python' => [
         'url' => env('PYTHON_SERVICE_URL', 'http://localhost:5001'),
-        'timeout' => env('PYTHON_SERVICE_TIMEOUT', 120),
+        'preview_timeout' => env('PYTHON_SERVICE_PREVIEW_TIMEOUT', 30),
+        'timeout' => env('PYTHON_SERVICE_TIMEOUT', 180),
         'max_retries' => env('PYTHON_SERVICE_MAX_RETRIES', 3),
         'health_check_interval' => env('PYTHON_SERVICE_HEALTH_CHECK_INTERVAL', 60),
     ],
