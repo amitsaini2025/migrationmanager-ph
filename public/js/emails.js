@@ -703,10 +703,79 @@
         console.log('Upload module initialized with drag & drop');
     };
 
+    const DUPLICATE_EXISTS_MESSAGE = 'This email already exists.';
+
+    function showDuplicateEmailPrompt(fileName) {
+        return new Promise(function(resolve) {
+            const modal = document.getElementById('duplicateEmailModal');
+            if (!modal) {
+                resolve(window.confirm(DUPLICATE_EXISTS_MESSAGE + ' Upload anyway?'));
+                return;
+            }
+
+            const fileNameEl = document.getElementById('duplicateEmailFileName');
+            const acceptBtn = document.getElementById('duplicateEmailAccept');
+            const rejectBtn = document.getElementById('duplicateEmailReject');
+
+            if (fileNameEl) {
+                fileNameEl.textContent = fileName ? ('File: ' + fileName) : '';
+            }
+
+            function cleanup() {
+                modal.classList.remove('active');
+                modal.setAttribute('aria-hidden', 'true');
+                if (acceptBtn) acceptBtn.removeEventListener('click', onAccept);
+                if (rejectBtn) rejectBtn.removeEventListener('click', onReject);
+                modal.removeEventListener('click', onOverlayClick);
+                document.removeEventListener('keydown', onKeyDown);
+            }
+
+            function onAccept() {
+                cleanup();
+                resolve(true);
+            }
+
+            function onReject() {
+                cleanup();
+                resolve(false);
+            }
+
+            function onOverlayClick(event) {
+                if (event.target === modal) {
+                    onReject();
+                }
+            }
+
+            function onKeyDown(event) {
+                if (event.key === 'Escape') {
+                    onReject();
+                }
+            }
+
+            if (acceptBtn) acceptBtn.addEventListener('click', onAccept);
+            if (rejectBtn) rejectBtn.addEventListener('click', onReject);
+            modal.addEventListener('click', onOverlayClick);
+            document.addEventListener('keydown', onKeyDown);
+
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+            if (acceptBtn) acceptBtn.focus();
+        });
+    }
+
+    function getDuplicateUploadError(data) {
+        if (!data || !Array.isArray(data.errors)) {
+            return null;
+        }
+        return data.errors.find(function(err) {
+            return err && err.duplicate;
+        }) || null;
+    }
+
     /**
      * POST a single email file to the upload endpoint.
      */
-    async function uploadSingleEmailFile(file, attachmentStorage) {
+    async function uploadSingleEmailFile(file, forceUpload, attachmentStorage) {
         const clientId = getClientId();
         const matterId = getMatterId();
         const csrfToken = getCsrfToken();
@@ -732,7 +801,11 @@
         );
         formData.append('_token', csrfToken);
 
-        if (attachmentStorage && attachmentStorage.length) {
+        if (forceUpload) {
+            formData.append('force_upload', '1');
+        }
+
+        if (attachmentStorage !== null && attachmentStorage !== undefined) {
             formData.append('attachment_storage', JSON.stringify(attachmentStorage));
         }
 
@@ -756,16 +829,17 @@
             throw new Error('Server returned invalid response: ' + errorText.substring(0, 200));
         }
 
-        if (!response.ok) {
+        if (response.status === 422) {
+            const errorMsg = data.message || (data.errors ? Object.values(data.errors).flat().join(', ') : 'Validation failed');
+            throw new Error('Upload validation failed: ' + errorMsg);
+        }
+
+        if (!response.ok && response.status !== 400) {
             if (response.status === 403) {
                 throw new Error(messageFor403Response(JSON.stringify(data)));
             }
             if (response.status === 419) {
                 throw new Error('Security token expired. Please refresh the page and try again.');
-            }
-            if (response.status === 422) {
-                const errorMsg = data.message || (data.errors ? Object.values(data.errors).flat().join(', ') : 'Validation failed');
-                throw new Error('Upload validation failed: ' + errorMsg);
             }
             throw new Error(data.message || ('Upload failed: ' + response.status));
         }
@@ -773,9 +847,79 @@
         return data;
     }
 
+    async function processSingleEmailUpload(file, fileIndex, totalFiles, attachmentStorage, flow) {
+        const baseProgress = totalFiles > 0 ? Math.round((fileIndex / totalFiles) * 100) : 0;
+        attachmentStorage = attachmentStorage || [];
+
+        if (typeof flow.updateEmailUploadLoading === 'function') {
+            flow.updateEmailUploadLoading(
+                'Uploading email',
+                'Uploading and processing email…',
+                file.name,
+                baseProgress + (totalFiles > 0 ? Math.round(50 / totalFiles) : 0)
+            );
+        }
+
+        let result = await uploadSingleEmailFile(file, false, attachmentStorage);
+        let duplicateError = getDuplicateUploadError(result);
+
+        if (duplicateError) {
+            if (typeof flow.hideEmailUploadLoading === 'function') {
+                flow.hideEmailUploadLoading();
+            }
+            const acceptUpload = await showDuplicateEmailPrompt(file.name);
+            if (acceptUpload) {
+                if (typeof flow.showEmailUploadLoading === 'function') {
+                    flow.showEmailUploadLoading(
+                        'Uploading email',
+                        'Uploading duplicate email…',
+                        file.name,
+                        baseProgress
+                    );
+                }
+                result = await uploadSingleEmailFile(file, true, attachmentStorage);
+                duplicateError = getDuplicateUploadError(result);
+            } else {
+                return {
+                    rejected: 1,
+                    uploaded: 0,
+                    failed: 0,
+                    duplicateError: duplicateError,
+                    errors: [{
+                        filename: file.name,
+                        error: DUPLICATE_EXISTS_MESSAGE,
+                        duplicate: true
+                    }]
+                };
+            }
+        }
+
+        const uploadedCount = result.uploaded || 0;
+        const failedCount = result.failed || 0;
+        const errors = Array.isArray(result.errors) ? result.errors.slice() : [];
+        let extraFailed = 0;
+
+        if (!result.status && uploadedCount === 0 && failedCount === 0 && !duplicateError) {
+            extraFailed = 1;
+            errors.push({
+                filename: file.name,
+                error: result.message || 'Upload failed'
+            });
+        }
+
+        return {
+            rejected: 0,
+            uploaded: uploadedCount,
+            failed: failedCount + extraFailed,
+            duplicateError: duplicateError,
+            errors: errors
+        };
+    }
+
     function registerEmailUploadFlowDeps() {
         window.__crmEmailUploadFlowDeps = {
             getClientId: getClientId,
+            getMatterId: getMatterId,
             getCsrfToken: getCsrfToken,
             escapeHtml: escapeHtml,
             formatFileSize: formatFileSize
@@ -818,8 +962,9 @@
 
         let uploadedTotal = 0;
         let failedTotal = 0;
+        let rejectedTotal = 0;
         let overlayHideDelay = 900;
-        let attachmentStorageByEmail = {};
+        let attachmentStorageByEmail = null;
 
         if (typeof flow.showEmailUploadLoading === 'function') {
             flow.showEmailUploadLoading(
@@ -892,24 +1037,19 @@
                 }
 
                 try {
-                    const result = await uploadSingleEmailFile(
+                    const fileResult = await processSingleEmailUpload(
                         file,
-                        attachmentStorageByEmail[file.name] || []
+                        i,
+                        files.length,
+                        attachmentStorageByEmail !== null
+                            ? (attachmentStorageByEmail[file.name] || [])
+                            : null,
+                        flow
                     );
-                    const uploadedCount = result.uploaded || 0;
-                    const failedCount = result.failed || 0;
 
-                    if ((result.status || result.success) && uploadedCount > 0) {
-                        uploadedTotal += uploadedCount;
-                    } else if (failedCount > 0) {
-                        failedTotal += failedCount;
-                    } else if (!result.status && uploadedCount === 0) {
-                        failedTotal += 1;
-                    } else if (uploadedCount > 0) {
-                        uploadedTotal += uploadedCount;
-                    } else {
-                        failedTotal += 1;
-                    }
+                    uploadedTotal += fileResult.uploaded || 0;
+                    failedTotal += fileResult.failed || 0;
+                    rejectedTotal += fileResult.rejected || 0;
                 } catch (fileError) {
                     failedTotal += 1;
                     console.error('Upload error for ' + file.name + ':', fileError);
@@ -925,7 +1065,7 @@
                 }
             }
 
-            if (uploadedTotal > 0 && failedTotal === 0) {
+            if (uploadedTotal > 0 && failedTotal === 0 && rejectedTotal === 0) {
                 if (uploadProgress) uploadProgress.className = 'upload-progress success';
                 if (fileStatus) fileStatus.textContent = 'Upload successful!';
                 showNotification(
@@ -946,10 +1086,14 @@
                 if (uploadProgress) uploadProgress.className = 'upload-progress error';
                 if (fileStatus) fileStatus.textContent = 'Upload completed with errors';
                 showNotification(
-                    uploadedTotal + ' uploaded, ' + failedTotal + ' failed',
+                    uploadedTotal + ' uploaded, ' + (failedTotal + rejectedTotal) + ' skipped/failed',
                     'error'
                 );
                 loadEmails();
+            } else if (rejectedTotal > 0 && failedTotal === 0) {
+                if (uploadProgress) uploadProgress.className = 'upload-progress error';
+                if (fileStatus) fileStatus.textContent = 'Upload skipped';
+                overlayHideDelay = 0;
             } else {
                 if (uploadProgress) uploadProgress.className = 'upload-progress error';
                 if (fileStatus) fileStatus.textContent = 'Upload failed';
@@ -2728,7 +2872,22 @@
             return;
         }
 
-        if (!confirm('Are you sure you want to delete this email? This action cannot be undone.')) {
+        const attachmentCount = email.attachments && Array.isArray(email.attachments)
+            ? getRegularAttachments(email.attachments).length
+            : 0;
+
+        let confirmed = false;
+        if (typeof window.showEmailDeleteConfirm === 'function') {
+            confirmed = await window.showEmailDeleteConfirm({
+                subject: email.subject || '(No subject)',
+                fromMail: email.sender || email.from_mail || 'Unknown sender',
+                attachmentCount: attachmentCount
+            });
+        } else {
+            confirmed = window.confirm('Are you sure you want to delete this email? This action cannot be undone.');
+        }
+
+        if (!confirmed) {
             return;
         }
 

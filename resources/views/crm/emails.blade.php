@@ -51,7 +51,7 @@
                         @icon('inbox') Inbox
                     </button>
                     <button type="button" class="folder-tab-btn folder-item" data-folder="sent" id="folder-tab-sent" aria-selected="false">
-                        @icon('paper-plane') Sent Items
+                        @icon('fa-paper-plane') Sent
                     </button>
                 </div>
                 @if($canSendEmailBodiesToS3)
@@ -185,6 +185,7 @@
                         <th scope="col">File</th>
                         <th scope="col">Size</th>
                         <th scope="col">Save as</th>
+                        <th scope="col" class="attachment-storage-actions-col">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="attachmentStorageModalBody"></tbody>
@@ -210,6 +211,25 @@
         </div>
     </div>
 </div>
+
+<!-- Duplicate email upload modal -->
+<div class="duplicate-email-modal-overlay" id="duplicateEmailModal" aria-hidden="true">
+    <div class="duplicate-email-modal" role="dialog" aria-labelledby="duplicateEmailModalTitle" aria-modal="true">
+        <div class="duplicate-email-modal__icon" aria-hidden="true">
+            @icon('envelope')
+        </div>
+        <h3 class="duplicate-email-modal__title" id="duplicateEmailModalTitle">Duplicate Email</h3>
+        <p class="duplicate-email-modal__message">This email already exists.</p>
+        <p class="duplicate-email-modal__filename" id="duplicateEmailFileName"></p>
+        <p class="duplicate-email-modal__question">Do you want to upload it anyway?</p>
+        <div class="duplicate-email-modal__actions">
+            <button type="button" class="duplicate-email-modal__btn duplicate-email-modal__btn--reject" id="duplicateEmailReject">Reject</button>
+            <button type="button" class="duplicate-email-modal__btn duplicate-email-modal__btn--accept" id="duplicateEmailAccept">Accept</button>
+        </div>
+    </div>
+</div>
+
+@include('crm.partials.email_delete_confirm_modal')
 
 <!-- Email Context Menu -->
 <div id="emailContextMenu" class="email-context-menu" style="display: none;">
@@ -250,9 +270,11 @@
 <div id="contextMenuOverlay" class="context-menu-overlay" style="display: none;"></div>
 
 <link rel="stylesheet" href="{{ asset('css/emails.css') }}">
+<link rel="stylesheet" href="{{ asset('css/email-delete-confirm.css') }}">
 <script>window.__CRM_EMAIL_ALLOWED_EXTENSIONS__ = @json($emailUploadExtensions);</script>
 <script src="{{ asset('js/email-upload-helpers.js') }}"></script>
 <script src="{{ asset('js/email-upload-flow.js') }}"></script>
+<script src="{{ asset('js/email-delete-confirm.js') }}"></script>
 <script src="{{ asset('js/emails.js') }}"></script>
 
 <script>

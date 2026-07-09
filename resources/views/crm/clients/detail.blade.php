@@ -1156,6 +1156,19 @@ $(document).ready(function() {
 
 {{-- Pass Blade variables to JavaScript --}}
 <script>
+    // Fallback until Vite lucide-init.js loads (module scripts run after inline handlers register).
+    if (typeof window.crmI !== 'function') {
+        window.crmI = function(legacyClass, options) {
+            if (typeof window.crmIconAny === 'function') {
+                return window.crmIconAny(legacyClass, options || {});
+            }
+            if (typeof window.crmIconLegacy === 'function') {
+                return window.crmIconLegacy(legacyClass, options || {});
+            }
+            return '<i class="' + (legacyClass || '') + '"></i>';
+        };
+    }
+
     // Configuration object with all Blade variables needed for JavaScript
     window.ClientDetailConfig = {
         clientId: @json(($fetchedData->id ?? '')),

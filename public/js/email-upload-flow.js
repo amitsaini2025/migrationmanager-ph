@@ -10,7 +10,17 @@
     }
 
     let documentCategoriesCache = null;
-    let documentCategoriesCacheClientId = null;
+    let documentCategoriesCacheKey = null;
+
+    function getDocumentCategoriesCacheKey() {
+        const deps = getDeps();
+        const clientId = deps.getClientId && deps.getClientId();
+        const matterId = deps.getMatterId && deps.getMatterId();
+        if (!clientId) {
+            return null;
+        }
+        return String(clientId) + ':' + String(matterId || '');
+    }
 
     async function previewEmailAttachments(file) {
         const deps = getDeps();
@@ -47,26 +57,29 @@
     async function loadDocumentCategoriesForAttachmentModal() {
         const deps = getDeps();
         const clientId = deps.getClientId && deps.getClientId();
+        const matterId = deps.getMatterId && deps.getMatterId();
         if (!clientId) {
             return [];
         }
-        if (documentCategoriesCache && documentCategoriesCacheClientId === clientId) {
+        const cacheKey = getDocumentCategoriesCacheKey();
+        if (documentCategoriesCache && documentCategoriesCacheKey === cacheKey) {
             return documentCategoriesCache;
         }
         try {
-            const response = await fetch(
-                '/email/attachment-document-categories?client_id=' + encodeURIComponent(clientId),
-                {
-                    credentials: 'same-origin',
-                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-                }
-            );
+            let url = '/email/attachment-document-categories?client_id=' + encodeURIComponent(clientId);
+            if (matterId) {
+                url += '&client_matter_id=' + encodeURIComponent(matterId);
+            }
+            const response = await fetch(url, {
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            });
             const data = await response.json();
             documentCategoriesCache = (response.ok && data && data.status && data.categories) ? data.categories : [];
-            documentCategoriesCacheClientId = clientId;
+            documentCategoriesCacheKey = cacheKey;
         } catch (e) {
             documentCategoriesCache = [];
-            documentCategoriesCacheClientId = clientId;
+            documentCategoriesCacheKey = cacheKey;
         }
         return documentCategoriesCache;
     }
@@ -113,7 +126,8 @@
                 filename: item.filename,
                 file_name: item.file_name,
                 storage_type: item.storage_type,
-                category_id: item.category_id
+                category_id: item.category_id,
+                doc_type: item.doc_type
             });
         });
         return map;
@@ -133,16 +147,56 @@
         return groups;
     }
 
+    function parseCategoryOptionValue(value) {
+        if (!value) {
+            return { categoryId: 0, docType: null };
+        }
+        const parts = String(value).split(':');
+        if (parts.length === 2 && (parts[0] === 'personal' || parts[0] === 'visa')) {
+            return {
+                docType: parts[0],
+                categoryId: parseInt(parts[1], 10) || 0
+            };
+        }
+        const legacyId = parseInt(value, 10) || 0;
+        return { docType: legacyId > 0 ? 'personal' : null, categoryId: legacyId };
+    }
+
     function buildDocumentCategoryOptionsHtml(categories) {
         const deps = getDeps();
         const escapeHtml = deps.escapeHtml || function(t) { return t; };
-        let html = '<option value="">Select category…</option>';
+        const personal = [];
+        const visa = [];
         (categories || []).forEach(function(cat) {
-            html += '<option value="' + escapeHtml(String(cat.id)) + '">' +
-                escapeHtml(cat.name || cat.category_name || ('Category ' + cat.id)) +
-                '</option>';
+            const docType = cat.doc_type === 'visa' ? 'visa' : 'personal';
+            if (docType === 'visa') {
+                visa.push(cat);
+            } else {
+                personal.push(cat);
+            }
         });
+
+        let html = '<option value="">Select category…</option>';
+        function appendGroup(label, items, docType) {
+            if (!items.length) {
+                return;
+            }
+            html += '<optgroup label="' + escapeHtml(label) + '">';
+            items.forEach(function(cat) {
+                const optionValue = docType + ':' + String(cat.id);
+                html += '<option value="' + escapeHtml(optionValue) + '">' +
+                    escapeHtml(cat.name || cat.category_name || ('Category ' + cat.id)) +
+                    '</option>';
+            });
+            html += '</optgroup>';
+        }
+        appendGroup('Personal Documents', personal, 'personal');
+        appendGroup('Visa Documents', visa, 'visa');
         return html;
+    }
+
+    function categorySelectionIsValid(selection) {
+        return !!(selection && selection.categoryId > 0 && selection.docType);
     }
 
     function showAttachmentStorageModal(attachments, options) {
@@ -179,6 +233,43 @@
                 }
             }
 
+            function updateAttachmentCount() {
+                if (!countEl || !body) {
+                    return;
+                }
+                const count = body.querySelectorAll('tr[data-original-filename]').length;
+                if ((options.emailCount || 0) > 1) {
+                    countEl.textContent = count + (count === 1 ? ' file' : ' files') +
+                        ' across ' + options.emailCount + ' emails';
+                } else {
+                    countEl.textContent = count + (count === 1 ? ' file' : ' files');
+                }
+            }
+
+            function getDeleteButtonHtml() {
+                const icon = typeof global.crmIconAny === 'function'
+                    ? global.crmIconAny('trash-2', { class: 'attachment-storage-delete-icon' })
+                    : (typeof global.crmI === 'function'
+                        ? global.crmI('trash-2', { class: 'attachment-storage-delete-icon' })
+                        : '<span class="attachment-storage-delete-icon" aria-hidden="true">×</span>');
+                return '<button type="button" class="attachment-storage-delete-btn" aria-label="Remove attachment from upload">' +
+                    icon +
+                    '</button>';
+            }
+
+            function bindDeleteButtons() {
+                body.querySelectorAll('.attachment-storage-delete-btn').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        const row = btn.closest('tr[data-original-filename]');
+                        if (!row) {
+                            return;
+                        }
+                        row.remove();
+                        updateAttachmentCount();
+                    });
+                });
+            }
+
             function renderAttachmentRow(att, showEmailLabel) {
                 const stem = (att.display_name || att.filename || 'attachment').replace(/\.[^.]+$/, '');
                 const emailKey = att._email_key || '';
@@ -194,6 +285,7 @@
                     '<td>' + emailLabel + escapeHtml(att.filename) + '</td>' +
                     '<td>' + formatFileSize(att.file_size || 0) + '</td>' +
                     '<td><input type="text" class="attachment-rename-input" value="' + escapeHtml(stem) + '" aria-label="Save as"></td>' +
+                    '<td class="attachment-storage-actions-col">' + getDeleteButtonHtml() + '</td>' +
                     '</tr>';
             }
 
@@ -246,7 +338,7 @@
                 const rowsHtml = [];
                 emailGroups.forEach(function(group, groupIndex) {
                     if (groupIndex > 0) {
-                        rowsHtml.push('<tr class="attachment-storage-group-spacer"><td colspan="3"></td></tr>');
+                        rowsHtml.push('<tr class="attachment-storage-group-spacer"><td colspan="4"></td></tr>');
                     }
                     (attachments || []).forEach(function(att) {
                         if (att.email_filename !== group.name) return;
@@ -254,6 +346,7 @@
                     });
                 });
                 body.innerHTML = rowsHtml.join('');
+                bindDeleteButtons();
             } else {
                 if (globalDestination) globalDestination.hidden = false;
                 if (perEmailDestination) {
@@ -264,6 +357,7 @@
                 body.innerHTML = (attachments || []).map(function(att) {
                     return renderAttachmentRow(att, !!att.email_filename);
                 }).join('');
+                bindDeleteButtons();
             }
 
             loadDocumentCategoriesForAttachmentModal().then(function(categories) {
@@ -305,11 +399,12 @@
                     const checkbox = perEmailDestination.querySelector('.attachment-email-save-docs[data-email-key="' + group.key + '"]');
                     const select = perEmailDestination.querySelector('.attachment-email-category[data-email-key="' + group.key + '"]');
                     const saveToDocs = checkbox && checkbox.checked;
-                    const categoryId = select ? parseInt(select.value, 10) : 0;
+                    const selection = select ? parseCategoryOptionValue(select.value) : { categoryId: 0, docType: null };
                     prefs[group.key] = {
                         saveToDocs: saveToDocs,
-                        categoryId: categoryId,
-                        storageType: (saveToDocs && categoryId > 0) ? 'documents' : 'email'
+                        categoryId: selection.categoryId,
+                        docType: selection.docType,
+                        storageType: (saveToDocs && categorySelectionIsValid(selection)) ? 'documents' : 'email'
                     };
                 });
                 return prefs;
@@ -323,10 +418,13 @@
             function onConfirm() {
                 let globalStorageType = 'email';
                 let globalCategoryId = 0;
+                let globalDocType = null;
                 if (!usePerEmailCategories) {
                     const saveToDocs = saveToDocsCheckbox && saveToDocsCheckbox.checked;
-                    globalCategoryId = categorySelect ? parseInt(categorySelect.value, 10) : 0;
-                    globalStorageType = (saveToDocs && globalCategoryId > 0) ? 'documents' : 'email';
+                    const globalSelection = categorySelect ? parseCategoryOptionValue(categorySelect.value) : { categoryId: 0, docType: null };
+                    globalCategoryId = globalSelection.categoryId;
+                    globalDocType = globalSelection.docType;
+                    globalStorageType = (saveToDocs && categorySelectionIsValid(globalSelection)) ? 'documents' : 'email';
                 }
                 const perEmailPrefs = usePerEmailCategories ? getPerEmailStoragePrefs() : {};
                 const rows = body.querySelectorAll('tr[data-original-filename]');
@@ -339,9 +437,11 @@
                     const fileName = input ? input.value.trim() : '';
                     let storageType = globalStorageType;
                     let categoryId = globalStorageType === 'documents' ? globalCategoryId : null;
+                    let docType = globalStorageType === 'documents' ? globalDocType : null;
                     if (usePerEmailCategories && emailKey && perEmailPrefs[emailKey]) {
                         storageType = perEmailPrefs[emailKey].storageType;
                         categoryId = storageType === 'documents' ? perEmailPrefs[emailKey].categoryId : null;
+                        docType = storageType === 'documents' ? perEmailPrefs[emailKey].docType : null;
                     }
                     const entry = {
                         original_filename: originalFilename,
@@ -350,6 +450,9 @@
                         storage_type: storageType,
                         category_id: categoryId
                     };
+                    if (docType) {
+                        entry.doc_type = docType;
+                    }
                     if (emailFilename) {
                         entry.email_filename = emailFilename;
                     }

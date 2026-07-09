@@ -17,6 +17,7 @@ use App\Models\ActivitiesLog;
 use App\Models\ClientMatter;
 use App\Models\Admin;
 use App\Models\PersonalDocumentType;
+use App\Models\VisaDocumentType;
 use App\Traits\LogsClientActivity;
 
 /**
@@ -164,12 +165,13 @@ class EmailUploadController extends Controller
     }
 
     /**
-     * Personal document categories for the attachment storage modal.
+     * Personal + visa document categories for the attachment storage modal.
      */
     public function getAttachmentDocumentCategories(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'client_id' => 'required|integer|min:1',
+            'client_matter_id' => 'nullable|integer|min:1',
         ]);
 
         if ($validator->fails()) {
@@ -181,9 +183,10 @@ class EmailUploadController extends Controller
         }
 
         $clientId = (int) $request->client_id;
+        $matterId = $request->filled('client_matter_id') ? (int) $request->client_matter_id : null;
         $this->ensureCrmRecordAccess($clientId);
 
-        $categories = PersonalDocumentType::query()
+        $personal = PersonalDocumentType::query()
             ->select('id', 'title')
             ->where('status', 1)
             ->where(function ($query) use ($clientId) {
@@ -196,12 +199,44 @@ class EmailUploadController extends Controller
                 'id' => $cat->id,
                 'name' => $cat->title,
                 'category_name' => $cat->title,
+                'doc_type' => 'personal',
             ])
             ->values();
+
+        $visa = collect();
+        if ($matterId) {
+            $visa = VisaDocumentType::query()
+                ->select('id', 'title')
+                ->where('status', 1)
+                ->where(function ($query) use ($clientId, $matterId) {
+                    $query->where(function ($q) {
+                        $q->whereNull('client_id')->whereNull('client_matter_id');
+                    })
+                        ->orWhere(function ($q) use ($clientId) {
+                            $q->where('client_id', $clientId)->whereNull('client_matter_id');
+                        })
+                        ->orWhere(function ($q) use ($clientId, $matterId) {
+                            $q->where('client_id', $clientId)->where('client_matter_id', $matterId);
+                        });
+                })
+                ->orderBy('id')
+                ->get()
+                ->map(static fn ($cat) => [
+                    'id' => $cat->id,
+                    'name' => $cat->title,
+                    'category_name' => $cat->title,
+                    'doc_type' => 'visa',
+                ])
+                ->values();
+        }
+
+        $categories = $personal->concat($visa)->values();
 
         return response()->json([
             'status' => true,
             'categories' => $categories,
+            'personal' => $personal,
+            'visa' => $visa,
         ]);
     }
 
@@ -263,6 +298,15 @@ class EmailUploadController extends Controller
             return null;
         }
 
+        $docType = (string) ($storageConfig['doc_type'] ?? 'personal');
+        if (! in_array($docType, ['personal', 'visa'], true)) {
+            $docType = 'personal';
+        }
+
+        if ($docType === 'visa' && ! $this->visaDocumentCategoryAccessible($categoryId, $clientId, $matterId)) {
+            throw new \Exception('Selected visa document category is not available for this client and matter.');
+        }
+
         $originalFilename = $attachmentData['filename'] ?? 'attachment';
         $extension = pathinfo($originalFilename, PATHINFO_EXTENSION);
         $customStem = $this->sanitizeAttachmentDisplayName(
@@ -272,7 +316,8 @@ class EmailUploadController extends Controller
 
         $sanitizedClientId = preg_replace('/[^a-zA-Z0-9\-_\.]/', '_', $clientUniqueId);
         $uniqueFileName = time() . '_' . uniqid() . '_' . $this->sanitizeFilename($displayName);
-        $filePath = $sanitizedClientId . '/documents/' . $uniqueFileName;
+        $s3Folder = $docType === 'visa' ? 'visa' : 'documents';
+        $filePath = $sanitizedClientId . '/' . $s3Folder . '/' . $uniqueFileName;
 
         $uploadSuccess = Storage::disk('s3')->put($filePath, $decodedData);
         if (! $uploadSuccess) {
@@ -291,10 +336,12 @@ class EmailUploadController extends Controller
         $document->client_id = $clientId;
         $document->type = $recordType;
         $document->file_size = $fileSize;
-        $document->doc_type = 'personal';
+        $document->doc_type = $docType;
         $document->folder_name = (string) $categoryId;
         $document->checklist = $customStem;
-        if ($matterId) {
+        if ($docType === 'visa') {
+            $document->client_matter_id = $matterId;
+        } elseif ($matterId) {
             $document->client_matter_id = $matterId;
         }
         $document->save();
@@ -305,6 +352,29 @@ class EmailUploadController extends Controller
             'file_size' => $fileSize,
             'display_name' => $displayName,
         ];
+    }
+
+    protected function visaDocumentCategoryAccessible(int $categoryId, int $clientId, ?int $matterId): bool
+    {
+        if ($matterId === null || $matterId <= 0) {
+            return false;
+        }
+
+        return VisaDocumentType::query()
+            ->where('id', $categoryId)
+            ->where('status', 1)
+            ->where(function ($query) use ($clientId, $matterId) {
+                $query->where(function ($q) {
+                    $q->whereNull('client_id')->whereNull('client_matter_id');
+                })
+                    ->orWhere(function ($q) use ($clientId) {
+                        $q->where('client_id', $clientId)->whereNull('client_matter_id');
+                    })
+                    ->orWhere(function ($q) use ($clientId, $matterId) {
+                        $q->where('client_id', $clientId)->where('client_matter_id', $matterId);
+                    });
+            })
+            ->exists();
     }
 
     /**
@@ -365,10 +435,10 @@ class EmailUploadController extends Controller
                         $uploadedCount++;
                     } else {
                         $failedCount++;
-                        $errors[] = [
-                            'filename' => $file->getClientOriginalName(),
-                            'error' => $result['error']
-                        ];
+                        $errors[] = $this->formatUploadFailureResult(
+                            $result,
+                            $file->getClientOriginalName()
+                        );
                     }
                 } catch (\Exception $e) {
                     $failedCount++;
@@ -504,10 +574,10 @@ class EmailUploadController extends Controller
                         $uploadedCount++;
                     } else {
                         $failedCount++;
-                        $errors[] = [
-                            'filename' => $file->getClientOriginalName(),
-                            'error' => $result['error'] ?? 'Unknown error occurred while processing email'
-                        ];
+                        $errors[] = $this->formatUploadFailureResult(
+                            $result,
+                            $file->getClientOriginalName()
+                        );
                     }
                 } catch (\Exception $e) {
                     $failedCount++;
@@ -574,6 +644,111 @@ class EmailUploadController extends Controller
         }
     }
 
+    protected function findExistingEmail(
+        int $clientId,
+        string $mailType,
+        string $recordType,
+        array $parsedData,
+        string $fileHash,
+        ?int $matterId = null
+    ): ?EmailLog {
+        $query = EmailLog::query()
+            ->where('client_id', $clientId)
+            ->where('mail_body_type', $mailType)
+            ->where('type', $recordType)
+            ->where('conversion_type', 'conversion_email_fetch');
+
+        if ($matterId) {
+            $query->where('client_matter_id', $matterId);
+        }
+
+        $byHash = (clone $query)->where('file_hash', $fileHash)->first();
+        if ($byHash) {
+            return $byHash;
+        }
+
+        $messageId = trim((string) ($parsedData['message_id'] ?? ''));
+        if ($messageId !== '') {
+            $byMessageId = (clone $query)->where('message_id', $messageId)->first();
+            if ($byMessageId) {
+                return $byMessageId;
+            }
+        }
+
+        $subject = trim((string) ($parsedData['subject'] ?? ''));
+        $sender = trim((string) ($parsedData['sender_email'] ?? ''));
+        if ($subject !== '' && $sender !== '') {
+            $dupQuery = (clone $query)
+                ->where('subject', $subject)
+                ->where('from_mail', $sender);
+
+            $sentStorage = $this->sentTimeStorageStringFromParsed($parsedData['sent_date'] ?? null);
+            if ($sentStorage) {
+                $dupQuery->where('fetch_mail_sent_time', $sentStorage);
+            }
+
+            $existing = $dupQuery->first();
+            if ($existing) {
+                return $existing;
+            }
+        }
+
+        return null;
+    }
+
+    protected function buildDuplicateErrorMessage(EmailLog $existing): string
+    {
+        $subject = $existing->subject ?: '(No subject)';
+        $from = $existing->from_mail ?: 'Unknown sender';
+        $sent = $existing->fetch_mail_sent_time ?: null;
+
+        $message = 'This email already exists.';
+        $message .= ' Subject: "' . $subject . '" from ' . $from;
+        if ($sent) {
+            $message .= ' (sent ' . $sent . ')';
+        }
+
+        return $message;
+    }
+
+    protected function sentTimeStorageStringFromParsed(?string $dateString): ?string
+    {
+        if (empty($dateString)) {
+            return null;
+        }
+
+        try {
+            if (preg_match('/[+-]\d{2}:\d{2}$|Z$/', $dateString)) {
+                $sentDate = new \DateTime($dateString);
+            } else {
+                $sentDate = new \DateTime($dateString, new \DateTimeZone('UTC'));
+            }
+            $sentDate->setTimezone(new \DateTimeZone('Australia/Melbourne'));
+
+            return $sentDate->format('d/m/Y h:i a');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * @return array{filename: string, error: string, duplicate?: bool, existing?: array<string, mixed>|null}
+     */
+    protected function formatUploadFailureResult(array $result, string $filename): array
+    {
+        $entry = [
+            'filename' => $filename,
+            'error' => $result['error'] ?? 'Unknown error occurred while processing email',
+        ];
+
+        if (! empty($result['duplicate'])) {
+            $entry['duplicate'] = true;
+            $entry['existing'] = $result['existing'] ?? null;
+        }
+
+        return $entry;
+    }
+
     /**
      * Process individual email file using Python microservice
      * 
@@ -589,38 +764,76 @@ class EmailUploadController extends Controller
         try {
             $fileName = $file->getClientOriginalName();
             $fileSize = $file->getSize();
-            
-            // Sanitize filename for S3 path to prevent 403 errors with special characters
+
+            if ($fileSize <= 0) {
+                throw new \Exception('Uploaded file is empty. Save the email from Outlook again and retry.');
+            }
+
             $sanitizedFileName = $this->sanitizeFilename($fileName);
             $uniqueFileName = time() . '-' . $sanitizedFileName;
             $docType = 'conversion_email_fetch';
-            
-            // 1. Upload file to S3 (use sanitized filename in path)
-            // Ensure all path components are sanitized to prevent 403 errors
+            $matterId = $mailType === 'sent'
+                ? (int) ($request->upload_sent_mail_client_matter_id ?? 0)
+                : (int) ($request->upload_inbox_mail_client_matter_id ?? 0);
+            $matterId = $matterId > 0 ? $matterId : null;
+
+            // 1. Parse email first (before S3 — enables duplicate check without storage upload)
+            $parsedData = $this->parseEmailWithPython($file);
+
+            if (! $parsedData || isset($parsedData['error']) || (isset($parsedData['success']) && ! $parsedData['success'])) {
+                throw new \Exception($parsedData['error'] ?? 'Failed to parse email');
+            }
+
+            $fileHash = md5_file($file->getRealPath());
+
+            if (! $request->boolean('force_upload')) {
+                $existing = $this->findExistingEmail(
+                    (int) $clientId,
+                    $mailType,
+                    (string) $request->type,
+                    $parsedData,
+                    $fileHash,
+                    $matterId
+                );
+
+                if ($existing) {
+                    return [
+                        'success' => false,
+                        'duplicate' => true,
+                        'error' => $this->buildDuplicateErrorMessage($existing),
+                        'existing' => [
+                            'id' => $existing->id,
+                            'subject' => $existing->subject,
+                            'from_mail' => $existing->from_mail,
+                            'sent_date' => $existing->fetch_mail_sent_time,
+                        ],
+                    ];
+                }
+            }
+
+            // 2. Upload file to S3 (use sanitized filename in path)
             $sanitizedClientId = preg_replace('/[^a-zA-Z0-9\-_\.]/', '_', $clientUniqueId);
             $filePath = $sanitizedClientId . '/' . $docType . '/' . $mailType . '/' . $uniqueFileName;
-            
-            // Upload to S3 with error handling
+
             try {
                 $fileContents = file_get_contents($file->getPathname());
                 if ($fileContents === false) {
                     throw new \Exception('Failed to read email file contents');
                 }
-                
+
                 $uploadResult = Storage::disk('s3')->put($filePath, $fileContents);
-                if (!$uploadResult) {
+                if (! $uploadResult) {
                     throw new \Exception('Failed to upload file to storage. Please check storage configuration.');
                 }
             } catch (\Exception $s3Exception) {
                 Log::error('S3 upload failed for email', [
                     'file' => $fileName,
                     's3_path' => $filePath,
-                    'error' => $s3Exception->getMessage()
+                    'error' => $s3Exception->getMessage(),
                 ]);
                 throw new \Exception('File storage error: ' . $s3Exception->getMessage());
             }
-            
-            // Generate S3 URL - use Storage method which handles encoding properly
+
             try {
                 $fileUrl = Storage::disk('s3')->url($filePath);
                 if (empty($fileUrl)) {
@@ -630,18 +843,9 @@ class EmailUploadController extends Controller
                 Log::error('S3 URL generation failed', [
                     'file' => $fileName,
                     's3_path' => $filePath,
-                    'error' => $urlException->getMessage()
+                    'error' => $urlException->getMessage(),
                 ]);
                 throw new \Exception('File URL generation error: ' . $urlException->getMessage());
-            }
-
-            // 2. Parse email using Python microservice
-            $parsedData = $this->parseEmailWithPython($file);
-
-            // Check for error in response (Python service returns error field on failure, 
-            // but doesn't return success field on success - just the parsed data)
-            if (!$parsedData || isset($parsedData['error']) || (isset($parsedData['success']) && !$parsedData['success'])) {
-                throw new \Exception($parsedData['error'] ?? 'Failed to parse email');
             }
 
             // 3. Save document record
@@ -656,9 +860,7 @@ class EmailUploadController extends Controller
             $document->mail_type = $mailType;
             $document->file_size = $fileSize;
             $document->doc_type = $docType;
-            $document->client_matter_id = $mailType === 'sent' 
-                ? $request->upload_sent_mail_client_matter_id 
-                : $request->upload_inbox_mail_client_matter_id;
+            $document->client_matter_id = $matterId;
             try {
                 $document->save();
             } catch (QueryException $e) {
@@ -753,9 +955,9 @@ class EmailUploadController extends Controller
             } else {
                 $mailReport->received_date = now();
             }
-            
-            $mailReport->file_hash = md5_file($file->getRealPath());
-            
+
+            $mailReport->file_hash = $fileHash;
+
             try {
                 $mailReport->save();
             } catch (QueryException $e) {
@@ -779,6 +981,7 @@ class EmailUploadController extends Controller
 
                 $storageMap = $this->parseAttachmentStorageMap($request);
                 $matterIdForDocs = $document->client_matter_id ?? null;
+                $attachmentStorageReviewed = $request->has('attachment_storage');
 
                 foreach ($parsedData['attachments'] as $attachmentData) {
                     if (! empty($attachmentData['is_inline'])) {
@@ -788,6 +991,14 @@ class EmailUploadController extends Controller
                     try {
                         $originalFilename = $attachmentData['filename'] ?? '';
                         $storageConfig = $storageMap[$originalFilename] ?? null;
+
+                        if ($attachmentStorageReviewed && $storageConfig === null) {
+                            continue;
+                        }
+
+                        if (is_array($storageConfig) && ($storageConfig['storage_type'] ?? '') === 'skip') {
+                            continue;
+                        }
 
                         if ($storageConfig && ! empty($storageConfig['file_name'])) {
                             $extension = pathinfo($originalFilename, PATHINFO_EXTENSION);
