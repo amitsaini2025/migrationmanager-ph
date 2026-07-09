@@ -1,4 +1,9 @@
 <!-- Upload Mail Modal -->
+@php
+    $emailUploadExtensions = config('crm.email_upload_allowed_extensions', ['msg', 'eml']);
+    $emailUploadAccept = collect($emailUploadExtensions)->map(fn ($e) => '.' . ltrim($e, '.'))->implode(',');
+    $emailUploadLabel = collect($emailUploadExtensions)->map(fn ($e) => '.' . ltrim($e, '.'))->implode(', ');
+@endphp
 <div class="modal fade custom_modal" id="uploadmail" tabindex="-1" role="dialog" aria-labelledby="" aria-hidden="true">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
@@ -166,8 +171,8 @@
 					<div class="row">
 						<div class="col-12 col-md-12 col-lg-12">
                             <div class="form-group">
-                               <label>Upload Outlook Email (.msg)<span class="span_req">*</span></label>
-                               <input type="file" name="email_files[]" id="email_files" class="form-control" accept=".msg" multiple >
+                               <label>Upload Outlook Email ({{ $emailUploadLabel }})<span class="span_req">*</span></label>
+                               <input type="file" name="email_files[]" id="email_files" class="form-control" accept="{{ $emailUploadAccept }}" multiple >
                             </div>
                        </div>
 
@@ -204,8 +209,8 @@
 					<div class="row">
 						<div class="col-12 col-md-12 col-lg-12">
                             <div class="form-group">
-                               <label>Upload Outlook Email (.msg)<span class="span_req">*</span></label>
-                               <input type="file" name="email_files[]" id="email_files1" class="form-control" accept=".msg" multiple >
+                               <label>Upload Outlook Email ({{ $emailUploadLabel }})<span class="span_req">*</span></label>
+                               <input type="file" name="email_files[]" id="email_files1" class="form-control" accept="{{ $emailUploadAccept }}" multiple >
                             </div>
                        </div>
 

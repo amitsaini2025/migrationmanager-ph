@@ -2,6 +2,11 @@
 @section('title', 'Smart Email Import')
 
 @section('content')
+@php
+    $emailUploadExtensions = config('crm.email_upload_allowed_extensions', ['msg', 'eml']);
+    $emailUploadAccept = collect($emailUploadExtensions)->map(fn ($e) => '.' . ltrim($e, '.'))->implode(',');
+    $emailUploadLabel = collect($emailUploadExtensions)->map(fn ($e) => '.' . ltrim($e, '.'))->implode(', ');
+@endphp
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <div class="container-fluid py-4" id="smart-import-app">
@@ -12,7 +17,7 @@
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <h4 class="mb-0">@icon('fa-mail-bulk', ['class' => 'mr-2 text-primary']) Smart Email Import</h4>
-            <small class="text-muted">Upload .msg files, review suggested client &amp; matter assignments, then confirm.</small>
+            <small class="text-muted">Upload {{ $emailUploadLabel }} files, review suggested client &amp; matter assignments, then confirm.</small>
         </div>
         <button id="btn-upload-more" class="btn btn-outline-secondary btn-sm d-none">
             @icon('fa-upload', ['class' => 'mr-1']) Upload More
@@ -29,9 +34,9 @@
                      class="border-2 border-dashed rounded p-5 text-center"
                      style="border: 2px dashed #ced4da; cursor:pointer; transition: background .2s;">
                     @icon('fa-cloud-upload-alt', ['class' => 'text-muted mb-3', 'style' => 'width: 3em; height: 3em;'])
-                    <p class="mb-1 font-weight-semibold">Drag &amp; drop Outlook .msg files here</p>
+                    <p class="mb-1 font-weight-semibold">Drag &amp; drop Outlook email files ({{ $emailUploadLabel }}) here</p>
                     <p class="text-muted small mb-3">or click to browse — up to 20 files, 30 MB each</p>
-                    <input type="file" id="file-input" accept=".msg" multiple style="display:none">
+                    <input type="file" id="file-input" accept="{{ $emailUploadAccept }}" multiple style="display:none">
                     <button type="button" class="btn btn-primary" id="btn-browse">
                         @icon('fa-folder-open', ['class' => 'mr-1']) Browse Files
                     </button>
@@ -176,6 +181,7 @@
 </style>
 
 <script>
+    window.__CRM_EMAIL_ALLOWED_EXTENSIONS__ = @json($emailUploadExtensions);
     window.SmartImportConfig = {
         analyzeUrl:  "{{ route('email.smart-import.analyze') }}",
         confirmUrl:  "{{ route('email.smart-import.confirm') }}",
@@ -184,6 +190,7 @@
         csrfToken:   "{{ csrf_token() }}"
     };
 </script>
+<script src="{{ asset('js/email-upload-helpers.js') }}"></script>
 <script src="{{ asset('js/smart-email-import.js') }}?v={{ file_exists(public_path('js/smart-email-import.js')) ? filemtime(public_path('js/smart-email-import.js')) : 1 }}"></script>
 
 @endsection

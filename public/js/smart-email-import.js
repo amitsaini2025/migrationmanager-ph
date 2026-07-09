@@ -94,17 +94,34 @@
         }
     });
 
+    function getAllowedUploadExtensionsLabel() {
+        if (typeof window.crmEmailUploadExtensionsLabel === 'function') {
+            return window.crmEmailUploadExtensionsLabel();
+        }
+        return '.msg, .eml';
+    }
+
+    function filterAllowedUploadFiles(files) {
+        if (typeof window.crmFilterAllowedEmailUploadFiles === 'function') {
+            return window.crmFilterAllowedEmailUploadFiles(files);
+        }
+        return (files || []).filter(function (f) {
+            const lower = f.name.toLowerCase();
+            return lower.endsWith('.msg') || lower.endsWith('.eml');
+        });
+    }
+
     function handleFiles(files) {
-        const msgFiles = files.filter(f => f.name.toLowerCase().endsWith('.msg'));
-        if (msgFiles.length === 0) {
-            alert('Please select .msg files only.');
+        const emailFiles = filterAllowedUploadFiles(files);
+        if (emailFiles.length === 0) {
+            alert('Please select ' + getAllowedUploadExtensionsLabel() + ' files only.');
             return;
         }
-        if (msgFiles.length > 20) {
+        if (emailFiles.length > 20) {
             alert('Maximum 20 files allowed per batch. The first 20 will be used.');
-            msgFiles.splice(20);
+            emailFiles.splice(20);
         }
-        selectedFiles = msgFiles;
+        selectedFiles = emailFiles;
         renderFileList();
     }
 

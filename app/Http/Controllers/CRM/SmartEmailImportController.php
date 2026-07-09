@@ -57,7 +57,7 @@ class SmartEmailImportController extends EmailUploadController
     {
         $validator = Validator::make($request->all(), [
             'email_files'   => 'required|array|max:' . self::MAX_FILES,
-            'email_files.*' => 'file|mimes:msg|max:30720',
+            'email_files.*' => 'file|max:' . $this->emailUploadMaxKb() . '|mimes:' . implode(',', $this->allowedEmailUploadExtensions()),
         ]);
 
         if ($validator->fails()) {
@@ -112,10 +112,10 @@ class SmartEmailImportController extends EmailUploadController
                     continue;
                 }
 
-                // Stage the original .msg file
-                $msgPath = "{$stagingDir}/{$itemId}.msg";
+                // Stage the original email file (.msg or .eml)
+                $stagedPath = $this->stagedEmailPath($stagingDir, $itemId, $filename);
                 Storage::disk(self::STAGING_DISK)->put(
-                    $msgPath,
+                    $stagedPath,
                     file_get_contents($file->getPathname())
                 );
 
@@ -125,6 +125,7 @@ class SmartEmailImportController extends EmailUploadController
                 $item = [
                     'item_id'             => $itemId,
                     'filename'            => $filename,
+                    'staged_path'         => $stagedPath,
                     'subject'             => (string) ($parsed['subject'] ?? ''),
                     'from'                => (string) ($parsed['sender_email'] ?? ''),
                     'to'                  => implode(', ', (array) ($parsed['recipients'] ?? [])),
@@ -255,9 +256,10 @@ class SmartEmailImportController extends EmailUploadController
                 // Staff access check
                 $this->ensureCrmRecordAccess($clientId);
 
-                // Recreate UploadedFile from staged .msg
-                $msgPath    = "{$stagingDir}/{$itemId}.msg";
-                $absPath    = Storage::disk(self::STAGING_DISK)->path($msgPath);
+                // Recreate UploadedFile from staged email file
+                $stagedPath = $meta['items'][$itemId]['staged_path']
+                    ?? $this->stagedEmailPath($stagingDir, $itemId, $filename);
+                $absPath    = Storage::disk(self::STAGING_DISK)->path($stagedPath);
 
                 if (! file_exists($absPath)) {
                     throw new \RuntimeException('Staged file not found. The batch may have expired.');
@@ -282,7 +284,7 @@ class SmartEmailImportController extends EmailUploadController
 
                 if ($result['success']) {
                     // Delete staged file
-                    Storage::disk(self::STAGING_DISK)->delete($msgPath);
+                    Storage::disk(self::STAGING_DISK)->delete($stagedPath);
 
                     // Update meta
                     $meta['items'][$itemId]['status'] = 'saved';
@@ -323,10 +325,15 @@ class SmartEmailImportController extends EmailUploadController
         // Persist updated meta
         $this->writeMeta($stagingDir, $batchToken, $userId, array_values($meta['items']));
 
-        // Remove batch folder when no .msg files remain
-        $remainingMsgFiles = Storage::disk(self::STAGING_DISK)->files($stagingDir);
-        $remainingMsgFiles = array_filter($remainingMsgFiles, fn ($f) => str_ends_with($f, '.msg'));
-        if (empty($remainingMsgFiles)) {
+        // Remove batch folder when no staged email files remain
+        $remainingFiles = Storage::disk(self::STAGING_DISK)->files($stagingDir);
+        $allowedExts = $this->allowedEmailUploadExtensions();
+        $remainingFiles = array_filter($remainingFiles, function ($f) use ($allowedExts) {
+            $ext = strtolower(pathinfo($f, PATHINFO_EXTENSION));
+
+            return in_array($ext, $allowedExts, true);
+        });
+        if (empty($remainingFiles)) {
             Storage::disk(self::STAGING_DISK)->deleteDirectory($stagingDir);
         }
 
