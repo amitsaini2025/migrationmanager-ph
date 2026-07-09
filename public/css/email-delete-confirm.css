@@ -1,0 +1,197 @@
+/* Two-step email delete confirmation modal */
+.email-delete-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.52);
+    z-index: 10060;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(2px);
+}
+
+.email-delete-modal-overlay.is-open {
+    display: flex;
+}
+
+.email-delete-modal {
+    width: 100%;
+    max-width: 460px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+    padding: 28px 26px 22px;
+    text-align: center;
+    animation: emailDeleteModalIn 0.22s ease-out;
+    border: 1px solid #e2e8f0;
+}
+
+@keyframes emailDeleteModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.email-delete-modal__icon {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+.email-delete-modal__icon--warn {
+    background: #fff4e5;
+    color: #c2410c;
+}
+
+.email-delete-modal__icon--danger {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.email-delete-modal__step-label {
+    margin: 0 0 6px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.email-delete-modal__step-label--danger {
+    color: #b91c1c;
+}
+
+.email-delete-modal__title {
+    margin: 0 0 10px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.3;
+}
+
+.email-delete-modal__lead {
+    margin: 0 0 18px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #475569;
+}
+
+.email-delete-modal__lead--danger {
+    color: #7f1d1d;
+}
+
+.email-delete-modal__preview {
+    text-align: left;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 22px;
+}
+
+.email-delete-modal__preview--danger {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.email-delete-modal__preview-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 10px;
+}
+
+.email-delete-modal__preview-row:last-child {
+    margin-bottom: 0;
+}
+
+.email-delete-modal__preview-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.email-delete-modal__preview-value {
+    font-size: 14px;
+    color: #0f172a;
+    word-break: break-word;
+}
+
+.email-delete-modal__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.email-delete-modal__btn {
+    min-width: 130px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.email-delete-modal__btn--cancel,
+.email-delete-modal__btn--back {
+    background: #fff;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+.email-delete-modal__btn--cancel:hover,
+.email-delete-modal__btn--back:hover {
+    background: #f1f5f9;
+}
+
+.email-delete-modal__btn--continue {
+    background: #1e3d60;
+    color: #fff;
+}
+
+.email-delete-modal__btn--continue:hover {
+    background: #163049;
+}
+
+.email-delete-modal__btn--delete {
+    background: #b91c1c;
+    color: #fff;
+}
+
+.email-delete-modal__btn--delete:hover {
+    background: #991b1b;
+}
+
+@media (max-width: 480px) {
+    .email-delete-modal {
+        padding: 22px 18px 18px;
+    }
+
+    .email-delete-modal__actions {
+        flex-direction: column;
+    }
+
+    .email-delete-modal__btn {
+        width: 100%;
+    }
+}

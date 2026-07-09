@@ -16,6 +16,7 @@ use App\Models\EmailLog;
 use App\Models\ActivitiesLog;
 use App\Models\ClientMatter;
 use App\Models\Admin;
+use App\Models\PersonalDocumentType;
 use App\Traits\LogsClientActivity;
 
 /**
@@ -41,6 +42,272 @@ class EmailUploadController extends Controller
     }
 
     /**
+     * Allowed upload extensions from config (e.g. msg, eml).
+     *
+     * @return list<string>
+     */
+    protected function allowedEmailUploadExtensions(): array
+    {
+        $exts = config('crm.email_upload_allowed_extensions', ['msg']);
+
+        return array_values(array_filter(array_map(
+            static fn ($ext) => strtolower(ltrim((string) $ext, '.')),
+            is_array($exts) ? $exts : ['msg']
+        )));
+    }
+
+    protected function emailUploadMaxKb(): int
+    {
+        return max(1, (int) config('crm.email_upload_max_kb', 30720));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function emailUploadValidationRules(): array
+    {
+        $maxKb = $this->emailUploadMaxKb();
+        $mimes = implode(',', $this->allowedEmailUploadExtensions());
+
+        return [
+            'email_files' => 'required',
+            'email_files.*' => "file|max:{$maxKb}|mimes:{$mimes}",
+            'client_id' => 'required',
+            'type' => 'required|in:client,lead',
+            'attachment_storage' => 'nullable|string',
+            'force_upload' => 'nullable|boolean',
+        ];
+    }
+
+    protected function allowedExtensionsLabel(): string
+    {
+        return implode(', ', array_map(
+            static fn ($ext) => '.' . $ext,
+            $this->allowedEmailUploadExtensions()
+        ));
+    }
+
+    protected function emailUploadExtensionFromFilename(string $filename): string
+    {
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $allowed = $this->allowedEmailUploadExtensions();
+
+        return in_array($ext, $allowed, true) ? $ext : 'msg';
+    }
+
+    protected function stagedEmailPath(string $stagingDir, string $itemId, string $filename): string
+    {
+        return $stagingDir . '/' . $itemId . '.' . $this->emailUploadExtensionFromFilename($filename);
+    }
+
+    /**
+     * Preview attachment metadata from an email file before upload (no S3 save).
+     */
+    public function previewEmailAttachments(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), $this->emailUploadValidationRules());
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $this->ensureCrmRecordAccess((int) $request->client_id);
+
+            $file = $request->file('email_files')[0] ?? null;
+            if (! $file) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No file uploaded',
+                ], 400);
+            }
+
+            $parsedData = $this->parseEmailWithPython($file);
+            if (! $parsedData || isset($parsedData['error']) || (isset($parsedData['success']) && ! $parsedData['success'])) {
+                return response()->json([
+                    'status' => false,
+                    'message' => $parsedData['error'] ?? 'Failed to parse email',
+                ], 400);
+            }
+
+            $attachments = [];
+            foreach ($parsedData['attachments'] ?? [] as $index => $attachmentData) {
+                if (! empty($attachmentData['is_inline'])) {
+                    continue;
+                }
+                $filename = $attachmentData['filename'] ?? ('attachment_' . ($index + 1));
+                $attachments[] = [
+                    'index' => $index,
+                    'filename' => $filename,
+                    'display_name' => $attachmentData['display_name'] ?? $filename,
+                    'file_size' => $attachmentData['file_size'] ?? $attachmentData['size'] ?? 0,
+                    'content_type' => $attachmentData['content_type'] ?? 'application/octet-stream',
+                ];
+            }
+
+            return response()->json([
+                'status' => true,
+                'attachments' => $attachments,
+                'has_attachments' => count($attachments) > 0,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Preview email attachments error', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to preview attachments: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Personal document categories for the attachment storage modal.
+     */
+    public function getAttachmentDocumentCategories(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'client_id' => 'required|integer|min:1',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $clientId = (int) $request->client_id;
+        $this->ensureCrmRecordAccess($clientId);
+
+        $categories = PersonalDocumentType::query()
+            ->select('id', 'title')
+            ->where('status', 1)
+            ->where(function ($query) use ($clientId) {
+                $query->whereNull('client_id')->orWhere('client_id', $clientId);
+            })
+            ->whereIn('type', ['personal', 'both'])
+            ->orderBy('id')
+            ->get()
+            ->map(static fn ($cat) => [
+                'id' => $cat->id,
+                'name' => $cat->title,
+                'category_name' => $cat->title,
+            ])
+            ->values();
+
+        return response()->json([
+            'status' => true,
+            'categories' => $categories,
+        ]);
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected function parseAttachmentStorageMap(Request $request): array
+    {
+        if (! $request->filled('attachment_storage')) {
+            return [];
+        }
+
+        $decoded = json_decode((string) $request->input('attachment_storage'), true);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $map = [];
+        foreach ($decoded as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $key = $item['original_filename'] ?? $item['filename'] ?? null;
+            if ($key) {
+                $map[$key] = $item;
+            }
+        }
+
+        return $map;
+    }
+
+    protected function sanitizeAttachmentDisplayName(string $name): string
+    {
+        $name = trim($name);
+        $name = preg_replace('/[^a-zA-Z0-9_\-\.\s\$\(\),&+]/', '_', $name);
+        $name = preg_replace('/_+/', '_', trim((string) $name, '_'));
+
+        return $name !== '' ? $name : 'attachment';
+    }
+
+    /**
+     * @return array{file_path: string, s3_key: string, file_size: int, display_name: string}|null
+     */
+    protected function saveEmailAttachmentAsDocument(
+        array $attachmentData,
+        array $storageConfig,
+        string $clientUniqueId,
+        int $clientId,
+        string $recordType,
+        string $decodedData,
+        ?int $matterId = null
+    ): ?array {
+        if (($storageConfig['storage_type'] ?? '') !== 'documents') {
+            return null;
+        }
+
+        $categoryId = (int) ($storageConfig['category_id'] ?? 0);
+        if ($categoryId <= 0) {
+            return null;
+        }
+
+        $originalFilename = $attachmentData['filename'] ?? 'attachment';
+        $extension = pathinfo($originalFilename, PATHINFO_EXTENSION);
+        $customStem = $this->sanitizeAttachmentDisplayName(
+            (string) ($storageConfig['file_name'] ?? pathinfo($originalFilename, PATHINFO_FILENAME))
+        );
+        $displayName = $extension ? ($customStem . '.' . $extension) : $customStem;
+
+        $sanitizedClientId = preg_replace('/[^a-zA-Z0-9\-_\.]/', '_', $clientUniqueId);
+        $uniqueFileName = time() . '_' . uniqid() . '_' . $this->sanitizeFilename($displayName);
+        $filePath = $sanitizedClientId . '/documents/' . $uniqueFileName;
+
+        $uploadSuccess = Storage::disk('s3')->put($filePath, $decodedData);
+        if (! $uploadSuccess) {
+            throw new \Exception('Failed to upload attachment to document storage.');
+        }
+
+        $fileUrl = Storage::disk('s3')->url($filePath);
+        $fileSize = strlen($decodedData);
+
+        $document = new Document();
+        $document->file_name = $customStem;
+        $document->filetype = $extension ?: pathinfo($displayName, PATHINFO_EXTENSION);
+        $document->user_id = Auth::user()->id;
+        $document->myfile = $fileUrl;
+        $document->myfile_key = $uniqueFileName;
+        $document->client_id = $clientId;
+        $document->type = $recordType;
+        $document->file_size = $fileSize;
+        $document->doc_type = 'personal';
+        $document->folder_name = (string) $categoryId;
+        $document->checklist = $customStem;
+        if ($matterId) {
+            $document->client_matter_id = $matterId;
+        }
+        $document->save();
+
+        return [
+            'file_path' => $fileUrl,
+            's3_key' => $filePath,
+            'file_size' => $fileSize,
+            'display_name' => $displayName,
+        ];
+    }
+
+    /**
      * Upload and process inbox emails using Python microservice
      * 
      * Modern replacement for uploadfetchmail method
@@ -49,12 +316,7 @@ class EmailUploadController extends Controller
     {
         try {
             // Validate file input
-            $validator = Validator::make($request->all(), [
-                'email_files' => 'required',
-                'email_files.*' => 'mimes:msg|max:30720', // 30MB max
-                'client_id' => 'required',
-                'type' => 'required|in:client,lead'
-            ]);
+            $validator = Validator::make($request->all(), $this->emailUploadValidationRules());
 
             if ($validator->fails()) {
                 return response()->json([
@@ -167,9 +429,9 @@ class EmailUploadController extends Controller
             
             // Make error messages more user-friendly
             if (strpos($errorMessage, 'Validation failed') !== false) {
-                $errorMessage = "File validation failed. Please ensure you're uploading .msg files only (max 30MB each).";
+                $errorMessage = 'File validation failed. Please ensure you are uploading ' . $this->allowedExtensionsLabel() . ' files only (max 30MB each).';
             } elseif (strpos($errorMessage, 'No files uploaded') !== false) {
-                $errorMessage = "No files were selected for upload. Please select at least one .msg file.";
+                $errorMessage = 'No files were selected for upload. Please select at least one email file (' . $this->allowedExtensionsLabel() . ').';
             }
             
             Log::error('Email upload error', [
@@ -193,12 +455,7 @@ class EmailUploadController extends Controller
     {
         try {
             // Validate file input
-            $validator = Validator::make($request->all(), [
-                'email_files' => 'required',
-                'email_files.*' => 'mimes:msg|max:30720', // 30MB max
-                'client_id' => 'required',
-                'type' => 'required|in:client,lead'
-            ]);
+            $validator = Validator::make($request->all(), $this->emailUploadValidationRules());
 
             if ($validator->fails()) {
                 return response()->json([
@@ -519,16 +776,39 @@ class EmailUploadController extends Controller
                     'count' => count($parsedData['attachments']),
                     'email_log_id' => $mailReport->id
                 ]);
-                
+
+                $storageMap = $this->parseAttachmentStorageMap($request);
+                $matterIdForDocs = $document->client_matter_id ?? null;
+
                 foreach ($parsedData['attachments'] as $attachmentData) {
+                    if (! empty($attachmentData['is_inline'])) {
+                        continue;
+                    }
+
                     try {
-                        $this->saveAttachment($mailReport->id, $attachmentData, $clientUniqueId);
+                        $originalFilename = $attachmentData['filename'] ?? '';
+                        $storageConfig = $storageMap[$originalFilename] ?? null;
+
+                        if ($storageConfig && ! empty($storageConfig['file_name'])) {
+                            $extension = pathinfo($originalFilename, PATHINFO_EXTENSION);
+                            $stem = $this->sanitizeAttachmentDisplayName((string) $storageConfig['file_name']);
+                            $attachmentData['display_name'] = $extension ? ($stem . '.' . $extension) : $stem;
+                        }
+
+                        $this->saveAttachment(
+                            $mailReport->id,
+                            $attachmentData,
+                            $clientUniqueId,
+                            $storageConfig,
+                            $request,
+                            (int) $clientId,
+                            $matterIdForDocs
+                        );
                     } catch (\Exception $e) {
                         Log::error('Error in saveAttachment loop', [
                             'error' => $e->getMessage(),
                             'attachment' => $attachmentData['filename'] ?? 'unknown'
                         ]);
-                        // Continue processing other attachments
                     }
                 }
             } else {
@@ -799,11 +1079,19 @@ class EmailUploadController extends Controller
      * @param array $attachmentData
      * @param string $clientUniqueId
      */
-    protected function saveAttachment($mailReportId, $attachmentData, $clientUniqueId)
-    {
+    protected function saveAttachment(
+        $mailReportId,
+        $attachmentData,
+        $clientUniqueId,
+        $storageConfig = null,
+        $request = null,
+        $clientId = null,
+        $matterId = null
+    ) {
         $s3Path = null;
         $s3Key = null;
         $fileSize = $attachmentData['file_size'] ?? $attachmentData['size'] ?? 0;
+        $displayName = $attachmentData['display_name'] ?? ($attachmentData['filename'] ?? 'unknown');
         
         try {
             // Check for both 'content' and 'data' keys (Python service uses 'data')
@@ -815,7 +1103,8 @@ class EmailUploadController extends Controller
                 'content_length' => !empty($attachmentContent) ? strlen($attachmentContent) : 0,
                 'expected_size' => $fileSize
             ]);
-            
+
+            $decodedData = null;
             if (!empty($attachmentContent)) {
                 // Decode base64-encoded attachment data
                 $decodedData = base64_decode($attachmentContent, true);
@@ -826,7 +1115,6 @@ class EmailUploadController extends Controller
                         'filename' => $attachmentData['filename'] ?? 'unknown',
                         'content_length' => strlen($attachmentContent)
                     ]);
-                    // Continue to create attachment record without file
                 } else {
                     // Validate decoded data size matches expected size (with some tolerance for base64 padding)
                     $expectedSize = $fileSize;
@@ -842,7 +1130,6 @@ class EmailUploadController extends Controller
                                 'actual' => $actualSize,
                                 'difference' => $sizeDifference
                             ]);
-                            // Continue anyway, but log the warning
                         }
                     }
                     
@@ -851,8 +1138,33 @@ class EmailUploadController extends Controller
                         Log::warning('Decoded attachment data is empty', [
                             'filename' => $attachmentData['filename'] ?? 'unknown'
                         ]);
-                        // Continue to create attachment record without file
-                    } else {
+                        $decodedData = null;
+                    }
+                }
+            } else {
+                Log::info('Attachment has no content data, creating record without file', [
+                    'filename' => $attachmentData['filename'] ?? 'unknown'
+                ]);
+            }
+
+            $storageType = is_array($storageConfig) ? ($storageConfig['storage_type'] ?? 'email') : 'email';
+            if ($decodedData !== null && $storageType === 'documents' && $request && $clientId) {
+                $docResult = $this->saveEmailAttachmentAsDocument(
+                    $attachmentData,
+                    $storageConfig,
+                    $clientUniqueId,
+                    (int) $clientId,
+                    $request->type ?? 'client',
+                    $decodedData,
+                    $matterId ? (int) $matterId : null
+                );
+                if ($docResult) {
+                    $s3Path = $docResult['file_path'];
+                    $s3Key = $docResult['s3_key'];
+                    $fileSize = $docResult['file_size'];
+                    $displayName = $docResult['display_name'];
+                }
+            } elseif ($decodedData !== null) {
                         // Sanitize attachment filename for S3 path to prevent 403 errors
                         $attachmentFileName = $attachmentData['filename'] ?? 'attachment';
                         $sanitizedAttachmentFileName = $this->sanitizeFilename($attachmentFileName);
@@ -875,11 +1187,11 @@ class EmailUploadController extends Controller
                             $s3Path = Storage::disk('s3')->url($s3Key);
                             
                             // Update file size to actual decoded size
-                            $fileSize = $actualSize;
+                            $fileSize = strlen($decodedData);
                             
                             Log::info('Attachment saved successfully to S3', [
                                 'filename' => $attachmentData['filename'] ?? 'unknown',
-                                'size' => $actualSize,
+                                'size' => $fileSize,
                                 's3_key' => $s3Key,
                                 's3_path' => $s3Path
                             ]);
@@ -894,19 +1206,13 @@ class EmailUploadController extends Controller
                             $s3Key = null;
                             $s3Path = null;
                         }
-                    }
-                }
-            } else {
-                Log::info('Attachment has no content data, creating record without file', [
-                    'filename' => $attachmentData['filename'] ?? 'unknown'
-                ]);
             }
 
             // Always create attachment record (even if file upload failed)
             \App\Models\EmailLogAttachment::create([
                 'email_log_id' => $mailReportId,
                 'filename' => $attachmentData['filename'] ?? 'unknown',
-                'display_name' => $attachmentData['display_name'] ?? ($attachmentData['filename'] ?? 'unknown'),
+                'display_name' => $displayName,
                 'content_type' => $attachmentData['content_type'] ?? 'application/octet-stream',
                 'file_path' => $s3Path,
                 's3_key' => $s3Key,
@@ -922,8 +1228,6 @@ class EmailUploadController extends Controller
                 'trace' => $e->getTraceAsString(),
                 'attachment' => $attachmentData['filename'] ?? 'unknown'
             ]);
-            // Don't re-throw - allow email upload to continue even if attachment fails
-            // Attachment record will still be created (if we got that far) but without file
         }
     }
 

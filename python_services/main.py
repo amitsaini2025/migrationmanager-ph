@@ -416,16 +416,22 @@ async def convert_docx_to_pdf_json(file: UploadFile = File(...)):
 # Email Service Endpoints
 # ============================================================================
 
+ALLOWED_EMAIL_EXTENSIONS = ['.msg', '.eml']
+
+
 @app.post("/email/parse")
 async def parse_email(file: UploadFile = File(...)):
-    """Parse .msg file and extract email data."""
+    """Parse .msg or .eml file and extract email data."""
     temp_path = None
     try:
         logger.info(f"Parsing email file: {file.filename}")
 
         # Validate file
-        if not validate_file_type(file.filename, ['.msg']):
-            raise HTTPException(status_code=400, detail="Invalid file type. Only .msg files are allowed.")
+        if not validate_file_type(file.filename, ALLOWED_EMAIL_EXTENSIONS):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file type. Only .msg and .eml files are allowed."
+            )
 
         # Unique temp filename to avoid collisions when concurrent uploads share the same name
         temp_filename = f"{int(time.time() * 1000)}_{file.filename}"
@@ -436,7 +442,7 @@ async def parse_email(file: UploadFile = File(...)):
         temp_path.write_bytes(content)
 
         # Parse email
-        result = email_parser.parse_msg_file(str(temp_path))
+        result = email_parser.parse_email_file(str(temp_path))
 
         return JSONResponse(content=result)
 
@@ -491,7 +497,7 @@ async def render_email(request: Request):
 async def parse_analyze_render_email(file: UploadFile = File(...)):
     """
     Complete email processing pipeline:
-    1. Parse .msg file
+    1. Parse .msg or .eml file
     2. Analyze content
     3. Render enhanced HTML
     """
@@ -500,8 +506,11 @@ async def parse_analyze_render_email(file: UploadFile = File(...)):
         logger.info(f"Processing email file: {file.filename}")
         
         # Validate file
-        if not validate_file_type(file.filename, ['.msg']):
-            raise HTTPException(status_code=400, detail="Invalid file type. Only .msg files are allowed.")
+        if not validate_file_type(file.filename, ALLOWED_EMAIL_EXTENSIONS):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file type. Only .msg and .eml files are allowed."
+            )
         
         # Save file temporarily with unique name to avoid conflicts
         temp_filename = f"{int(time.time() * 1000)}_{file.filename}"
@@ -512,7 +521,7 @@ async def parse_analyze_render_email(file: UploadFile = File(...)):
         temp_path.write_bytes(content)
         
         # Step 1: Parse email
-        parsed_data = email_parser.parse_msg_file(str(temp_path))
+        parsed_data = email_parser.parse_email_file(str(temp_path))
         
         if 'error' in parsed_data:
             return JSONResponse(content=parsed_data, status_code=500)

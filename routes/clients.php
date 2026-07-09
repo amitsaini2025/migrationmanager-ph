@@ -140,6 +140,8 @@ Route::post('/upload-mail', [ClientsController::class, 'uploadmail']);
 // MODERN ROUTES (using Python microservice - recommended)
 Route::post('/upload-fetch-mail', [EmailUploadController::class, 'uploadInboxEmails'])->name('email.upload.inbox');
 Route::post('/upload-sent-fetch-mail', [EmailUploadController::class, 'uploadSentEmails'])->name('email.upload.sent');
+Route::post('/email/preview-attachments', [EmailUploadController::class, 'previewEmailAttachments'])->name('email.preview.attachments');
+Route::get('/email/attachment-document-categories', [EmailUploadController::class, 'getAttachmentDocumentCategories'])->name('email.attachment.document.categories');
 Route::get('/email/check-service', [EmailUploadController::class, 'checkPythonService'])->name('email.check.service');
 
 // Smart Email Import — parse .msg files first, assign client+matter during review

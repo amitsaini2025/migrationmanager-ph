@@ -267,4 +267,22 @@ return [
         ? $__assignPrRoles
         : [12],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Outlook email upload allowed extensions (client Emails tab, Smart Import)
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated extensions without dots. Default: msg,eml
+    | Override via EMAIL_UPLOAD_ALLOWED_EXTENSIONS=msg,eml in .env
+    |
+    */
+    'email_upload_allowed_extensions' => array_values(array_unique(array_filter(array_map(
+        static function (string $ext): string {
+            return strtolower(ltrim(trim($ext), '.'));
+        },
+        explode(',', (string) env('EMAIL_UPLOAD_ALLOWED_EXTENSIONS', 'msg,eml'))
+    )))),
+
+    'email_upload_max_kb' => max(1, (int) env('EMAIL_UPLOAD_MAX_KB', 30720)),
+
 ];
