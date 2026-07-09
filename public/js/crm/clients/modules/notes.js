@@ -50,32 +50,8 @@
 
                 if (typeof window.filterNotes === 'function') {
                     window.filterNotes();
-                } else {
-                    var activeTaskGroup = $('.subtab8-button.active').data('subtab8') || 'All';
-                    var selectedMatter = $('.general_matter_checkbox_client_detail').is(':checked')
-                        ? $('.general_matter_checkbox_client_detail').val()
-                        : $('#sel_matter_id_client_detail').val();
-
-                    if (!$('.subtab8-button.active').length) {
-                        $('.subtab8-button.pill-tab[data-subtab8="All"]').addClass('active');
-                        $('#noteterm-tab').find('.note-card-redesign').show();
-                    } else {
-                        $('#noteterm-tab').find('.note-card-redesign').each(function() {
-                            var noteType = $(this).data('type');
-                            var typeMatch = (activeTaskGroup === 'All' || noteType === activeTaskGroup);
-
-                            var matterMatch = true;
-                            if (selectedMatter && selectedMatter !== '') {
-                                matterMatch = ($(this).data('matterid') == selectedMatter);
-                            }
-
-                            if (typeMatch && matterMatch) {
-                                $(this).show();
-                            } else {
-                                $(this).hide();
-                            }
-                        });
-                    }
+                } else if (typeof window.refreshNotesScopeTabs === 'function') {
+                    window.refreshNotesScopeTabs();
                 }
 
                 if (typeof adjustActivityFeedHeight === 'function') {
