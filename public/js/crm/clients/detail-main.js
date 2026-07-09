@@ -2287,23 +2287,9 @@ success: function(response) {
 
             if( activeTab == 'noteterm' ) {
 
-                const activeTaskGroup = $('.subtab8-button.active').data('subtab8') || 'All';
-                
-                $('#noteterm-tab').find('.note-card-redesign').each(function() {
-                    const noteType = $(this).data('type');
-                    const typeMatch = (activeTaskGroup === 'All' || noteType === activeTaskGroup);
-
-                    let matterMatch = true;
-                    if (selectedMatter && selectedMatter !== '') {
-                        matterMatch = ($(this).data('matterid') == selectedMatter);
-                    }
-
-                    if (typeMatch && matterMatch) {
-                        $(this).show();
-                    } else {
-                        $(this).hide();
-                    }
-                });
+                if (typeof window.filterNotes === 'function') {
+                    window.filterNotes();
+                }
 
             }
 

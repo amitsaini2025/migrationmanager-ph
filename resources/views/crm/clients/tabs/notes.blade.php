@@ -1,5 +1,19 @@
             <!-- Notes Tab -->
-            <div class="tab-pane" id="noteterm-tab">
+            @php
+                $notelist = $clientNotes ?? \App\Models\Note::where('client_id', $fetchedData->id)
+                    ->whereNull('assigned_to')
+                    ->where('type', 'client')
+                    ->with('user')
+                    ->orderby('pin', 'DESC')
+                    ->orderBy('updated_at', 'DESC')
+                    ->get();
+                $matterNotesCount = $notelist->filter(fn ($n) => !empty($n->matter_id))->count();
+                $leadNotesCount = $notelist->filter(fn ($n) => empty($n->matter_id))->count();
+                $showNotesScopeTabs = $matterNotesCount > 0 && $leadNotesCount > 0;
+            @endphp
+            <div class="tab-pane" id="noteterm-tab"
+                data-has-matter-notes="{{ $matterNotesCount > 0 ? '1' : '0' }}"
+                data-has-lead-notes="{{ $leadNotesCount > 0 ? '1' : '0' }}">
                 <div class="card full-width notes-container">
                     <div class="notes-header">
                         <h3>@icon('fa-file-alt') Notes</h3>
@@ -18,6 +32,14 @@
                             </div>
                             <input type="text" id="notes-search-input" class="form-control" placeholder="Search notes..." style="border-left: none;">
                         </div>
+                    </div>
+
+                    <!-- Matter Specific / Lead Notes scope tabs (Case 3 only) -->
+                    <div class="notes-scope-tabs-container" style="margin: 10px 0 0 10px; padding: 10px 0;{{ $showNotesScopeTabs ? '' : ' display: none;' }}">
+                        <nav class="notes-scope-pills note-pills" style="display: flex; gap: 10px;">
+                            <button type="button" class="notes-scope-tab pill-tab active" data-notes-scope="matter">Matter Specific</button>
+                            <button type="button" class="notes-scope-tab pill-tab" data-notes-scope="lead">Lead Notes</button>
+                        </nav>
                     </div>
 
                     <!-- Redesigned Tabs (Hidden) -->
@@ -200,15 +222,6 @@
 
                     <!-- Notes List -->
                     <div class="note_term_list subtab8-content">
-                        @php
-                            $notelist = $clientNotes ?? \App\Models\Note::where('client_id', $fetchedData->id)
-                                ->whereNull('assigned_to')
-                                ->where('type', 'client')
-                                ->with('user')
-                                ->orderby('pin', 'DESC')
-                                ->orderBy('updated_at', 'DESC')
-                                ->get();
-                        @endphp
                         @foreach($notelist as $list)
                             @php
                             $admin = $list->user;
@@ -301,93 +314,148 @@
             </div>
 
             <script>
-            // Make filterNotes globally accessible
-            window.filterNotes = function() {
-                    // Get search text
-                    const searchText = document.getElementById('notes-search-input')?.value.toLowerCase().trim() || '';
-                    
-                    // Get selected matter
-                    let selectedMatter;
-                    if ($('.general_matter_checkbox_client_detail').is(':checked')) {
-                        selectedMatter = $('.general_matter_checkbox_client_detail').val();
+            window.isLeadNoteMatterId = function(matterId) {
+                return matterId === null || matterId === undefined || matterId === '' || matterId === 'null';
+            };
+
+            window.getSelectedMatterForNotes = function() {
+                if (typeof $ !== 'undefined' && $('.general_matter_checkbox_client_detail').is(':checked')) {
+                    return $('.general_matter_checkbox_client_detail').val() || '';
+                }
+                const matterSelect = document.getElementById('sel_matter_id_client_detail');
+                return matterSelect ? (matterSelect.value || '') : '';
+            };
+
+            window.refreshNotesScopeTabs = function() {
+                const tabPane = document.getElementById('noteterm-tab');
+                const container = document.querySelector('.notes-scope-tabs-container');
+                if (!tabPane || !container) {
+                    return;
+                }
+
+                let matterCount = 0;
+                let leadCount = 0;
+                document.querySelectorAll('#noteterm-tab .note-card-redesign').forEach(function(card) {
+                    if (window.isLeadNoteMatterId(card.getAttribute('data-matterid'))) {
+                        leadCount++;
                     } else {
-                        selectedMatter = $('#sel_matter_id_client_detail').val();
+                        matterCount++;
                     }
-                    
-                    // Get active type (default to 'All' if no active tab)
-                    const activeTab = document.querySelector('.subtab8-button.pill-tab.active');
-                    const type = activeTab ? activeTab.getAttribute('data-subtab8') : 'All';
-                    
-                    // Filter notes
-                    document.querySelectorAll('.note-card-redesign').forEach(card => {
-                        const cardType = card.getAttribute('data-type');
-                        
-                        // Type matching
-                        const typeMatch = (type === 'All' || cardType === type);
-                        
-                        // Matter matching: filter by selected matter
-                        let matterMatch = true;
-                        if (selectedMatter && selectedMatter !== '') {
-                            const cardMatter = card.getAttribute('data-matterid');
-                            matterMatch = (cardMatter == selectedMatter);
+                });
+
+                const hasMatterNotes = matterCount > 0;
+                const hasLeadNotes = leadCount > 0;
+                const showScopeTabs = hasMatterNotes && hasLeadNotes;
+
+                tabPane.dataset.hasMatterNotes = hasMatterNotes ? '1' : '0';
+                tabPane.dataset.hasLeadNotes = hasLeadNotes ? '1' : '0';
+                container.style.display = showScopeTabs ? '' : 'none';
+
+                if (showScopeTabs) {
+                    const activeScope = document.querySelector('.notes-scope-tab.pill-tab.active');
+                    if (!activeScope) {
+                        document.querySelectorAll('.notes-scope-tab.pill-tab').forEach(function(tab) {
+                            tab.classList.remove('active');
+                        });
+                        const matterTab = document.querySelector('.notes-scope-tab[data-notes-scope="matter"]');
+                        if (matterTab) {
+                            matterTab.classList.add('active');
                         }
-                        
-                        // Text search matching
-                        let searchMatch = true;
-                        if (searchText) {
-                            // Get all text content from the note card
-                            const noteText = card.textContent.toLowerCase();
-                            searchMatch = noteText.includes(searchText);
-                        }
-                        
-                        // Show/hide based on all conditions
-                        if (typeMatch && matterMatch && searchMatch) {
-                            card.style.display = '';
-                        } else {
-                            card.style.display = 'none';
-                        }
-                    });
-                };
-            
+                    }
+                }
+            };
+
+            window.filterNotes = function() {
+                window.refreshNotesScopeTabs();
+
+                const tabPane = document.getElementById('noteterm-tab');
+                if (!tabPane) {
+                    return;
+                }
+
+                const hasMatterNotes = tabPane.dataset.hasMatterNotes === '1';
+                const hasLeadNotes = tabPane.dataset.hasLeadNotes === '1';
+                const showScopeTabs = hasMatterNotes && hasLeadNotes;
+                const searchText = document.getElementById('notes-search-input')?.value.toLowerCase().trim() || '';
+                const selectedMatter = window.getSelectedMatterForNotes();
+                const activeTypeTab = document.querySelector('.subtab8-button.pill-tab.active');
+                const type = activeTypeTab ? activeTypeTab.getAttribute('data-subtab8') : 'All';
+
+                let scope = 'matter';
+                if (showScopeTabs) {
+                    const activeScopeTab = document.querySelector('.notes-scope-tab.pill-tab.active');
+                    scope = activeScopeTab ? activeScopeTab.getAttribute('data-notes-scope') : 'matter';
+                }
+
+                document.querySelectorAll('#noteterm-tab .note-card-redesign').forEach(function(card) {
+                    const cardType = card.getAttribute('data-type');
+                    const cardMatter = card.getAttribute('data-matterid');
+                    const isLeadNote = window.isLeadNoteMatterId(cardMatter);
+                    const typeMatch = (type === 'All' || cardType === type);
+
+                    let scopeMatch = true;
+                    if (showScopeTabs) {
+                        scopeMatch = (scope === 'lead') ? isLeadNote : !isLeadNote;
+                    }
+
+                    let matterMatch = true;
+                    if (showScopeTabs && scope === 'lead') {
+                        matterMatch = true;
+                    } else if (hasLeadNotes && !hasMatterNotes) {
+                        matterMatch = true;
+                    } else if (selectedMatter && selectedMatter !== '') {
+                        matterMatch = (cardMatter == selectedMatter);
+                    }
+
+                    let searchMatch = true;
+                    if (searchText) {
+                        searchMatch = card.textContent.toLowerCase().includes(searchText);
+                    }
+
+                    card.style.display = (typeMatch && scopeMatch && matterMatch && searchMatch) ? '' : 'none';
+                });
+            };
+
             document.addEventListener('DOMContentLoaded', function() {
-                // Search input event listener
                 const searchInput = document.getElementById('notes-search-input');
                 if (searchInput) {
                     searchInput.addEventListener('input', function() {
                         window.filterNotes();
                     });
-                    
-                    // Also trigger on keyup for better responsiveness
                     searchInput.addEventListener('keyup', function() {
                         window.filterNotes();
                     });
                 }
-                
-                // Keep existing tab click handlers (for compatibility with other scripts)
-                document.querySelectorAll('.subtab8-button.pill-tab').forEach(function(tab) {
+
+                document.querySelectorAll('.notes-scope-tab.pill-tab').forEach(function(tab) {
                     tab.addEventListener('click', function() {
-                        // Remove active from all tabs
-                        document.querySelectorAll('.subtab8-button.pill-tab').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.notes-scope-tab.pill-tab').forEach(function(t) {
+                            t.classList.remove('active');
+                        });
                         this.classList.add('active');
                         window.filterNotes();
                     });
                 });
-                
-                // On page load, ensure All tab is active and shows all notes
+
+                document.querySelectorAll('.subtab8-button.pill-tab').forEach(function(tab) {
+                    tab.addEventListener('click', function() {
+                        document.querySelectorAll('.subtab8-button.pill-tab').forEach(function(t) {
+                            t.classList.remove('active');
+                        });
+                        this.classList.add('active');
+                        window.filterNotes();
+                    });
+                });
+
                 setTimeout(function() {
                     const allTab = document.querySelector('.subtab8-button.pill-tab[data-subtab8="All"]');
                     if (allTab) {
-                        // Remove active from all tabs first
-                        document.querySelectorAll('.subtab8-button.pill-tab').forEach(t => t.classList.remove('active'));
-                        
-                        // Make All tab active
+                        document.querySelectorAll('.subtab8-button.pill-tab').forEach(function(t) {
+                            t.classList.remove('active');
+                        });
                         allTab.classList.add('active');
-                        
-                        // Apply initial filter
-                        window.filterNotes();
-                        
-                        console.log('Page load - All tab activated and notes filtered');
                     }
+                    window.filterNotes();
                 }, 200);
                 
                 // SAFE FIX: Ensure dropdown menus close properly to prevent overlay issues
