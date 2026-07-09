@@ -226,9 +226,12 @@
         // Filter content by matter
         switch(tabId) {
             case 'noteterm':
-                // Ensure All tab is active and trigger initial filtering
                 ensureAllTabActive();
-                filterNotesByMatter(SidebarTabs.selectedMatter);
+                if (typeof window.filterNotes === 'function') {
+                    window.filterNotes();
+                } else {
+                    filterNotesByMatter(SidebarTabs.selectedMatter);
+                }
                 break;
             case 'visadocuments':
                 filterVisaDocumentsByMatter(SidebarTabs.selectedMatter);
@@ -243,6 +246,11 @@
                 }
                 if (typeof window.ensureStageNavBackButtonVisible === 'function') {
                     window.ensureStageNavBackButtonVisible();
+                }
+                break;
+            case 'emails':
+                if (typeof window.loadEmails === 'function') {
+                    window.loadEmails({ forceReload: true });
                 }
                 break;
             case 'workflow':
@@ -280,13 +288,16 @@
      * Filter notes by matter
      */
     function filterNotesByMatter(matterId) {
-        // Get the active task group tab (default to 'All' if none active)
+        if (typeof window.filterNotes === 'function') {
+            window.filterNotes();
+            return;
+        }
+
         const activeTaskGroup = $('.subtab8-button.active').data('subtab8') || 'All';
 
         $('#noteterm-tab').find('.note-card-redesign').each(function() {
             const $note = $(this);
             const noteType = $note.data('type');
-
             const typeMatch = (activeTaskGroup === 'All' || noteType === activeTaskGroup);
 
             let matterMatch = true;
