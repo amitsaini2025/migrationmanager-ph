@@ -54,20 +54,27 @@
 														<!--<label for="stages">Workflow Stages <span class="span_req">*</span></label>-->
 														<div class="workflow_stges">
 															<table class="table">
+																<thead>
+																	<tr>
+																		<th>Stage Name</th>
+																		<th class="text-nowrap">Protected</th>
+																		<th></th>
+																	</tr>
+																</thead>
+																<tbody>
 																<tr>
 																	<td>
 																		<input data-valid="required" type="text" name="stage_name[]" placeholder="Stage Name" class="form-control">
 																	</td>
-																	<td></td>
-																	<td></td>
-																</tr>
-																<!--<tr>
-																	<td>
-																		<input data-valid="required" type="text" name="stage_name[]" placeholder="Stage Name" class="form-control">
+																	<td class="align-middle">
+																		<div class="custom-control custom-checkbox">
+																			<input type="checkbox" class="custom-control-input" id="is_protected_0" name="is_protected[0]" value="1">
+																			<label class="custom-control-label" for="is_protected_0">Protected</label>
+																		</div>
 																	</td>
 																	<td></td>
-																	<td></td>
-																</tr>-->
+																</tr>
+																</tbody>
 															</table>
 														</div>
 														<div class="">
@@ -95,17 +102,24 @@
 @push('scripts')
 <script>
 jQuery(document).ready(function($){
+	var stageRowIndex = 1;
+
 	$('.add_stage').on('click', function(){
+		var rowIndex = stageRowIndex++;
+		var checkboxId = 'is_protected_' + rowIndex;
 		var html = '<tr>'+
             '<td><input type="text" data-valid="required" name="stage_name[]" placeholder="Stage Name" class="form-control"></td>'+
+            '<td class="align-middle"><div class="custom-control custom-checkbox">'+
+				'<input type="checkbox" class="custom-control-input" id="' + checkboxId + '" name="is_protected[' + rowIndex + ']" value="1">'+
+				'<label class="custom-control-label" for="' + checkboxId + '">Protected</label>'+
+			'</div></td>'+
             '<td><a href="javascript:;" class="remove_stage">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fas fa-trash') : '<i class="fas fa-trash"></i>') + '</a></td>'+
-            '<td></td>'+
         '</tr>';
-        $('.workflow_stges table').append(html);
+        $('.workflow_stges table tbody').append(html);
 	});
 
 	$(document).delegate('.remove_stage', 'click', function(){
-		$(this).parent().parent().remove();
+		$(this).closest('tr').remove();
 	});
 });
 </script>

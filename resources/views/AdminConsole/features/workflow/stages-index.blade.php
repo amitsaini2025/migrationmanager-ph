@@ -23,6 +23,19 @@
 		white-space: nowrap;
 		text-align: center;
 	}
+	.workflow-stage-protected-lock {
+		display: inline-flex;
+		align-items: center;
+		margin-left: 0.35rem;
+		vertical-align: middle;
+		color: #d97706;
+		line-height: 1;
+	}
+	.workflow-stage-protected-lock__icon {
+		width: 0.95rem;
+		height: 0.95rem;
+		stroke-width: 2.25;
+	}
 </style>
 @endsection
 
@@ -47,7 +60,7 @@
 							</div>
 						</div>
 						<div class="card-body">
-							<p class="small mb-3 text-muted"><strong>Manage stages</strong> for this workflow below. Use <strong>Add Stage</strong> (top right) to add rows. Stages marked <span class="badge badge-secondary">Protected</span> cannot be renamed or removed — <strong>Edit</strong> still opens the stage (read-only); <strong>Delete</strong> is disabled.</p>
+							<p class="small mb-3 text-muted"><strong>Manage stages</strong> for this workflow below. Use <strong>Add Stage</strong> (top right) to add rows. Locked stages cannot be renamed or removed. You can mark a stage Protected when adding or editing it.</p>
 							<div class="table-responsive common_table">
 								<table class="table text_wrap workflow-stages-table">
 									<thead>
@@ -66,7 +79,7 @@
 										<td>
 											{{ $list->name ?: config('constants.empty', '—') }}
 											@if($stageFrozen)
-											<span class="badge badge-secondary ml-1 align-middle" title="This stage cannot be renamed or deleted">Protected</span>
+											@include('AdminConsole.features.workflow.partials.protected-lock')
 											@endif
 										</td>
 										<td>{{ $countmatters }}</td>

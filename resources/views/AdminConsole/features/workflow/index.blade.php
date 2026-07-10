@@ -1,6 +1,24 @@
 @extends('layouts.crm_client_detail')
 @section('title', 'Workflow Stages')
 
+@section('styles')
+<style>
+	.workflow-stage-protected-lock {
+		display: inline-flex;
+		align-items: center;
+		margin-left: 0.35rem;
+		vertical-align: middle;
+		color: #d97706;
+		line-height: 1;
+	}
+	.workflow-stage-protected-lock__icon {
+		width: 0.95rem;
+		height: 0.95rem;
+		stroke-width: 2.25;
+	}
+</style>
+@endsection
+
 @section('content')
 
 <!-- Main Content -->
@@ -47,13 +65,11 @@
 									$legacyStageFrozen = \App\Support\WorkflowStageFreeze::isFrozen($list->name ?? '', $legacyWorkflowName);
 									?>
 									<tr id="id_{{@$list->id}}">
-                                        <td>{{ @$list->name == "" ? config('constants.empty') : $list->name }}@if($legacyStageFrozen) <span class="badge badge-secondary ml-1">Protected</span>@endif</td>
+                                        <td>{{ @$list->name == "" ? config('constants.empty') : $list->name }}@if($legacyStageFrozen) @include('AdminConsole.features.workflow.partials.protected-lock')@endif</td>
 										<td>{{$countmatters}}</td>
 										<!--<td>{{--@if($list->status == 1) Active @else Inactive @endif--}}</td>-->
 										<td>
-											@if($legacyStageFrozen)
-											<span class="text-muted small">Locked</span>
-											@else
+											@if(!$legacyStageFrozen)
 											<div class="dropdown d-inline">
 												<button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Action</button>
 												<div class="dropdown-menu">

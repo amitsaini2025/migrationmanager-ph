@@ -174,6 +174,8 @@ class WorkflowController extends Controller
         $this->validate($request, [
             'stage_name' => 'required|array',
             'stage_name.*' => 'required|string|max:255',
+            'is_protected' => 'nullable|array',
+            'is_protected.*' => 'nullable|boolean',
             'after_stage_id' => 'nullable|integer|exists:workflow_stages,id',
         ]);
         $workflowId = $request->workflow_id;
@@ -182,6 +184,7 @@ class WorkflowController extends Controller
             $workflowId = $general ? $general->id : null;
         }
         $stages = $request->stage_name;
+        $protectedFlags = $request->input('is_protected', []);
         $afterStageId = $request->input('after_stage_id');
 
         if ($afterStageId && !$workflowId) {
@@ -195,7 +198,7 @@ class WorkflowController extends Controller
             }
         }
 
-        DB::transaction(function () use ($stages, $workflowId, $afterStageId) {
+        DB::transaction(function () use ($stages, $workflowId, $afterStageId, $protectedFlags) {
             if ($afterStageId) {
                 $afterStage = WorkflowStage::where('id', $afterStageId)->lockForUpdate()->first();
                 $effectiveAfter = (int) ($afterStage->sort_order ?? $afterStage->id);
@@ -212,11 +215,12 @@ class WorkflowController extends Controller
                     $row->save();
                 }
                 $pos = 0;
-                foreach ($stages as $stageName) {
+                foreach ($stages as $i => $stageName) {
                     $o = new WorkflowStage();
                     $o->name = $stageName;
                     $o->workflow_id = $workflowId;
                     $o->sort_order = $effectiveAfter + 1 + $pos;
+                    $o->is_protected = !empty($protectedFlags[$i]);
                     $o->save();
                     $pos++;
                 }
@@ -230,11 +234,12 @@ class WorkflowController extends Controller
                 $sortQuery->whereNull('workflow_id');
             }
             $maxSortOrder = (int) ($sortQuery->max('sort_order') ?? $sortQuery->max('id') ?? 0);
-            foreach ($stages as $stageName) {
+            foreach ($stages as $i => $stageName) {
                 $o = new WorkflowStage();
                 $o->name = $stageName;
                 $o->workflow_id = $workflowId;
                 $o->sort_order = ++$maxSortOrder;
+                $o->is_protected = !empty($protectedFlags[$i]);
                 $o->save();
             }
         });
@@ -276,8 +281,9 @@ class WorkflowController extends Controller
         $this->validate($request, [
             'stage_name' => 'required|array',
             'stage_name.*' => 'required|string|max:255',
+            'is_protected' => 'nullable|boolean',
         ]);
-        if ($stage->isFrozen()) {
+        if ($stage->isConfigFrozen()) {
             $workflow = $stage->workflow;
             if ($workflow) {
                 return redirect()->route('adminconsole.features.workflow.stages', base64_encode(convert_uuencode($workflow->id)))
@@ -285,7 +291,20 @@ class WorkflowController extends Controller
             }
             return redirect()->route('adminconsole.features.workflow.index')->with('error', 'This workflow stage is protected and cannot be renamed.');
         }
-        $stage->name = $request->stage_name[0];
+        $wasProtected = (bool) $stage->is_protected;
+        $stage->is_protected = $request->boolean('is_protected');
+        if ($stage->is_protected && $wasProtected) {
+            if ($request->stage_name[0] !== $stage->name) {
+                $workflow = $stage->workflow;
+                if ($workflow) {
+                    return redirect()->route('adminconsole.features.workflow.stages', base64_encode(convert_uuencode($workflow->id)))
+                        ->with('error', 'Protected stages cannot be renamed. Uncheck Protected first.');
+                }
+                return redirect()->route('adminconsole.features.workflow.index')->with('error', 'Protected stages cannot be renamed. Uncheck Protected first.');
+            }
+        } else {
+            $stage->name = $request->stage_name[0];
+        }
         $stage->save();
         $workflow = $stage->workflow;
         if ($workflow) {

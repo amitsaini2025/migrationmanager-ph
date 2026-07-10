@@ -12,8 +12,12 @@ class WorkflowStage extends Model
 	protected $table = 'workflow_stages';
 	
 	protected $fillable = [
-        'id', 'name', 'workflow_id', 'sort_order', 'created_at', 'updated_at'
+        'id', 'name', 'workflow_id', 'sort_order', 'is_protected', 'created_at', 'updated_at'
     ];
+
+	protected $casts = [
+		'is_protected' => 'boolean',
+	];
   
 	public $sortable = ['id', 'name', 'created_at', 'updated_at'];
 
@@ -26,9 +30,9 @@ class WorkflowStage extends Model
 	}
 
 	/**
-	 * Whether this stage is locked (cannot rename/delete in Admin Console).
+	 * Whether this stage is locked by system config rules (name + workflow).
 	 */
-	public function isFrozen(): bool
+	public function isConfigFrozen(): bool
 	{
 		$workflowName = null;
 		if ($this->workflow_id) {
@@ -40,5 +44,13 @@ class WorkflowStage extends Model
 		}
 
 		return WorkflowStageFreeze::isFrozen($this->name, $workflowName);
+	}
+
+	/**
+	 * Whether this stage is locked (cannot rename/delete in Admin Console).
+	 */
+	public function isFrozen(): bool
+	{
+		return (bool) $this->is_protected || $this->isConfigFrozen();
 	}
 }

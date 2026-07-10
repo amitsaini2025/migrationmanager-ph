@@ -33,10 +33,17 @@
 											<h4>Edit Workflow Stage</h4>
 										</div>
 										<div class="accordion-body collapse show" id="primary_info" data-parent="#accordion">
-											@php $stageFrozen = $fetchedData->isFrozen(); @endphp
+											@php
+												$configFrozen = $fetchedData->isConfigFrozen();
+												$stageFrozen = $fetchedData->isFrozen();
+											@endphp
 											@if($stageFrozen)
 											<div class="alert alert-warning" role="alert">
+												@if($configFrozen)
 												<strong>Protected stage.</strong> This stage cannot be renamed or deleted. It is required for consistent matter workflow behaviour.
+												@else
+												<strong>Protected stage.</strong> This stage cannot be renamed or deleted while marked Protected. Uncheck Protected below to allow changes.
+												@endif
 											</div>
 											@endif
 											<div class="row">
@@ -56,6 +63,24 @@
 														>
 													</div>
 												</div>
+												@if(!$configFrozen)
+												<div class="col-12 col-md-12 col-lg-12">
+													<div class="form-group mb-0">
+														<div class="custom-control custom-checkbox">
+															<input
+																type="checkbox"
+																class="custom-control-input"
+																id="is_protected"
+																name="is_protected"
+																value="1"
+																@if($fetchedData->is_protected) checked @endif
+															>
+															<label class="custom-control-label" for="is_protected">Protected</label>
+														</div>
+														<small class="form-text text-muted">Protected stages cannot be renamed or deleted.</small>
+													</div>
+												</div>
+												@endif
 											</div>
 										</div>
 									</div>
@@ -64,7 +89,7 @@
 									@if(isset($workflow) && $workflow)
 									<a href="{{ route('adminconsole.features.workflow.createStage', base64_encode(convert_uuencode($workflow->id))) }}?after={{ rawurlencode(base64_encode(convert_uuencode($fetchedData->id))) }}" class="btn btn-info mr-2">@icon('fa-plus') Add stage after this one</a>
 									@endif
-									@if(!$stageFrozen)
+									@if(!$configFrozen)
 									<button type="submit" class="btn btn-primary">Save Workflow Stage</button>
 									@endif
 								</div>
