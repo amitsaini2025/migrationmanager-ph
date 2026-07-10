@@ -146,7 +146,8 @@
             var warningMessage = '⚠️ WARNING: You are about to delete the visa category "' + title + '"\n\n' +
                 'This action will permanently remove the category from the system.\n\n' +
                 'Requirements:\n' +
-                '• Category must be empty (no documents)\n' +
+                '• Category must have no active documents\n' +
+                '• Any documents in Not Used Documents for this category will also be permanently removed\n' +
                 '• Default categories cannot be deleted\n' +
                 '• Only authorized staff can perform this action\n\n' +
                 'This action CANNOT be undone!\n\n' +
@@ -154,7 +155,7 @@
             if (confirm(warningMessage)) {
                 var confirmMessage = '⚠️ FINAL CONFIRMATION\n\n' +
                     'Are you absolutely sure you want to delete "' + title + '"?\n\n' +
-                    'This will permanently delete the category.\n\n' +
+                    'This will permanently delete the category and any not-used documents linked to it.\n\n' +
                     'Click OK to delete or Cancel to abort.';
                 if (confirm(confirmMessage)) {
                     $.ajax({

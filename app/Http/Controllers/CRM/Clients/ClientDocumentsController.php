@@ -144,6 +144,87 @@ class ClientDocumentsController extends Controller
     }
 
     /**
+     * @return array{removed_count: int, s3_cleanup: list<Document>}
+     */
+    private function collectNotUsedVisaDocumentsForCategory(string $folderName, int $clientId, ?int $clientMatterId): array
+    {
+        $query = Document::query()
+            ->where('folder_name', $folderName)
+            ->where('doc_type', 'visa')
+            ->where('client_id', $clientId)
+            ->where('not_used_doc', 1)
+            ->where('type', 'client');
+
+        if ($clientMatterId !== null) {
+            $query->where('client_matter_id', $clientMatterId);
+        }
+
+        $documents = $query->get();
+
+        return [
+            'removed_count' => $documents->count(),
+            's3_cleanup' => $documents->all(),
+        ];
+    }
+
+    /**
+     * @param list<Document> $documents
+     */
+    private function finalizeDeletedVisaDocuments(int $clientId, array $documents): void
+    {
+        if ($documents === []) {
+            return;
+        }
+
+        $admin = Admin::query()->select('client_id')->where('id', $clientId)->first();
+
+        foreach ($documents as $document) {
+            if (!empty($document->myfile_key) && $admin && !empty($admin->client_id)) {
+                try {
+                    $this->s3Disk()->delete($admin->client_id.'/'.$document->doc_type.'/'.$document->myfile_key);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to delete S3 file for not-used visa document during category deletion', [
+                        'document_id' => $document->id,
+                        'client_id' => $clientId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            $documentName = $document->file_name ?? 'unknown';
+            $matterRef = $this->getMatterReference($clientId);
+            $subject = !empty($matterRef)
+                ? "deleted Visa: {$documentName} - {$matterRef}"
+                : "deleted Visa: {$documentName}";
+
+            $this->logClientActivity(
+                $clientId,
+                $subject,
+                '<p>Deleted visa document (category deleted)</p>',
+                'document'
+            );
+        }
+    }
+
+    /**
+     * Scope visa category document queries to match the Visa Documents tab filters.
+     */
+    private function visaCategoryDocumentQuery(string $folderName, int $clientId, ?int $clientMatterId)
+    {
+        $query = Document::query()
+            ->where('folder_name', $folderName)
+            ->where('doc_type', 'visa')
+            ->where('client_id', $clientId)
+            ->where('type', 'client');
+
+        if ($clientMatterId !== null) {
+            $query->where('client_matter_id', $clientMatterId);
+        }
+
+        return $query;
+    }
+
+    /**
      * Category label for Not Used documents: folder/category title; visa/nomination append matter in brackets.
      */
     private function resolveNotUsedDocumentCategoryLabel(Document $document): string
@@ -2749,23 +2830,48 @@ class ClientDocumentsController extends Controller
                 }
             }
 
-            $documentCount = Document::query()->where('folder_name', $category->id)
-                ->where('doc_type', 'visa')
+            $folderName = (string) $category->id;
+            $clientId = (int) $category->client_id;
+            $clientMatterId = $category->client_matter_id !== null ? (int) $category->client_matter_id : null;
+
+            // Match Visa Documents tab: only active (non–not-used) client rows block deletion
+            $activeDocumentCount = $this->visaCategoryDocumentQuery($folderName, $clientId, $clientMatterId)
+                ->whereNull('not_used_doc')
                 ->count();
 
-            if ($documentCount > 0) {
+            if ($activeDocumentCount > 0) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Cannot delete category. It contains ' . $documentCount . ' document(s). Please remove all documents first.',
+                    'message' => 'Cannot delete category. It contains ' . $activeDocumentCount . ' document(s). Please remove all documents first.',
                 ]);
             }
 
+            $notUsedPayload = $this->collectNotUsedVisaDocumentsForCategory($folderName, $clientId, $clientMatterId);
+            $notUsedDocuments = $notUsedPayload['s3_cleanup'];
+            $notUsedRemovedCount = $notUsedPayload['removed_count'];
+
             $categoryTitle = $category->title;
-            $category->delete();
+
+            DB::transaction(function () use ($notUsedDocuments, $category, $folderName, $clientId, $clientMatterId) {
+                if ($notUsedDocuments !== []) {
+                    $deleteQuery = $this->visaCategoryDocumentQuery($folderName, $clientId, $clientMatterId)
+                        ->where('not_used_doc', 1);
+                    $deleteQuery->delete();
+                }
+
+                $category->delete();
+            });
+
+            $this->finalizeDeletedVisaDocuments($clientId, $notUsedDocuments);
+
+            $message = 'Category "' . $categoryTitle . '" deleted successfully.';
+            if ($notUsedRemovedCount > 0) {
+                $message .= ' ' . $notUsedRemovedCount . ' not-used document(s) were also removed.';
+            }
 
             return response()->json([
                 'status' => true,
-                'message' => 'Category "' . $categoryTitle . '" deleted successfully.',
+                'message' => $message,
             ]);
         } catch (\Exception $e) {
             Log::error('Error deleting visa document category', [
