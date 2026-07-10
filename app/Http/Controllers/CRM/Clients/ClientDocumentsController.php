@@ -83,6 +83,146 @@ class ClientDocumentsController extends Controller
     }
 
     /**
+     * Remove not-used personal documents for a category (scoped to client + category).
+     * DB rows are removed in the caller's transaction; S3 files and activity logs run after commit.
+     *
+     * @return array{removed_count: int, s3_cleanup: list<Document>}
+     */
+    private function collectNotUsedPersonalDocumentsForCategory(string $folderName, int $clientId): array
+    {
+        $documents = Document::query()
+            ->where('folder_name', $folderName)
+            ->where('doc_type', 'personal')
+            ->where('client_id', $clientId)
+            ->where('not_used_doc', 1)
+            ->where('type', 'client')
+            ->get();
+
+        return [
+            'removed_count' => $documents->count(),
+            's3_cleanup' => $documents->all(),
+        ];
+    }
+
+    /**
+     * @param list<Document> $documents
+     */
+    private function finalizeDeletedPersonalDocuments(int $clientId, array $documents): void
+    {
+        if ($documents === []) {
+            return;
+        }
+
+        $admin = Admin::query()->select('client_id')->where('id', $clientId)->first();
+
+        foreach ($documents as $document) {
+            if (!empty($document->myfile_key) && $admin && !empty($admin->client_id)) {
+                try {
+                    $this->s3Disk()->delete($admin->client_id.'/'.$document->doc_type.'/'.$document->myfile_key);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to delete S3 file for not-used personal document during category deletion', [
+                        'document_id' => $document->id,
+                        'client_id' => $clientId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            $documentName = $document->file_name ?? 'unknown';
+            $matterRef = $this->getMatterReference($clientId);
+            $subject = !empty($matterRef)
+                ? "deleted Personal: {$documentName} - {$matterRef}"
+                : "deleted Personal: {$documentName}";
+
+            $this->logClientActivity(
+                $clientId,
+                $subject,
+                '<p>Deleted personal document (category deleted)</p>',
+                'document'
+            );
+        }
+    }
+
+    /**
+     * Category label for Not Used documents: folder/category title; visa/nomination append matter in brackets.
+     */
+    private function resolveNotUsedDocumentCategoryLabel(Document $document): string
+    {
+        $folderName = $document->folder_name;
+        if ($folderName === null || $folderName === '') {
+            return '';
+        }
+
+        $categoryTitle = null;
+        if ($document->doc_type === 'personal') {
+            $categoryTitle = PersonalDocumentType::query()->where('id', $folderName)->value('title');
+        } elseif ($document->doc_type === 'visa') {
+            $categoryTitle = VisaDocumentType::query()->where('id', $folderName)->value('title');
+        } elseif ($document->doc_type === 'nomination') {
+            $categoryTitle = NominationDocumentType::query()->where('id', $folderName)->value('title');
+        }
+
+        if (!$categoryTitle) {
+            return '';
+        }
+
+        if (in_array($document->doc_type, ['visa', 'nomination'], true) && !empty($document->client_matter_id)) {
+            $clientMatter = ClientMatter::with('matter:id,title')->find($document->client_matter_id);
+            if ($clientMatter) {
+                $matterLabel = $clientMatter->client_unique_matter_no ?? '';
+                if ($clientMatter->matter && !empty($clientMatter->matter->title)) {
+                    $matterLabel = trim($matterLabel) !== ''
+                        ? $matterLabel . ' - ' . $clientMatter->matter->title
+                        : $clientMatter->matter->title;
+                }
+                if ($matterLabel !== '') {
+                    return $categoryTitle . ' (' . $matterLabel . ')';
+                }
+            }
+        }
+
+        return $categoryTitle;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildNotUsedDocumentJsonResponse(Document $docInfo, string $docType, $docId): array
+    {
+        $addedBy = 'N/A';
+        $addedDate = 'N/A';
+        if (!empty($docInfo->user_id) && $docInfo->staff) {
+            $addedBy = $docInfo->staff->first_name;
+            $addedDate = date('d/m/Y', strtotime($docInfo->created_at));
+        }
+
+        $categoryLabel = '';
+        try {
+            $categoryLabel = $this->resolveNotUsedDocumentCategoryLabel($docInfo);
+        } catch (\Exception $e) {
+            Log::warning('Failed to resolve not-used document category label', [
+                'document_id' => $docInfo->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return [
+            'status' => true,
+            'message' => 'Document moved to Not Used tab',
+            'data' => $docType.' document moved to Not Used Tab',
+            'doc_type' => $docType,
+            'doc_id' => $docId,
+            'doc_category' => $docInfo->folder_name ?? '',
+            'category_label' => $categoryLabel,
+            'docInfo' => $docInfo->toArray(),
+            'Added_By' => $addedBy,
+            'Added_date' => $addedDate,
+            'Verified_By' => 'N/A',
+            'Verified_At' => 'N/A',
+        ];
+    }
+
+    /**
      * Add Personal/Education Document Checklist
      */
     public function addedudocchecklist(Request $request){
@@ -1956,57 +2096,27 @@ class ClientDocumentsController extends Controller
             if ($this->blockEchoUnlessStaffClientAccess((int) ($docInfo->client_id ?? 0))) {
                 return;
             }
-            $upd = DB::table('documents')->where('id', $doc_id)->update(array('not_used_doc' => 1));
-            if($upd){
+
+            $alreadyNotUsed = (int) ($docInfo->not_used_doc ?? 0) === 1;
+            if (!$alreadyNotUsed) {
+                DB::table('documents')->where('id', $doc_id)->update(['not_used_doc' => 1]);
+                $docInfo->not_used_doc = 1;
+
                 $matterRef = $this->getMatterReference($docInfo->client_id);
-                $subject = !empty($matterRef) 
+                $subject = !empty($matterRef)
                     ? "moved {$doc_type} Document to Not Used - {$matterRef}"
                     : "moved {$doc_type} Document to Not Used";
-                $description = "<p>Document moved to Not Used tab</p>";
-                
+                $description = '<p>Document moved to Not Used tab</p>';
+
                 $this->logClientActivity(
                     $docInfo->client_id,
                     $subject,
                     $description,
                     'document'
                 );
-
-                if($docInfo){
-                    if( isset($docInfo->user_id) && $docInfo->user_id!= "" && $docInfo->staff ){
-                        $response['Added_By'] = $docInfo->staff->first_name;
-                        $response['Added_date'] = date('d/m/Y',strtotime($docInfo->created_at));
-                    } else {
-                        $response['Added_By'] = "N/A";
-                        $response['Added_date'] = "N/A";
-                    }
-
-                    $response['Verified_By'] = "N/A";
-                    $response['Verified_At'] = "N/A";
-                }
-
-                $response['docInfo'] = $docInfo;
-                $response['doc_type'] = $doc_type;
-                $response['doc_id'] = $doc_id;
-
-                if(isset($docInfo->doc_type) && $docInfo->doc_type == 'personal'){
-                    $response['doc_category'] = $docInfo->folder_name;
-                } else {
-                    $response['doc_category'] = "";
-                }
-                $response['status'] = true;
-                $response['data'] = $doc_type.' document moved to Not Used Tab';
-            } else {
-                $response['status'] = false;
-                $response['message'] = 'Please try again';
-                $response['doc_type'] = "";
-                $response['doc_id'] = "";
-                $response['docInfo'] = "";
-                $response['doc_category'] = "";
-                $response['Added_By'] = "";
-                $response['Added_date'] = "";
-                $response['Verified_By'] = "";
-                $response['Verified_At'] = "";
             }
+
+            $response = $this->buildNotUsedDocumentJsonResponse($docInfo, $doc_type, $doc_id);
         } else {
             $response['status'] = false;
             $response['message'] = 'Please try again';
@@ -2834,25 +2944,61 @@ class ClientDocumentsController extends Controller
                 ]);
             }
 
-            // Check if category is empty (no documents with this folder_name)
-            $documentCount = Document::query()->where('folder_name', $category->id)
+            if ($category->client_id !== null && $category->client_id !== '' && is_numeric($category->client_id)) {
+                if ($deny = $this->denyJsonUnlessStaffClientAccess((int) $category->client_id)) {
+                    return $deny;
+                }
+            }
+
+            $folderName = (string) $category->id;
+            $clientId = (int) $category->client_id;
+
+            // Match Personal Documents tab: only active (non–not-used) client rows block deletion
+            $activeDocumentCount = Document::query()
+                ->where('folder_name', $folderName)
                 ->where('doc_type', 'personal')
+                ->where('client_id', $clientId)
+                ->whereNull('not_used_doc')
+                ->where('type', 'client')
                 ->count();
 
-            if ($documentCount > 0) {
+            if ($activeDocumentCount > 0) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Cannot delete category. It contains ' . $documentCount . ' document(s). Please remove all documents first.'
+                    'message' => 'Cannot delete category. It contains ' . $activeDocumentCount . ' document(s). Please remove all documents first.',
                 ]);
             }
 
-            // Delete the category
+            $notUsedPayload = $this->collectNotUsedPersonalDocumentsForCategory($folderName, $clientId);
+            $notUsedDocuments = $notUsedPayload['s3_cleanup'];
+            $notUsedRemovedCount = $notUsedPayload['removed_count'];
+
             $categoryTitle = $category->title;
-            $category->delete();
+
+            DB::transaction(function () use ($notUsedDocuments, $category, $folderName, $clientId) {
+                if ($notUsedDocuments !== []) {
+                    Document::query()
+                        ->where('folder_name', $folderName)
+                        ->where('doc_type', 'personal')
+                        ->where('client_id', $clientId)
+                        ->where('not_used_doc', 1)
+                        ->where('type', 'client')
+                        ->delete();
+                }
+
+                $category->delete();
+            });
+
+            $this->finalizeDeletedPersonalDocuments($clientId, $notUsedDocuments);
+
+            $message = 'Category "' . $categoryTitle . '" deleted successfully.';
+            if ($notUsedRemovedCount > 0) {
+                $message .= ' ' . $notUsedRemovedCount . ' not-used document(s) were also removed.';
+            }
 
             return response()->json([
                 'status' => true,
-                'message' => 'Category "' . $categoryTitle . '" deleted successfully.'
+                'message' => $message,
             ]);
 
         } catch (\Exception $e) {

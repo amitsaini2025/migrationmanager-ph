@@ -14,6 +14,134 @@
     }
     window.safeParseJsonResponse = safeParseJsonResponse;
 
+    function removeDocumentRowFromSourceTab(res) {
+        var docId = res && res.doc_id;
+        if (!docId) {
+            return;
+        }
+
+        if (res.doc_type === 'personal') {
+            var categoryId = res.doc_category || '';
+            if (categoryId) {
+                $('.documnetlist_' + categoryId + ' #id_' + docId).remove();
+                $('.griddata_' + categoryId + ' #gid_' + docId).remove();
+            }
+        } else if (res.doc_type === 'visa' || res.doc_type === 'nomination') {
+            $('.migdocumnetlist1 #id_' + docId).remove();
+        }
+
+        $('#id_' + docId).remove();
+        $('#gid_' + docId).remove();
+    }
+
+    function buildNotUsedDocumentRow(res) {
+        if (!res || !res.docInfo) {
+            return null;
+        }
+
+        var doc = res.docInfo;
+        if ($('.notuseddocumnetlist #id_' + doc.id).length) {
+            return null;
+        }
+
+        var fileUrl = '';
+        var filePreviewPath = '';
+        if (doc.myfile_key && doc.myfile_key !== '') {
+            fileUrl = doc.myfile || '';
+            filePreviewPath = doc.myfile || '';
+        } else if (doc.myfile) {
+            var awsBucket = window.ClientDetailConfig?.aws?.bucket || '';
+            var awsRegion = window.ClientDetailConfig?.aws?.region || 'ap-southeast-2';
+            var clientId = window.ClientDetailConfig?.clientId || '';
+            fileUrl = 'https://' + awsBucket + '.s3.' + awsRegion + '.amazonaws.com/' + clientId + '/' + doc.doc_type + '/' + doc.myfile;
+            filePreviewPath = fileUrl;
+        }
+
+        var uploadedBy = res.Added_By || 'NA';
+        var uploadedDate = doc.created_at ? formatClientDocDateTime(doc.created_at) : '';
+        var uploadTitle = 'Uploaded by: ' + uploadedBy + (uploadedDate ? ' on ' + uploadedDate : '');
+        var badgeClass = doc.doc_type === 'personal' ? 'primary' : 'success';
+        var docTypeLabel = doc.doc_type ? doc.doc_type.charAt(0).toUpperCase() + doc.doc_type.slice(1) : 'N/A';
+        var fileName = doc.file_name || '';
+        var fileExt = doc.filetype || '';
+        var categoryLabel = res.category_label || '';
+
+        var $tr = $('<tr class="drow"></tr>').attr('id', 'id_' + doc.id);
+        var $checklistTd = $('<td style="white-space: initial;"></td>');
+        $checklistTd.append($('<span></span>').attr('title', uploadTitle).text(doc.checklist || 'N/A'));
+        if (categoryLabel) {
+            $checklistTd.append(
+                $('<small style="display: block; margin-top: 4px; color: #6b7280; font-size: 12px;"></small>').text(categoryLabel)
+            );
+        }
+        $tr.append($checklistTd);
+
+        var $typeTd = $('<td style="white-space: initial;"></td>');
+        $typeTd.append($('<span class="badge badge-' + badgeClass + '"></span>').text(docTypeLabel));
+        $tr.append($typeTd);
+
+        var $fileTd = $('<td style="white-space: initial;"></td>');
+        if (fileName) {
+            var $docRow = $('<div class="doc-row"></div>')
+                .attr('data-id', doc.id)
+                .attr('data-name', fileName)
+                .attr('title', uploadTitle);
+            $docRow.on('contextmenu', function(event) {
+                event.preventDefault();
+                if (typeof showNotUsedFileContextMenu === 'function') {
+                    showNotUsedFileContextMenu(event, doc.id, fileExt, fileUrl, doc.doc_type, doc.status || 'draft');
+                }
+                return false;
+            });
+            var $link = $('<a href="javascript:void(0);"></a>').on('click', function() {
+                if (typeof previewFile === 'function') {
+                    previewFile(fileExt, filePreviewPath, 'preview-container-notuseddocumnetlist');
+                }
+            });
+            if (typeof crmI === 'function') {
+                $link.append(crmI('fas fa-file-image'));
+            }
+            $link.append(document.createTextNode(' '));
+            $link.append($('<span></span>').text(fileName + (fileExt ? '.' + fileExt : '')));
+            $docRow.append($link);
+            $fileTd.append($docRow);
+        } else {
+            $fileTd.text('N/A');
+        }
+        $tr.append($fileTd);
+
+        var $actionsTd = $('<td></td>');
+        $actionsTd.append(
+            $('<a class="deletenote" href="javascript:;" style="display: none;"></a>')
+                .attr('data-id', doc.id)
+                .attr('data-doccategory', doc.doc_type)
+                .attr('data-href', 'deletedocs')
+        );
+        $actionsTd.append(
+            $('<a class="backtodoc" href="javascript:;" style="display: none;"></a>')
+                .attr('data-id', doc.id)
+                .attr('data-doctype', doc.doc_type)
+                .attr('data-href', 'backtodoc')
+        );
+        $tr.append($actionsTd);
+
+        return $tr;
+    }
+
+    function applyNotUsedMoveSuccess(res) {
+        removeDocumentRowFromSourceTab(res);
+        var $row = buildNotUsedDocumentRow(res);
+        if ($row) {
+            $('.notuseddocumnetlist').append($row);
+        }
+        if (typeof getallactivities === 'function') {
+            getallactivities();
+        }
+        if (typeof toastr !== 'undefined') {
+            toastr.success('Document moved to Not Used tab');
+        }
+    }
+
     function clientDetailDocFilenameMessage() {
         return (typeof mmDocumentFilenameValidationMessage === 'function')
             ? mmDocumentFilenameValidationMessage()
@@ -6355,225 +6483,77 @@ success: function(response) {
 
 
 
-        // Move the notuseddoc click handler inside document ready
-
-        $(document).on('click', '.notuseddoc', function(e){
-
+        $(document).off('click.notuseddoc', '.notuseddoc').on('click.notuseddoc', '.notuseddoc', function(e) {
             e.preventDefault();
-
-            
-
-            
-
-            // Check if modal exists
-
-            if($('#confirmNotUseDocModal').length === 0) {
-
-                console.error('Modal #confirmNotUseDocModal not found!');
-
-                return;
-
-            }
-
-            
-
-            $('#confirmNotUseDocModal').modal('show');
-
-            notuse_doc_id = $(this).attr('data-id');
-
-            notuse_doc_href = $(this).attr('data-href');
-
-            notuse_doc_type = $(this).attr('data-doctype');
-
-            
-
-        });
-
-
-
-        // Alternative approach using delegate for better compatibility
-
-        $(document).delegate('.notuseddoc', 'click', function(e){
-
-            e.preventDefault();
-
-            
-
-            // Check if modal exists
-
-            if($('#confirmNotUseDocModal').length === 0) {
-
-                console.error('Modal #confirmNotUseDocModal not found!');
-
-                return;
-
-            }
-
-            
-
-            $('#confirmNotUseDocModal').modal('show');
-
-            notuse_doc_id = $(this).attr('data-id');
-
-            notuse_doc_href = $(this).attr('data-href');
-
-            notuse_doc_type = $(this).attr('data-doctype');
-
-        });
-
-
-
-        // Test if elements with .notuseddoc class exist
-
-        $('.notuseddoc').each(function(index) {
-
-            // Add a test click handler to see if the element is clickable
-
-            $(this).css('cursor', 'pointer');
-
-        });
-
-
-
-        // Additional fallback - bind directly to existing elements
-
-        $('.notuseddoc').off('click').on('click', function(e) {
-
-            e.preventDefault();
-
             e.stopPropagation();
 
-            $('#confirmNotUseDocModal').modal('show');
+            if ($('#confirmNotUseDocModal').length === 0) {
+                console.error('Modal #confirmNotUseDocModal not found!');
+                return;
+            }
 
             notuse_doc_id = $(this).attr('data-id');
-
             notuse_doc_href = $(this).attr('data-href');
-
             notuse_doc_type = $(this).attr('data-doctype');
-
+            $('#confirmNotUseDocModal').modal('show');
         });
 
-
-
-        $(document).delegate('#confirmNotUseDocModal .accept', 'click', function(){
+        $(document).off('click.notusedconfirm', '#confirmNotUseDocModal .accept').on('click.notusedconfirm', '#confirmNotUseDocModal .accept', function() {
+            if (!notuse_doc_id) {
+                return;
+            }
 
             $('.popuploader').show();
 
             $.ajax({
-
                 url: window.ClientDetailConfig.urls.admin + '/documents/not-used',
-
-                type:'POST',
-
-                dataType:'json',
-
-                data:{doc_id:notuse_doc_id, doc_type:notuse_doc_type },
-
-                success:function(response){
-
+                type: 'POST',
+                dataType: 'json',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                data: {
+                    doc_id: notuse_doc_id,
+                    doc_type: notuse_doc_type,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
                     $('.popuploader').hide();
 
                     var res = safeParseJsonResponse(response);
-                    if (!res) return;
+                    if (!res) {
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error('Invalid response while moving document. Please refresh the page.');
+                        }
+                        return;
+                    }
+
                     $('#confirmNotUseDocModal').modal('hide');
 
-                    if(res.status){
-
-                        // Remove document from current tab (Personal or Visa)
-                        if(res.doc_type == 'personal') {
-                            $('.documnetlist_'+res.doc_category+' #id_'+res.doc_id).remove();
-                        } else if( res.doc_type == 'visa' || res.doc_type == 'nomination') {
-                            $('.migdocumnetlist1 #id_'+res.doc_id).remove();
-                        }
-
-                        // Add document to "Not Used" tab dynamically
-                        if(res.docInfo) {
-                            var doc = res.docInfo;
-                            
-                            // Construct file URL (same logic as blade template)
-                            var fileUrl = '';
-                            var filePreviewPath = '';
-                            if(doc.myfile_key && doc.myfile_key !== "") {
-                                // New file upload
-                                fileUrl = doc.myfile;
-                                filePreviewPath = doc.myfile;
-                            } else {
-                                // Old file upload
-                                var awsBucket = window.ClientDetailConfig?.aws?.bucket || '';
-                                var awsRegion = window.ClientDetailConfig?.aws?.region || 'ap-southeast-2';
-                                var clientId = window.ClientDetailConfig?.clientId || '';
-                                fileUrl = 'https://' + awsBucket + '.s3.' + awsRegion + '.amazonaws.com/' + clientId + '/' + doc.doc_type + '/' + doc.myfile;
-                                filePreviewPath = fileUrl;
+                    if (res.status) {
+                        try {
+                            applyNotUsedMoveSuccess(res);
+                        } catch (err) {
+                            console.error('Error updating UI after moving document to Not Used tab', err);
+                            if (typeof toastr !== 'undefined') {
+                                toastr.warning('Document moved, but the page needs a refresh to show the latest list.');
                             }
-                            
-                            // Build the row HTML matching the blade template structure
-                            var uploadedBy = res.Added_By || 'NA';
-                            var uploadedDate = doc.created_at ? formatClientDocDateTime(doc.created_at) : '';
-                            var uploadTitle = 'Uploaded by: ' + uploadedBy + (uploadedDate ? ' on ' + uploadedDate : '');
-                            var badgeClass = doc.doc_type === 'personal' ? 'primary' : 'success';
-                            var fileName = doc.file_name || 'document';
-                            var fileExt = doc.filetype || '';
-                            
-                            var trRow = '<tr class="drow" id="id_' + doc.id + '">' +
-                                '<td style="white-space: initial;">' +
-                                    '<span title="' + uploadTitle + '">' + (doc.checklist || 'N/A') + '</span>' +
-                                '</td>' +
-                                '<td style="white-space: initial;">' +
-                                    '<span class="badge badge-' + badgeClass + '">' + (doc.doc_type ? doc.doc_type.charAt(0).toUpperCase() + doc.doc_type.slice(1) : 'N/A') + '</span>' +
-                                '</td>' +
-                                '<td style="white-space: initial;">';
-                            
-                            if(fileName && fileName !== "") {
-                                trRow += '<div data-id="' + doc.id + '" data-name="' + fileName + '" class="doc-row" title="' + uploadTitle + '" ' +
-                                    'oncontextmenu="showNotUsedFileContextMenu(event, ' + doc.id + ', \'' + fileExt + '\', \'' + fileUrl + '\', \'' + doc.doc_type + '\', \'' + (doc.status || 'draft') + '\'); return false;">' +
-                                    '<a href="javascript:void(0);" onclick="previewFile(\'' + fileExt + '\',\'' + filePreviewPath + '\',\'preview-container-notuseddocumnetlist\')">' +
-                                        crmI('fas fa-file-image') + ' <span>' + fileName + '.' + fileExt + '</span>' +
-                                    '</a>' +
-                                '</div>';
-                            } else {
-                                trRow += 'N/A';
-                            }
-                            
-                            trRow += '</td>' +
-                                '<td>' +
-                                    '<a data-id="' + doc.id + '" class="deletenote" data-doccategory="' + doc.doc_type + '" data-href="deletedocs" href="javascript:;" style="display: none;"></a>' +
-                                    '<a data-id="' + doc.id + '" class="backtodoc" data-doctype="' + doc.doc_type + '" data-href="backtodoc" href="javascript:;" style="display: none;"></a>' +
-                                '</td>' +
-                            '</tr>';
-
-                            // Append to Not Used documents list
-                            $('.notuseddocumnetlist').append(trRow);
-                            
-
                         }
-
-                        // Update activity log without page reload
-                        getallactivities();
-                        
-                        // Show success message
-                        if(typeof toastr !== 'undefined') {
-                            toastr.success('Document moved to Not Used tab');
-                        }
-
                     } else {
-                        console.error('✗ Failed to move document to Not Used tab', res);
-                        if(typeof toastr !== 'undefined') {
+                        console.error('Failed to move document to Not Used tab', res);
+                        if (typeof toastr !== 'undefined') {
                             toastr.error(res.message || 'Failed to move document');
                         }
                     }
-
                 },
-
                 error: function(xhr, status, error) {
                     $('.popuploader').hide();
-                    console.error('✗ AJAX error moving document to Not Used tab', {status: status, error: error});
-                    if(typeof toastr !== 'undefined') {
+                    console.error('AJAX error moving document to Not Used tab', {status: status, error: error});
+                    if (typeof toastr !== 'undefined') {
                         toastr.error('Error moving document. Please try again.');
                     }
                 }
-
             });
-
         });
 
 

@@ -28,13 +28,86 @@
                                             ->orWhere('doc_type','visa')
                                             ->orWhere('doc_type','nomination');
                                         })->orderBy('type', 'DESC')->get();
+
+                                        $personalCategoryIds = $fetchd->where('doc_type', 'personal')->pluck('folder_name')->filter()->unique()->values();
+                                        $visaCategoryIds = $fetchd->where('doc_type', 'visa')->pluck('folder_name')->filter()->unique()->values();
+                                        $nominationCategoryIds = $fetchd->where('doc_type', 'nomination')->pluck('folder_name')->filter()->unique()->values();
+
+                                        $personalCategoryTitles = $personalCategoryIds->isNotEmpty()
+                                            ? \App\Models\PersonalDocumentType::whereIn('id', $personalCategoryIds)->pluck('title', 'id')
+                                            : collect();
+                                        $visaCategoryTitles = $visaCategoryIds->isNotEmpty()
+                                            ? \App\Models\VisaDocumentType::whereIn('id', $visaCategoryIds)->pluck('title', 'id')
+                                            : collect();
+                                        $nominationCategoryTitles = $nominationCategoryIds->isNotEmpty()
+                                            ? \App\Models\NominationDocumentType::whereIn('id', $nominationCategoryIds)->pluck('title', 'id')
+                                            : collect();
+
+                                        $matterIds = $fetchd->whereIn('doc_type', ['visa', 'nomination'])
+                                            ->pluck('client_matter_id')
+                                            ->filter()
+                                            ->unique()
+                                            ->values();
+                                        $matterDisplayNames = collect();
+                                        if ($matterIds->isNotEmpty()) {
+                                            $matterDisplayNames = \App\Models\ClientMatter::with('matter:id,title')
+                                                ->whereIn('id', $matterIds)
+                                                ->get()
+                                                ->mapWithKeys(function ($clientMatter) {
+                                                    $label = $clientMatter->client_unique_matter_no ?? '';
+                                                    if ($clientMatter->matter && !empty($clientMatter->matter->title)) {
+                                                        $label = trim($label) !== ''
+                                                            ? $label . ' - ' . $clientMatter->matter->title
+                                                            : $clientMatter->matter->title;
+                                                    }
+
+                                                    return [$clientMatter->id => ($label !== '' ? $label : 'N/A')];
+                                                });
+                                        }
+
                                         foreach($fetchd as $notuseKey=>$fetch)
                                         {
                                             $admin = \App\Models\Staff::where('id', $fetch->user_id)->first();
+
+                                            $categoryLabel = '';
+                                            if ($fetch->doc_type === 'personal') {
+                                                $categoryTitle = $personalCategoryTitles->get((int) $fetch->folder_name)
+                                                    ?? $personalCategoryTitles->get($fetch->folder_name);
+                                                if ($categoryTitle) {
+                                                    $categoryLabel = $categoryTitle;
+                                                }
+                                            } elseif ($fetch->doc_type === 'visa') {
+                                                $categoryTitle = $visaCategoryTitles->get((int) $fetch->folder_name)
+                                                    ?? $visaCategoryTitles->get($fetch->folder_name);
+                                                if ($categoryTitle) {
+                                                    $categoryLabel = $categoryTitle;
+                                                    if (!empty($fetch->client_matter_id)) {
+                                                        $matterName = $matterDisplayNames->get((int) $fetch->client_matter_id);
+                                                        if ($matterName) {
+                                                            $categoryLabel .= ' (' . $matterName . ')';
+                                                        }
+                                                    }
+                                                }
+                                            } elseif ($fetch->doc_type === 'nomination') {
+                                                $categoryTitle = $nominationCategoryTitles->get((int) $fetch->folder_name)
+                                                    ?? $nominationCategoryTitles->get($fetch->folder_name);
+                                                if ($categoryTitle) {
+                                                    $categoryLabel = $categoryTitle;
+                                                    if (!empty($fetch->client_matter_id)) {
+                                                        $matterName = $matterDisplayNames->get((int) $fetch->client_matter_id);
+                                                        if ($matterName) {
+                                                            $categoryLabel .= ' (' . $matterName . ')';
+                                                        }
+                                                    }
+                                                }
+                                            }
                                             ?>
                                             <tr class="drow" id="id_{{$fetch->id}}">
                                                 <td style="white-space: initial;">
-                                                    <span title="Uploaded by: <?php echo ($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>"><?php echo $fetch->checklist; ?></span>
+                                                    <span title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>"><?php echo htmlspecialchars($fetch->checklist ?? ''); ?></span>
+                                                    <?php if ($categoryLabel !== ''): ?>
+                                                        <small style="display: block; margin-top: 4px; color: #6b7280; font-size: 12px;"><?php echo htmlspecialchars($categoryLabel); ?></small>
+                                                    <?php endif; ?>
                                                 </td>
                                                 <td style="white-space: initial;">
                                                     <span class="badge badge-<?php echo $fetch->doc_type === 'personal' ? 'primary' : 'success'; ?>">
