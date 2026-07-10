@@ -7,7 +7,34 @@ namespace App\Support;
  */
 class WorkflowStageFreeze
 {
-    public static function isFrozen(?string $name): bool
+    public static function isFrozen(?string $name, ?string $workflowName = null): bool
+    {
+        if (!self::matchesFrozenStageName($name)) {
+            return false;
+        }
+
+        if (config('workflow.freeze_protected_stages_only_on_general_workflow', true)) {
+            if ($workflowName === null || trim($workflowName) === '') {
+                // Legacy stages without workflow context stay protected.
+                return true;
+            }
+
+            return self::isGeneralWorkflowName($workflowName);
+        }
+
+        return true;
+    }
+
+    public static function isGeneralWorkflowName(?string $name): bool
+    {
+        if ($name === null || trim($name) === '') {
+            return false;
+        }
+
+        return mb_strtolower(trim($name)) === 'general';
+    }
+
+    public static function matchesFrozenStageName(?string $name): bool
     {
         if ($name === null || $name === '') {
             return false;

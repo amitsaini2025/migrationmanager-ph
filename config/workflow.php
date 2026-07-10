@@ -28,4 +28,15 @@ return [
         'verification',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Scope protected stages to the General workflow only
+    |--------------------------------------------------------------------------
+    |
+    | When true, stages matching the frozen rules above are only locked on the
+    | General workflow. Custom workflows may rename or delete those stages.
+    |
+    */
+    'freeze_protected_stages_only_on_general_workflow' => true,
+
 ];

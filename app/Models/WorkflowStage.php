@@ -30,6 +30,15 @@ class WorkflowStage extends Model
 	 */
 	public function isFrozen(): bool
 	{
-		return WorkflowStageFreeze::isFrozen($this->name);
+		$workflowName = null;
+		if ($this->workflow_id) {
+			if ($this->relationLoaded('workflow') && $this->workflow) {
+				$workflowName = $this->workflow->name;
+			} else {
+				$workflowName = $this->workflow()->value('name');
+			}
+		}
+
+		return WorkflowStageFreeze::isFrozen($this->name, $workflowName);
 	}
 }

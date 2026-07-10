@@ -128,6 +128,7 @@ class WorkflowController extends Controller
             return redirect()->route('adminconsole.features.workflow.index')->with('error', 'Workflow not found');
         }
         $lists = WorkflowStage::where('workflow_id', $workflow->id)
+            ->with('workflow')
             ->orderByRaw('COALESCE(sort_order, id) ASC')
             ->paginate(config('constants.limit', 50));
 
@@ -254,7 +255,7 @@ class WorkflowController extends Controller
     public function edit($id)
     {
         $id = $this->decodeString($id);
-        $fetchedData = WorkflowStage::find($id);
+        $fetchedData = WorkflowStage::with('workflow')->find($id);
         if (!$fetchedData) {
             return redirect()->route('adminconsole.features.workflow.index')->with('error', 'Workflow Stage Not Found');
         }
@@ -268,7 +269,7 @@ class WorkflowController extends Controller
     public function update(Request $request, $id)
     {
         $id = $this->decodeString($id);
-        $stage = WorkflowStage::find($id);
+        $stage = WorkflowStage::with('workflow')->find($id);
         if (!$stage) {
             return redirect()->route('adminconsole.features.workflow.index')->with('error', 'Workflow Stage Not Found');
         }

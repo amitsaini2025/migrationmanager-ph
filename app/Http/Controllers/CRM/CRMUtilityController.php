@@ -31,7 +31,7 @@ use App\Services\CrmSentEmailS3Service;
 use App\Support\ComposeEmailPayload;
 use App\Support\SendGridFromAllowedDomains;
 use App\Support\StaffClientVisibility;
-use App\Support\WorkflowStageFreeze;
+use App\Models\WorkflowStage;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Log;
 
@@ -841,8 +841,8 @@ class CRMUtilityController extends Controller
                             }
                         }
                         else if ($requestData['table'] == 'workflow_stages') {
-                            $row = DB::table('workflow_stages')->where('id', $requestData['id'])->first();
-                            if ($row && WorkflowStageFreeze::isFrozen($row->name)) {
+                            $stage = WorkflowStage::with('workflow')->find($requestData['id']);
+                            if ($stage && $stage->isFrozen()) {
                                 $message = 'This workflow stage is frozen and cannot be deleted.';
                             } else {
                                 $response = DB::table($requestData['table'])->where('id', @$requestData['id'])->delete();

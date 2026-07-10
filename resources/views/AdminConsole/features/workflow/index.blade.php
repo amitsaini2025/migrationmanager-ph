@@ -41,7 +41,10 @@
 								@foreach (@$lists as $list)
 									<?php
 									$countmatters = \App\Models\ClientMatter::where('workflow_stage_id', $list->id)->count();
-									$legacyStageFrozen = \App\Support\WorkflowStageFreeze::isFrozen($list->name ?? '');
+									$legacyWorkflowName = isset($list->workflow_id) && $list->workflow_id
+										? optional(\App\Models\Workflow::find($list->workflow_id))->name
+										: null;
+									$legacyStageFrozen = \App\Support\WorkflowStageFreeze::isFrozen($list->name ?? '', $legacyWorkflowName);
 									?>
 									<tr id="id_{{@$list->id}}">
                                         <td>{{ @$list->name == "" ? config('constants.empty') : $list->name }}@if($legacyStageFrozen) <span class="badge badge-secondary ml-1">Protected</span>@endif</td>
