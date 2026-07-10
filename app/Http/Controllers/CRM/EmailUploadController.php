@@ -18,6 +18,7 @@ use App\Models\ClientMatter;
 use App\Models\Admin;
 use App\Models\PersonalDocumentType;
 use App\Models\VisaDocumentType;
+use App\Support\DocumentStoredFilename;
 use App\Traits\LogsClientActivity;
 
 /**
@@ -308,16 +309,37 @@ class EmailUploadController extends Controller
         }
 
         $originalFilename = $attachmentData['filename'] ?? 'attachment';
-        $extension = pathinfo($originalFilename, PATHINFO_EXTENSION);
-        $customStem = $this->sanitizeAttachmentDisplayName(
+        $extension = strtolower((string) pathinfo($originalFilename, PATHINFO_EXTENSION));
+        if ($extension === '') {
+            $extension = 'pdf';
+        }
+
+        $checklistName = $this->sanitizeAttachmentDisplayName(
             (string) ($storageConfig['file_name'] ?? pathinfo($originalFilename, PATHINFO_FILENAME))
         );
-        $displayName = $extension ? ($customStem . '.' . $extension) : $customStem;
+        if ($checklistName === '' || $checklistName === 'attachment') {
+            $checklistName = $this->sanitizeAttachmentDisplayName(pathinfo($originalFilename, PATHINFO_FILENAME));
+        }
 
+        $admin = Admin::select(['id', 'client_id', 'first_name', 'is_company'])->where('id', $clientId)->first();
+        $clientFirstName = $admin
+            ? preg_replace('/[^a-zA-Z0-9_\-]/', '_', (string) ($admin->first_name ?? ''))
+            : 'client';
+        $namePrefix = DocumentStoredFilename::storedNamePrefix($admin, $clientFirstName);
+
+        $document = $this->findOrCreateEmailChecklistDocument(
+            $clientId,
+            $recordType,
+            $docType,
+            $categoryId,
+            $checklistName,
+            $matterId
+        );
+
+        $timestamp = time();
+        $storedFileName = $namePrefix . '_' . $checklistName . '_' . $timestamp . '.' . $extension;
         $sanitizedClientId = preg_replace('/[^a-zA-Z0-9\-_\.]/', '_', $clientUniqueId);
-        $uniqueFileName = time() . '_' . uniqid() . '_' . $this->sanitizeFilename($displayName);
-        $s3Folder = $docType === 'visa' ? 'visa' : 'documents';
-        $filePath = $sanitizedClientId . '/' . $s3Folder . '/' . $uniqueFileName;
+        $filePath = $sanitizedClientId . '/' . $docType . '/' . $storedFileName;
 
         $uploadSuccess = Storage::disk('s3')->put($filePath, $decodedData);
         if (! $uploadSuccess) {
@@ -327,18 +349,17 @@ class EmailUploadController extends Controller
         $fileUrl = Storage::disk('s3')->url($filePath);
         $fileSize = strlen($decodedData);
 
-        $document = new Document();
-        $document->file_name = $customStem;
-        $document->filetype = $extension ?: pathinfo($displayName, PATHINFO_EXTENSION);
+        $document->file_name = $namePrefix . '_' . $checklistName . '_' . $timestamp;
+        $document->filetype = $extension;
         $document->user_id = Auth::user()->id;
         $document->myfile = $fileUrl;
-        $document->myfile_key = $uniqueFileName;
+        $document->myfile_key = $storedFileName;
         $document->client_id = $clientId;
         $document->type = $recordType;
         $document->file_size = $fileSize;
         $document->doc_type = $docType;
         $document->folder_name = (string) $categoryId;
-        $document->checklist = $customStem;
+        $document->checklist = $checklistName;
         if ($docType === 'visa') {
             $document->client_matter_id = $matterId;
         } elseif ($matterId) {
@@ -350,8 +371,69 @@ class EmailUploadController extends Controller
             'file_path' => $fileUrl,
             's3_key' => $filePath,
             'file_size' => $fileSize,
-            'display_name' => $displayName,
+            'display_name' => $document->file_name . '.' . $extension,
+            'doc_type' => $docType,
+            'category_id' => $categoryId,
+            'client_matter_id' => $docType === 'visa' ? $matterId : ($matterId ?? null),
         ];
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $target
+     * @param  array<int, array<string, mixed>>  $incoming
+     */
+    protected function mergeSavedDocumentCategories(array &$target, array $incoming): void
+    {
+        foreach ($incoming as $category) {
+            if (! is_array($category) || empty($category['category_id'])) {
+                continue;
+            }
+
+            $key = ($category['doc_type'] ?? '') . '|' . $category['category_id'] . '|' . ($category['client_matter_id'] ?? '');
+            $target[$key] = $category;
+        }
+    }
+
+    protected function findOrCreateEmailChecklistDocument(
+        int $clientId,
+        string $recordType,
+        string $docType,
+        int $categoryId,
+        string $checklistName,
+        ?int $matterId = null
+    ): Document {
+        $query = Document::query()
+            ->where('client_id', $clientId)
+            ->where('type', $recordType)
+            ->where('doc_type', $docType)
+            ->where('folder_name', (string) $categoryId)
+            ->where('checklist', $checklistName)
+            ->whereNull('not_used_doc');
+
+        if ($docType === 'visa') {
+            $query->where('client_matter_id', $matterId);
+        }
+
+        $existing = $query->orderByDesc('id')->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $document = new Document();
+        $document->user_id = Auth::user()->id;
+        $document->client_id = $clientId;
+        $document->type = $recordType;
+        $document->doc_type = $docType;
+        $document->folder_name = (string) $categoryId;
+        $document->checklist = $checklistName;
+        if ($docType === 'visa') {
+            $document->client_matter_id = $matterId;
+        } elseif ($matterId) {
+            $document->client_matter_id = $matterId;
+        }
+        $document->save();
+
+        return $document;
     }
 
     protected function visaDocumentCategoryAccessible(int $categoryId, int $clientId, ?int $matterId): bool
@@ -426,6 +508,7 @@ class EmailUploadController extends Controller
             $uploadedCount = 0;
             $failedCount = 0;
             $errors = [];
+            $savedDocumentCategories = [];
 
             foreach ($request->file('email_files') as $file) {
                 try {
@@ -433,6 +516,9 @@ class EmailUploadController extends Controller
                     
                     if ($result['success']) {
                         $uploadedCount++;
+                        if (! empty($result['saved_document_categories'])) {
+                            $this->mergeSavedDocumentCategories($savedDocumentCategories, $result['saved_document_categories']);
+                        }
                     } else {
                         $failedCount++;
                         $errors[] = $this->formatUploadFailureResult(
@@ -491,7 +577,8 @@ class EmailUploadController extends Controller
                 'uploaded' => $uploadedCount,
                 'failed' => $failedCount,
                 'errors' => $errors,
-                'total_files' => $uploadedCount + $failedCount
+                'total_files' => $uploadedCount + $failedCount,
+                'saved_document_categories' => array_values($savedDocumentCategories),
             ], $status ? 200 : 400);
 
         } catch (\Exception $e) {
@@ -565,6 +652,7 @@ class EmailUploadController extends Controller
             $uploadedCount = 0;
             $failedCount = 0;
             $errors = [];
+            $savedDocumentCategories = [];
 
             foreach ($request->file('email_files') as $file) {
                 try {
@@ -572,6 +660,9 @@ class EmailUploadController extends Controller
                     
                     if ($result['success']) {
                         $uploadedCount++;
+                        if (! empty($result['saved_document_categories'])) {
+                            $this->mergeSavedDocumentCategories($savedDocumentCategories, $result['saved_document_categories']);
+                        }
                     } else {
                         $failedCount++;
                         $errors[] = $this->formatUploadFailureResult(
@@ -629,7 +720,8 @@ class EmailUploadController extends Controller
                 'uploaded' => $uploadedCount,
                 'failed' => $failedCount,
                 'errors' => $errors,
-                'total_files' => $uploadedCount + $failedCount
+                'total_files' => $uploadedCount + $failedCount,
+                'saved_document_categories' => array_values($savedDocumentCategories),
             ], $status ? 200 : 400);
 
         } catch (\Exception $e) {
@@ -761,6 +853,8 @@ class EmailUploadController extends Controller
      */
     protected function processEmailFile($file, $clientId, $clientUniqueId, $mailType, $request)
     {
+        $savedDocumentCategories = [];
+
         try {
             $fileName = $file->getClientOriginalName();
             $fileSize = $file->getSize();
@@ -1006,7 +1100,7 @@ class EmailUploadController extends Controller
                             $attachmentData['display_name'] = $extension ? ($stem . '.' . $extension) : $stem;
                         }
 
-                        $this->saveAttachment(
+                        $categoryInfo = $this->saveAttachment(
                             $mailReport->id,
                             $attachmentData,
                             $clientUniqueId,
@@ -1015,6 +1109,11 @@ class EmailUploadController extends Controller
                             (int) $clientId,
                             $matterIdForDocs
                         );
+
+                        if (is_array($categoryInfo) && ! empty($categoryInfo['category_id'])) {
+                            $categoryKey = ($categoryInfo['doc_type'] ?? '') . '|' . $categoryInfo['category_id'] . '|' . ($categoryInfo['client_matter_id'] ?? '');
+                            $savedDocumentCategories[$categoryKey] = $categoryInfo;
+                        }
                     } catch (\Exception $e) {
                         Log::error('Error in saveAttachment loop', [
                             'error' => $e->getMessage(),
@@ -1089,7 +1188,8 @@ class EmailUploadController extends Controller
             return [
                 'success' => true,
                 'document_id' => $document->id,
-                'email_log_id' => $mailReport->id
+                'email_log_id' => $mailReport->id,
+                'saved_document_categories' => array_values($savedDocumentCategories),
             ];
 
         } catch (\Illuminate\Database\QueryException $e) {
@@ -1325,11 +1425,12 @@ class EmailUploadController extends Controller
         $request = null,
         $clientId = null,
         $matterId = null
-    ) {
+    ): ?array {
         $s3Path = null;
         $s3Key = null;
         $fileSize = $attachmentData['file_size'] ?? $attachmentData['size'] ?? 0;
         $displayName = $attachmentData['display_name'] ?? ($attachmentData['filename'] ?? 'unknown');
+        $savedCategory = null;
         
         try {
             // Check for both 'content' and 'data' keys (Python service uses 'data')
@@ -1401,6 +1502,11 @@ class EmailUploadController extends Controller
                     $s3Key = $docResult['s3_key'];
                     $fileSize = $docResult['file_size'];
                     $displayName = $docResult['display_name'];
+                    $savedCategory = [
+                        'doc_type' => $docResult['doc_type'] ?? ($storageConfig['doc_type'] ?? 'personal'),
+                        'category_id' => (int) ($docResult['category_id'] ?? ($storageConfig['category_id'] ?? 0)),
+                        'client_matter_id' => $docResult['client_matter_id'] ?? ($matterId ? (int) $matterId : null),
+                    ];
                 }
             } elseif ($decodedData !== null) {
                         // Sanitize attachment filename for S3 path to prevent 403 errors
@@ -1467,6 +1573,8 @@ class EmailUploadController extends Controller
                 'attachment' => $attachmentData['filename'] ?? 'unknown'
             ]);
         }
+
+        return $savedCategory;
     }
 
     /**

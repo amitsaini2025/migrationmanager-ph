@@ -999,6 +999,298 @@ class ClientDocumentsController extends Controller
         echo json_encode($response);
     }
 
+    /**
+     * Refresh personal/visa document category list HTML after external saves (e.g. email attachment upload).
+     */
+    public function refreshDocumentCategoryList(Request $request): JsonResponse
+    {
+        $response = ['status' => false, 'message' => 'Please try again'];
+
+        try {
+            $clientid = $request->clientid;
+            if (empty($clientid)) {
+                $response['message'] = 'Client ID is required';
+
+                return response()->json($response);
+            }
+
+            if ($deny = $this->denyJsonUnlessStaffClientAccess((int) $clientid)) {
+                return $deny;
+            }
+
+            if (empty($request->folder_name)) {
+                $response['message'] = 'Document category is required';
+
+                return response()->json($response);
+            }
+
+            $doctype = $request->doctype ?? 'personal';
+            $recordType = $request->type ?? 'client';
+            $folderName = (string) $request->folder_name;
+
+            if ($doctype === 'visa') {
+                $payload = $this->buildVisaDocumentCategoryListHtml(
+                    (int) $clientid,
+                    $folderName,
+                    $recordType,
+                    $doctype,
+                    $request->client_matter_id
+                );
+            } else {
+                $category = PersonalDocumentType::query()->find($folderName);
+                $doccategoryTitle = $category ? $category->title : '';
+
+                $payload = $this->buildPersonalDocumentCategoryListHtml(
+                    (int) $clientid,
+                    $folderName,
+                    $recordType,
+                    $doctype,
+                    $doccategoryTitle
+                );
+            }
+
+            $response['status'] = true;
+            $response['message'] = 'Document list refreshed';
+            $response['data'] = $payload['data'];
+            $response['griddata'] = $payload['griddata'];
+        } catch (\Exception $e) {
+            Log::error('Error refreshing document category list', [
+                'client_id' => $request->clientid ?? null,
+                'folder_name' => $request->folder_name ?? null,
+                'doctype' => $request->doctype ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $response['status'] = false;
+            $response['message'] = 'An error occurred. Please try again.';
+        }
+
+        return response()->json($response);
+    }
+
+    /**
+     * @return array{data: string, griddata: string}
+     */
+    private function buildPersonalDocumentCategoryListHtml(
+        int $clientid,
+        string $folderName,
+        string $recordType,
+        string $docType,
+        string $doccategoryTitle
+    ): array {
+        $documents = Document::with('staff')
+            ->where('client_id', $clientid)
+            ->whereNull('not_used_doc')
+            ->where('doc_type', $docType)
+            ->where('type', $recordType)
+            ->where('folder_name', $folderName)
+            ->orderBy('updated_at', 'DESC')
+            ->get();
+
+        ob_start();
+        foreach ($documents as $fetch) {
+            $admin = $fetch->staff;
+            $fileUrl = $fetch->myfile_key ? $fetch->myfile : 'https://' . env('AWS_BUCKET') . '.s3.' . env('AWS_DEFAULT_REGION') . '.amazonaws.com/' . $clientid . '/personal/' . $fetch->myfile;
+            ?>
+            <tr class="drow" id="id_<?php echo $fetch->id; ?>">
+                <td style="white-space: initial;">
+                    <div data-id="<?php echo $fetch->id;?>" data-personalchecklistname="<?php echo htmlspecialchars($fetch->checklist); ?>" class="personalchecklist-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" style="display: flex; align-items: center; gap: 8px;" oncontextmenu="showPersonalChecklistContextMenu(event, <?php echo $fetch->id; ?>); return false;">
+                        <span style="flex: 1;"><?php echo htmlspecialchars($fetch->checklist); ?></span>
+                    </div>
+                </td>
+                <td style="white-space: initial;">
+                    <?php if (isset($fetch->file_name) && $fetch->file_name != '') { ?>
+                        <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->filetype); ?>', '<?php echo $fileUrl; ?>', '<?php echo $folderName; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
+                            <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype;?>','<?php echo $fileUrl; ?>','preview-container-<?php echo $folderName;?>')">
+                                <?php echo IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->file_name . '.' . $fetch->filetype); ?></span>
+                            </a>
+                        </div>
+                    <?php } else { ?>
+                        <div class="upload_document" style="display:inline-block;">
+                            <form method="POST" enctype="multipart/form-data" id="upload_form_<?php echo $fetch->id;?>">
+                                <input type="hidden" name="_token" value="<?php echo csrf_token();?>" />
+                                <input type="hidden" name="clientid" value="<?php echo $clientid;?>">
+                                <input type="hidden" name="fileid" value="<?php echo $fetch->id;?>">
+                                <input type="hidden" name="type" value="client">
+                                <input type="hidden" name="doctype" value="personal">
+                                <input type="hidden" name="doccategory" value="<?php echo htmlspecialchars($doccategoryTitle); ?>">
+                                <div class="document-drag-drop-zone personal-doc-drag-zone"
+                                     data-fileid="<?php echo $fetch->id; ?>"
+                                     data-doccategory="<?php echo $folderName; ?>"
+                                     data-formid="upload_form_<?php echo $fetch->id; ?>">
+                                    <div class="drag-zone-inner">
+                                        <?php echo IconHelper::fromLegacy('fas fa-cloud-upload-alt'); ?>
+                                        <span class="drag-zone-text">Drag file here or <strong>click to browse</strong></span>
+                                    </div>
+                                </div>
+                                <input class="docupload d-none" data-fileid="<?php echo $fetch->id;?>" data-doccategory="<?php echo $folderName;?>" type="file" name="document_upload" style="display: none;"/>
+                            </form>
+                        </div>
+                    <?php } ?>
+                </td>
+                <td>
+                    <a class="renamechecklist" data-id="<?php echo $fetch->id; ?>" href="javascript:;" style="display: none;"></a>
+                    <?php if (!$fetch->file_name) { ?>
+                    <a class="delete-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" href="javascript:;" style="display: none;"></a>
+                    <?php } ?>
+                    <?php if ($fetch->myfile) { ?>
+                        <a class="renamedoc" data-id="<?php echo $fetch->id; ?>" href="javascript:;" style="display: none;"></a>
+                        <a class="download-file" data-filelink="<?php echo $fetch->myfile; ?>" data-filename="<?php echo $fetch->myfile_key; ?>" href="#" style="display: none;"></a>
+                        <a class="notuseddoc" data-id="<?php echo $fetch->id; ?>" data-doctype="personal" data-doccategory="<?php echo htmlspecialchars($doccategoryTitle); ?>" data-href="documents/not-used" href="javascript:;" style="display: none;"></a>
+                    <?php } ?>
+                </td>
+            </tr>
+            <?php
+        }
+        $data = ob_get_clean();
+
+        ob_start();
+        foreach ($documents as $fetch) {
+            ?>
+            <div class="grid_list">
+                <div class="grid_col">
+                    <div class="grid_icon">
+                        <?php echo IconHelper::fromLegacy('fas fa-file-image'); ?>
+                    </div>
+                    <div class="grid_content">
+                        <span id="grid_<?php echo $fetch->id; ?>" class="gridfilename"><?php echo $fetch->file_name; ?></span>
+                        <div class="dropdown d-inline dropdown_ellipsis_icon">
+                            <a class="dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?php echo IconHelper::fromLegacy('fa fa-ellipsis-v'); ?></a>
+                            <div class="dropdown-menu">
+                                <?php if (isset($fetch->myfile) && $fetch->myfile != '') { ?>
+                                <a target="_blank" class="dropdown-item" href="<?php echo $fetch->myfile; ?>">Preview</a>
+                                <a href="#" class="dropdown-item download-file" data-filelink="<?php echo $fetch->myfile; ?>" data-filename="<?php echo $fetch->myfile_key; ?>">Download</a>
+                                <a data-id="<?php echo $fetch->id; ?>" class="dropdown-item notuseddoc" data-doctype="personal" data-doccategory="<?php echo $folderName; ?>" data-href="notuseddoc" href="javascript:;">Not Used</a>
+                                <?php } ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php
+        }
+        $griddata = ob_get_clean();
+
+        return ['data' => $data, 'griddata' => $griddata];
+    }
+
+    /**
+     * @return array{data: string, griddata: string}
+     */
+    private function buildVisaDocumentCategoryListHtml(
+        int $clientid,
+        string $folderName,
+        string $recordType,
+        string $docType,
+        $clientMatterId
+    ): array {
+        $documents = Document::with('staff')
+            ->where('client_id', $clientid)
+            ->whereNull('not_used_doc')
+            ->where('doc_type', $docType)
+            ->where('type', $recordType)
+            ->orderBy('updated_at', 'DESC')
+            ->get();
+
+        ob_start();
+        foreach ($documents as $fetch) {
+            $admin = $fetch->staff;
+            $visaDocumentType = VisaDocumentType::query()->where('id', $fetch->folder_name)->first();
+            $fileUrl = $fetch->myfile_key ? $fetch->myfile : 'https://' . env('AWS_BUCKET') . '.s3.' . env('AWS_DEFAULT_REGION') . '.amazonaws.com/' . $fetch->client_id . '/visa/' . $fetch->myfile;
+            $isForm956 = ! empty($fetch->form956_id);
+
+            if ($clientMatterId != $fetch->client_matter_id || $folderName != $fetch->folder_name) {
+                $showCls = "style='display: none;'";
+            } else {
+                $showCls = '';
+            }
+            ?>
+            <tr class="drow" data-matterid="<?php echo $fetch->client_matter_id;?>" data-catid="<?php echo $fetch->folder_name;?>" id="id_<?php echo $fetch->id; ?>" <?php echo $showCls;?>>
+                <td style="white-space: initial;">
+                    <div data-id="<?php echo $fetch->id;?>" data-visachecklistname="<?php echo htmlspecialchars($fetch->checklist); ?>" class="visachecklist-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" style="display: flex; align-items: center; gap: 8px;"<?php if (!$isForm956) { ?> oncontextmenu="showVisaChecklistContextMenu(event, <?php echo $fetch->id; ?>); return false;"<?php } ?>>
+                        <span style="flex: 1;"><?php echo htmlspecialchars($fetch->checklist); ?></span>
+                    </div>
+                </td>
+                <td style="white-space: initial;">
+                    <?php if (isset($fetch->file_name) && $fetch->file_name != '') { ?>
+                        <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showVisaFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->filetype); ?>', '<?php echo $fileUrl; ?>', '<?php echo $fetch->folder_name; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
+                            <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype;?>','<?php echo $fetch->myfile; ?>','preview-container-migdocumnetlist')">
+                                <?php echo IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->file_name . '.' . $fetch->filetype); ?></span>
+                            </a>
+                        </div>
+                    <?php } else { ?>
+                        <div class="migration_upload_document" style="display: inline-block;">
+                            <form method="POST" enctype="multipart/form-data" id="mig_upload_form_<?php echo $fetch->id;?>">
+                                <input type="hidden" name="_token" value="<?php echo csrf_token();?>" />
+                                <input type="hidden" name="clientid" value="<?php echo $fetch->client_id;?>">
+                                <input type="hidden" name="client_matter_id" value="<?php echo $fetch->client_matter_id;?>">
+                                <input type="hidden" name="fileid" value="<?php echo $fetch->id;?>">
+                                <input type="hidden" name="type" value="client">
+                                <input type="hidden" name="doctype" value="visa">
+                                <input type="hidden" name="doccategory" value="<?php echo $visaDocumentType->title ?? ''; ?>">
+                                <div class="document-drag-drop-zone visa-doc-drag-zone"
+                                     data-fileid="<?php echo $fetch->id;?>"
+                                     data-doccategory="<?php echo $fetch->folder_name;?>"
+                                     data-formid="mig_upload_form_<?php echo $fetch->id;?>">
+                                    <div class="drag-zone-inner">
+                                        <?php echo IconHelper::fromLegacy('fas fa-cloud-upload-alt'); ?>
+                                        <span class="drag-zone-text">Drag file here or <strong>click to browse</strong></span>
+                                    </div>
+                                </div>
+                                <input class="migdocupload d-none"
+                                       data-fileid="<?php echo $fetch->id;?>"
+                                       data-doccategory="<?php echo $fetch->folder_name;?>"
+                                       type="file"
+                                       name="document_upload"
+                                       style="display: none;"/>
+                            </form>
+                        </div>
+                    <?php } ?>
+                </td>
+                <td>
+                    <a class="renamechecklist" data-id="<?php echo $fetch->id; ?>" href="javascript:;" style="display: none;"></a>
+                    <?php if (!$fetch->file_name && !$isForm956) { ?>
+                    <a class="delete-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" href="javascript:;" style="display: none;"></a>
+                    <?php } ?>
+                    <?php if ($fetch->myfile) { ?>
+                        <a class="renamedoc" data-id="<?php echo $fetch->id; ?>" href="javascript:;" style="display: none;"></a>
+                        <a class="download-file" data-filelink="<?php echo $fetch->myfile; ?>" data-filename="<?php echo $fetch->myfile_key; ?>" href="#" style="display: none;"></a>
+                        <a class="notuseddoc" data-id="<?php echo $fetch->id; ?>" data-doctype="visa" data-href="documents/not-used" href="javascript:;" style="display: none;"></a>
+                    <?php } ?>
+                </td>
+            </tr>
+            <?php
+        }
+        $data = ob_get_clean();
+
+        ob_start();
+        foreach ($documents as $fetch) {
+            ?>
+            <div class="grid_list">
+                <div class="grid_col">
+                    <div class="grid_icon">
+                        <?php echo IconHelper::fromLegacy('fas fa-file-image'); ?>
+                    </div>
+                    <div class="grid_content">
+                        <span id="grid_<?php echo $fetch->id; ?>" class="gridfilename"><?php echo $fetch->file_name; ?></span>
+                        <div class="dropdown d-inline dropdown_ellipsis_icon">
+                            <a class="dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?php echo IconHelper::fromLegacy('fa fa-ellipsis-v'); ?></a>
+                            <div class="dropdown-menu">
+                                <a target="_blank" class="dropdown-item" href="<?php echo $fetch->myfile; ?>">Preview</a>
+                                <a href="#" class="dropdown-item download-file" data-filelink="<?php echo $fetch->myfile; ?>" data-filename="<?php echo $fetch->myfile_key; ?>">Download</a>
+                                <a data-id="<?php echo $fetch->id; ?>" class="dropdown-item notuseddoc" data-doctype="visa" data-href="notuseddoc" href="javascript:;">Not Used</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php
+        }
+        $griddata = ob_get_clean();
+
+        return ['data' => $data, 'griddata' => $griddata];
+    }
+
     public function addNominationDocChecklist(Request $request)
     {
         $response = ['status' => false, 'message' => 'Please try again'];

@@ -775,6 +775,86 @@
         }) || null;
     }
 
+    function mergeSavedDocumentCategories(target, source) {
+        if (!target || !Array.isArray(source)) {
+            return;
+        }
+        source.forEach(function(category) {
+            if (!category || !category.category_id) {
+                return;
+            }
+            const key = (category.doc_type || '') + '|' + category.category_id + '|' + (category.client_matter_id || '');
+            target[key] = category;
+        });
+    }
+
+    async function refreshSavedDocumentCategories(categoriesByKey) {
+        const categories = Object.values(categoriesByKey || {});
+        if (!categories.length) {
+            return;
+        }
+
+        const clientId = getClientId();
+        const csrfToken = getCsrfToken();
+        if (!clientId || !csrfToken) {
+            return;
+        }
+
+        for (let i = 0; i < categories.length; i++) {
+            const category = categories[i];
+            try {
+                const formData = new FormData();
+                formData.append('clientid', clientId);
+                formData.append('folder_name', category.category_id);
+                formData.append('doctype', category.doc_type || 'personal');
+                formData.append('type', 'client');
+                if (category.client_matter_id) {
+                    formData.append('client_matter_id', category.client_matter_id);
+                }
+                formData.append('_token', csrfToken);
+
+                const response = await fetch('/documents/refresh-category-list', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    continue;
+                }
+
+                const result = await response.json();
+                if (!result.status) {
+                    continue;
+                }
+
+                if (category.doc_type === 'visa') {
+                    $('.migdocumnetlist_' + category.category_id).html(result.data);
+                    $('.miggriddata').html(result.griddata);
+                    if (typeof initVisaDocDragDrop === 'function') {
+                        setTimeout(function() {
+                            initVisaDocDragDrop();
+                        }, 100);
+                    }
+                } else {
+                    $('.documnetlist_' + category.category_id).html(result.data);
+                    $('.griddata_' + category.category_id).html(result.griddata);
+                    if (typeof initPersonalDocDragDrop === 'function') {
+                        setTimeout(function() {
+                            initPersonalDocDragDrop();
+                        }, 100);
+                    }
+                }
+            } catch (refreshError) {
+                console.error('Failed to refresh document category after email upload:', category, refreshError);
+            }
+        }
+    }
+
     /**
      * POST a single email file to the upload endpoint.
      */
@@ -915,7 +995,8 @@
             uploaded: uploadedCount,
             failed: failedCount + extraFailed,
             duplicateError: duplicateError,
-            errors: errors
+            errors: errors,
+            saved_document_categories: Array.isArray(result.saved_document_categories) ? result.saved_document_categories : []
         };
     }
 
@@ -967,6 +1048,7 @@
         let failedTotal = 0;
         let rejectedTotal = 0;
         let overlayHideDelay = 900;
+        const savedDocumentCategories = {};
         let attachmentStorageByEmail = null;
 
         if (typeof flow.showEmailUploadLoading === 'function') {
@@ -1053,6 +1135,7 @@
                     uploadedTotal += fileResult.uploaded || 0;
                     failedTotal += fileResult.failed || 0;
                     rejectedTotal += fileResult.rejected || 0;
+                    mergeSavedDocumentCategories(savedDocumentCategories, fileResult.saved_document_categories);
                 } catch (fileError) {
                     failedTotal += 1;
                     console.error('Upload error for ' + file.name + ':', fileError);
@@ -1085,6 +1168,7 @@
                     if (fileCountBadge) fileCountBadge.classList.remove('show');
                 }, 2000);
                 loadEmails();
+                refreshSavedDocumentCategories(savedDocumentCategories);
             } else if (uploadedTotal > 0) {
                 if (uploadProgress) uploadProgress.className = 'upload-progress error';
                 if (fileStatus) fileStatus.textContent = 'Upload completed with errors';
@@ -1093,6 +1177,7 @@
                     'error'
                 );
                 loadEmails();
+                refreshSavedDocumentCategories(savedDocumentCategories);
             } else if (rejectedTotal > 0 && failedTotal === 0) {
                 if (uploadProgress) uploadProgress.className = 'upload-progress error';
                 if (fileStatus) fileStatus.textContent = 'Upload skipped';

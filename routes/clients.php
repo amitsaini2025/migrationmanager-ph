@@ -217,6 +217,7 @@ Route::get('/pinactivitylog', [ClientsController::class, 'pinactivitylog']);
 
 /*---------- Client Documents Management ----------*/
 Route::post('/documents/add-edu-checklist', [ClientDocumentsController::class, 'addedudocchecklist'])->name('clients.documents.addedudocchecklist');
+Route::post('/documents/refresh-category-list', [ClientDocumentsController::class, 'refreshDocumentCategoryList'])->name('clients.documents.refreshDocumentCategoryList');
 Route::post('/documents/upload-edu-document', [ClientDocumentsController::class, 'uploadedudocument'])->name('clients.documents.uploadedudocument');
 Route::post('/documents/add-visa-checklist', [ClientDocumentsController::class, 'addvisadocchecklist'])->name('clients.documents.addvisadocchecklist');
 Route::post('/documents/add-nomination-checklist', [ClientDocumentsController::class, 'addNominationDocChecklist'])->name('clients.documents.addNominationDocChecklist');
