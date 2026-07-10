@@ -12,6 +12,8 @@
     // =========================================================================
     let currentPage = 1;
     let lastPage = 1;
+    let totalEmails = 0;
+    const EMAILS_PER_PAGE = 25;
     let isLoading = false;
     let isUploading = false;
     const MAX_FILES_PER_UPLOAD = 10;
@@ -22,6 +24,7 @@
     let availableLabels = []; // Loaded from API
     let selectedEmailId = null;
     let currentReadingEmail = null;
+    const emailDetailCache = new Map();
 
     function getAllowedUploadExtensionsLabel() {
         if (typeof window.crmEmailUploadExtensionsLabel === 'function') {
@@ -1226,8 +1229,25 @@
                 : (currentMailType === 'sent' ? '/clients/filter-sentemails' : '/clients/filter-emails');
 
             const requestBody = isLead
-                ? { client_id: clientId, search: currentSearch, status: '', label_id: currentLabelId }
-                : { client_id: clientId, client_matter_id: matterId, search: currentSearch, status: '', label_id: currentLabelId };
+                ? {
+                    client_id: clientId,
+                    search: currentSearch,
+                    status: '',
+                    label_id: currentLabelId,
+                    page: currentPage,
+                    per_page: EMAILS_PER_PAGE,
+                    sort: currentSort
+                }
+                : {
+                    client_id: clientId,
+                    client_matter_id: matterId,
+                    search: currentSearch,
+                    status: '',
+                    label_id: currentLabelId,
+                    page: currentPage,
+                    per_page: EMAILS_PER_PAGE,
+                    sort: currentSort
+                };
 
             console.log('Fetching emails from:', endpoint, requestBody);
 
@@ -1245,24 +1265,31 @@
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const emails = await response.json();
-            console.log('Emails received:', emails);
-            
-            // Debug: Check attachments in received emails
-            emails.forEach((email, index) => {
-                if (email.attachments && email.attachments.length > 0) {
-                    console.log(`Email ${index} (ID: ${email.id}) has ${email.attachments.length} attachments`);
+            const payload = await response.json();
+            const { emails, meta } = parseEmailListResponse(payload);
+            console.log('Emails received:', emails.length, 'of', meta.total);
+
+            lastPage = meta.last_page || 1;
+            totalEmails = meta.total || emails.length;
+            currentPage = meta.current_page || currentPage;
+
+            renderEmails(emails);
+            updateEmailCounts(totalEmails);
+
+            if (selectedEmailId && !emails.some(function(item) { return item.id === selectedEmailId; })) {
+                if (isOutlookLayout()) {
+                    resetOutlookReadingPane();
+                } else {
+                    selectedEmailId = null;
+                    currentReadingEmail = null;
+                    const emailContentView = document.getElementById('emailContentView');
+                    const emailContentPlaceholder = document.getElementById('emailContentPlaceholder');
+                    if (emailContentView && emailContentPlaceholder) {
+                        emailContentView.style.display = 'none';
+                        emailContentPlaceholder.style.display = 'block';
+                    }
                 }
-            });
-
-            // Apply sorting
-            const sortedEmails = sortEmails(emails);
-
-            // Render emails
-            renderEmails(sortedEmails);
-
-            // Update counts
-            updateEmailCounts(sortedEmails.length);
+            }
 
         } catch (error) {
             console.error('Error loading emails:', error);
@@ -1271,6 +1298,94 @@
         } finally {
             isLoading = false;
             updateLoadingState(false);
+        }
+    }
+
+    function parseEmailListResponse(payload) {
+        if (Array.isArray(payload)) {
+            return {
+                emails: payload,
+                meta: {
+                    total: payload.length,
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: payload.length || EMAILS_PER_PAGE
+                }
+            };
+        }
+
+        if (payload && payload.status === 'error') {
+            throw new Error(payload.message || 'Failed to load emails');
+        }
+
+        if (payload && Array.isArray(payload.data)) {
+            return {
+                emails: payload.data,
+                meta: payload.meta || {
+                    total: payload.data.length,
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: EMAILS_PER_PAGE
+                }
+            };
+        }
+
+        return {
+            emails: [],
+            meta: {
+                total: 0,
+                current_page: 1,
+                last_page: 1,
+                per_page: EMAILS_PER_PAGE
+            }
+        };
+    }
+
+    async function fetchEmailDetail(emailId) {
+        if (emailDetailCache.has(emailId)) {
+            return emailDetailCache.get(emailId);
+        }
+
+        const response = await fetch('/clients/email/' + emailId + '/detail', {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken()
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load email detail');
+        }
+
+        const detail = await response.json();
+        if (detail && detail.status === 'error') {
+            throw new Error(detail.message || 'Failed to load email detail');
+        }
+
+        emailDetailCache.set(emailId, detail);
+        return detail;
+    }
+
+    async function ensureEmailDetail(email) {
+        if (!email || !email.id) {
+            return email;
+        }
+
+        const hasInlineBody = typeof email.message === 'string' && email.message.trim() !== '';
+        if (hasInlineBody || email._detailLoaded) {
+            return email;
+        }
+
+        if (emailDetailCache.has(email.id)) {
+            return Object.assign({}, email, emailDetailCache.get(email.id), { _detailLoaded: true });
+        }
+
+        try {
+            const detail = await fetchEmailDetail(email.id);
+            return Object.assign({}, email, detail, { _detailLoaded: true });
+        } catch (error) {
+            console.error('Failed to fetch email detail:', error);
+            return email;
         }
     }
 
@@ -1433,7 +1548,7 @@
                 selectedEmailId = email.id;
             }
 
-            loadEmailDetail(email);
+            openEmailDetail(email);
         });
 
         div.addEventListener('contextmenu', function(e) {
@@ -1506,6 +1621,15 @@
             } else {
                 pageInfo.textContent = `${currentPage}/${Math.max(lastPage, 1)}`;
             }
+        }
+
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        if (prevBtn) {
+            prevBtn.disabled = currentPage <= 1;
+        }
+        if (nextBtn) {
+            nextBtn.disabled = currentPage >= lastPage;
         }
     }
 
@@ -1817,6 +1941,16 @@
         const hasDbBody = typeof email.message === 'string' && email.message.trim() !== '';
         const message = hasDbBody ? email.message : '(No content)';
         renderEmailBodyInIframe(email, message, allAttachments);
+    }
+
+    async function openEmailDetail(email) {
+        try {
+            const detail = await ensureEmailDetail(email);
+            loadEmailDetail(detail);
+        } catch (error) {
+            console.error('Error opening email detail:', error);
+            showNotification('Failed to open email: ' + error.message, 'error');
+        }
     }
 
     /**
@@ -2333,6 +2467,21 @@
     }
 
     /**
+     * Plain-text body for reply/forward quotes (strips HTML when needed).
+     */
+    function getQuotedMessageText(email) {
+        if (typeof email.message === 'string' && email.message.trim() !== '') {
+            const msg = email.message;
+            if (msg.indexOf('<') !== -1) {
+                return msg.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+            }
+            return msg;
+        }
+
+        return email.text_preview || '(No content)';
+    }
+
+    /**
      * Format quoted message for reply/forward
      */
     function formatQuotedMessage(email, isForward = false) {
@@ -2341,7 +2490,7 @@
         const cc = cleanRecipients(email.cc) || '';
         const date = formatDate(getEmailDate(email));
         const subject = email.subject || '(No subject)';
-        const message = email.message || '(No content)';
+        const message = getQuotedMessageText(email);
         
         let quotedText = '';
         
@@ -2723,13 +2872,15 @@
     /**
      * Handle Reply action
      */
-    function handleReply(email) {
+    async function handleReply(email) {
         if (!email) {
             showNotification('No email selected for reply', 'error');
             return;
         }
 
-        const recipientAddresses = getReplyRecipientAddresses(email);
+        const detail = await ensureEmailDetail(email);
+
+        const recipientAddresses = getReplyRecipientAddresses(detail);
         if (!recipientAddresses.length) {
             showNotification('Could not extract recipient email address', 'error');
             return;
@@ -2739,10 +2890,10 @@
         const matterId = getMatterId();
 
         // Format subject
-        const replySubject = formatReplySubject(email.subject);
+        const replySubject = formatReplySubject(detail.subject);
 
         // Format message with quoted original
-        const replyMessage = formatQuotedMessage(email, false);
+        const replyMessage = formatQuotedMessage(detail, false);
 
         const composeData = {
             to: recipientAddresses,
@@ -2752,8 +2903,8 @@
         };
 
         // Outbound mail: pre-select the mailbox that sent the original email
-        if (shouldReplyToOriginalRecipient(email) && email.from_mail) {
-            composeData.from = email.from_mail;
+        if (shouldReplyToOriginalRecipient(detail) && detail.from_mail) {
+            composeData.from = detail.from_mail;
         }
 
         openComposeModal(composeData);
@@ -2764,11 +2915,13 @@
     /**
      * Handle Reply All action
      */
-    function handleReplyAll(email) {
+    async function handleReplyAll(email) {
         if (!email) {
             showNotification('No email selected for reply', 'error');
             return;
         }
+
+        const detail = await ensureEmailDetail(email);
 
         const seen = {};
         const recipients = [];
@@ -2788,9 +2941,9 @@
             }
         }
 
-        const rawSources = shouldReplyToOriginalRecipient(email)
-            ? [email.to_mail, email.cc]
-            : [email.from_mail, email.to_mail, email.cc];
+        const rawSources = shouldReplyToOriginalRecipient(detail)
+            ? [detail.to_mail, detail.cc]
+            : [detail.from_mail, detail.to_mail, detail.cc];
 
         rawSources.forEach(function(raw) {
             if (!raw) {
@@ -2809,13 +2962,13 @@
         const matterId = getMatterId();
         const composeData = {
             to: recipients,
-            subject: formatReplySubject(email.subject),
-            message: formatQuotedMessage(email, false),
+            subject: formatReplySubject(detail.subject),
+            message: formatQuotedMessage(detail, false),
             matterId: matterId
         };
 
-        if (shouldReplyToOriginalRecipient(email) && email.from_mail) {
-            composeData.from = email.from_mail;
+        if (shouldReplyToOriginalRecipient(detail) && detail.from_mail) {
+            composeData.from = detail.from_mail;
         }
 
         openComposeModal(composeData);
@@ -2825,13 +2978,15 @@
     /**
      * Handle Forward action
      */
-    function handleForward(email) {
+    async function handleForward(email) {
         if (!email) {
             showNotification('No email selected for forward', 'error');
             return;
         }
 
-        const recipientAddresses = getReplyRecipientAddresses(email);
+        const detail = await ensureEmailDetail(email);
+
+        const recipientAddresses = getReplyRecipientAddresses(detail);
         if (!recipientAddresses.length) {
             showNotification('Could not extract recipient email address', 'error');
             return;
@@ -2841,10 +2996,10 @@
         const matterId = getMatterId();
 
         // Format subject
-        const forwardSubject = formatForwardSubject(email.subject);
+        const forwardSubject = formatForwardSubject(detail.subject);
 
         // Format message with forwarded content
-        const forwardMessage = formatQuotedMessage(email, true);
+        const forwardMessage = formatQuotedMessage(detail, true);
 
         const composeData = {
             to: recipientAddresses,
@@ -2854,8 +3009,8 @@
         };
 
         // Outbound mail: pre-select the mailbox that sent the original email
-        if (shouldReplyToOriginalRecipient(email) && email.from_mail) {
-            composeData.from = email.from_mail;
+        if (shouldReplyToOriginalRecipient(detail) && detail.from_mail) {
+            composeData.from = detail.from_mail;
         }
 
         openComposeModal(composeData);
@@ -2916,6 +3071,7 @@
             const data = await response.json().catch(() => ({}));
 
             if (response.ok && data.success) {
+                emailDetailCache.delete(email.id);
                 showNotification('Email deleted successfully', 'success');
                 if (isOutlookLayout()) {
                     resetOutlookReadingPane();

@@ -80,6 +80,7 @@ use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
 use App\Mail\HubdocInvoiceMail;
 use App\Services\MatterEmailBodyCleanupService;
+use App\Services\EmailLogListService;
 use App\Services\Sms\UnifiedSmsManager;
 use App\Services\BansalAppointmentSync\BansalApiClient;
 use App\Services\ClientExportService;
@@ -4232,6 +4233,7 @@ class ClientsController extends Controller
             $status = $request->input('status');
             $search = $request->input('search');
             $label_id = $request->input('label_id');
+            $sort = $request->input('sort', 'date');
 
             if (!$client_matter_id) {
                 return response()->json([
@@ -4240,13 +4242,14 @@ class ClientsController extends Controller
                 ], 400);
             }
 
+            $listService = app(EmailLogListService::class);
+
             $query = \App\Models\EmailLog::where('client_matter_id', $client_matter_id)
                 ->where('type', 'client')
                 ->where('mail_type', 1)
                 ->where('conversion_type', 'conversion_email_fetch')
                 ->where('mail_body_type', 'inbox')
-                ->with(['labels', 'attachments'])
-                ->orderBy('created_at', 'DESC');
+                ->with(['labels', 'attachments']);
 
             if ($status !== null && $status !== '') {
                 if ($status == 1) {
@@ -4274,80 +4277,64 @@ class ClientsController extends Controller
                 });
             }
 
-            $emails = $query->get();
-            $url = 'https://' . env('AWS_BUCKET') . '.s3.' . env('AWS_DEFAULT_REGION') . '.amazonaws.com/';
+            $query = $listService->applySort($query, $sort);
+            $paginator = $listService->paginate($query, $request);
 
-            $emails = $emails->map(function ($email) use ($url, $client_id) {
-                $DocInfo = \App\Models\Document::select('id','doc_type','myfile','myfile_key','mail_type')
-                    ->where('id', $email->uploaded_doc_id)
-                    ->first();
-
-                $AdminInfo = \App\Models\Admin::select('client_id')->where('id',$email->client_id)->first();
-
-                $previewUrl = '';
-                if ($DocInfo) {
-                    if (!empty($DocInfo->myfile_key)) {
-                        $previewUrl = $DocInfo->myfile;
-                    } else {
-                        $previewUrl = $url . $AdminInfo->client_id . '/' . ($DocInfo->doc_type ?? 'mail') . '/' . ($DocInfo->mail_type ?? 'inbox') . '/' . $DocInfo->myfile;
-                    }
-                }
-
-                // Ensure attachments and labels relationships are loaded
-                if (!$email->relationLoaded('attachments')) {
-                    $email->load('attachments');
-                }
-                if (!$email->relationLoaded('labels')) {
-                    $email->load('labels');
-                }
-
-                // Convert to array to ensure all relationships are properly serialized
-                $emailArray = $email->toArray();
-                
-                // email_logs.attachments JSON column shadows $email->attachments — use getFileAttachmentCollection()
-                $attachments = $email->getFileAttachmentCollection();
-                if ($attachments->isEmpty()) {
-                    $attachments = \App\Models\EmailLogAttachment::where('email_log_id', $email->id)->get();
-                }
-
-                if ($attachments->isNotEmpty()) {
-                    $emailArray['attachments'] = $attachments->map(function ($attachment) {
-                        return [
-                            'id' => $attachment->id,
-                            'mail_report_id' => $attachment->email_log_id,
-                            'filename' => $attachment->filename,
-                            'display_name' => $attachment->display_name ?? $attachment->filename,
-                            'content_type' => $attachment->content_type,
-                            'file_path' => $attachment->file_path,
-                            's3_key' => $attachment->s3_key,
-                            'file_size' => (int) $attachment->file_size,
-                            'content_id' => $attachment->content_id,
-                            'is_inline' => (bool) $attachment->is_inline, // Ensure boolean for frontend filtering
-                            'description' => $attachment->description,
-                            'extension' => $attachment->extension,
-                        ];
-                    })->values()->toArray(); // values() re-indexes the array
-                } else {
-                    // Ensure attachments key exists even if empty
-                    $emailArray['attachments'] = [];
-                }
-                
-                // Add preview_url to the array
-                $emailArray['preview_url'] = $previewUrl;
-                $emailArray['cc'] = \App\Models\EmailLog::resolveRecipientDisplay($emailArray['cc'] ?? '', $email->type ?? 'client');
-
-                $emailArray = app(MatterEmailBodyCleanupService::class)->appendArchivedBodyMeta($emailArray, $email);
-                
-                return $emailArray;
-            });
-
-            return response()->json($emails, 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            return response()->json(
+                $listService->buildPaginatedResponse($paginator, [
+                    'client_id' => $client_id,
+                    'default_mail_type' => 'inbox',
+                    'recipient_type' => 'client',
+                ]),
+                200,
+                [],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
         } catch (\Exception $e) {
             Log::error('Error in filterEmails: ' . $e->getMessage());
 
             return response()->json([
                 'status' => 'error',
                 'message' => 'An error occurred while fetching emails: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Full email detail for reading pane, reply/forward, etc.
+     */
+    public function getEmailLogDetail($id)
+    {
+        try {
+            $email = \App\Models\EmailLog::with(['labels', 'attachments'])->find($id);
+            if (!$email) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Email not found',
+                ], 404);
+            }
+
+            $listService = app(EmailLogListService::class);
+
+            return response()->json(
+                $listService->mapForDetail($email, [
+                    'client_id' => $email->client_id,
+                    'default_mail_type' => $email->mail_body_type ?? 'inbox',
+                    'recipient_type' => $email->type ?? 'client',
+                    'admin_without_global_scopes' => ($email->type === 'lead'),
+                ]),
+                200,
+                [],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
+        } catch (\Exception $e) {
+            Log::error('Error in getEmailLogDetail: ' . $e->getMessage(), [
+                'email_log_id' => $id,
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while fetching email details',
             ], 500);
         }
     }
@@ -4594,6 +4581,7 @@ class ClientsController extends Controller
             $type = $request->input('type');
             $status = $request->input('status');
             $search = $request->input('search');
+            $sort = $request->input('sort', 'date');
 
             // Validate input
             if (!$client_matter_id) {
@@ -4602,6 +4590,8 @@ class ClientsController extends Controller
                     'message' => 'Matter ID is required'
                 ], 400);
             }
+
+            $listService = app(EmailLogListService::class);
 
             // Base query for sent mail - FILTER BY MATTER ID instead of client_id
             $query = \App\Models\EmailLog::where('client_matter_id', $client_matter_id)
@@ -4614,8 +4604,7 @@ class ClientsController extends Controller
                                 ->where('mail_body_type', 'sent');
                         });
                 })
-                ->with(['labels', 'attachments']) // Load labels and attachments relationships
-                ->orderBy('created_at', 'DESC');
+                ->with(['labels', 'attachments']);
 
             // Filter by type
             if ($type !== '') {
@@ -4648,82 +4637,19 @@ class ClientsController extends Controller
                 });
             }
 
-            // Fetch emails
-            $emails = $query->get();
+            $query = $listService->applySort($query, $sort);
+            $paginator = $listService->paginate($query, $request);
 
-            // Base URL for AWS S3
-            $url = 'https://' . env('AWS_BUCKET') . '.s3.' . env('AWS_DEFAULT_REGION') . '.amazonaws.com/';
-
-            // Map emails with additional data (matches filterEmails logic)
-            $emails = $emails->map(function ($email) use ($url, $client_id) {
-                $previewUrl = '';
-                if (!empty($email->uploaded_doc_id)) {
-                    $docInfo = \App\Models\Document::select('id', 'doc_type', 'myfile', 'myfile_key', 'mail_type')
-                        ->where('id', $email->uploaded_doc_id)
-                        ->first();
-                    $adminInfo = \App\Models\Admin::select('client_id')->where('id', $email->client_id)->first();
-                    if ($docInfo) {
-                        if (!empty($docInfo->myfile_key)) {
-                            $previewUrl = $docInfo->myfile;
-                        } else {
-                            $clientRef = ($adminInfo && $adminInfo->client_id) ? $adminInfo->client_id : ('client_' . ($email->client_id ?? $client_id ?? 0));
-                            $previewUrl = $url . $clientRef . '/' . ($docInfo->doc_type ?? 'mail') . '/' . ($docInfo->mail_type ?? 'sent') . '/' . ($docInfo->myfile ?? '');
-                        }
-                    }
-                }
-
-				// Ensure attachments and labels relationships are loaded
-				if (!$email->relationLoaded('attachments')) {
-					$email->load('attachments');
-				}
-				if (!$email->relationLoaded('labels')) {
-					$email->load('labels');
-				}
-
-				// Convert to array to ensure all relationships are properly serialized
-				$emailArray = $email->toArray();
-				
-				$attachments = $email->getFileAttachmentCollection();
-				if ($attachments->isEmpty()) {
-					$attachments = \App\Models\EmailLogAttachment::where('email_log_id', $email->id)->get();
-				}
-
-				if ($attachments->isNotEmpty()) {
-					$emailArray['attachments'] = $attachments->map(function ($attachment) {
-						return [
-							'id' => $attachment->id,
-							'mail_report_id' => $attachment->email_log_id,
-							'filename' => $attachment->filename,
-							'display_name' => $attachment->display_name ?? $attachment->filename,
-							'content_type' => $attachment->content_type,
-							'file_path' => $attachment->file_path,
-							's3_key' => $attachment->s3_key,
-							'file_size' => (int) $attachment->file_size,
-							'content_id' => $attachment->content_id,
-							'is_inline' => (bool) $attachment->is_inline, // Ensure boolean for frontend filtering
-							'description' => $attachment->description,
-							'extension' => $attachment->extension,
-						];
-					})->values()->toArray(); // values() re-indexes the array
-				} else {
-					// Ensure attachments key exists even if empty
-					$emailArray['attachments'] = [];
-				}
-				
-				// Add preview_url and ensure required fields have defaults
-				$emailArray['preview_url'] = $previewUrl;
-				$emailArray['from_mail'] = $emailArray['from_mail'] ?? '';
-				$emailArray['to_mail'] = \App\Models\EmailLog::resolveRecipientDisplay($emailArray['to_mail'] ?? '', $email->type ?? null);
-				$emailArray['cc'] = \App\Models\EmailLog::resolveRecipientDisplay($emailArray['cc'] ?? '', $email->type ?? null);
-				$emailArray['subject'] = $emailArray['subject'] ?? '';
-				$emailArray['message'] = $emailArray['message'] ?? '';
-
-				$emailArray = app(MatterEmailBodyCleanupService::class)->appendArchivedBodyMeta($emailArray, $email);
-				
-				return $emailArray;
-			});
-
-			return response()->json($emails, 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            return response()->json(
+                $listService->buildPaginatedResponse($paginator, [
+                    'client_id' => $client_id,
+                    'default_mail_type' => 'sent',
+                    'recipient_type' => 'client',
+                ]),
+                200,
+                [],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
 		} catch (\Exception $e) {
 			Log::error('Error in filterSentEmails: ' . $e->getMessage(), [
 				'request' => $request->all(),
@@ -4748,6 +4674,7 @@ class ClientsController extends Controller
             $status = $request->input('status');
             $search = $request->input('search');
             $label_id = $request->input('label_id');
+            $sort = $request->input('sort', 'date');
 
             if (!$client_id) {
                 return response()->json([
@@ -4755,6 +4682,8 @@ class ClientsController extends Controller
                     'message' => 'Lead ID is required'
                 ], 400);
             }
+
+            $listService = app(EmailLogListService::class);
 
             $query = \App\Models\EmailLog::where('client_id', $client_id)
                 ->where('type', 'lead')
@@ -4766,8 +4695,7 @@ class ClientsController extends Controller
                                 ->where('mail_body_type', 'sent');
                         });
                 })
-                ->with(['labels', 'attachments'])
-                ->orderBy('created_at', 'DESC');
+                ->with(['labels', 'attachments']);
 
             if ($status !== null && $status !== '') {
                 if ($status == 1) {
@@ -4794,65 +4722,20 @@ class ClientsController extends Controller
                 });
             }
 
-            $emails = $query->get();
-            $url = 'https://' . env('AWS_BUCKET') . '.s3.' . env('AWS_DEFAULT_REGION') . '.amazonaws.com/';
+            $query = $listService->applySort($query, $sort);
+            $paginator = $listService->paginate($query, $request);
 
-            $emails = $emails->map(function ($email) use ($url, $client_id) {
-                $previewUrl = '';
-                if (!empty($email->uploaded_doc_id)) {
-                    $docInfo = \App\Models\Document::select('id', 'doc_type', 'myfile', 'myfile_key', 'mail_type')
-                        ->where('id', $email->uploaded_doc_id)->first();
-                    if ($docInfo) {
-                        if (!empty($docInfo->myfile_key)) {
-                            $previewUrl = $docInfo->myfile;
-                        } else {
-                            $adminInfo = \App\Models\Admin::withoutGlobalScopes()->select('client_id')->where('id', $email->client_id)->first();
-                            $clientRef = $adminInfo && $adminInfo->client_id ? $adminInfo->client_id : ('client_' . $client_id);
-                            $previewUrl = $url . $clientRef . '/' . ($docInfo->doc_type ?? 'mail') . '/' . ($docInfo->mail_type ?? 'sent') . '/' . ($docInfo->myfile ?? '');
-                        }
-                    }
-                }
-
-                if (!$email->relationLoaded('attachments')) {
-                    $email->load('attachments');
-                }
-                if (!$email->relationLoaded('labels')) {
-                    $email->load('labels');
-                }
-
-                $emailArray = $email->toArray();
-                $attachments = $email->getFileAttachmentCollection();
-                if ($attachments->isEmpty()) {
-                    $attachments = \App\Models\EmailLogAttachment::where('email_log_id', $email->id)->get();
-                }
-                $emailArray['attachments'] = $attachments->isNotEmpty()
-                    ? $attachments->map(function ($attachment) {
-                        return [
-                            'id' => $attachment->id,
-                            'mail_report_id' => $attachment->email_log_id,
-                            'filename' => $attachment->filename,
-                            'display_name' => $attachment->display_name ?? $attachment->filename,
-                            'content_type' => $attachment->content_type,
-                            'file_path' => $attachment->file_path,
-                            's3_key' => $attachment->s3_key,
-                            'file_size' => (int) $attachment->file_size,
-                            'content_id' => $attachment->content_id,
-                            'is_inline' => (bool) $attachment->is_inline,
-                            'description' => $attachment->description,
-                            'extension' => $attachment->extension,
-                        ];
-                    })->values()->toArray()
-                    : [];
-                $emailArray['preview_url'] = $previewUrl;
-                $emailArray['from_mail'] = $emailArray['from_mail'] ?? '';
-                $emailArray['to_mail'] = \App\Models\EmailLog::resolveRecipientDisplay($emailArray['to_mail'] ?? '', $email->type ?? 'lead');
-                $emailArray['cc'] = \App\Models\EmailLog::resolveRecipientDisplay($emailArray['cc'] ?? '', $email->type ?? 'lead');
-                $emailArray['subject'] = $emailArray['subject'] ?? '';
-                $emailArray['message'] = $emailArray['message'] ?? '';
-                return $emailArray;
-            });
-
-            return response()->json($emails, 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            return response()->json(
+                $listService->buildPaginatedResponse($paginator, [
+                    'client_id' => $client_id,
+                    'default_mail_type' => 'sent',
+                    'recipient_type' => 'lead',
+                    'admin_without_global_scopes' => true,
+                ]),
+                200,
+                [],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
         } catch (\Exception $e) {
             Log::error('Error in filterLeadEmails: ' . $e->getMessage());
             return response()->json([

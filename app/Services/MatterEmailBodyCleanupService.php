@@ -169,6 +169,25 @@ class MatterEmailBodyCleanupService
         return $emailArray;
     }
 
+    /**
+     * List-view metadata only — avoids per-row S3 HEAD requests.
+     *
+     * @param  array<string, mixed>  $emailArray
+     * @return array<string, mixed>
+     */
+    public function appendListArchivedBodyMeta(array $emailArray, EmailLog $email): array
+    {
+        $hasArchivedBody = Schema::hasColumn('email_logs', 'body_s3_key')
+            && trim((string) ($email->body_s3_key ?? '')) !== '';
+
+        $emailArray['has_archived_body'] = $hasArchivedBody;
+        $emailArray['archived_body_view_url'] = $hasArchivedBody
+            ? route('clients.email.view-archived-body', ['id' => $email->id])
+            : null;
+
+        return $emailArray;
+    }
+
     public function buildArchiveS3PathForEmail(EmailLog $email): ?string
     {
         if (!$email->client_matter_id || !$email->id) {

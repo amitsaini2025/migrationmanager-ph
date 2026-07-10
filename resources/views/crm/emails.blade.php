@@ -288,10 +288,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof window.initializeSendBodiesToS3Button === 'function') {
         window.initializeSendBodiesToS3Button();
     }
-    if (typeof window.loadEmails === 'function') {
-        setTimeout(function() {
-            window.loadEmails();
-        }, 0);
-    }
+    // Email list load is triggered by sidebar-tabs when the Emails tab activates.
 });
 </script>
