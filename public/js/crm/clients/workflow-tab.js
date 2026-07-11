@@ -321,7 +321,8 @@
 
         var isCurrentStage = String(stage.id) === String(data.currentStageId);
         if (advanceBtn) {
-            advanceBtn.style.display = isCurrentStage ? 'inline-flex' : 'none';
+            var advanceDisplay = advanceBtn.classList.contains('workflow-v2-advance-btn') ? '' : 'inline-flex';
+            advanceBtn.style.display = isCurrentStage ? advanceDisplay : 'none';
         }
 
         document.querySelectorAll('.workflow-v2-stage-item[data-stage-id]').forEach(function(item) {

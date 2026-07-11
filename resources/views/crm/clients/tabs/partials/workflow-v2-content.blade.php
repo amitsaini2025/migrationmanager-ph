@@ -75,21 +75,6 @@
                                 {{ $isFirstStage ? 'disabled' : '' }}>
                                 <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
                             </button>
-                            @if($wfShowFooterAdvance)
-                                <button type="button"
-                                    class="workflow-v2-header-icon-btn workflow-v2-header-icon-btn--primary"
-                                    id="{{ $wfAdvanceButtonId }}"
-                                    data-matter-id="{{ $matter->id }}"
-                                    data-next-stage-name="{{ $nextStageName ?? '' }}"
-                                    data-current-stage-name="{{ $currentStageName ?? '' }}"
-                                    data-tooltip="Advance to Next Stage"
-                                    title="Advance to Next Stage"
-                                    aria-label="Advance to Next Stage"
-                                    style="{{ ($viewStageId && $currentStageId && (int) $viewStageId === (int) $currentStageId) ? 'display:inline-flex;' : 'display:none;' }}"
-                                    {{ $nextBtnDisabled ? 'disabled' : '' }}>
-                                    <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-                                </button>
-                            @endif
                             <div class="workflow-v2-header-action workflow-v2-header-action--deadline">
                                 <input type="checkbox"
                                     class="workflow-v2-header-deadline-input"
@@ -256,7 +241,7 @@
                         </span>
                     </div>
 
-                    @if($wfShowFooterAdvance && !$isDiscontinued && !$wfShowToolbar)
+                    @if($wfShowFooterAdvance && !$isDiscontinued)
                         <button class="workflow-v2-advance-btn"
                             id="{{ $wfAdvanceButtonId }}"
                             data-matter-id="{{ $matter->id }}"
