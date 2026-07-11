@@ -6,6 +6,7 @@ use App\Models\Admin;
 use App\Models\Document;
 use App\Models\EmailLog;
 use App\Models\EmailLogAttachment;
+use App\Support\Utf8Text;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -15,6 +16,9 @@ use Illuminate\Support\Facades\Schema;
 class EmailLogListService
 {
     public const DEFAULT_PER_PAGE = 25;
+
+    /** JSON flags for email list/detail API responses (invalid bytes become U+FFFD). */
+    public const API_JSON_FLAGS = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE;
 
     public function applySort(Builder $query, string $sort): Builder
     {
@@ -141,7 +145,9 @@ class EmailLogListService
         $emailArray['text_preview'] = $this->resolveTextPreview($email);
         unset($emailArray['message'], $emailArray['body_s3_key'], $emailArray['enhanced_html'], $emailArray['rendered_html']);
 
-        return app(MatterEmailBodyCleanupService::class)->appendListArchivedBodyMeta($emailArray, $email);
+        $emailArray = app(MatterEmailBodyCleanupService::class)->appendListArchivedBodyMeta($emailArray, $email);
+
+        return Utf8Text::cleanDeep($emailArray);
     }
 
     /**
@@ -159,7 +165,9 @@ class EmailLogListService
         $emailArray['message'] = $emailArray['message'] ?? '';
         $emailArray['text_preview'] = $this->resolveTextPreview($email);
 
-        return app(MatterEmailBodyCleanupService::class)->appendArchivedBodyMeta($emailArray, $email);
+        $emailArray = app(MatterEmailBodyCleanupService::class)->appendArchivedBodyMeta($emailArray, $email);
+
+        return Utf8Text::cleanDeep($emailArray);
     }
 
     /**
@@ -269,12 +277,12 @@ class EmailLogListService
 
     private function resolveTextPreview(EmailLog $email): string
     {
-        $storedPreview = trim((string) ($email->text_preview ?? ''));
+        $storedPreview = trim((string) Utf8Text::clean($email->text_preview ?? ''));
         if ($storedPreview !== '') {
             return $storedPreview;
         }
 
-        $message = (string) ($email->message ?? '');
+        $message = (string) Utf8Text::clean($email->message ?? '');
         if ($message === '') {
             return '';
         }

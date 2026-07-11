@@ -4288,7 +4288,7 @@ class ClientsController extends Controller
                 ]),
                 200,
                 [],
-                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                EmailLogListService::API_JSON_FLAGS
             );
         } catch (\Exception $e) {
             Log::error('Error in filterEmails: ' . $e->getMessage());
@@ -4325,7 +4325,7 @@ class ClientsController extends Controller
                 ]),
                 200,
                 [],
-                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                EmailLogListService::API_JSON_FLAGS
             );
         } catch (\Exception $e) {
             Log::error('Error in getEmailLogDetail: ' . $e->getMessage(), [
@@ -4648,7 +4648,7 @@ class ClientsController extends Controller
                 ]),
                 200,
                 [],
-                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                EmailLogListService::API_JSON_FLAGS
             );
 		} catch (\Exception $e) {
 			Log::error('Error in filterSentEmails: ' . $e->getMessage(), [
@@ -4734,7 +4734,7 @@ class ClientsController extends Controller
                 ]),
                 200,
                 [],
-                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                EmailLogListService::API_JSON_FLAGS
             );
         } catch (\Exception $e) {
             Log::error('Error in filterLeadEmails: ' . $e->getMessage());
