@@ -2,58 +2,25 @@
 <link rel="stylesheet" href="{{ URL::asset('css/workflow-tab.css') }}?v={{ time() }}">
 <div class="tab-pane" id="client_portal-tab">
     <div class="card full-width client-portal-container">
-        <div class="portal-header">
-            <h3>@icon('fa-globe') Client Portal Access</h3>
-            <div class="portal-header-controls">
-                <div class="portal-status-badge">
-                    @if(isset($fetchedData->cp_status) && in_array($fetchedData->cp_status, [1, 2]))
-                        <span class="badge badge-success">@icon('fa-check-circle') Active</span>
-                    @else
-                        <span class="badge badge-secondary">@icon('fa-times-circle') Inactive</span>
-                    @endif
-                </div>
-                
-                <!-- Portal Toggle Switch -->
-                <?php
-                // Check if client has any records in client_matters table
-                $client_matters_exist = DB::table('client_matters')
-                    ->where('client_id', $fetchedData->id)
-                    ->exists();
-                ?>
-                @if($client_matters_exist)
-                <div class="portal-toggle-container">
-                    <label class="portal-toggle-label">
-                        <span class="toggle-text">Portal Access:</span>
-                        <div class="toggle-switch">
-                            <input type="checkbox" id="client-portal-toggle-tab" 
-                                   data-client-id="{{ $fetchedData->id}}" 
-                                   {{ isset($fetchedData->cp_status) && in_array($fetchedData->cp_status, [1, 2]) ? 'checked' : '' }}>
-                            <span class="toggle-slider"></span>
-                        </div>
-                        <span class="portal-toggle-loader" id="portal-toggle-loader-tab" style="display: none;">
-                            @icon('fa-spinner', ['spin' => true])
-                        </span>
-                    </label>
-                </div>
-                @endif
-            </div>
-        </div>
+        @php
+            $client_matters_exist = DB::table('client_matters')
+                ->where('client_id', $fetchedData->id)
+                ->exists();
+            $portalIsActive = isset($fetchedData->cp_status) && in_array($fetchedData->cp_status, [1, 2]);
 
-        <div class="portal-content">
-            @if(isset($fetchedData->cp_status) && in_array($fetchedData->cp_status, [1, 2]))
-                <!-- Portal is Active -->
-                <?php
-                // Get the selected matter based on URL parameter or latest active matter
-                $selectedMatter = null;
-                $matterName = '';
-                $matterNumber = '';
-                
-                // Tab names that should NOT be treated as matter reference - use latest matter instead
+            $selectedMatter = null;
+            $matterName = '';
+            $matterNumber = '';
+            $currentWorkflowStageId = null;
+            $currentStageName = null;
+            $allWorkflowStages = collect();
+            $cpActivitiesWf = null;
+
+            if ($portalIsActive) {
                 $validTabNames = ['personaldetails', 'activityfeed', 'noteterm', 'personaldocuments', 'visadocuments', 'eoiroi', 'emails', 'formgenerations', 'formgenerationsl', 'client_portal', 'workflow', 'checklists'];
-                $isMatterIdInUrl = isset($id1) && $id1 != "" && !in_array(strtolower($id1), array_map('strtolower', $validTabNames));
-                
+                $isMatterIdInUrl = isset($id1) && $id1 != '' && !in_array(strtolower($id1), array_map('strtolower', $validTabNames));
+
                 if ($isMatterIdInUrl) {
-                    // If client unique reference id is present in URL (and is not a tab name)
                     $selectedMatter = DB::table('client_matters as cm')
                         ->leftJoin('matters as m', 'cm.sel_matter_id', '=', 'm.id')
                         ->where('cm.client_id', $fetchedData->id)
@@ -61,7 +28,6 @@
                         ->select('cm.id', 'cm.client_unique_matter_no', 'm.title', 'cm.sel_matter_id', 'cm.workflow_id', 'cm.workflow_stage_id', 'cm.matter_status', 'cm.sel_migration_agent')
                         ->first();
                 } else {
-                    // Get the latest matter (active or inactive) - used when no matter in URL or URL has tab name
                     $selectedMatter = DB::table('client_matters as cm')
                         ->leftJoin('matters as m', 'cm.sel_matter_id', '=', 'm.id')
                         ->where('cm.client_id', $fetchedData->id)
@@ -69,27 +35,24 @@
                         ->orderBy('cm.id', 'desc')
                         ->first();
                 }
-                
-                if($selectedMatter) {
-                    // Determine matter name (use "General Matter" if sel_matter_id is 1 or title is null)
-                    if($selectedMatter->sel_matter_id == 1 || empty($selectedMatter->title)) {
+
+                if ($selectedMatter) {
+                    if ($selectedMatter->sel_matter_id == 1 || empty($selectedMatter->title)) {
                         $matterName = 'General Matter';
                     } else {
                         $matterName = $selectedMatter->title;
                     }
                     $matterNumber = $selectedMatter->client_unique_matter_no;
                     $currentWorkflowStageId = $selectedMatter->workflow_stage_id;
-                } else {
-                    $currentWorkflowStageId = null;
                 }
-                
-                // Get all workflow stages
-                $allWorkflowStages = DB::table('workflow_stages')
-                    ->where('workflow_id', $selectedMatter->workflow_id)
-                    ->orderByRaw('COALESCE(sort_order, id) ASC')
-                    ->get(); //dd($allWorkflowStages);
 
-                $currentStageName = null;
+                if ($selectedMatter && $selectedMatter->workflow_id) {
+                    $allWorkflowStages = DB::table('workflow_stages')
+                        ->where('workflow_id', $selectedMatter->workflow_id)
+                        ->orderByRaw('COALESCE(sort_order, id) ASC')
+                        ->get();
+                }
+
                 if ($selectedMatter && $currentWorkflowStageId && $allWorkflowStages->count() > 0) {
                     $currentStageRow = $allWorkflowStages->firstWhere('id', $currentWorkflowStageId);
                     $currentStageName = $currentStageRow ? $currentStageRow->name : null;
@@ -97,107 +60,20 @@
 
                 if ($selectedMatter) {
                     \App\Support\WorkflowStageChecklistSync::ensureSeededForMatter($selectedMatter->id);
+                    $cpActivitiesWf = \App\Support\WorkflowV2Display::build($selectedMatter, $fetchedData, $allWorkflowStages);
                 }
+            }
+        @endphp
 
-                $cpActivitiesWf = $selectedMatter
-                    ? \App\Support\WorkflowV2Display::build($selectedMatter, $fetchedData, $allWorkflowStages)
-                    : null;
-                ?>
-                
-                @if($selectedMatter)
-                    <div class="row mt-3">
-                        <div class="col-md-12">
-                            <div class="info-card in-progress-section">
-                                <div class="in-progress-single-line">
-                                    <h5 class="in-progress-title">
-                                        @if($selectedMatter && isset($selectedMatter->matter_status) && $selectedMatter->matter_status == 1)
-                                            Active
-                                        @else
-                                            In-active
-                                        @endif
-                                    </h5>
-                                    <div class="current-stage-info">
-                                        <label class="stage-label">Current Stage:</label>
-                                        <div class="stage-value-container">
-                                            <span class="stage-value">
-                                                @if($currentWorkflowStageId)
-                                                    @php
-                                                        $currentStage = $allWorkflowStages->where('id', $currentWorkflowStageId)->first();
-                                                    @endphp
-                                                    {{ $currentStage ? $currentStage->name : 'N/A' }}
-                                                @else
-                                                    N/A
-                                                @endif
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="overall-progress-container">
-                                        <label class="progress-label">Overall Progress:</label>
-                                        <div class="progress-circle-wrapper">
-                                            @php
-                                                $totalStages = $cpActivitiesWf['totalStages'] ?? $allWorkflowStages->count();
-                                                $progressPercentage = $cpActivitiesWf['progressPercentage'] ?? 0;
-                                            @endphp
-                                            <div class="progress-circle" data-progress="{{ $progressPercentage }}">
-                                                <svg class="progress-ring" width="80" height="80">
-                                                    <circle class="progress-ring-circle-bg" cx="40" cy="40" r="36" fill="transparent" stroke="#e9ecef" stroke-width="6"/>
-                                                    <circle class="progress-ring-circle" cx="40" cy="40" r="36" fill="transparent" stroke="#007bff" stroke-width="6" stroke-dasharray="{{ 2 * M_PI * 36 }}" stroke-dashoffset="{{ 2 * M_PI * 36 * (1 - $progressPercentage / 100) }}"/>
-                                                </svg>
-                                                <div class="progress-text">{{ $progressPercentage }}%</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="stage-navigation-buttons">
-                                        @php
-                                            $portalIsDiscontinued = ($selectedMatter->matter_status ?? 1) == 0;
-                                            $portalCanReopen = in_array((int) (Auth::guard('admin')->user()->role ?? 0), config('crm.matter_discontinue_role_ids', [1, 17, 16]), true);
-                                        @endphp
-                                        @if($portalIsDiscontinued)
-                                            {{-- Discontinued matter: show Reopen (same roles as discontinue) --}}
-                                            @if($portalCanReopen)
-                                            <button class="btn btn-primary btn-sm matter-detail-reopen-btn client-portal-reopen-btn" id="client-portal-reopen" data-matter-id="{{ $selectedMatter->id }}" title="Reopen Matter">
-                                                @icon('fa-redo') Reopen
-                                            </button>
-                                            @endif
-                                        @else
-                                            {{-- Active matter: show normal workflow buttons --}}
-                                            @php
-                                                // Check if we're at the first stage (can't go back from first stage)
-                                                $isFirstStage = false;
-                                                $nextStageName = null;
-                                                if($currentWorkflowStageId && $allWorkflowStages->count() > 0) {
-                                                    $firstStage = $allWorkflowStages->first();
-                                                    $isFirstStage = ($currentWorkflowStageId == $firstStage->id);
-                                                    $currentOrder = $allWorkflowStages->firstWhere('id', $currentWorkflowStageId);
-                                                    $currentSort = $currentOrder ? ($currentOrder->sort_order ?? $currentOrder->id) : null;
-                                                    $nextStage = $currentSort !== null ? $allWorkflowStages->first(fn($s) => ($s->sort_order ?? $s->id) > $currentSort) : $allWorkflowStages->where('id', '>', $currentWorkflowStageId)->first();
-                                                    $nextStageName = $nextStage ? $nextStage->name : null;
-                                                }
-                                            @endphp
-                                            <button class="btn btn-outline-primary btn-sm" id="back-to-previous-stage" data-matter-id="{{ $selectedMatter->id }}" title="Back to Previous Stage" {{ $isFirstStage ? 'disabled' : '' }}>
-                                                @icon('fa-angle-left') Back to Previous Stage
-                                            </button>
-                                            @php
-                                                $portalAdminForDiscontinue = Auth::guard('admin')->user();
-                                                $portalCanDiscontinue = $portalAdminForDiscontinue
-                                                    && in_array((int) ($portalAdminForDiscontinue->role ?? 0), config('crm.matter_discontinue_role_ids', [1, 17, 16]), true);
-                                            @endphp
-                                            <button class="btn btn-success btn-sm" id="proceed-to-next-stage" data-matter-id="{{ $selectedMatter->id }}" data-next-stage-name="{{ $nextStageName ?? '' }}" data-current-stage-name="{{ $currentStageName ?? '' }}" title="Proceed to Next Stage" {{ ($cpActivitiesWf['nextBtnDisabled'] ?? false) ? 'disabled' : '' }}>
-                                                Proceed to Next Stage @icon('fa-angle-right')
-                                            </button>
-                                            @if($portalCanDiscontinue)
-                                                <button class="btn btn-outline-danger btn-sm client-portal-discontinue-btn" data-matter-id="{{ $selectedMatter->id }}" title="Discontinue Matter">
-                                                    @icon('fa-ban') Discontinue
-                                                </button>
-                                            @endif
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-                
+        @include('crm.clients.tabs.partials.client-portal-page-header', [
+            'fetchedData' => $fetchedData,
+            'client_matters_exist' => $client_matters_exist,
+            'cpActivitiesWf' => $cpActivitiesWf,
+        ])
+
+        <div class="portal-content">
+            @if($portalIsActive)
+                <!-- Portal is Active -->
                 <div class="row mt-3">
                     <div class="col-md-12">
                         <div class="info-card">
@@ -234,7 +110,7 @@
                                                 <div class="workflow-v2 workflow-v2--client-portal-activities">
                                                     @php extract($cpActivitiesWf); @endphp
                                                     @include('crm.clients.tabs.partials.workflow-v2-content', [
-                                                        'wfShowHeader' => true,
+                                                        'wfShowHeader' => false,
                                                         'wfShowToolbar' => false,
                                                         'wfShowFooterAdvance' => false,
                                                     ])
@@ -3518,6 +3394,10 @@ body:has(#create_checklist.modal.show) .modal-backdrop {
     gap: 20px;
     flex-wrap: wrap;
     justify-content: space-between;
+}
+
+.in-progress-single-line.in-progress-actions-only {
+    justify-content: flex-end;
 }
 
 .in-progress-title {

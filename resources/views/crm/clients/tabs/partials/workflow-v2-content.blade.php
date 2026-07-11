@@ -2,6 +2,7 @@
     $wfShowHeader = $wfShowHeader ?? true;
     $wfShowToolbar = $wfShowToolbar ?? true;
     $wfShowFooterAdvance = $wfShowFooterAdvance ?? true;
+    $wfShowPortalIdentity = $wfShowPortalIdentity ?? false;
     $wfAdvanceButtonId = $wfAdvanceButtonId ?? 'workflow-tab-proceed-to-next-stage';
     $wfBackButtonId = $wfBackButtonId ?? 'workflow-tab-back-to-previous-stage';
     $wfReopenButtonId = $wfReopenButtonId ?? 'workflow-tab-reopen';
@@ -18,6 +19,12 @@
                 : ($wfMatterNameLen > 35 ? 'is-long' : ($wfMatterNameLen > 22 ? 'is-medium' : ''));
         @endphp
         <div class="workflow-v2-header">
+            @if($wfShowPortalIdentity)
+                <div class="workflow-v2-portal-identity">
+                    @icon('fa-globe')
+                    <span class="workflow-v2-portal-identity-label">Client Portal Access</span>
+                </div>
+            @endif
             <h2 class="workflow-v2-case-title {{ $wfTitleSizeClass }}">
                 {{ $matterName }}
                 <span class="workflow-v2-case-sep" aria-hidden="true">&middot;</span>
