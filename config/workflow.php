@@ -58,4 +58,30 @@ return [
 
     'default_workflow_name' => 'General',
 
+    /*
+    |--------------------------------------------------------------------------
+    | Workflow tab — stage display defaults (UI)
+    |--------------------------------------------------------------------------
+    |
+    | Optional metadata for the redesigned Workflow tab. Keys are matched
+    | case-insensitively against workflow_stages.name. When cp_doc_checklists
+    | exist for a matter+stage, those take precedence over checklist_items.
+    |
+    */
+    'stage_display_defaults' => [
+        'checklist & agreement sent' => [
+            'completion_rule' => 'Checklist, service agreement and forms sent, and a follow-up date recorded.',
+            'pending_from' => 'Client',
+            'file_note_section' => true,
+            'checklist_items' => [
+                ['label' => 'Initial assessment recorded', 'required' => true],
+                ['label' => 'Specific checklist sent', 'required' => true],
+                ['label' => 'Cost / service agreement sent', 'required' => true],
+                ['label' => 'Forms sent to client', 'required' => true],
+                ['label' => 'Follow-up date recorded', 'required' => true],
+                ['label' => 'Client acknowledgement noted', 'required' => true],
+            ],
+        ],
+    ],
+
 ];

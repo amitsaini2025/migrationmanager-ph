@@ -34,6 +34,12 @@
             btn.style.setProperty('display', 'inline-block', 'important');
             btn.style.setProperty('visibility', 'visible', 'important');
             btn.style.setProperty('opacity', '1', 'important');
+
+            // Workflow v2 toolbar has its own scoped styles — avoid legacy client-portal overrides
+            if (btn.closest('.workflow-v2-toolbar')) {
+                return;
+            }
+
             btn.style.setProperty('color', '#3490dc', 'important');
             btn.style.setProperty('border-color', '#3490dc', 'important');
             btn.style.setProperty('background-color', '#ffffff', 'important');
