@@ -35,8 +35,8 @@
             btn.style.setProperty('visibility', 'visible', 'important');
             btn.style.setProperty('opacity', '1', 'important');
 
-            // Workflow v2 toolbar has its own scoped styles — avoid legacy client-portal overrides
-            if (btn.closest('.workflow-v2-toolbar')) {
+            // Workflow v2 header/toolbar use scoped icon styles — avoid legacy client-portal overrides
+            if (btn.closest('.workflow-v2-toolbar') || btn.closest('.workflow-v2-header')) {
                 return;
             }
 
@@ -321,7 +321,7 @@
 
         var isCurrentStage = String(stage.id) === String(data.currentStageId);
         if (advanceBtn) {
-            advanceBtn.style.display = isCurrentStage ? '' : 'none';
+            advanceBtn.style.display = isCurrentStage ? 'inline-flex' : 'none';
         }
 
         document.querySelectorAll('.workflow-v2-stage-item[data-stage-id]').forEach(function(item) {
@@ -597,7 +597,7 @@
                 var dateInput = document.getElementById('workflow-deadline-date');
                 if (!wrapper || !dateInput) return;
 
-                wrapper.style.display = checked ? 'block' : 'none';
+                wrapper.style.display = checked ? 'inline-flex' : 'none';
                 if (!checked) {
                     dateInput.value = '';
                     saveMatterDeadline(e.target.getAttribute('data-matter-id'), false, null);

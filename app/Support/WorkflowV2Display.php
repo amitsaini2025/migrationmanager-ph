@@ -39,8 +39,9 @@ class WorkflowV2Display
         $currentStageIndex = $currentSortVal !== null
             ? $allStages->where(fn ($s) => ($s->sort_order ?? $s->id) <= $currentSortVal)->count()
             : 0;
+        $completedStages = max(0, $currentStageIndex - 1);
         $progressPercentage = $totalStages > 0
-            ? (int) round(($currentStageIndex / $totalStages) * 100)
+            ? (int) round(($completedStages / $totalStages) * 100)
             : 0;
 
         if ($matter && $currentStageId && $totalStages > 0) {
@@ -158,7 +159,7 @@ class WorkflowV2Display
             $stageSort = $stage->sort_order ?? $stage->id;
             $isActive = $currentStageId && (int) $currentStageId === (int) $stage->id;
             $isCompleted = $currentStageId && $currentStageSort !== null && $stageSort < $currentStageSort;
-            $isLocked = !$isActive && !$isCompleted;
+            $isProtected = self::stageIsProtected($stage);
 
             $stageName = $stage->name;
             $stageDisplay = self::stageDisplayMeta($stageName);
@@ -170,8 +171,9 @@ class WorkflowV2Display
                 'id' => (int) $stage->id,
                 'index' => $stageIndex + 1,
                 'name' => $stageName,
-                'status' => $isActive ? 'active' : ($isCompleted ? 'completed' : 'locked'),
+                'status' => $isActive ? 'active' : ($isCompleted ? 'completed' : ($isProtected ? 'locked' : 'future')),
                 'isCurrent' => $isActive,
+                'isProtected' => $isProtected,
                 'stageDisplay' => $stageDisplay ? [
                     'pending_from' => $stageDisplay['pending_from'] ?? null,
                     'completion_rule' => $stageDisplay['completion_rule'] ?? null,
@@ -238,8 +240,8 @@ class WorkflowV2Display
                 ->count();
             $isDone = $uploadCount > 0;
             $itemRequired = Schema::hasColumn('cp_doc_checklists', 'is_required')
-                ? (bool) ($cpItem->is_required ?? true)
-                : true;
+                ? (bool) $cpItem->is_required
+                : false;
 
             $rows[] = [
                 'label' => $label,
@@ -267,7 +269,7 @@ class WorkflowV2Display
                 }
                 $seenNames[$norm] = true;
 
-                $itemRequired = (bool) ($template->is_required ?? true);
+                $itemRequired = (bool) $template->is_required;
                 $rows[] = [
                     'label' => $label,
                     'required' => $itemRequired,
@@ -303,5 +305,17 @@ class WorkflowV2Display
         }
 
         return ['rows' => $rows, 'outstanding' => $outstanding];
+    }
+
+    /**
+     * Whether a workflow stage is marked Protected in Admin Console.
+     */
+    public static function stageIsProtected(object $stage): bool
+    {
+        if (!Schema::hasColumn('workflow_stages', 'is_protected')) {
+            return false;
+        }
+
+        return (bool) ($stage->is_protected ?? false);
     }
 }

@@ -63,6 +63,16 @@ class WorkflowStageChecklistSync
                 ->exists();
 
             if ($exists) {
+                if (Schema::hasColumn('cp_doc_checklists', 'is_required')) {
+                    DB::table('cp_doc_checklists')
+                        ->where('client_matter_id', $clientMatter->id)
+                        ->where('wf_stage', $stage->name)
+                        ->whereRaw('LOWER(TRIM(cp_checklist_name)) = ?', [$normalizedName])
+                        ->update([
+                            'is_required' => (int) (bool) $template->is_required,
+                            'updated_at' => $now,
+                        ]);
+                }
                 continue;
             }
 
@@ -80,7 +90,7 @@ class WorkflowStageChecklistSync
             ];
 
             if (Schema::hasColumn('cp_doc_checklists', 'is_required')) {
-                $payload['is_required'] = (int) ($template->is_required ?? 1);
+                $payload['is_required'] = (int) (bool) $template->is_required;
             }
 
             DB::table('cp_doc_checklists')->insert($payload);

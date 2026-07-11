@@ -11,89 +11,129 @@
 
 @if($matter)
     @if($wfShowHeader)
+        @php
+            $wfMatterNameLen = mb_strlen(trim((string) ($matterName ?? '')));
+            $wfTitleSizeClass = $wfMatterNameLen > 50
+                ? 'is-xlong'
+                : ($wfMatterNameLen > 35 ? 'is-long' : ($wfMatterNameLen > 22 ? 'is-medium' : ''));
+        @endphp
         <div class="workflow-v2-header">
-            <div class="workflow-v2-header-main">
-                <h2 class="workflow-v2-case-title">
-                    {{ $clientId }} &mdash; {{ $matterName }} &middot; {{ $matterNumber }}
-                </h2>
-                <div class="workflow-v2-header-meta">
-                    <span>Client: <strong>{{ $clientDisplayName }}</strong></span>
-                    @if($marnNumber)
-                        <span>RMA / MARN: <span class="workflow-v2-marn">{{ $marnNumber }}</span></span>
-                    @endif
-                    <span>Current stage: <strong>{{ $currentStageName ?? 'N/A' }}</strong></span>
+            <h2 class="workflow-v2-case-title {{ $wfTitleSizeClass }}">
+                {{ $matterName }}
+                <span class="workflow-v2-case-sep" aria-hidden="true">&middot;</span>
+                {{ $matterNumber }}
+            </h2>
+
+            <div class="workflow-v2-header-meta">
+                <div class="workflow-v2-meta-item">
+                    <span class="workflow-v2-meta-label">Client</span>
+                    <span class="workflow-v2-meta-value">{{ $clientDisplayName }}</span>
+                </div>
+                @if($marnNumber)
+                    <div class="workflow-v2-meta-item">
+                        <span class="workflow-v2-meta-label">RMA / MARN</span>
+                        <span class="workflow-v2-meta-value">{{ $marnNumber }}</span>
+                    </div>
+                @endif
+                <div class="workflow-v2-meta-item">
+                    <span class="workflow-v2-meta-label">Current stage</span>
+                    <span class="workflow-v2-meta-value">{{ $currentStageName ?? 'N/A' }}</span>
                 </div>
             </div>
+
             <div class="workflow-v2-header-progress">
-                <div class="workflow-v2-progress-label">File Progress</div>
-                <div class="workflow-v2-progress-value">{{ $progressPercentage }}%</div>
+                <div class="workflow-v2-progress-top">
+                    <span class="workflow-v2-progress-label">File Progress</span>
+                    <span class="workflow-v2-progress-value">{{ $progressPercentage }}%</span>
+                </div>
                 <div class="workflow-v2-progress-bar">
                     <div class="workflow-v2-progress-bar-fill" style="width: {{ $progressPercentage }}%;"></div>
                 </div>
-            </div>
-        </div>
-    @endif
 
-    @if($wfShowToolbar)
-        <div class="workflow-v2-toolbar">
-            <span class="workflow-v2-status-pill {{ $isActive ? 'is-active' : 'is-inactive' }}">
-                {{ $isActive ? 'Active' : 'In-active' }}
-            </span>
-
-            <div class="workflow-v2-deadline">
-                <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input" id="workflow-set-deadline"
-                        data-matter-id="{{ $matter->id }}"
-                        {{ $matter->deadline ? 'checked' : '' }}>
-                    <label class="custom-control-label" for="workflow-set-deadline">Set Deadline</label>
-                </div>
-                <div class="workflow-deadline-date-wrapper workflow-v2-deadline-date-wrapper"
-                    style="{{ $matter->deadline ? '' : 'display: none;' }}">
-                    <label for="workflow-deadline-date" class="sr-only">Deadline Date</label>
-                    <input type="date" class="form-control form-control-sm" id="workflow-deadline-date"
-                        value="{{ $matter->deadline ? \Carbon\Carbon::parse($matter->deadline)->format('Y-m-d') : '' }}"
-                        data-matter-id="{{ $matter->id }}">
-                </div>
-                @if($matter->deadline)
-                    <span class="badge badge-info">
-                        @icon('fa-calendar-alt') {{ \Carbon\Carbon::parse($matter->deadline)->format('d/m/Y') }}
-                    </span>
-                @endif
-            </div>
-
-            <div class="workflow-v2-toolbar-actions stage-navigation-buttons">
-                @if($isDiscontinued)
-                    @if($canReopen)
-                        <button class="btn btn-primary btn-sm matter-detail-reopen-btn" id="{{ $wfReopenButtonId }}"
-                            data-matter-id="{{ $matter->id }}" title="Reopen Matter">
-                            @icon('fa-redo') Reopen
+                @if($wfShowToolbar)
+                    <div class="workflow-v2-header-actions">
+                        @if($isDiscontinued)
+                            @if($canReopen)
+                                <button type="button"
+                                    class="workflow-v2-header-icon-btn workflow-v2-header-icon-btn--primary matter-detail-reopen-btn"
+                                    id="{{ $wfReopenButtonId }}"
+                                    data-matter-id="{{ $matter->id }}"
+                                    data-tooltip="Reopen Matter"
+                                    title="Reopen Matter"
+                                    aria-label="Reopen Matter">
+                                    <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                                </button>
+                            @endif
+                        @else
+                            <button type="button"
+                                class="workflow-v2-header-icon-btn"
+                                id="{{ $wfBackButtonId }}"
+                                data-matter-id="{{ $matter->id }}"
+                                data-tooltip="Back to Previous Stage"
+                                title="Back to Previous Stage"
+                                aria-label="Back to Previous Stage"
+                                {{ $isFirstStage ? 'disabled' : '' }}>
+                                <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                            </button>
+                            @if($wfShowFooterAdvance)
+                                <button type="button"
+                                    class="workflow-v2-header-icon-btn workflow-v2-header-icon-btn--primary"
+                                    id="{{ $wfAdvanceButtonId }}"
+                                    data-matter-id="{{ $matter->id }}"
+                                    data-next-stage-name="{{ $nextStageName ?? '' }}"
+                                    data-current-stage-name="{{ $currentStageName ?? '' }}"
+                                    data-tooltip="Advance to Next Stage"
+                                    title="Advance to Next Stage"
+                                    aria-label="Advance to Next Stage"
+                                    style="{{ ($viewStageId && $currentStageId && (int) $viewStageId === (int) $currentStageId) ? 'display:inline-flex;' : 'display:none;' }}"
+                                    {{ $nextBtnDisabled ? 'disabled' : '' }}>
+                                    <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                                </button>
+                            @endif
+                            <div class="workflow-v2-header-action workflow-v2-header-action--deadline">
+                                <input type="checkbox"
+                                    class="workflow-v2-header-deadline-input"
+                                    id="workflow-set-deadline"
+                                    data-matter-id="{{ $matter->id }}"
+                                    {{ $matter->deadline ? 'checked' : '' }}>
+                                <label for="workflow-set-deadline"
+                                    class="workflow-v2-header-icon-btn"
+                                    data-tooltip="Set Deadline"
+                                    title="Set Deadline"
+                                    aria-label="Set Deadline">
+                                    <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                                </label>
+                            </div>
+                            @if($canDiscontinue)
+                                <button type="button"
+                                    class="workflow-v2-header-icon-btn workflow-v2-header-icon-btn--danger"
+                                    id="{{ $wfDiscontinueButtonId }}"
+                                    data-matter-id="{{ $matter->id }}"
+                                    data-tooltip="Discontinue"
+                                    title="Discontinue"
+                                    aria-label="Discontinue">
+                                    <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+                                </button>
+                            @endif
+                        @endif
+                        <button type="button"
+                            class="workflow-v2-header-icon-btn"
+                            id="{{ $wfChangeWorkflowButtonId }}"
+                            data-matter-id="{{ $matter->id }}"
+                            data-current-workflow-id="{{ $matter->workflow_id ?? '' }}"
+                            data-tooltip="Change Workflow"
+                            title="Change Workflow"
+                            aria-label="Change Workflow">
+                            <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
                         </button>
-                    @endif
-                    <button class="btn btn-outline-secondary btn-sm" id="{{ $wfChangeWorkflowButtonId }}"
-                        data-matter-id="{{ $matter->id }}"
-                        data-current-workflow-id="{{ $matter->workflow_id ?? '' }}"
-                        title="Change workflow for this matter">
-                        @icon('fa-exchange-alt') Change Workflow
-                    </button>
-                @else
-                    <button class="btn btn-outline-primary btn-sm" id="{{ $wfBackButtonId }}"
-                        data-matter-id="{{ $matter->id }}"
-                        title="Back to Previous Stage"
-                        {{ $isFirstStage ? 'disabled' : '' }}>
-                        @icon('fa-angle-left') Back
-                    </button>
-                    @if($canDiscontinue)
-                        <button class="btn btn-outline-danger btn-sm" id="{{ $wfDiscontinueButtonId }}"
-                            data-matter-id="{{ $matter->id }}" title="Discontinue Matter">
-                            @icon('fa-ban') Discontinue
-                        </button>
-                    @endif
-                    <button class="btn btn-outline-secondary btn-sm" id="{{ $wfChangeWorkflowButtonId }}"
-                        data-matter-id="{{ $matter->id }}"
-                        data-current-workflow-id="{{ $matter->workflow_id ?? '' }}"
-                        title="Change workflow for this matter">
-                        @icon('fa-exchange-alt') Change Workflow
-                    </button>
+                        <div class="workflow-deadline-date-wrapper workflow-v2-header-deadline-date workflow-v2-deadline-date-wrapper"
+                            style="{{ $matter->deadline ? 'display:inline-flex;' : 'display:none;' }}">
+                            <label for="workflow-deadline-date" class="sr-only">Deadline Date</label>
+                            <input type="date" class="form-control form-control-sm" id="workflow-deadline-date"
+                                value="{{ $matter->deadline ? \Carbon\Carbon::parse($matter->deadline)->format('Y-m-d') : '' }}"
+                                data-matter-id="{{ $matter->id }}">
+                        </div>
+                    </div>
                 @endif
             </div>
         </div>
@@ -116,7 +156,8 @@
                                 ? ($currentStageRowForList->sort_order ?? $currentStageRowForList->id)
                                 : null;
                             $wfIsCompleted = ($currentStageId && $currentStageSortForList !== null && $stageSort < $currentStageSortForList);
-                            $wfIsLocked = !$wfIsCurrent && !$wfIsCompleted;
+                            $wfIsProtected = \App\Support\WorkflowV2Display::stageIsProtected($stage);
+                            $wfShowLockIcon = $wfIsProtected && !$wfIsCurrent && !$wfIsCompleted;
                             $itemClass = trim(
                                 ($wfIsCurrent ? 'is-active ' : '')
                                 . ($wfIsCompleted ? 'is-completed ' : '')
@@ -136,8 +177,8 @@
                                 <span class="workflow-v2-stage-lock" title="Completed" aria-hidden="true">
                                     <svg class="lucide icon workflow-v2-stage-lock-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                                 </span>
-                            @elseif($wfIsLocked)
-                                <span class="workflow-v2-stage-lock" title="Not yet reached" aria-hidden="true">
+                            @elseif($wfShowLockIcon)
+                                <span class="workflow-v2-stage-lock" title="Protected stage" aria-hidden="true">
                                     <svg class="lucide icon workflow-v2-stage-lock-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                                 </span>
                             @endif
@@ -215,7 +256,7 @@
                         </span>
                     </div>
 
-                    @if($wfShowFooterAdvance && !$isDiscontinued)
+                    @if($wfShowFooterAdvance && !$isDiscontinued && !$wfShowToolbar)
                         <button class="workflow-v2-advance-btn"
                             id="{{ $wfAdvanceButtonId }}"
                             data-matter-id="{{ $matter->id }}"
