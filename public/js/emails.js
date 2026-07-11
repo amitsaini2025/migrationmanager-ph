@@ -25,6 +25,8 @@
     let selectedEmailId = null;
     let currentReadingEmail = null;
     const emailDetailCache = new Map();
+    let readingPanePlaceholderDefaultHtml = null;
+    let emailDetailLoadToken = 0;
 
     function getAllowedUploadExtensionsLabel() {
         if (typeof window.crmEmailUploadExtensionsLabel === 'function') {
@@ -1367,12 +1369,8 @@
                 } else {
                     selectedEmailId = null;
                     currentReadingEmail = null;
-                    const emailContentView = document.getElementById('emailContentView');
-                    const emailContentPlaceholder = document.getElementById('emailContentPlaceholder');
-                    if (emailContentView && emailContentPlaceholder) {
-                        emailContentView.style.display = 'none';
-                        emailContentPlaceholder.style.display = 'block';
-                    }
+                    emailDetailLoadToken += 1;
+                    restoreReadingPanePlaceholder();
                 }
             }
 
@@ -1938,19 +1936,76 @@
         }
     }
 
-    function resetOutlookReadingPane() {
-        selectedEmailId = null;
-        currentReadingEmail = null;
+    function cacheReadingPanePlaceholderHtml() {
+        const placeholder = document.getElementById('emailContentPlaceholder');
+        if (placeholder && readingPanePlaceholderDefaultHtml === null) {
+            readingPanePlaceholderDefaultHtml = placeholder.innerHTML;
+        }
+    }
+
+    function getReadingPaneLoadingHtml() {
+        const spinner = typeof crmIconAny === 'function'
+            ? crmIconAny('fas fa-spinner fa-spin')
+            : '<i class="fas fa-spinner fa-spin"></i>';
+
+        return '<div class="empty-state-icon reading-pane-loading-icon">' + spinner + '</div>' +
+            '<p>Loading email...</p>';
+    }
+
+    function showReadingPaneLoading() {
+        cacheReadingPanePlaceholderHtml();
+
         const placeholder = document.getElementById('emailContentPlaceholder');
         const readingPane = document.getElementById('emailContentView');
+
         if (placeholder) {
+            placeholder.innerHTML = getReadingPaneLoadingHtml();
+            placeholder.classList.add('reading-pane-loading');
             placeholder.style.display = '';
             placeholder.hidden = false;
         }
+
         if (readingPane) {
             readingPane.classList.remove('is-visible');
-            readingPane.style.display = '';
+            if (isOutlookLayout()) {
+                readingPane.style.display = '';
+            } else {
+                readingPane.style.display = 'none';
+            }
         }
+    }
+
+    function restoreReadingPanePlaceholder() {
+        cacheReadingPanePlaceholderHtml();
+
+        const placeholder = document.getElementById('emailContentPlaceholder');
+        const readingPane = document.getElementById('emailContentView');
+
+        if (placeholder) {
+            if (readingPanePlaceholderDefaultHtml !== null) {
+                placeholder.innerHTML = readingPanePlaceholderDefaultHtml;
+            }
+            placeholder.classList.remove('reading-pane-loading');
+            placeholder.style.display = '';
+            placeholder.hidden = false;
+        }
+
+        if (readingPane) {
+            readingPane.classList.remove('is-visible');
+            if (isOutlookLayout()) {
+                readingPane.style.display = '';
+            } else {
+                readingPane.style.display = 'none';
+            }
+        }
+    }
+
+    function resetOutlookReadingPane() {
+        selectedEmailId = null;
+        currentReadingEmail = null;
+        emailDetailLoadToken += 1;
+        restoreReadingPanePlaceholder();
+
         const iframe = document.getElementById('emailReadBody');
         if (iframe) {
             iframe.removeAttribute('src');
@@ -1973,6 +2028,7 @@
 
         placeholder.style.display = 'none';
         placeholder.hidden = true;
+        placeholder.classList.remove('reading-pane-loading');
         readingPane.classList.add('is-visible');
         readingPane.style.display = '';
 
@@ -2029,10 +2085,20 @@
     }
 
     async function openEmailDetail(email) {
+        const loadToken = ++emailDetailLoadToken;
+        showReadingPaneLoading();
+
         try {
             const detail = await ensureEmailDetail(email);
+            if (loadToken !== emailDetailLoadToken) {
+                return;
+            }
             loadEmailDetail(detail);
         } catch (error) {
+            if (loadToken !== emailDetailLoadToken) {
+                return;
+            }
+            restoreReadingPanePlaceholder();
             console.error('Error opening email detail:', error);
             showNotification('Failed to open email: ' + error.message, 'error');
         }
@@ -2057,6 +2123,7 @@
 
         // Hide placeholder, show content
         emailContentPlaceholder.style.display = 'none';
+        emailContentPlaceholder.classList.remove('reading-pane-loading');
         emailContentView.style.display = 'block';
 
         const subject = email.subject || '(No subject)';
@@ -2551,6 +2618,84 @@
         return 'Fwd: ' + subject;
     }
 
+    function escapeHtmlForCompose(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function emailHasHtmlBody(email) {
+        return typeof email.message === 'string'
+            && email.message.trim() !== ''
+            && email.message.indexOf('<') !== -1;
+    }
+
+    /**
+     * Strip non-visible Outlook/Word HTML (styles, scripts, VML) but keep readable body markup.
+     */
+    function sanitizeHtmlForQuotedReply(html) {
+        let content = String(html);
+
+        content = content.replace(/<!--[\s\S]*?-->/g, '');
+        content = content.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+        content = content.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+        content = content.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, '');
+        content = content.replace(/<xml\b[^>]*>[\s\S]*?<\/xml>/gi, '');
+
+        if (typeof DOMParser !== 'undefined') {
+            try {
+                const doc = new DOMParser().parseFromString(content, 'text/html');
+                doc.querySelectorAll('style, script, meta, link, title, xml, head').forEach(function(el) {
+                    el.remove();
+                });
+                doc.querySelectorAll('[style]').forEach(function(el) {
+                    el.removeAttribute('style');
+                });
+                content = doc.body ? doc.body.innerHTML.trim() : content.trim();
+            } catch (e) {
+                content = content.trim();
+            }
+        } else {
+            content = content
+                .replace(/<meta\b[^>]*>/gi, '')
+                .replace(/<link\b[^>]*>/gi, '')
+                .trim();
+        }
+
+        return content || '<p></p>';
+    }
+
+    /**
+     * Convert stored HTML email bodies to plain text (fallback when body is not HTML).
+     */
+    function htmlToPlainQuotedText(html) {
+        let text = String(html);
+
+        text = text.replace(/<!--[\s\S]*?-->/g, ' ');
+        text = text.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ');
+        text = text.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ');
+        text = text.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, ' ');
+        text = text.replace(/<xml\b[^>]*>[\s\S]*?<\/xml>/gi, ' ');
+        text = text.replace(/<br\s*\/?>/gi, '\n');
+        text = text.replace(/<\/(p|div|tr|li|h[1-6])>/gi, '\n');
+        text = text.replace(/<[^>]+>/g, ' ');
+        text = text
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/&amp;/gi, '&')
+            .replace(/&lt;/gi, '<')
+            .replace(/&gt;/gi, '>')
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&apos;/gi, "'");
+
+        text = text.replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n');
+        text = text.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n');
+
+        return text.trim();
+    }
+
     /**
      * Plain-text body for reply/forward quotes (strips HTML when needed).
      */
@@ -2558,18 +2703,55 @@
         if (typeof email.message === 'string' && email.message.trim() !== '') {
             const msg = email.message;
             if (msg.indexOf('<') !== -1) {
-                return msg.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                return htmlToPlainQuotedText(msg);
             }
-            return msg;
+            return msg.trim();
         }
 
         return email.text_preview || '(No content)';
     }
 
     /**
+     * HTML quoted body for TinyMCE (preserves paragraphs/formatting like the reading pane).
+     */
+    function formatQuotedMessageHtml(email, isForward) {
+        const from = escapeHtmlForCompose(email.from_mail || 'Unknown');
+        const to = escapeHtmlForCompose(cleanRecipients(email.to_mail) || 'Unknown');
+        const cc = cleanRecipients(email.cc) || '';
+        const date = escapeHtmlForCompose(formatDate(getEmailDate(email)));
+        const subject = escapeHtmlForCompose(email.subject || '(No subject)');
+        const bodyHtml = sanitizeHtmlForQuotedReply(email.message);
+
+        let html = '<p><br></p>';
+
+        if (isForward) {
+            html += '<div>---------- Forwarded message ----------</div>';
+            html += '<div>From: ' + from + '</div>';
+            html += '<div>To: ' + to + '</div>';
+            if (cc) {
+                html += '<div>Cc: ' + escapeHtmlForCompose(cc) + '</div>';
+            }
+            html += '<div>Date: ' + date + '</div>';
+            html += '<div>Subject: ' + subject + '</div>';
+            html += '<p><br></p>';
+        }
+
+        html += '<div>On ' + date + ', ' + from + ' wrote:</div>';
+        html += '<blockquote style="margin:0 0 0 .8ex;border-left:1px #ccc solid;padding-left:1ex;">';
+        html += bodyHtml;
+        html += '</blockquote>';
+
+        return html;
+    }
+
+    /**
      * Format quoted message for reply/forward
      */
-    function formatQuotedMessage(email, isForward = false) {
+    function formatQuotedMessage(email, isForward) {
+        if (emailHasHtmlBody(email)) {
+            return formatQuotedMessageHtml(email, isForward);
+        }
+
         const from = email.from_mail || 'Unknown';
         const to = cleanRecipients(email.to_mail) || 'Unknown';
         const cc = cleanRecipients(email.cc) || '';
@@ -2580,7 +2762,6 @@
         let quotedText = '';
         
         if (isForward) {
-            // Forward format with headers
             quotedText = '\n\n---------- Forwarded message ----------\n';
             quotedText += 'From: ' + from + '\n';
             quotedText += 'To: ' + to + '\n';
@@ -2590,13 +2771,13 @@
             quotedText += 'Date: ' + date + '\n';
             quotedText += 'Subject: ' + subject + '\n\n';
         } else {
-            // Reply format (simpler)
             quotedText = '\n\n';
         }
         
-        // Add original message with quote markers
         quotedText += 'On ' + date + ', ' + from + ' wrote:\n';
-        quotedText += '> ' + message.replace(/\n/g, '\n> ');
+        quotedText += message.split('\n').map(function(line) {
+            return '> ' + line;
+        }).join('\n');
         
         return quotedText;
     }
@@ -2866,6 +3047,19 @@
     }
 
     /**
+     * Content for TinyMCE: keep HTML quotes as-is; convert plain-text newlines to <br>.
+     */
+    function composeMessageForEditor(message) {
+        if (!message) {
+            return '';
+        }
+        if (/<(?:blockquote|div|p|table|ul|ol|br)\b/i.test(message)) {
+            return message;
+        }
+        return escapeHtmlForCompose(message).replace(/\n/g, '<br>');
+    }
+
+    /**
      * Open compose modal and populate fields
      */
     function openComposeModal(data) {
@@ -2898,12 +3092,12 @@
         // Set message (for TinyMCE editor)
         const messageTextarea = document.querySelector('#compose_email_message');
         if (messageTextarea && data.message) {
-            // Fill textarea immediately so content is not blank while TinyMCE initializes (~100ms after shown).
-            messageTextarea.value = data.message;
+            const editorHtml = composeMessageForEditor(data.message);
+            messageTextarea.value = editorHtml;
             const setMessageContent = () => {
                 if (typeof tinymce !== 'undefined' && tinymce.get('compose_email_message')) {
                     try {
-                        tinymce.get('compose_email_message').setContent(messageTextarea.value);
+                        tinymce.get('compose_email_message').setContent(editorHtml);
                     } catch (e) {
                         /* editor not ready */
                     }
@@ -3161,12 +3355,10 @@
                 if (isOutlookLayout()) {
                     resetOutlookReadingPane();
                 } else {
-                    const emailContentView = document.getElementById('emailContentView');
-                    const emailContentPlaceholder = document.getElementById('emailContentPlaceholder');
-                    if (emailContentView && emailContentPlaceholder) {
-                        emailContentView.style.display = 'none';
-                        emailContentPlaceholder.style.display = 'block';
-                    }
+                    selectedEmailId = null;
+                    currentReadingEmail = null;
+                    emailDetailLoadToken += 1;
+                    restoreReadingPanePlaceholder();
                 }
                 loadEmailsFromServer();
             } else {
@@ -3693,6 +3885,8 @@
      * Initialize new filter and modal features
      */
     function initializeNewFeatures() {
+        cacheReadingPanePlaceholderHtml();
+
         // Restore mail type before filters bind and initial email load
         const mailTypeFilter = document.getElementById('mailTypeFilter');
         if (mailTypeFilter && typeof window.restoreEmailMailType === 'function') {
