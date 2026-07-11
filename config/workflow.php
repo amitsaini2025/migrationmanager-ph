@@ -39,4 +39,23 @@ return [
     */
     'freeze_protected_stages_only_on_general_workflow' => true,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Default workflow for new client matters (by matter type title)
+    |--------------------------------------------------------------------------
+    |
+    | Applied only when creating a new client_matters row. Existing matters are
+    | not changed. matters.workflow_id (Admin → Matter List) still overrides this.
+    | Unmapped matter types use default_workflow_name (General).
+    |
+    */
+    'matter_default_workflows' => [
+        'Administrative Review Tribunal' => 'Administrative Review Tribunal',
+        'Bridging Visa B- (020)' => 'Bridging visa B (BV-B) and Work rights',
+        'Expression Of Interest' => 'EOI /ROI',
+        'Skill assessment - Australian Physiotherapy Council' => 'Skill assessment',
+    ],
+
+    'default_workflow_name' => 'General',
+
 ];

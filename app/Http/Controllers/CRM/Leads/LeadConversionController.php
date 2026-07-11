@@ -11,6 +11,7 @@ use App\Models\Lead;
 use App\Models\ClientMatter;
 use App\Models\Matter;
 use App\Support\StaffClientVisibility;
+use App\Support\WorkflowAssignment;
 
 class LeadConversionController extends Controller
 {
@@ -118,9 +119,8 @@ class LeadConversionController extends Controller
                 }
                 
                 $matterType = Matter::find($requestData['matter_id']);
-                $workflowId = $matterType && $matterType->workflow_id ? $matterType->workflow_id : \App\Models\Workflow::where('name', 'General')->value('id');
-                $firstStageId = \App\Models\WorkflowStage::where('workflow_id', $workflowId)->orderByRaw('COALESCE(sort_order, id) ASC')->value('id')
-                    ?? \App\Models\WorkflowStage::orderByRaw('COALESCE(sort_order, id) ASC')->value('id') ?? 1;
+                $workflowId = WorkflowAssignment::resolveWorkflowIdForNewClientMatter($matterType);
+                $firstStageId = WorkflowAssignment::firstStageIdForWorkflow($workflowId);
                 $matter->workflow_id = $workflowId;
                 $matter->workflow_stage_id = $firstStageId;
                 $matter->matter_status = 1; // Active by default

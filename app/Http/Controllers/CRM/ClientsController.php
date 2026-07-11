@@ -36,6 +36,7 @@ use App\Services\ClientReferenceService;
 use App\Support\AppointmentActivityDescription;
 use App\Support\NoteDescriptionHtml;
 use App\Support\StaffClientVisibility;
+use App\Support\WorkflowAssignment;
 
 use DateTime;
 use DateTimeZone;
@@ -6536,9 +6537,8 @@ class ClientsController extends Controller
                 $obj5->client_unique_matter_no = $prefix."_".$client_matters_current_no;
             }
             $matterType = Matter::find($requestData['matter_id']);
-            $workflowId = $matterType && $matterType->workflow_id ? $matterType->workflow_id : \App\Models\Workflow::where('name', 'General')->value('id');
-            $firstStageId = \App\Models\WorkflowStage::where('workflow_id', $workflowId)->orderByRaw('COALESCE(sort_order, id) ASC')->value('id')
-                ?? \App\Models\WorkflowStage::orderByRaw('COALESCE(sort_order, id) ASC')->value('id') ?? 1;
+            $workflowId = WorkflowAssignment::resolveWorkflowIdForNewClientMatter($matterType);
+            $firstStageId = WorkflowAssignment::firstStageIdForWorkflow($workflowId);
             $obj5->workflow_id = $workflowId;
             $obj5->workflow_stage_id = $firstStageId;
             $obj5->matter_status = 1; // Active by default
@@ -7114,9 +7114,8 @@ class ClientsController extends Controller
                     Log::info('ConvertLeadToClient: client_unique_matter_no', ['client_unique_matter_no' => $matter->client_unique_matter_no]);
 
                     $matterType = Matter::find($request['matter_id']);
-                    $workflowId = $matterType && $matterType->workflow_id ? $matterType->workflow_id : \App\Models\Workflow::where('name', 'General')->value('id');
-                    $firstStageId = \App\Models\WorkflowStage::where('workflow_id', $workflowId)->orderByRaw('COALESCE(sort_order, id) ASC')->value('id')
-                        ?? \App\Models\WorkflowStage::orderByRaw('COALESCE(sort_order, id) ASC')->value('id') ?? 1;
+                    $workflowId = WorkflowAssignment::resolveWorkflowIdForNewClientMatter($matterType);
+                    $firstStageId = WorkflowAssignment::firstStageIdForWorkflow($workflowId);
                     $matter->workflow_id = $workflowId;
                     $matter->workflow_stage_id = $firstStageId;
                     $matter->matter_status = 1; // Active by default
