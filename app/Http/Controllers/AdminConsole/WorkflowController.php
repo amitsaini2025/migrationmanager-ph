@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\DB;
 
 use App\Models\Workflow;
 use App\Models\WorkflowStage;
+use App\Models\WorkflowStageChecklist;
 use App\Models\ClientMatter;
+use App\Support\WorkflowStageChecklistSync;
 
 class WorkflowController extends Controller
 {
@@ -140,7 +142,16 @@ class WorkflowController extends Controller
             ->groupBy('workflow_stage_id')
             ->pluck('cnt', 'workflow_stage_id');
 
-        return view('AdminConsole.features.workflow.stages-index', compact('workflow', 'lists', 'matterCounts'));
+        $checklistCounts = [];
+        if (\Illuminate\Support\Facades\Schema::hasTable('workflow_stage_checklists') && $stageIds) {
+            $checklistCounts = WorkflowStageChecklist::where('workflow_id', $workflow->id)
+                ->whereIn('workflow_stage_id', $stageIds)
+                ->selectRaw('workflow_stage_id, COUNT(*) as cnt')
+                ->groupBy('workflow_stage_id')
+                ->pluck('cnt', 'workflow_stage_id');
+        }
+
+        return view('AdminConsole.features.workflow.stages-index', compact('workflow', 'lists', 'matterCounts', 'checklistCounts'));
     }
 
     /**
@@ -312,5 +323,147 @@ class WorkflowController extends Controller
                 ->with('success', 'Workflow Stage Updated Successfully');
         }
         return redirect()->route('adminconsole.features.workflow.index')->with('success', 'Workflow Stage Updated Successfully');
+    }
+
+    /**
+     * Manage default checklists for a workflow stage (templates for all matters on this workflow).
+     */
+    public function stageChecklists($workflowId, $stageId)
+    {
+        $workflowId = $this->decodeString($workflowId);
+        $stageId = $this->decodeString($stageId);
+
+        $workflow = Workflow::find($workflowId);
+        $stage = WorkflowStage::where('id', $stageId)->where('workflow_id', $workflowId)->first();
+
+        if (!$workflow || !$stage) {
+            return redirect()->route('adminconsole.features.workflow.index')->with('error', 'Workflow stage not found');
+        }
+
+        $checklists = WorkflowStageChecklist::where('workflow_id', $workflowId)
+            ->where('workflow_stage_id', $stageId)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        return view('AdminConsole.features.workflow.stage-checklists-index', compact('workflow', 'stage', 'checklists'));
+    }
+
+    /**
+     * Store a checklist template on a workflow stage.
+     */
+    public function storeStageChecklist(Request $request)
+    {
+        $this->validate($request, [
+            'workflow_id' => 'required|integer|exists:workflows,id',
+            'workflow_stage_id' => 'required|integer|exists:workflow_stages,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'allow_client' => 'nullable|boolean',
+            'is_required' => 'nullable|boolean',
+        ]);
+
+        $workflowId = (int) $request->workflow_id;
+        $stageId = (int) $request->workflow_stage_id;
+
+        $stage = WorkflowStage::where('id', $stageId)->where('workflow_id', $workflowId)->first();
+        if (!$stage) {
+            return redirect()->back()->withInput()->with('error', 'Invalid stage for this workflow.');
+        }
+
+        $maxSort = (int) WorkflowStageChecklist::where('workflow_stage_id', $stageId)->max('sort_order');
+
+        WorkflowStageChecklist::create([
+            'workflow_id' => $workflowId,
+            'workflow_stage_id' => $stageId,
+            'name' => trim($request->name),
+            'description' => $request->description ? trim($request->description) : null,
+            'allow_client' => $request->has('allow_client'),
+            'is_required' => $request->has('is_required'),
+            'sort_order' => $maxSort + 1,
+        ]);
+
+        WorkflowStageChecklistSync::ensureSeededForWorkflow($workflowId);
+
+        return redirect()
+            ->route('adminconsole.features.workflow.stageChecklists', [
+                base64_encode(convert_uuencode($workflowId)),
+                base64_encode(convert_uuencode($stageId)),
+            ])
+            ->with('success', 'Checklist added and applied to all matters using this workflow.');
+    }
+
+    /**
+     * Push all stage checklist templates to every matter on this workflow.
+     */
+    public function syncWorkflowChecklists($workflowId)
+    {
+        $workflowId = $this->decodeString($workflowId);
+        $workflow = Workflow::find($workflowId);
+
+        if (!$workflow) {
+            return redirect()->route('adminconsole.features.workflow.index')->with('error', 'Workflow not found');
+        }
+
+        WorkflowStageChecklistSync::ensureSeededForWorkflow((int) $workflowId);
+
+        return redirect()->back()->with('success', 'Checklists applied to all existing matters using "' . $workflow->name . '".');
+    }
+
+    /**
+     * Update a workflow stage checklist template.
+     */
+    public function updateStageChecklist(Request $request, $id)
+    {
+        $id = $this->decodeString($id);
+        $item = WorkflowStageChecklist::find($id);
+
+        if (!$item) {
+            return redirect()->back()->with('error', 'Checklist not found.');
+        }
+
+        $this->validate($request, [
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'allow_client' => 'nullable|boolean',
+            'is_required' => 'nullable|boolean',
+        ]);
+
+        $item->name = trim($request->name);
+        $item->description = $request->description ? trim($request->description) : null;
+        $item->allow_client = $request->has('allow_client');
+        $item->is_required = $request->has('is_required');
+        $item->save();
+
+        return redirect()
+            ->route('adminconsole.features.workflow.stageChecklists', [
+                base64_encode(convert_uuencode($item->workflow_id)),
+                base64_encode(convert_uuencode($item->workflow_stage_id)),
+            ])
+            ->with('success', 'Checklist updated. Use "Apply all checklists to existing matters" to sync changes to clients.');
+    }
+
+    /**
+     * Delete a workflow stage checklist template.
+     */
+    public function destroyStageChecklist($id)
+    {
+        $id = $this->decodeString($id);
+        $item = WorkflowStageChecklist::find($id);
+
+        if (!$item) {
+            return redirect()->back()->with('error', 'Checklist template not found.');
+        }
+
+        $workflowId = $item->workflow_id;
+        $stageId = $item->workflow_stage_id;
+        $item->delete();
+
+        return redirect()
+            ->route('adminconsole.features.workflow.stageChecklists', [
+                base64_encode(convert_uuencode($workflowId)),
+                base64_encode(convert_uuencode($stageId)),
+            ])
+            ->with('success', 'Checklist template removed. Existing client checklists are not affected.');
     }
 }

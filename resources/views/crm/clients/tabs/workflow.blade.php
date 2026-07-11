@@ -28,6 +28,10 @@
                 ? DB::table('workflow_stages')->where('workflow_id', $workflowId)->orderByRaw('COALESCE(sort_order, id) ASC')->get()
                 : DB::table('workflow_stages')->orderByRaw('COALESCE(sort_order, id) ASC')->get();
 
+            if ($workflowSelectedMatter) {
+                \App\Support\WorkflowStageChecklistSync::ensureSeededForMatter($workflowSelectedMatter->id);
+            }
+
             $wf = \App\Support\WorkflowV2Display::build($workflowSelectedMatter, $fetchedData, $workflowAllStages);
             extract($wf);
             ?>

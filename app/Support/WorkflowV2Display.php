@@ -2,20 +2,22 @@
 
 namespace App\Support;
 
+use App\Models\ClientMatter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class WorkflowV2Display
 {
     /**
      * Build shared view data for the workflow v2 UI (Workflow tab + Client Portal Activities).
-     *
-     * @param  object|null  $matter  client_matters row (id, workflow_stage_id, workflow_id, matter_status, deadline, sel_migration_agent, sel_matter_id, title, client_unique_matter_no)
-     * @param  object  $client  client row (id, client_id, first_name, last_name)
-     * @param  \Illuminate\Support\Collection  $allStages  workflow_stages collection
      */
-    public static function build(?object $matter, object $client, $allStages): array
+    public static function build(?object $matter, object $client, $allStages, ?int $viewStageId = null): array
     {
+        if ($matter) {
+            WorkflowStageChecklistSync::ensureSeededForMatter($matter);
+        }
+
         $matterName = '';
         $matterNumber = '';
         $currentStageId = null;
@@ -57,57 +59,29 @@ class WorkflowV2Display
             . ($client->last_name ?? '')
         );
 
-        $stageDisplay = null;
-        if ($currentStageName) {
-            $stageDefaults = config('workflow.stage_display_defaults', []);
-            $stageNameKey = strtolower(trim($currentStageName));
-            foreach ($stageDefaults as $key => $meta) {
-                if (strtolower(trim($key)) === $stageNameKey) {
-                    $stageDisplay = $meta;
-                    break;
-                }
-            }
+        $stagesPayload = self::buildStagesPayload($matter, $allStages, $currentStageId);
+
+        $resolvedViewStageId = $viewStageId ?: $currentStageId;
+        $viewStage = $resolvedViewStageId ? $allStages->firstWhere('id', $resolvedViewStageId) : null;
+        if (!$viewStage && $currentStageRow) {
+            $viewStage = $currentStageRow;
+            $resolvedViewStageId = $currentStageId;
         }
 
-        $checklistRows = [];
-        $outstandingRequired = 0;
+        $viewStageName = $viewStage ? $viewStage->name : null;
+        $viewStageSort = $viewStage ? ($viewStage->sort_order ?? $viewStage->id) : null;
+        $viewStageIndex = $viewStageSort !== null
+            ? $allStages->where(fn ($s) => ($s->sort_order ?? $s->id) <= $viewStageSort)->count()
+            : 0;
 
-        if ($matter && $currentStageName) {
-            $cpChecklists = DB::table('cp_doc_checklists')
-                ->where('client_matter_id', $matter->id)
-                ->where('wf_stage', $currentStageName)
-                ->orderBy('id', 'asc')
-                ->get();
+        $viewStageDisplay = $viewStageName ? self::stageDisplayMeta($viewStageName) : null;
+        $viewChecklist = ($matter && $viewStage)
+            ? self::checklistForStage($matter, (int) $viewStage->id, $viewStageName)
+            : ['rows' => [], 'outstanding' => 0];
 
-            if ($cpChecklists->count() > 0) {
-                foreach ($cpChecklists as $cpItem) {
-                    $uploadCount = DB::table('documents')
-                        ->where('cp_list_id', $cpItem->id)
-                        ->where('type', 'workflow_checklist')
-                        ->count();
-                    $isDone = $uploadCount > 0;
-                    $checklistRows[] = [
-                        'label' => $cpItem->cp_checklist_name ?? 'Checklist item',
-                        'required' => true,
-                        'done' => $isDone,
-                    ];
-                    if (!$isDone) {
-                        $outstandingRequired++;
-                    }
-                }
-            } elseif ($stageDisplay && !empty($stageDisplay['checklist_items'])) {
-                foreach ($stageDisplay['checklist_items'] as $item) {
-                    $checklistRows[] = [
-                        'label' => $item['label'] ?? 'Item',
-                        'required' => !empty($item['required']),
-                        'done' => false,
-                    ];
-                    if (!empty($item['required'])) {
-                        $outstandingRequired++;
-                    }
-                }
-            }
-        }
+        $checklistRows = $viewChecklist['rows'];
+        $outstandingRequired = $viewChecklist['outstanding'];
+        $stageDisplay = $viewStageDisplay;
 
         $isDiscontinued = $matter && ($matter->matter_status ?? 1) == 0;
         $canReopen = in_array(
@@ -160,9 +134,174 @@ class WorkflowV2Display
             'nextStageName',
             'nextBtnDisabled',
             'canDiscontinue',
-            'isActive'
+            'isActive',
+            'stagesPayload',
+            'viewStageId',
+            'viewStageIndex',
+            'viewStageName'
         ) + [
             'clientId' => $client->client_id ?? '',
+            'viewStageId' => $resolvedViewStageId,
         ];
+    }
+
+    /**
+     * Per-stage data for client-side stage switching.
+     */
+    public static function buildStagesPayload(?object $matter, $allStages, ?int $currentStageId): array
+    {
+        $payload = [];
+        $currentStageRow = $currentStageId ? $allStages->firstWhere('id', $currentStageId) : null;
+        $currentStageSort = $currentStageRow ? ($currentStageRow->sort_order ?? $currentStageRow->id) : null;
+
+        foreach ($allStages as $stageIndex => $stage) {
+            $stageSort = $stage->sort_order ?? $stage->id;
+            $isActive = $currentStageId && (int) $currentStageId === (int) $stage->id;
+            $isCompleted = $currentStageId && $currentStageSort !== null && $stageSort < $currentStageSort;
+            $isLocked = !$isActive && !$isCompleted;
+
+            $stageName = $stage->name;
+            $stageDisplay = self::stageDisplayMeta($stageName);
+            $checklist = ($matter && $stageName)
+                ? self::checklistForStage($matter, (int) $stage->id, $stageName)
+                : ['rows' => [], 'outstanding' => 0];
+
+            $payload[] = [
+                'id' => (int) $stage->id,
+                'index' => $stageIndex + 1,
+                'name' => $stageName,
+                'status' => $isActive ? 'active' : ($isCompleted ? 'completed' : 'locked'),
+                'isCurrent' => $isActive,
+                'stageDisplay' => $stageDisplay ? [
+                    'pending_from' => $stageDisplay['pending_from'] ?? null,
+                    'completion_rule' => $stageDisplay['completion_rule'] ?? null,
+                    'file_note_section' => !empty($stageDisplay['file_note_section']),
+                ] : null,
+                'checklistRows' => $checklist['rows'],
+                'outstandingRequired' => $checklist['outstanding'],
+            ];
+        }
+
+        return $payload;
+    }
+
+    public static function stageDisplayMeta(?string $stageName): ?array
+    {
+        if (!$stageName) {
+            return null;
+        }
+
+        $stageDefaults = config('workflow.stage_display_defaults', []);
+        $stageNameKey = strtolower(trim($stageName));
+        foreach ($stageDefaults as $key => $meta) {
+            if (strtolower(trim($key)) === $stageNameKey) {
+                return $meta;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve checklist rows for a matter + stage (cp_doc_checklists, admin templates, config fallback).
+     *
+     * @return array{rows: array<int, array{label: string, required: bool, done: bool}>, outstanding: int}
+     */
+    public static function checklistForStage(?object $matter, int $stageId, ?string $stageName): array
+    {
+        $rows = [];
+        $outstanding = 0;
+
+        if (!$matter || !$stageName) {
+            return ['rows' => $rows, 'outstanding' => $outstanding];
+        }
+
+        $seenNames = [];
+
+        $cpChecklists = DB::table('cp_doc_checklists')
+            ->where('client_matter_id', $matter->id)
+            ->where('wf_stage', $stageName)
+            ->orderBy('id', 'asc')
+            ->get();
+
+        foreach ($cpChecklists as $cpItem) {
+            $label = trim((string) ($cpItem->cp_checklist_name ?? 'Checklist item'));
+            $norm = strtolower($label);
+            if ($norm === '' || isset($seenNames[$norm])) {
+                continue;
+            }
+            $seenNames[$norm] = true;
+
+            $uploadCount = DB::table('documents')
+                ->where('cp_list_id', $cpItem->id)
+                ->where('type', 'workflow_checklist')
+                ->count();
+            $isDone = $uploadCount > 0;
+            $itemRequired = Schema::hasColumn('cp_doc_checklists', 'is_required')
+                ? (bool) ($cpItem->is_required ?? true)
+                : true;
+
+            $rows[] = [
+                'label' => $label,
+                'required' => $itemRequired,
+                'done' => $isDone,
+            ];
+            if ($itemRequired && !$isDone) {
+                $outstanding++;
+            }
+        }
+
+        if (Schema::hasTable('workflow_stage_checklists') && !empty($matter->workflow_id)) {
+            $templates = DB::table('workflow_stage_checklists')
+                ->where('workflow_id', $matter->workflow_id)
+                ->where('workflow_stage_id', $stageId)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get();
+
+            foreach ($templates as $template) {
+                $label = trim((string) $template->name);
+                $norm = strtolower($label);
+                if ($norm === '' || isset($seenNames[$norm])) {
+                    continue;
+                }
+                $seenNames[$norm] = true;
+
+                $itemRequired = (bool) ($template->is_required ?? true);
+                $rows[] = [
+                    'label' => $label,
+                    'required' => $itemRequired,
+                    'done' => false,
+                ];
+                if ($itemRequired) {
+                    $outstanding++;
+                }
+            }
+        }
+
+        if (count($rows) === 0) {
+            $stageDisplay = self::stageDisplayMeta($stageName);
+            $hasAdminTemplates = Schema::hasTable('workflow_stage_checklists')
+                && !empty($matter->workflow_id)
+                && DB::table('workflow_stage_checklists')
+                    ->where('workflow_id', $matter->workflow_id)
+                    ->where('workflow_stage_id', $stageId)
+                    ->exists();
+
+            if (!$hasAdminTemplates && $stageDisplay && !empty($stageDisplay['checklist_items'])) {
+                foreach ($stageDisplay['checklist_items'] as $item) {
+                    $rows[] = [
+                        'label' => $item['label'] ?? 'Item',
+                        'required' => !empty($item['required']),
+                        'done' => false,
+                    ];
+                    if (!empty($item['required'])) {
+                        $outstanding++;
+                    }
+                }
+            }
+        }
+
+        return ['rows' => $rows, 'outstanding' => $outstanding];
     }
 }

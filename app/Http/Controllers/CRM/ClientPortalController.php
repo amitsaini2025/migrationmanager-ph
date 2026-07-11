@@ -4126,6 +4126,8 @@ class ClientPortalController extends Controller
 			$clientMatter->workflow_stage_id = $newStageId;
 			$clientMatter->save();
 
+			\App\Support\WorkflowStageChecklistSync::ensureSeededForMatter($clientMatter);
+
 			$matterNo = $clientMatter->client_unique_matter_no ?? 'ID:' . $matterId;
 
 			// Activity Feed: Workflow tab does not send source; omit only if Client Portal context is explicit.
@@ -4912,13 +4914,15 @@ class ClientPortalController extends Controller
 			'cp_checklist_names.*'=> 'required|string|max:255',
 			'description'         => 'nullable|string|max:1000',
 			'allow_client'        => 'nullable|integer|in:0,1',
+			'is_required'         => 'nullable|integer|in:0,1',
 		]);
 
 		$clientMatterId = (int) $request->client_matter_id;
 		$wfStage        = trim($request->wf_stage);
 		$names          = array_filter(array_map('trim', $request->cp_checklist_names));
 		$description    = $request->description ? trim($request->description) : null;
-		$allowClient    = $request->has('allow_client') ? (int) $request->allow_client : 1;
+		$allowClient    = $request->has('allow_client') ? 1 : 0;
+		$isRequired     = $request->has('is_required') ? 1 : 0;
 
 		$matter = DB::table('client_matters')->where('id', $clientMatterId)->first();
 		if (!$matter) {
@@ -4936,7 +4940,7 @@ class ClientPortalController extends Controller
 		$userId    = $adminUser ? $adminUser->id : null;
 
 		foreach ($names as $name) {
-			$newId = DB::table('cp_doc_checklists')->insertGetId([
+			$insertPayload = [
 				'user_id'           => $userId,
 				'client_matter_id'  => $clientMatterId,
 				'client_id'         => $matter->client_id,
@@ -4947,7 +4951,11 @@ class ClientPortalController extends Controller
 				'allow_client'      => $allowClient,
 				'created_at'        => $now,
 				'updated_at'        => $now,
-			]);
+			];
+			if (Schema::hasColumn('cp_doc_checklists', 'is_required')) {
+				$insertPayload['is_required'] = $isRequired;
+			}
+			$newId = DB::table('cp_doc_checklists')->insertGetId($insertPayload);
 			$inserted[] = DB::table('cp_doc_checklists')->where('id', $newId)->first();
 
 			if ($allowClient === 1 && !empty($matter->client_id) && Schema::hasTable('cp_action_requires')) {

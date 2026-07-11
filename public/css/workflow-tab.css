@@ -245,10 +245,35 @@
     transition: background 0.15s ease;
 }
 
+.workflow-v2-stage-item.is-clickable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.workflow-v2-stage-item.is-clickable:hover {
+    background: #f8fafc;
+}
+
+.workflow-v2-stage-item.is-clickable:focus {
+    outline: 2px solid var(--wf-blue);
+    outline-offset: 1px;
+}
+
+.workflow-v2-stage-item.is-viewing {
+    background: #f1f5f9;
+    color: var(--wf-navy);
+    font-weight: 600;
+}
+
 .workflow-v2-stage-item.is-active {
     background: var(--wf-blue-soft);
     color: var(--wf-navy);
     font-weight: 600;
+}
+
+.workflow-v2-stage-item.is-active.is-viewing {
+    background: var(--wf-blue-soft);
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.25);
 }
 
 .workflow-v2-stage-item.is-completed {
@@ -281,14 +306,25 @@
 
 .workflow-v2-stage-name {
     flex: 1;
+    min-width: 0;
     line-height: 1.3;
 }
 
 .workflow-v2-stage-lock {
     flex-shrink: 0;
-    font-size: 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    min-width: 16px;
     color: var(--wf-orange);
     opacity: 0.85;
+}
+
+.workflow-v2-stage-lock-icon {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
 }
 
 .workflow-v2-stage-item.is-completed .workflow-v2-stage-lock {

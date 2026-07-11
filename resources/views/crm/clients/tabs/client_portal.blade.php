@@ -95,6 +95,10 @@
                     $currentStageName = $currentStageRow ? $currentStageRow->name : null;
                 }
 
+                if ($selectedMatter) {
+                    \App\Support\WorkflowStageChecklistSync::ensureSeededForMatter($selectedMatter->id);
+                }
+
                 $cpActivitiesWf = $selectedMatter
                     ? \App\Support\WorkflowV2Display::build($selectedMatter, $fetchedData, $allWorkflowStages)
                     : null;
@@ -4956,20 +4960,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     <input type="hidden" name="client_matter_id" id="checklist_client_matter_id" value="">
                     <input type="hidden" name="wf_stage" id="checklist_wf_stage" value="">
                     <div class="form-group">
-                        <label for="cp_checklist_names">Select Checklist <span class="span_req">*</span></label>
-                        <select name="cp_checklist_names[]" id="cp_checklist_names" class="form-control" multiple="multiple" style="width:100%;">
-                        </select>
-                        <small class="text-muted">You can select multiple checklists at once.</small>
+                        <label for="cp_checklist_name">Checklist Name <span class="span_req">*</span></label>
+                        <input type="text" name="cp_checklist_name" id="cp_checklist_name" class="form-control" maxlength="255" placeholder="Enter checklist name" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label for="cp_checklist_description">Description <small class="text-muted">(optional)</small></label>
                         <textarea name="description" id="cp_checklist_description" class="form-control" rows="3" placeholder="Enter a description (optional)"></textarea>
                     </div>
-                    <div class="form-group mb-0">
+                    <div class="form-group">
                         <div class="custom-control custom-checkbox">
                             <input type="checkbox" class="custom-control-input" id="cp_allow_client" name="allow_client" value="1" checked>
                             <label class="custom-control-label" for="cp_allow_client">Allow For Client</label>
                         </div>
+                    </div>
+                    <div class="form-group mb-0">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="cp_is_required" name="is_required" value="1" checked>
+                            <label class="custom-control-label" for="cp_is_required">Required</label>
+                        </div>
+                        <small class="text-muted">Uncheck to mark this checklist as optional.</small>
                     </div>
                 </form>
             </div>
@@ -4984,52 +4993,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 $(document).ready(function () {
 
-    // Tom Select only positions the dropdown when dropdownParent is the string "body" (see mm-tomselect-jquery.js).
-    function destroyCpChecklistNamesSelect() {
-        var $select = $('#cp_checklist_names');
-        if ($select.length && ($select[0].tomselect || $select.data('mmSelect'))) {
-            $select.off('.cpChecklistSelect');
-            $select.mmSelect('destroy');
-        }
-    }
-
-    function initCpChecklistNamesSelect() {
-        var $select = $('#cp_checklist_names');
-        if (!$select.length || typeof $.fn.mmSelect !== 'function') {
-            return;
-        }
-        destroyCpChecklistNamesSelect();
-        $select.mmSelect({
-            dropdownParent: 'body',
-            dropdownCssClass: 'mm-cp-create-checklist-dropdown',
-            placeholder: 'Search and select checklists...',
-            allowClear: true,
-            multiple: true,
-            create: true,
-            minimumInputLength: 0,
-            width: '100%',
-            ajax: {
-                url: '{{ URL::to('/crm/document-checklists-options') }}',
-                dataType: 'json',
-                delay: 250,
-                data: function (params) {
-                    return { q: params.term || '' };
-                },
-                processResults: function (data) {
-                    return { results: data.results || [] };
-                },
-                cache: true
-            }
-        });
-        // Reposition after modal layout settles; Bootstrap focus trap disabled via data-bs-focus="false".
-        $select.on('mmselect:open.cpChecklistSelect', function () {
-            var ts = this.tomselect;
-            if (ts && typeof ts.positionDropdown === 'function') {
-                setTimeout(function () { ts.positionDropdown(); }, 0);
-            }
-        });
-    }
-
     // Open "Add New Checklist" modal when clicking any .openchecklist link
     $(document).on('click', '.openchecklist', function (e) {
         e.stopPropagation(); // prevent triggering checklist-row click
@@ -5039,44 +5002,39 @@ $(document).ready(function () {
         $('#checklist_client_matter_id').val(matterId);
         $('#checklist_wf_stage').val(wfStage);
 
-        // Clear fields and any previous errors
-        $('#cp_checklist_names').val(null).trigger('change');
-        $('#cp_checklist_names').closest('.form-group').find('.custom-error').remove();
+        $('#cp_checklist_name').val('');
+        $('#cp_checklist_name').closest('.form-group').find('.custom-error').remove();
         $('#cp_checklist_description').val('');
         $('#cp_allow_client').prop('checked', true);
+        $('#cp_is_required').prop('checked', true);
 
         $('#create_checklist').modal('show');
     });
 
-    // Init only after modal is visible so Tom Select can measure the control and position the menu
     $('#create_checklist').on('shown.bs.modal', function () {
-        initCpChecklistNamesSelect();
-        var ts = document.getElementById('cp_checklist_names');
-        if (ts && ts.tomselect) {
-            ts.tomselect.focus();
-        }
+        $('#cp_checklist_name').trigger('focus');
     });
 
     // Close modal cleanup
     $('#create_checklist').on('hidden.bs.modal', function () {
-        destroyCpChecklistNamesSelect();
-        $('#cp_checklist_names').val(null).trigger('change');
-        $('#cp_checklist_names').closest('.form-group').find('.custom-error').remove();
+        $('#cp_checklist_name').val('');
+        $('#cp_checklist_name').closest('.form-group').find('.custom-error').remove();
         $('#cp_checklist_description').val('');
         $('#cp_allow_client').prop('checked', true);
+        $('#cp_is_required').prop('checked', true);
         $('#create_checklist_submit_btn').prop('disabled', false).text('Add Checklist');
     });
 
-    // Submit: Add New Checklist (supports multiple selections)
+    // Submit: Add New Checklist
     $(document).on('click', '#create_checklist_submit_btn', function (e) {
         e.preventDefault();
 
-        var selectedNames = $('#cp_checklist_names').val(); // array of selected name strings
-        $('#cp_checklist_names').closest('.form-group').find('.custom-error').remove();
+        var checklistName = ($('#cp_checklist_name').val() || '').trim();
+        $('#cp_checklist_name').closest('.form-group').find('.custom-error').remove();
 
-        if (!selectedNames || selectedNames.length === 0) {
-            $('#cp_checklist_names').closest('.form-group')
-                .append('<span class="custom-error" style="color:red;display:block;margin-top:4px;"><strong>Please select at least one checklist.</strong></span>');
+        if (!checklistName) {
+            $('#cp_checklist_name').closest('.form-group')
+                .append('<span class="custom-error" style="color:red;display:block;margin-top:4px;"><strong>Please enter a checklist name.</strong></span>');
             return;
         }
 
@@ -5098,9 +5056,10 @@ $(document).ready(function () {
                 _token: $('meta[name="csrf-token"]').attr('content'),
                 client_matter_id: matterId,
                 wf_stage: wfStage,
-                'cp_checklist_names[]': selectedNames,
+                'cp_checklist_names[]': checklistName,
                 description: $('#cp_checklist_description').val(),
                 allow_client: $('#cp_allow_client').is(':checked') ? 1 : 0,
+                is_required: $('#cp_is_required').is(':checked') ? 1 : 0,
                 source: 'client_portal'
             },
             success: function (response) {

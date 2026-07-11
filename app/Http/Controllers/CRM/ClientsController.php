@@ -6544,8 +6544,8 @@ class ClientsController extends Controller
             $obj5->matter_status = 1; // Active by default
             $saved5 = $obj5->save();
             $lastInsertedId = $obj5->id; // ← This gets the last inserted ID
-            if($saved5) 
-            {
+            if ($saved5) {
+                \App\Support\WorkflowStageChecklistSync::ensureSeededForMatter($obj5);
                 // Saving an active matter for a lead auto-promotes admins.type to 'client'
                 // via the ClientMatter::saved hook (Admin::promoteLeadWithActiveMatterToClient).
 
@@ -7120,6 +7120,7 @@ class ClientsController extends Controller
                     $matter->workflow_stage_id = $firstStageId;
                     $matter->matter_status = 1; // Active by default
                     $matter->save();
+                    \App\Support\WorkflowStageChecklistSync::ensureSeededForMatter($matter);
                     Log::info('ConvertLeadToClient: matter saved', ['matter_id' => $matter->id]);
 
                     if($client_type == 'lead'){

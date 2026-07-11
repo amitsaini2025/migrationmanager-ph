@@ -125,6 +125,8 @@ class LeadConversionController extends Controller
                 $matter->workflow_stage_id = $firstStageId;
                 $matter->matter_status = 1; // Active by default
                 $matter->save();
+
+                \App\Support\WorkflowStageChecklistSync::ensureSeededForMatter($matter);
             }
 
             DB::commit();

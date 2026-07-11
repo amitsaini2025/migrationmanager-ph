@@ -67,6 +67,7 @@
 										<tr>
 											<th>Stage</th>
 											<th>Total Matters</th>
+											<th>Checklists</th>
 											<th class="text-nowrap">Actions</th>
 										</tr>
 									</thead>
@@ -74,6 +75,7 @@
 									<tbody>
 									@foreach ($lists as $list)
 									<?php $countmatters = $matterCounts[$list->id] ?? 0; ?>
+									<?php $checklistCount = $checklistCounts[$list->id] ?? 0; ?>
 									<?php $stageFrozen = $list->isFrozen(); ?>
 									<tr>
 										<td>
@@ -83,8 +85,10 @@
 											@endif
 										</td>
 										<td>{{ $countmatters }}</td>
+										<td>{{ $checklistCount }}</td>
 										<td class="workflow-stage-actions-col">
 											<div class="workflow-stage-cell-actions">
+												<a class="btn btn-sm btn-success" href="{{ route('adminconsole.features.workflow.stageChecklists', [base64_encode(convert_uuencode($workflow->id)), base64_encode(convert_uuencode($list->id))]) }}" title="Manage default checklists for this stage">@icon('fa-tasks') Checklists</a>
 												<a class="btn btn-sm btn-primary" href="{{ route('adminconsole.features.workflow.edit', base64_encode(convert_uuencode($list->id))) }}" title="{{ $stageFrozen ? 'View (protected — name cannot be changed)' : 'Edit stage name' }}">@icon('fa-edit') Edit</a>
 												<a class="btn btn-sm btn-info" href="{{ route('adminconsole.features.workflow.createStage', base64_encode(convert_uuencode($workflow->id))) }}?after={{ rawurlencode(base64_encode(convert_uuencode($list->id))) }}" title="Insert a new stage immediately after this one">@icon('fa-plus') Add After</a>
 												@if($stageFrozen)
@@ -99,7 +103,7 @@
 									</tbody>
 									@else
 									<tbody>
-										<tr><td colspan="3" class="text-center">No stages. <a href="{{ route('adminconsole.features.workflow.createStage', base64_encode(convert_uuencode($workflow->id))) }}">Add stage</a>.</td></tr>
+										<tr><td colspan="4" class="text-center">No stages. <a href="{{ route('adminconsole.features.workflow.createStage', base64_encode(convert_uuencode($workflow->id))) }}">Add stage</a>.</td></tr>
 									</tbody>
 									@endif
 								</table>

@@ -247,6 +247,9 @@
                 if (typeof window.ensureStageNavBackButtonVisible === 'function') {
                     window.ensureStageNavBackButtonVisible();
                 }
+                if (typeof window.ensureWorkflowV2StageIcons === 'function') {
+                    window.ensureWorkflowV2StageIcons(document.getElementById('client_portal-tab'));
+                }
                 break;
             case 'emails':
                 if (typeof window.loadEmails === 'function') {
@@ -256,6 +259,9 @@
             case 'workflow':
                 if (typeof window.ensureStageNavBackButtonVisible === 'function') {
                     window.ensureStageNavBackButtonVisible();
+                }
+                if (typeof window.ensureWorkflowV2StageIcons === 'function') {
+                    window.ensureWorkflowV2StageIcons(document.getElementById('workflow-tab'));
                 }
                 break;
         }

@@ -74,6 +74,11 @@ Route::prefix('adminconsole')->name('adminconsole.')->middleware(['auth:admin', 
         Route::post('/workflow/store', [WorkflowController::class, 'store'])->name('workflow.store');
         Route::get('/workflow/edit/{id}', [WorkflowController::class, 'edit'])->name('workflow.edit');
         Route::put('/workflow/{id}', [WorkflowController::class, 'update'])->name('workflow.update');
+        Route::get('/workflow/{workflowId}/stage/{stageId}/checklists', [WorkflowController::class, 'stageChecklists'])->name('workflow.stageChecklists');
+        Route::post('/workflow/stage-checklists', [WorkflowController::class, 'storeStageChecklist'])->name('workflow.storeStageChecklist');
+        Route::put('/workflow/stage-checklists/{id}', [WorkflowController::class, 'updateStageChecklist'])->name('workflow.updateStageChecklist');
+        Route::post('/workflow/{workflowId}/sync-checklists', [WorkflowController::class, 'syncWorkflowChecklists'])->name('workflow.syncChecklists');
+        Route::delete('/workflow/stage-checklists/{id}', [WorkflowController::class, 'destroyStageChecklist'])->name('workflow.destroyStageChecklist');
         
         // Email routes
         Route::get('/emails', [EmailController::class, 'index'])->name('emails.index');

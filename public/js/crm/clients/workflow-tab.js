@@ -65,6 +65,16 @@
         }
     }
 
+    function refreshWorkflowV2Icons(root) {
+        if (typeof refreshLucideIcons !== 'function') {
+            return;
+        }
+        var target = root || document.getElementById('workflow-tab') || document.getElementById('client_portal-tab');
+        if (target) {
+            refreshLucideIcons(target);
+        }
+    }
+
     function refreshTabPane(tabSelector) {
         var currentTab = document.querySelector(tabSelector);
         if (!currentTab) {
@@ -99,6 +109,7 @@
                 newTab.classList.add('active');
             }
             currentTab.replaceWith(newTab);
+            refreshWorkflowV2Icons(newTab);
         });
     }
 
@@ -169,6 +180,9 @@
             if (targetPane) {
                 targetPane.classList.add('active');
             }
+            if (targetTab === 'activities' && typeof refreshWorkflowV2Icons === 'function') {
+                refreshWorkflowV2Icons(targetPane);
+            }
         });
     }
 
@@ -176,15 +190,202 @@
         return refreshTabPane('#client_portal-tab').then(function() {
             ensureStageNavBackButtonVisible();
             bindClientPortalSubTabDelegation();
+            initWorkflowV2StageNavigation();
             return refreshSidebarMatterStatus();
         }).then(function() {
             refreshActivityFeedIfVisible();
         });
     }
 
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text == null ? '' : String(text);
+        return div.innerHTML;
+    }
+
+    function parseWorkflowV2StagesData() {
+        var scriptEl = document.getElementById('workflow-v2-stages-data');
+        if (!scriptEl || !scriptEl.textContent) {
+            return null;
+        }
+        try {
+            return JSON.parse(scriptEl.textContent);
+        } catch (err) {
+            console.error('[WorkflowTab] Failed to parse workflow stage data', err);
+            return null;
+        }
+    }
+
+    function renderWorkflowV2Checklist(rows) {
+        if (!rows || rows.length === 0) {
+            return '<div class="workflow-v2-checklist-empty" id="workflow-v2-checklist-empty">'
+                + 'No checklist items for this stage. '
+                + 'Add items from Client Portal &rarr; Documents, or configure templates in Admin Console.'
+                + '</div>';
+        }
+
+        var html = '<div class="workflow-v2-checklist" id="workflow-v2-checklist">';
+        rows.forEach(function(item) {
+            var done = !!item.done;
+            var required = !!item.required;
+            html += '<div class="workflow-v2-checklist-item' + (done ? ' is-done' : '') + '">'
+                + '<input type="checkbox"' + (done ? ' checked' : '') + ' disabled'
+                + ' aria-label="' + escapeHtml(item.label) + '">'
+                + '<span class="workflow-v2-checklist-label">' + escapeHtml(item.label) + '</span>';
+            if (required) {
+                html += '<span class="workflow-v2-required-badge">Required</span>';
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function updateWorkflowV2Outstanding(outstanding) {
+        var wrap = document.getElementById('workflow-v2-footer-outstanding');
+        var textEl = document.getElementById('workflow-v2-outstanding-text');
+        if (!wrap || !textEl) {
+            return;
+        }
+
+        var count = parseInt(outstanding, 10) || 0;
+        wrap.classList.toggle('is-clear', count === 0);
+        textEl.textContent = count > 0
+            ? (count + ' Required item' + (count === 1 ? '' : 's') + ' outstanding')
+            : 'All required items complete';
+    }
+
+    function showWorkflowV2Stage(stageId) {
+        var data = parseWorkflowV2StagesData();
+        if (!data || !data.stages) {
+            return;
+        }
+
+        var stage = data.stages.find(function(s) {
+            return String(s.id) === String(stageId);
+        });
+        if (!stage) {
+            return;
+        }
+
+        var panel = document.getElementById('workflow-v2-panel');
+        var eyebrow = document.getElementById('workflow-v2-panel-eyebrow');
+        var title = document.getElementById('workflow-v2-panel-title');
+        var badges = document.getElementById('workflow-v2-panel-badges');
+        var pendingFrom = document.getElementById('workflow-v2-pending-from');
+        var completionRule = document.getElementById('workflow-v2-panel-completion-rule');
+        var completionRuleText = document.getElementById('workflow-v2-completion-rule-text');
+        var checklistContainer = document.getElementById('workflow-v2-checklist-container');
+        var fileNote = document.getElementById('workflow-v2-file-note-section');
+        var advanceBtn = document.getElementById('workflow-tab-proceed-to-next-stage')
+            || document.getElementById('proceed-to-next-stage');
+
+        if (panel) {
+            panel.setAttribute('data-view-stage-id', String(stage.id));
+        }
+        if (eyebrow) {
+            eyebrow.textContent = 'Stage ' + stage.index + ' of ' + (data.totalStages || data.stages.length);
+        }
+        if (title) {
+            title.textContent = stage.name || 'N/A';
+        }
+
+        var display = stage.stageDisplay || {};
+        if (badges) {
+            if (display.pending_from) {
+                badges.style.display = '';
+                if (pendingFrom) {
+                    pendingFrom.textContent = display.pending_from;
+                }
+            } else {
+                badges.style.display = 'none';
+            }
+        }
+        if (completionRule) {
+            if (display.completion_rule) {
+                completionRule.style.display = '';
+                if (completionRuleText) {
+                    completionRuleText.textContent = display.completion_rule;
+                }
+            } else {
+                completionRule.style.display = 'none';
+            }
+        }
+        if (checklistContainer) {
+            checklistContainer.innerHTML = renderWorkflowV2Checklist(stage.checklistRows || []);
+        }
+        if (fileNote) {
+            fileNote.style.display = display.file_note_section ? '' : 'none';
+        }
+        updateWorkflowV2Outstanding(stage.outstandingRequired);
+
+        var isCurrentStage = String(stage.id) === String(data.currentStageId);
+        if (advanceBtn) {
+            advanceBtn.style.display = isCurrentStage ? '' : 'none';
+        }
+
+        document.querySelectorAll('.workflow-v2-stage-item[data-stage-id]').forEach(function(item) {
+            var isViewing = String(item.getAttribute('data-stage-id')) === String(stage.id);
+            item.classList.toggle('is-viewing', isViewing);
+            item.setAttribute('aria-current', isViewing ? 'step' : 'false');
+        });
+    }
+
+    var workflowV2StageNavBound = false;
+
+    function bindWorkflowV2StageNavigation() {
+        var list = document.getElementById('workflow-v2-stages-list');
+        if (!list) {
+            return;
+        }
+
+        if (!workflowV2StageNavBound) {
+            workflowV2StageNavBound = true;
+            list.addEventListener('click', function(e) {
+                var item = e.target.closest('.workflow-v2-stage-item[data-stage-id]');
+                if (!item) {
+                    return;
+                }
+                updateWorkflowV2StageFromItem(item);
+            });
+            list.addEventListener('keydown', function(e) {
+                if (e.key !== 'Enter' && e.key !== ' ') {
+                    return;
+                }
+                var item = e.target.closest('.workflow-v2-stage-item[data-stage-id]');
+                if (!item) {
+                    return;
+                }
+                e.preventDefault();
+                updateWorkflowV2StageFromItem(item);
+            });
+        }
+    }
+
+    function updateWorkflowV2StageFromItem(item) {
+        var stageId = item.getAttribute('data-stage-id');
+        if (!stageId) {
+            return;
+        }
+        showWorkflowV2Stage(stageId);
+    }
+
+    function initWorkflowV2StageNavigation() {
+        bindWorkflowV2StageNavigation();
+        refreshWorkflowV2Icons();
+        var panel = document.getElementById('workflow-v2-panel');
+        if (panel) {
+            var viewStageId = panel.getAttribute('data-view-stage-id');
+            if (viewStageId) {
+                showWorkflowV2Stage(viewStageId);
+            }
+        }
+    }
+
     function refreshWorkflowTab() {
         return refreshTabPane('#workflow-tab').then(function() {
             ensureStageNavBackButtonVisible();
+            initWorkflowV2StageNavigation();
             refreshActivityFeedIfVisible();
         });
     }
@@ -678,6 +879,7 @@
 
     window.refreshWorkflowTab = refreshWorkflowTab;
     window.refreshClientPortalTab = refreshClientPortalTab;
+    window.ensureWorkflowV2StageIcons = refreshWorkflowV2Icons;
     window.handleWorkflowStageUpdateSuccess = onWorkflowTabSuccess;
     window.handleClientPortalStageUpdateSuccess = onClientPortalStageUpdateSuccess;
     window.workflowTabDoProceedToNextStage = doProceedToNextStage;
@@ -688,10 +890,12 @@
             bindWorkflowTabHandlers();
             bindClientPortalSubTabDelegation();
             ensureStageNavBackButtonVisible();
+            initWorkflowV2StageNavigation();
         });
     } else {
         bindWorkflowTabHandlers();
         bindClientPortalSubTabDelegation();
         ensureStageNavBackButtonVisible();
+        initWorkflowV2StageNavigation();
     }
 })();

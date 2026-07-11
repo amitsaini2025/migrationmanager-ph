@@ -100,100 +100,120 @@
     @endif
 
     @if($allStages->count() > 0)
-        <div class="workflow-v2-body">
+        <div class="workflow-v2-body" id="workflow-v2-body"
+            data-current-stage-id="{{ $currentStageId ?? '' }}"
+            data-total-stages="{{ $totalStages }}">
             <aside class="workflow-v2-stages">
                 <h3 class="workflow-v2-stages-title">Case Stages</h3>
-                <ul class="workflow-v2-stages-list">
+                <ul class="workflow-v2-stages-list" id="workflow-v2-stages-list">
                     @foreach($allStages as $stageIndex => $stage)
                         @php
-                            $wfIsActive = ($currentStageId && $currentStageId == $stage->id);
+                            $wfIsCurrent = ($currentStageId && $currentStageId == $stage->id);
+                            $wfIsViewing = ($viewStageId && $viewStageId == $stage->id);
                             $stageSort = $stage->sort_order ?? $stage->id;
                             $currentStageRowForList = $allStages->firstWhere('id', $currentStageId);
                             $currentStageSortForList = $currentStageRowForList
                                 ? ($currentStageRowForList->sort_order ?? $currentStageRowForList->id)
                                 : null;
                             $wfIsCompleted = ($currentStageId && $currentStageSortForList !== null && $stageSort < $currentStageSortForList);
-                            $wfIsLocked = !$wfIsActive && !$wfIsCompleted;
-                            $itemClass = $wfIsActive ? 'is-active' : ($wfIsCompleted ? 'is-completed' : '');
+                            $wfIsLocked = !$wfIsCurrent && !$wfIsCompleted;
+                            $itemClass = trim(
+                                ($wfIsCurrent ? 'is-active ' : '')
+                                . ($wfIsCompleted ? 'is-completed ' : '')
+                                . ($wfIsViewing ? 'is-viewing' : '')
+                            );
                         @endphp
-                        <li class="workflow-v2-stage-item {{ $itemClass }}">
+                        <li class="workflow-v2-stage-item is-clickable {{ $itemClass }}"
+                            role="button"
+                            tabindex="0"
+                            data-stage-id="{{ $stage->id }}"
+                            data-stage-index="{{ $stageIndex + 1 }}"
+                            aria-label="View stage {{ $stageIndex + 1 }}: {{ $stage->name }}"
+                            aria-current="{{ $wfIsViewing ? 'step' : 'false' }}">
                             <span class="workflow-v2-stage-num">{{ $stageIndex + 1 }}</span>
                             <span class="workflow-v2-stage-name">{{ $stage->name }}</span>
                             @if($wfIsCompleted)
-                                <span class="workflow-v2-stage-lock" title="Completed">@icon('fa-check')</span>
+                                <span class="workflow-v2-stage-lock" title="Completed" aria-hidden="true">
+                                    <svg class="lucide icon workflow-v2-stage-lock-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                </span>
                             @elseif($wfIsLocked)
-                                <span class="workflow-v2-stage-lock" title="Locked">@icon('fa-lock')</span>
+                                <span class="workflow-v2-stage-lock" title="Not yet reached" aria-hidden="true">
+                                    <svg class="lucide icon workflow-v2-stage-lock-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </span>
                             @endif
                         </li>
                     @endforeach
                 </ul>
             </aside>
 
-            <main class="workflow-v2-panel">
-                <div class="workflow-v2-panel-eyebrow">
-                    Stage {{ $currentStageIndex }} of {{ $totalStages }}
+            <main class="workflow-v2-panel" id="workflow-v2-panel" data-view-stage-id="{{ $viewStageId ?? '' }}">
+                <div class="workflow-v2-panel-eyebrow" id="workflow-v2-panel-eyebrow">
+                    Stage {{ $viewStageIndex }} of {{ $totalStages }}
                 </div>
-                <h2 class="workflow-v2-panel-title">{{ $currentStageName ?? 'N/A' }}</h2>
+                <h2 class="workflow-v2-panel-title" id="workflow-v2-panel-title">{{ $viewStageName ?? 'N/A' }}</h2>
 
-                @if($stageDisplay && !empty($stageDisplay['pending_from']))
-                    <div class="workflow-v2-badges">
+                <div id="workflow-v2-panel-badges" class="workflow-v2-badges"
+                    style="{{ ($stageDisplay && !empty($stageDisplay['pending_from'])) ? '' : 'display:none;' }}">
+                    @if($stageDisplay && !empty($stageDisplay['pending_from']))
                         <span class="workflow-v2-badge pending">
-                            @icon('fa-hourglass-half') Pending from: {{ $stageDisplay['pending_from'] }}
+                            @icon('fa-hourglass-half') Pending from: <span id="workflow-v2-pending-from">{{ $stageDisplay['pending_from'] }}</span>
                         </span>
-                    </div>
-                @endif
+                    @endif
+                </div>
 
-                @if($stageDisplay && !empty($stageDisplay['completion_rule']))
-                    <div class="workflow-v2-completion-rule">
-                        <strong>Completion rule:</strong> {{ $stageDisplay['completion_rule'] }}
-                    </div>
-                @endif
+                <div id="workflow-v2-panel-completion-rule" class="workflow-v2-completion-rule"
+                    style="{{ ($stageDisplay && !empty($stageDisplay['completion_rule'])) ? '' : 'display:none;' }}">
+                    @if($stageDisplay && !empty($stageDisplay['completion_rule']))
+                        <strong>Completion rule:</strong> <span id="workflow-v2-completion-rule-text">{{ $stageDisplay['completion_rule'] }}</span>
+                    @endif
+                </div>
 
                 <h3 class="workflow-v2-section-label">Checklist</h3>
-                @if(count($checklistRows) > 0)
-                    <div class="workflow-v2-checklist">
-                        @foreach($checklistRows as $checkItem)
-                            <div class="workflow-v2-checklist-item {{ !empty($checkItem['done']) ? 'is-done' : '' }}">
-                                <input type="checkbox"
-                                    {{ !empty($checkItem['done']) ? 'checked' : '' }}
-                                    disabled
-                                    aria-label="{{ $checkItem['label'] }}">
-                                <span class="workflow-v2-checklist-label">{{ $checkItem['label'] }}</span>
-                                @if(!empty($checkItem['required']))
-                                    <span class="workflow-v2-required-badge">Required</span>
-                                @endif
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    <div class="workflow-v2-checklist-empty">
-                        No checklist items for this stage.
-                        Add items from Client Portal &rarr; Documents, or configure defaults in Admin Console.
-                    </div>
-                @endif
-
-                @if($stageDisplay && !empty($stageDisplay['file_note_section']))
-                    <div class="workflow-v2-file-note">
-                        <h3 class="workflow-v2-section-label">File Note (Record Keeping)</h3>
-                        <textarea rows="4"
-                            placeholder="e.g. {{ now()->format('d/m/y') }} — client emailed re signed agreement..."
-                            aria-label="Workflow file note"></textarea>
-                        <p class="workflow-v2-file-note-hint">Auto-stamped with user + timestamp on save.</p>
-                    </div>
-                @endif
-
-                <div class="workflow-v2-footer">
-                    @if($outstandingRequired > 0)
-                        <div class="workflow-v2-outstanding">
-                            <span class="workflow-v2-outstanding-dot"></span>
-                            {{ $outstandingRequired }} Required item{{ $outstandingRequired === 1 ? '' : 's' }} outstanding
+                <div id="workflow-v2-checklist-container">
+                    @if(count($checklistRows) > 0)
+                        <div class="workflow-v2-checklist" id="workflow-v2-checklist">
+                            @foreach($checklistRows as $checkItem)
+                                <div class="workflow-v2-checklist-item {{ !empty($checkItem['done']) ? 'is-done' : '' }}">
+                                    <input type="checkbox"
+                                        {{ !empty($checkItem['done']) ? 'checked' : '' }}
+                                        disabled
+                                        aria-label="{{ $checkItem['label'] }}">
+                                    <span class="workflow-v2-checklist-label">{{ $checkItem['label'] }}</span>
+                                    @if(!empty($checkItem['required']))
+                                        <span class="workflow-v2-required-badge">Required</span>
+                                    @endif
+                                </div>
+                            @endforeach
                         </div>
                     @else
-                        <div class="workflow-v2-outstanding is-clear">
-                            <span class="workflow-v2-outstanding-dot"></span>
-                            All required items complete
+                        <div class="workflow-v2-checklist-empty" id="workflow-v2-checklist-empty">
+                            No checklist items for this stage.
+                            Add items from Client Portal &rarr; Documents, or configure templates in Admin Console.
                         </div>
                     @endif
+                </div>
+
+                <div id="workflow-v2-file-note-section" class="workflow-v2-file-note"
+                    style="{{ ($stageDisplay && !empty($stageDisplay['file_note_section'])) ? '' : 'display:none;' }}">
+                    <h3 class="workflow-v2-section-label">File Note (Record Keeping)</h3>
+                    <textarea rows="4"
+                        placeholder="e.g. {{ now()->format('d/m/y') }} — client emailed re signed agreement..."
+                        aria-label="Workflow file note"></textarea>
+                    <p class="workflow-v2-file-note-hint">Auto-stamped with user + timestamp on save.</p>
+                </div>
+
+                <div class="workflow-v2-footer">
+                    <div id="workflow-v2-footer-outstanding"
+                        class="workflow-v2-outstanding {{ $outstandingRequired > 0 ? '' : 'is-clear' }}">
+                        <span class="workflow-v2-outstanding-dot"></span>
+                        <span id="workflow-v2-outstanding-text">
+                            @if($outstandingRequired > 0)
+                                {{ $outstandingRequired }} Required item{{ $outstandingRequired === 1 ? '' : 's' }} outstanding
+                            @else
+                                All required items complete
+                            @endif
+                        </span>
+                    </div>
 
                     @if($wfShowFooterAdvance && !$isDiscontinued)
                         <button class="workflow-v2-advance-btn"
@@ -202,6 +222,7 @@
                             data-next-stage-name="{{ $nextStageName ?? '' }}"
                             data-current-stage-name="{{ $currentStageName ?? '' }}"
                             title="Proceed to Next Stage"
+                            style="{{ ($viewStageId && $currentStageId && (int) $viewStageId === (int) $currentStageId) ? '' : 'display:none;' }}"
                             {{ $nextBtnDisabled ? 'disabled' : '' }}>
                             Advance to next stage &rarr;
                         </button>
@@ -209,6 +230,16 @@
                 </div>
             </main>
         </div>
+
+        @if(!empty($stagesPayload))
+            <script type="application/json" id="workflow-v2-stages-data">
+                {!! json_encode([
+                    'stages' => $stagesPayload,
+                    'currentStageId' => $currentStageId,
+                    'totalStages' => $totalStages,
+                ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
+            </script>
+        @endif
     @else
         <div class="workflow-v2-empty">
             <p>No workflow stages defined. Add stages from Admin Console &rarr; Workflows.</p>
