@@ -1,4 +1,5 @@
 <!-- Client Portal Tab -->
+<link rel="stylesheet" href="{{ URL::asset('css/workflow-tab.css') }}?v={{ time() }}">
 <div class="tab-pane" id="client_portal-tab">
     <div class="card full-width client-portal-container">
         <div class="portal-header">
@@ -93,6 +94,10 @@
                     $currentStageRow = $allWorkflowStages->firstWhere('id', $currentWorkflowStageId);
                     $currentStageName = $currentStageRow ? $currentStageRow->name : null;
                 }
+
+                $cpActivitiesWf = $selectedMatter
+                    ? \App\Support\WorkflowV2Display::build($selectedMatter, $fetchedData, $allWorkflowStages)
+                    : null;
                 ?>
                 
                 @if($selectedMatter)
@@ -126,9 +131,8 @@
                                         <label class="progress-label">Overall Progress:</label>
                                         <div class="progress-circle-wrapper">
                                             @php
-                                                $totalStages = $allWorkflowStages->count();
-                                                $currentStageIndex = $currentWorkflowStageId ? $allWorkflowStages->where('id', '<=', $currentWorkflowStageId)->count() : 0;
-                                                $progressPercentage = $totalStages > 0 ? round(($currentStageIndex / $totalStages) * 100) : 0;
+                                                $totalStages = $cpActivitiesWf['totalStages'] ?? $allWorkflowStages->count();
+                                                $progressPercentage = $cpActivitiesWf['progressPercentage'] ?? 0;
                                             @endphp
                                             <div class="progress-circle" data-progress="{{ $progressPercentage }}">
                                                 <svg class="progress-ring" width="80" height="80">
@@ -174,7 +178,7 @@
                                                 $portalCanDiscontinue = $portalAdminForDiscontinue
                                                     && in_array((int) ($portalAdminForDiscontinue->role ?? 0), config('crm.matter_discontinue_role_ids', [1, 17, 16]), true);
                                             @endphp
-                                            <button class="btn btn-success btn-sm" id="proceed-to-next-stage" data-matter-id="{{ $selectedMatter->id }}" data-next-stage-name="{{ $nextStageName ?? '' }}" data-current-stage-name="{{ $currentStageName ?? '' }}" title="Proceed to Next Stage">
+                                            <button class="btn btn-success btn-sm" id="proceed-to-next-stage" data-matter-id="{{ $selectedMatter->id }}" data-next-stage-name="{{ $nextStageName ?? '' }}" data-current-stage-name="{{ $currentStageName ?? '' }}" title="Proceed to Next Stage" {{ ($cpActivitiesWf['nextBtnDisabled'] ?? false) ? 'disabled' : '' }}>
                                                 Proceed to Next Stage @icon('fa-angle-right')
                                             </button>
                                             @if($portalCanDiscontinue)
@@ -222,29 +226,20 @@
                                     <div class="client-portal-tabs-content">
                                         <!-- Activities Tab (Default) -->
                                         <div class="client-portal-tab-pane active" id="activities-tab">
-                                            <div class="workflow-stages-container mt-3">
-                                                <div class="workflow-stages-list">
-                                                    @foreach($allWorkflowStages as $index => $stage)
-                                                        @php
-                                                            $isActive = ($currentWorkflowStageId && $currentWorkflowStageId == $stage->id);
-                                                            $isCompleted = ($currentWorkflowStageId && $stage->id < $currentWorkflowStageId);
-                                                            $isPending = (!$currentWorkflowStageId || $stage->id > $currentWorkflowStageId);
-                                                            
-                                                            // Determine stage class
-                                                            if($isActive) {
-                                                                $stageClass = 'workflow-stage-active';
-                                                            } elseif($isCompleted) {
-                                                                $stageClass = 'workflow-stage-completed';
-                                                            } else {
-                                                                $stageClass = 'workflow-stage-pending';
-                                                            }
-                                                        @endphp
-                                                        <div class="workflow-stage-item {{ $stageClass }}">
-                                                            <span class="stage-name">{{ $stage->name }}</span>
-                                                        </div>
-                                                    @endforeach
+                                            @if($cpActivitiesWf)
+                                                <div class="workflow-v2 workflow-v2--client-portal-activities">
+                                                    @php extract($cpActivitiesWf); @endphp
+                                                    @include('crm.clients.tabs.partials.workflow-v2-content', [
+                                                        'wfShowHeader' => true,
+                                                        'wfShowToolbar' => false,
+                                                        'wfShowFooterAdvance' => false,
+                                                    ])
                                                 </div>
-                                            </div>
+                                            @else
+                                                <div class="workflow-v2-empty">
+                                                    <p class="text-muted">No matter selected.</p>
+                                                </div>
+                                            @endif
                                         </div>
                                         
                                         <!-- Documents Tab -->

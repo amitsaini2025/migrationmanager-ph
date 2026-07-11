@@ -527,6 +527,24 @@
     opacity: 0.85;
 }
 
+/* Client Portal — Activities tab embed */
+.workflow-v2--client-portal-activities {
+    margin-top: 8px;
+}
+
+.workflow-v2--client-portal-activities .workflow-v2-header {
+    margin-bottom: 14px;
+}
+
+.workflow-v2--client-portal-activities .workflow-v2-footer {
+    padding-top: 16px;
+}
+
+.workflow-v2--client-portal-activities .workflow-v2-footer:only-child,
+.workflow-v2--client-portal-activities .workflow-v2-footer:not(:has(.workflow-v2-advance-btn)) {
+    justify-content: flex-start;
+}
+
 /* Empty state */
 .workflow-v2-empty {
     padding: 40px 20px;
