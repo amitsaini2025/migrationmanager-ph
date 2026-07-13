@@ -168,10 +168,10 @@ html, body {
                         <form method="GET" action="{{ route('booking.appointments.index') }}" id="filter-form">
                             <div class="row mb-3">
                                 <div class="col-md-12">
-                                    <label>Search with Client Reference, Description</label>
+                                    <label>Search with Client Reference, Email, Description</label>
                                     <input type="text" class="form-control" name="search" id="filter-search" 
                                            value="{{ request('search') }}" 
-                                           placeholder="Search with Client reference, description">
+                                           placeholder="Search with client reference, email, description">
                                 </div>
                             </div>
                             <div class="row">

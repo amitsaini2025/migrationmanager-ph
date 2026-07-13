@@ -65,13 +65,15 @@ class BookingAppointmentsController extends Controller
             $query->whereDate('appointment_datetime', '<=', $request->date_to);
         }
         
-        // Search in Client Reference and Description
+        // Search in Client Reference, Description, and Email
         if ($request->filled('search')) {
             $searchTerm = $request->search;
             $searchTermLower = strtolower($searchTerm);
             $query->where(function($q) use ($searchTerm, $searchTermLower) {
                 // Search in enquiry_details
                 $q->whereRaw('LOWER(enquiry_details) LIKE ?', ['%' . $searchTermLower . '%'])
+                  // Search in appointment client email (includes guests without linked client)
+                  ->orWhereRaw('LOWER(client_email) LIKE ?', ['%' . $searchTermLower . '%'])
                   // Search in client_unique_matter_no via ClientMatter
                   ->orWhereIn('client_id', function($subQuery) use ($searchTermLower) {
                       $subQuery->select('client_id')
@@ -83,6 +85,12 @@ class BookingAppointmentsController extends Controller
                       $subQuery->select('id')
                                ->from('admins')
                                ->whereRaw('LOWER(client_id) LIKE ?', ['%' . $searchTermLower . '%']);
+                  })
+                  // Search in linked client profile email
+                  ->orWhereIn('client_id', function($subQuery) use ($searchTermLower) {
+                      $subQuery->select('id')
+                               ->from('admins')
+                               ->whereRaw('LOWER(email) LIKE ?', ['%' . $searchTermLower . '%']);
                   });
             });
         }
