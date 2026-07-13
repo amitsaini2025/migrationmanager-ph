@@ -47,6 +47,33 @@ class BansalSchedulingServiceTypeTest extends TestCase
         );
     }
 
+    public function test_melbourne_employer_sponsored_bansal_sync_uses_pr_complex(): void
+    {
+        $this->assertSame(
+            'pr_complex',
+            BansalSchedulingServiceType::bansalEnquiryTypeForApi(10, 'melbourne', 'employer_sponsored')
+        );
+    }
+
+    public function test_adelaide_employer_sponsored_bansal_sync_uses_ajay(): void
+    {
+        $this->assertSame(
+            'ajay',
+            BansalSchedulingServiceType::bansalEnquiryTypeForApi(10, 'adelaide', 'employer_sponsored')
+        );
+    }
+
+    public function test_employer_sponsored_bansal_service_type_slug(): void
+    {
+        $this->assertSame(
+            'employer-sponsored',
+            BansalSchedulingServiceType::bansalServiceTypeForApi(
+                10,
+                'Employer Sponsored Visas: 494, 482, 186, DAMA'
+            )
+        );
+    }
+
     public function test_melbourne_family_visas_bansal_sync_uses_pr_complex(): void
     {
         $this->assertSame(

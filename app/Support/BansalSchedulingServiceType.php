@@ -9,13 +9,17 @@ use Illuminate\Http\Request;
  * and builds Melbourne-only extras (is_paid, preferred_language) for get-datetime-backend
  * and get-disabled-datetime. Adelaide uses no extras so payloads stay unchanged for legacy behaviour.
  * Melbourne Family Visas (11) and Citizenship (12) use employer-sponsored timeslots on the
- * schedule API. add-appointment sync uses Bansal-valid enquiry_type (pr_complex / ajay) and
- * service_type slugs (family-visas / citizenship); CRM keeps display labels locally.
+ * schedule API. Employer Sponsored (10), Family Visas (11), and Citizenship (12) use Bansal-valid
+ * enquiry_type (pr_complex / ajay) and service_type slugs on add-appointment sync; CRM keeps
+ * display labels locally.
  */
 class BansalSchedulingServiceType
 {
     /** NOE ids using Melbourne employer-sponsored timeslots (schedule API only). */
     private const FAMILY_VISA_AND_CITIZENSHIP_NOE_IDS = [11, 12];
+
+    /** NOE ids whose CRM enquiry_type must be remapped for Bansal add-appointment / re-sync API. */
+    private const BANSAL_SYNC_ENQUIRY_REMAP_NOE_IDS = [10, 11, 12];
     /**
      * @var array<int, string>
      */
@@ -48,12 +52,12 @@ class BansalSchedulingServiceType
     /**
      * enquiry_type for Bansal add-appointment / re-sync API only.
      * Bansal accepts: tr, tourist, education, pr_complex, ajay, kunal.
-     * Family Visas / Citizenship: Melbourne → pr_complex, Adelaide → ajay.
+     * Employer Sponsored / Family Visas / Citizenship: Melbourne → pr_complex, Adelaide → ajay.
      */
     public static function bansalEnquiryTypeForApi(mixed $noeId, ?string $location, string $crmEnquiryType): string
     {
         $key = (int) $noeId;
-        if (! in_array($key, self::FAMILY_VISA_AND_CITIZENSHIP_NOE_IDS, true)) {
+        if (! in_array($key, self::BANSAL_SYNC_ENQUIRY_REMAP_NOE_IDS, true)) {
             return $crmEnquiryType;
         }
 
@@ -67,13 +71,13 @@ class BansalSchedulingServiceType
     }
 
     /**
-     * service_type slug for Bansal add-appointment / re-sync API (Family Visas / Citizenship only).
+     * service_type slug for Bansal add-appointment / re-sync API (Employer Sponsored, Family Visas, Citizenship).
      */
     public static function bansalServiceTypeForApi(mixed $noeId, string $crmServiceType): string
     {
         $key = (int) $noeId;
 
-        if (in_array($key, self::FAMILY_VISA_AND_CITIZENSHIP_NOE_IDS, true)) {
+        if (in_array($key, self::BANSAL_SYNC_ENQUIRY_REMAP_NOE_IDS, true)) {
             return self::ENQUIRY_TO_SERVICE_TYPE[$key];
         }
 
