@@ -108,6 +108,9 @@
                             <div id="checklists-list-container">
                                 <?php
                                 $checklist_forms = \App\Models\CostAssignmentForm::where('client_id', $fetchedData->id)
+                                    ->whereHas('clientMatter', function ($query) {
+                                        $query->where('matter_status', 1);
+                                    })
                                     ->with(['client', 'agent', 'clientMatter'])
                                     ->orderBy('created_at', 'DESC')
                                     ->get();
