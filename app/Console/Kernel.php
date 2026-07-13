@@ -97,26 +97,19 @@ class Kernel extends ConsoleKernel
         //visa expire Reminder email before 15 days daily at 1 time
         //$schedule->command('VisaExpireReminderEmail:daily')->daily();
         
-        // Appointment Sync System - Morning sync at 8 AM (look back 16 hours: covers 5 PM previous day → 8 AM)
-        $schedule->command('booking:sync-appointments --minutes=960')
-            ->dailyAt('08:00')
+        // Appointment Sync System - Sync from Bansal website every 15 minutes (look back 20 minutes for overlap buffer)
+        $schedule->command('booking:sync-appointments --minutes=20')
+            ->everyFifteenMinutes()
             ->timezone('Australia/Melbourne')
-            ->withoutOverlapping(30)
+            ->withoutOverlapping(10)
             ->appendOutputTo(storage_path('logs/appointment-sync.log'));
 
-        // Appointment Sync System - Send reminders daily at 9 AM (runs after morning sync)
+        // Appointment Sync System - Send reminders daily at 9 AM
         $schedule->command('booking:send-reminders')
             ->dailyAt('09:00')
             ->timezone('Australia/Melbourne')
             ->withoutOverlapping(10)
             ->appendOutputTo(storage_path('logs/appointment-reminders.log'));
-
-        // Appointment Sync System - Evening sync at 5 PM (look back 9 hours: covers 8 AM → 5 PM)
-        $schedule->command('booking:sync-appointments --minutes=540')
-            ->dailyAt('17:00')
-            ->timezone('Australia/Melbourne')
-            ->withoutOverlapping(30)
-            ->appendOutputTo(storage_path('logs/appointment-sync.log'));
         
         // Signature Management - Archive old drafts daily at 2 AM
         $schedule->command('signatures:archive-drafts --days=30')
