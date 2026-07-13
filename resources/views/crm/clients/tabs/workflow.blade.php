@@ -39,7 +39,8 @@
             @include('crm.clients.tabs.partials.workflow-v2-content', [
                 'wfShowHeader' => true,
                 'wfShowToolbar' => true,
-                'wfShowFooterAdvance' => true,
+                'wfShowHeaderAdvance' => true,
+                'wfShowFooterAdvance' => false,
                 'wfAdvanceButtonId' => 'workflow-tab-proceed-to-next-stage',
                 'wfBackButtonId' => 'workflow-tab-back-to-previous-stage',
                 'wfReopenButtonId' => 'workflow-tab-reopen',

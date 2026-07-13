@@ -1,6 +1,7 @@
 @php
     $wfShowHeader = $wfShowHeader ?? true;
     $wfShowToolbar = $wfShowToolbar ?? true;
+    $wfShowHeaderAdvance = $wfShowHeaderAdvance ?? false;
     $wfShowFooterAdvance = $wfShowFooterAdvance ?? true;
     $wfShowPortalIdentity = $wfShowPortalIdentity ?? false;
     $wfAdvanceButtonId = $wfAdvanceButtonId ?? 'workflow-tab-proceed-to-next-stage';
@@ -82,20 +83,20 @@
                                 {{ $isFirstStage ? 'disabled' : '' }}>
                                 <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
                             </button>
-                            <div class="workflow-v2-header-action workflow-v2-header-action--deadline">
-                                <input type="checkbox"
-                                    class="workflow-v2-header-deadline-input"
-                                    id="workflow-set-deadline"
+                            @if($wfShowHeaderAdvance)
+                                <button type="button"
+                                    class="workflow-v2-header-icon-btn workflow-v2-header-icon-btn--primary"
+                                    id="{{ $wfAdvanceButtonId }}"
                                     data-matter-id="{{ $matter->id }}"
-                                    {{ $matter->deadline ? 'checked' : '' }}>
-                                <label for="workflow-set-deadline"
-                                    class="workflow-v2-header-icon-btn"
-                                    data-tooltip="Set Deadline"
-                                    title="Set Deadline"
-                                    aria-label="Set Deadline">
-                                    <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
-                                </label>
-                            </div>
+                                    data-next-stage-name="{{ $nextStageName ?? '' }}"
+                                    data-current-stage-name="{{ $currentStageName ?? '' }}"
+                                    data-tooltip="Proceed to Next Stage"
+                                    title="Proceed to Next Stage"
+                                    aria-label="Proceed to Next Stage"
+                                    {{ $nextBtnDisabled ? 'disabled' : '' }}>
+                                    <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                                </button>
+                            @endif
                             @if($canDiscontinue)
                                 <button type="button"
                                     class="workflow-v2-header-icon-btn workflow-v2-header-icon-btn--danger"
@@ -118,6 +119,22 @@
                             aria-label="Change Workflow">
                             <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
                         </button>
+                        @if(!$isDiscontinued)
+                            <div class="workflow-v2-header-action workflow-v2-header-action--deadline">
+                                <input type="checkbox"
+                                    class="workflow-v2-header-deadline-input"
+                                    id="workflow-set-deadline"
+                                    data-matter-id="{{ $matter->id }}"
+                                    {{ $matter->deadline ? 'checked' : '' }}>
+                                <label for="workflow-set-deadline"
+                                    class="workflow-v2-header-icon-btn"
+                                    data-tooltip="Set Deadline"
+                                    title="Set Deadline"
+                                    aria-label="Set Deadline">
+                                    <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                                </label>
+                            </div>
+                        @endif
                         <div class="workflow-deadline-date-wrapper workflow-v2-header-deadline-date workflow-v2-deadline-date-wrapper"
                             style="{{ $matter->deadline ? 'display:inline-flex;' : 'display:none;' }}">
                             <label for="workflow-deadline-date" class="sr-only">Deadline Date</label>

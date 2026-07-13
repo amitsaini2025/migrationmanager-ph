@@ -114,7 +114,7 @@ class WorkflowV2Display
 
         $isActive = $matter && ($matter->matter_status ?? 1) == 1;
 
-        return compact(
+        return array_merge(compact(
             'matter',
             'matterName',
             'matterNumber',
@@ -137,13 +137,12 @@ class WorkflowV2Display
             'canDiscontinue',
             'isActive',
             'stagesPayload',
-            'viewStageId',
             'viewStageIndex',
             'viewStageName'
-        ) + [
+        ), [
             'clientId' => $client->client_id ?? '',
             'viewStageId' => $resolvedViewStageId,
-        ];
+        ]);
     }
 
     /**

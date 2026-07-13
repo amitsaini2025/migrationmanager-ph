@@ -203,8 +203,11 @@
         return div.innerHTML;
     }
 
-    function parseWorkflowV2StagesData() {
-        var scriptEl = document.getElementById('workflow-v2-stages-data');
+    function parseWorkflowV2StagesData(root) {
+        var scope = root || document.getElementById('workflow-tab') || document;
+        var scriptEl = scope.querySelector
+            ? scope.querySelector('#workflow-v2-stages-data')
+            : document.getElementById('workflow-v2-stages-data');
         if (!scriptEl || !scriptEl.textContent) {
             return null;
         }
@@ -214,6 +217,23 @@
             console.error('[WorkflowTab] Failed to parse workflow stage data', err);
             return null;
         }
+    }
+
+    function getWorkflowTabAdvanceButton() {
+        var workflowTab = document.getElementById('workflow-tab');
+        if (workflowTab) {
+            return workflowTab.querySelector('#workflow-tab-proceed-to-next-stage');
+        }
+        return document.getElementById('workflow-tab-proceed-to-next-stage')
+            || document.getElementById('proceed-to-next-stage');
+    }
+
+    function setWorkflowAdvanceButtonVisible(btn, isCurrentStage) {
+        if (!btn) {
+            return;
+        }
+        var advanceDisplay = btn.classList.contains('workflow-v2-advance-btn') ? '' : 'inline-flex';
+        btn.style.display = isCurrentStage ? advanceDisplay : 'none';
     }
 
     function renderWorkflowV2Checklist(rows) {
@@ -241,9 +261,14 @@
         return html;
     }
 
-    function updateWorkflowV2Outstanding(outstanding) {
-        var wrap = document.getElementById('workflow-v2-footer-outstanding');
-        var textEl = document.getElementById('workflow-v2-outstanding-text');
+    function updateWorkflowV2Outstanding(outstanding, root) {
+        var scope = root || document.getElementById('workflow-tab') || document;
+        var wrap = scope.querySelector
+            ? scope.querySelector('#workflow-v2-footer-outstanding')
+            : document.getElementById('workflow-v2-footer-outstanding');
+        var textEl = scope.querySelector
+            ? scope.querySelector('#workflow-v2-outstanding-text')
+            : document.getElementById('workflow-v2-outstanding-text');
         if (!wrap || !textEl) {
             return;
         }
@@ -255,8 +280,9 @@
             : 'All required items complete';
     }
 
-    function showWorkflowV2Stage(stageId) {
-        var data = parseWorkflowV2StagesData();
+    function showWorkflowV2Stage(stageId, root) {
+        var scope = root || document.getElementById('workflow-tab') || document;
+        var data = parseWorkflowV2StagesData(scope);
         if (!data || !data.stages) {
             return;
         }
@@ -268,17 +294,20 @@
             return;
         }
 
-        var panel = document.getElementById('workflow-v2-panel');
-        var eyebrow = document.getElementById('workflow-v2-panel-eyebrow');
-        var title = document.getElementById('workflow-v2-panel-title');
-        var badges = document.getElementById('workflow-v2-panel-badges');
-        var pendingFrom = document.getElementById('workflow-v2-pending-from');
-        var completionRule = document.getElementById('workflow-v2-panel-completion-rule');
-        var completionRuleText = document.getElementById('workflow-v2-completion-rule-text');
-        var checklistContainer = document.getElementById('workflow-v2-checklist-container');
-        var fileNote = document.getElementById('workflow-v2-file-note-section');
-        var advanceBtn = document.getElementById('workflow-tab-proceed-to-next-stage')
-            || document.getElementById('proceed-to-next-stage');
+        var panel = scope.querySelector
+            ? scope.querySelector('#workflow-v2-panel')
+            : document.getElementById('workflow-v2-panel');
+        var eyebrow = scope.querySelector('#workflow-v2-panel-eyebrow');
+        var title = scope.querySelector('#workflow-v2-panel-title');
+        var badges = scope.querySelector('#workflow-v2-panel-badges');
+        var pendingFrom = scope.querySelector('#workflow-v2-pending-from');
+        var completionRule = scope.querySelector('#workflow-v2-panel-completion-rule');
+        var completionRuleText = scope.querySelector('#workflow-v2-completion-rule-text');
+        var checklistContainer = scope.querySelector('#workflow-v2-checklist-container');
+        var fileNote = scope.querySelector('#workflow-v2-file-note-section');
+        var advanceBtn = scope.id === 'workflow-tab'
+            ? scope.querySelector('#workflow-tab-proceed-to-next-stage')
+            : getWorkflowTabAdvanceButton();
 
         if (panel) {
             panel.setAttribute('data-view-stage-id', String(stage.id));
@@ -317,15 +346,15 @@
         if (fileNote) {
             fileNote.style.display = display.file_note_section ? '' : 'none';
         }
-        updateWorkflowV2Outstanding(stage.outstandingRequired);
+        updateWorkflowV2Outstanding(stage.outstandingRequired, scope);
 
         var isCurrentStage = String(stage.id) === String(data.currentStageId);
-        if (advanceBtn) {
-            var advanceDisplay = advanceBtn.classList.contains('workflow-v2-advance-btn') ? '' : 'inline-flex';
-            advanceBtn.style.display = isCurrentStage ? advanceDisplay : 'none';
-        }
+        setWorkflowAdvanceButtonVisible(advanceBtn, isCurrentStage);
 
-        document.querySelectorAll('.workflow-v2-stage-item[data-stage-id]').forEach(function(item) {
+        var stageItems = scope.querySelectorAll
+            ? scope.querySelectorAll('.workflow-v2-stage-item[data-stage-id]')
+            : document.querySelectorAll('.workflow-v2-stage-item[data-stage-id]');
+        stageItems.forEach(function(item) {
             var isViewing = String(item.getAttribute('data-stage-id')) === String(stage.id);
             item.classList.toggle('is-viewing', isViewing);
             item.setAttribute('aria-current', isViewing ? 'step' : 'false');
@@ -334,8 +363,11 @@
 
     var workflowV2StageNavBound = false;
 
-    function bindWorkflowV2StageNavigation() {
-        var list = document.getElementById('workflow-v2-stages-list');
+    function bindWorkflowV2StageNavigation(root) {
+        var scope = root || document.getElementById('workflow-tab') || document;
+        var list = scope.querySelector
+            ? scope.querySelector('#workflow-v2-stages-list')
+            : document.getElementById('workflow-v2-stages-list');
         if (!list) {
             return;
         }
@@ -347,7 +379,7 @@
                 if (!item) {
                     return;
                 }
-                updateWorkflowV2StageFromItem(item);
+                updateWorkflowV2StageFromItem(item, scope);
             });
             list.addEventListener('keydown', function(e) {
                 if (e.key !== 'Enter' && e.key !== ' ') {
@@ -358,27 +390,36 @@
                     return;
                 }
                 e.preventDefault();
-                updateWorkflowV2StageFromItem(item);
+                updateWorkflowV2StageFromItem(item, scope);
             });
         }
     }
 
-    function updateWorkflowV2StageFromItem(item) {
+    function updateWorkflowV2StageFromItem(item, root) {
         var stageId = item.getAttribute('data-stage-id');
         if (!stageId) {
             return;
         }
-        showWorkflowV2Stage(stageId);
+        var scope = root || item.closest('#workflow-tab') || document.getElementById('workflow-tab') || document;
+        showWorkflowV2Stage(stageId, scope);
     }
 
     function initWorkflowV2StageNavigation() {
-        bindWorkflowV2StageNavigation();
-        refreshWorkflowV2Icons();
-        var panel = document.getElementById('workflow-v2-panel');
+        var workflowTab = document.getElementById('workflow-tab');
+        if (!workflowTab) {
+            return;
+        }
+
+        bindWorkflowV2StageNavigation(workflowTab);
+        refreshWorkflowV2Icons(workflowTab);
+        var panel = workflowTab.querySelector('#workflow-v2-panel');
         if (panel) {
             var viewStageId = panel.getAttribute('data-view-stage-id');
             if (viewStageId) {
-                showWorkflowV2Stage(viewStageId);
+                showWorkflowV2Stage(viewStageId, workflowTab);
+            } else {
+                var advanceBtn = workflowTab.querySelector('#workflow-tab-proceed-to-next-stage');
+                setWorkflowAdvanceButtonVisible(advanceBtn, true);
             }
         }
     }
@@ -452,7 +493,7 @@
 
         var orig = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = crmI('fas fa-spinner fa-spin') + ' Processing...';
+        btn.innerHTML = crmI('fas fa-spinner fa-spin');
 
         var payload = { matter_id: matterId };
         if (getActiveTabId() === 'client_portal' || btn.id === 'back-to-previous-stage') {
@@ -533,12 +574,12 @@
             return;
         }
 
-        var btn = btnEl || document.getElementById('workflow-tab-proceed-to-next-stage');
+        var btn = btnEl || getWorkflowTabAdvanceButton();
         var isClientPortal = btn && btn.id === 'proceed-to-next-stage';
         var orig = btn ? btn.innerHTML : '';
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = crmI('fas fa-spinner fa-spin') + ' Processing...';
+            btn.innerHTML = crmI('fas fa-spinner fa-spin');
         }
 
         var payload = { matter_id: matterId };
