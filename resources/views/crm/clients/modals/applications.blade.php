@@ -184,6 +184,35 @@
 	</div>
 </div>
 
+{{-- 2d. Set Deadline Modal (Workflow tab) --}}
+<div class="modal fade custom_modal" id="workflow-set-deadline-modal" tabindex="-1" role="dialog" aria-labelledby="workflowSetDeadlineModalLabel" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="workflowSetDeadlineModalLabel">Set Deadline</h5>
+				<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<input type="hidden" id="workflow-set-deadline-matter-id" value="">
+				<div class="form-group">
+					<label for="workflow-set-deadline-date">Deadline Date <span class="span_req">*</span></label>
+					<input type="date" class="form-control" id="workflow-set-deadline-date" required>
+					<span class="custom-error workflow-set-deadline-error" role="alert"><strong></strong></span>
+				</div>
+				<button type="button" class="btn btn-primary" id="workflow-set-deadline-submit">
+					@icon('fa-check') Save Deadline
+				</button>
+				<button type="button" class="btn btn-outline-danger" id="workflow-set-deadline-clear" style="display: none;">
+					@icon('fa-times') Clear Deadline
+				</button>
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+			</div>
+		</div>
+	</div>
+</div>
+
 {{-- 3. Revert Discontinued Matter Modal --}}
 <div class="modal fade custom_modal" id="revert_matter" tabindex="-1" role="dialog" aria-labelledby="matterModalLabel" aria-hidden="true">
 	<div class="modal-dialog">

@@ -533,9 +533,12 @@
         });
     }
 
-    function saveMatterDeadline(matterId, setDeadline, deadline) {
+    function saveMatterDeadline(matterId, setDeadline, deadline, onComplete) {
         var urls = workflowUrls();
         if (!matterId || !urls.updateDeadline) {
+            if (typeof onComplete === 'function') {
+                onComplete(false);
+            }
             return;
         }
 
@@ -556,14 +559,26 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.status) {
+                if (typeof $ !== 'undefined') {
+                    $('#workflow-set-deadline-modal').modal('hide');
+                }
                 onWorkflowTabSuccess(null);
+                if (typeof onComplete === 'function') {
+                    onComplete(true);
+                }
             } else {
                 alert(data.message || 'Failed to update deadline.');
+                if (typeof onComplete === 'function') {
+                    onComplete(false);
+                }
             }
         })
         .catch(function(err) {
             console.error(err);
             alert('An error occurred.');
+            if (typeof onComplete === 'function') {
+                onComplete(false);
+            }
         });
     }
 
@@ -631,40 +646,6 @@
             return;
         }
         initialized = true;
-
-        document.addEventListener('change', function(e) {
-            if (e.target.id === 'workflow-set-deadline') {
-                var checked = e.target.checked;
-                var wrapper = document.querySelector('.workflow-deadline-date-wrapper');
-                var dateInput = document.getElementById('workflow-deadline-date');
-                if (!wrapper || !dateInput) return;
-
-                wrapper.style.display = checked ? 'inline-flex' : 'none';
-                if (!checked) {
-                    dateInput.value = '';
-                    saveMatterDeadline(e.target.getAttribute('data-matter-id'), false, null);
-                } else if (dateInput.value) {
-                    saveMatterDeadline(e.target.getAttribute('data-matter-id'), true, dateInput.value);
-                }
-                return;
-            }
-
-            if (e.target.id === 'workflow-deadline-date') {
-                var setDeadlineCb = document.getElementById('workflow-set-deadline');
-                if (!setDeadlineCb || !setDeadlineCb.checked) return;
-
-                var val = e.target.value;
-                var matterId = e.target.getAttribute('data-matter-id');
-                var wrapper = document.querySelector('.workflow-deadline-date-wrapper');
-                if (val) {
-                    saveMatterDeadline(matterId, true, val);
-                } else {
-                    setDeadlineCb.checked = false;
-                    if (wrapper) wrapper.style.display = 'none';
-                    saveMatterDeadline(matterId, false, null);
-                }
-            }
-        });
 
         document.addEventListener('click', function(e) {
             var clientPortalNextBtn = e.target.closest('#proceed-to-next-stage');
@@ -763,6 +744,89 @@
                 var discErr = document.querySelector('.discontinue-reason-error strong');
                 if (discErr) discErr.textContent = '';
                 $('#discontinue-matter-modal').modal('show');
+                return;
+            }
+
+            var setDeadlineBtn = e.target.closest('#workflow-set-deadline');
+            if (setDeadlineBtn) {
+                e.preventDefault();
+                var matterIdDl = setDeadlineBtn.getAttribute('data-matter-id');
+                if (!matterIdDl) {
+                    alert('Error: Matter ID not found');
+                    return;
+                }
+
+                var matterIdInput = document.getElementById('workflow-set-deadline-matter-id');
+                var dateInput = document.getElementById('workflow-set-deadline-date');
+                var clearBtn = document.getElementById('workflow-set-deadline-clear');
+                var errEl = document.querySelector('.workflow-set-deadline-error strong');
+                if (!matterIdInput || !dateInput) {
+                    return;
+                }
+
+                var currentDeadline = setDeadlineBtn.getAttribute('data-current-deadline') || '';
+                matterIdInput.value = matterIdDl;
+                dateInput.value = currentDeadline;
+                if (errEl) errEl.textContent = '';
+                if (clearBtn) {
+                    clearBtn.style.display = currentDeadline ? '' : 'none';
+                }
+                $('#workflow-set-deadline-modal').modal('show');
+                return;
+            }
+
+            var setDeadlineSubmit = e.target.closest('#workflow-set-deadline-submit');
+            if (setDeadlineSubmit) {
+                e.preventDefault();
+                var matterIdSave = document.getElementById('workflow-set-deadline-matter-id')?.value;
+                var deadlineVal = document.getElementById('workflow-set-deadline-date')?.value;
+                var deadlineErr = document.querySelector('.workflow-set-deadline-error strong');
+                if (deadlineErr) deadlineErr.textContent = '';
+
+                if (!matterIdSave) {
+                    alert('Error: Matter ID not found');
+                    return;
+                }
+                if (!deadlineVal) {
+                    if (deadlineErr) deadlineErr.textContent = 'Please select a date.';
+                    return;
+                }
+
+                var origDl = setDeadlineSubmit.innerHTML;
+                setDeadlineSubmit.disabled = true;
+                setDeadlineSubmit.innerHTML = crmI('fas fa-spinner fa-spin');
+                saveMatterDeadline(matterIdSave, true, deadlineVal, function(success) {
+                    setDeadlineSubmit.disabled = false;
+                    setDeadlineSubmit.innerHTML = origDl;
+                    if (!success && deadlineErr) {
+                        deadlineErr.textContent = 'Failed to save deadline.';
+                    }
+                });
+                return;
+            }
+
+            var setDeadlineClear = e.target.closest('#workflow-set-deadline-clear');
+            if (setDeadlineClear) {
+                e.preventDefault();
+                var matterIdClear = document.getElementById('workflow-set-deadline-matter-id')?.value;
+                if (!matterIdClear) {
+                    alert('Error: Matter ID not found');
+                    return;
+                }
+                if (!confirm('Clear the deadline for this matter?')) {
+                    return;
+                }
+
+                var origClear = setDeadlineClear.innerHTML;
+                setDeadlineClear.disabled = true;
+                setDeadlineClear.innerHTML = crmI('fas fa-spinner fa-spin');
+                saveMatterDeadline(matterIdClear, false, null, function(success) {
+                    setDeadlineClear.disabled = false;
+                    setDeadlineClear.innerHTML = origClear;
+                    if (!success) {
+                        alert('Failed to clear deadline.');
+                    }
+                });
                 return;
             }
 

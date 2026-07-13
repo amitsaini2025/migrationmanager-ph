@@ -120,28 +120,34 @@
                             <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
                         </button>
                         @if(!$isDiscontinued)
-                            <div class="workflow-v2-header-action workflow-v2-header-action--deadline">
-                                <input type="checkbox"
-                                    class="workflow-v2-header-deadline-input"
+                            @php
+                                $wfDeadlineYmd = $matter->deadline
+                                    ? \Carbon\Carbon::parse($matter->deadline)->format('Y-m-d')
+                                    : '';
+                                $wfDeadlineDisplay = $matter->deadline
+                                    ? \Carbon\Carbon::parse($matter->deadline)->format('d/m/Y')
+                                    : '';
+                            @endphp
+                            <div class="workflow-v2-header-deadline-control {{ $wfDeadlineYmd ? 'has-deadline' : '' }}">
+                                <button type="button"
+                                    class="workflow-v2-header-icon-btn {{ $wfDeadlineYmd ? 'workflow-v2-header-icon-btn--deadline-active' : '' }}"
                                     id="workflow-set-deadline"
                                     data-matter-id="{{ $matter->id }}"
-                                    {{ $matter->deadline ? 'checked' : '' }}>
-                                <label for="workflow-set-deadline"
-                                    class="workflow-v2-header-icon-btn"
-                                    data-tooltip="Set Deadline"
-                                    title="Set Deadline"
-                                    aria-label="Set Deadline">
+                                    data-current-deadline="{{ $wfDeadlineYmd }}"
+                                    @if(!$wfDeadlineDisplay)
+                                        data-tooltip="Set Deadline"
+                                        title="Set Deadline"
+                                    @endif
+                                    aria-label="{{ $wfDeadlineDisplay ? 'Deadline: ' . $wfDeadlineDisplay . '. Click to change.' : 'Set Deadline' }}">
                                     <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
-                                </label>
+                                </button>
+                                @if($wfDeadlineDisplay)
+                                    <span class="workflow-v2-header-deadline-display"
+                                        id="workflow-deadline-display"
+                                        aria-hidden="true">{{ $wfDeadlineDisplay }}</span>
+                                @endif
                             </div>
                         @endif
-                        <div class="workflow-deadline-date-wrapper workflow-v2-header-deadline-date workflow-v2-deadline-date-wrapper"
-                            style="{{ $matter->deadline ? 'display:inline-flex;' : 'display:none;' }}">
-                            <label for="workflow-deadline-date" class="sr-only">Deadline Date</label>
-                            <input type="date" class="form-control form-control-sm" id="workflow-deadline-date"
-                                value="{{ $matter->deadline ? \Carbon\Carbon::parse($matter->deadline)->format('Y-m-d') : '' }}"
-                                data-matter-id="{{ $matter->id }}">
-                        </div>
                     </div>
                 @endif
             </div>
