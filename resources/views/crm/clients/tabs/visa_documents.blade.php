@@ -287,7 +287,7 @@
                                                         $pendingSigner = $fetch->signers()->whereIn('status', ['pending'])->first();
                                                         $signerId = $pendingSigner ? $pendingSigner->id : null;
                                                     ?>
-                                                    <tr class="visa-sig-action-bar" data-doc-id="<?= $fetch->id ?>" data-signer-id="<?= $signerId ?>" style="background: #f8f9fa; border-left: 4px solid #4a90e2;">
+                                                    <tr class="visa-sig-action-bar" data-matterid="<?= $fetch->client_matter_id ?>" data-doc-id="<?= $fetch->id ?>" data-signer-id="<?= $signerId ?>" style="background: #f8f9fa; border-left: 4px solid #4a90e2;">
                                                         <td colspan="3" style="padding: 10px 16px;">
                                                             <div class="d-flex flex-wrap align-items-center gap-2" style="flex-wrap: wrap;">
                                                                 <button type="button" class="btn btn-sm btn-primary visa-sig-send-btn" data-doc-id="<?= $fetch->id ?>" <?= $docStatus === 'sent' ? 'disabled' : '' ?>>

@@ -320,11 +320,13 @@
     }
 
     /**
-     * Filter visa documents by matter
+     * Show/hide document rows (and signature action bars) by matter.
      */
-    function filterVisaDocumentsByMatter(matterId) {
+    function filterDocumentListRowsByMatter($container, matterId) {
+        var rowSelector = '.drow, .visa-sig-action-bar';
+
         if (matterId !== "") {
-            $('#visadocuments-tab .migdocumnetlist1').find('.drow').each(function() {
+            $container.find(rowSelector).each(function() {
                 var docMatterId = $(this).data('matterid');
                 // Show if: matches the selected matter, OR has no matter ID at all
                 // (covers legacy docs uploaded before matter-scoping was introduced,
@@ -337,24 +339,19 @@
                 }
             });
         } else {
-            $('#visadocuments-tab .migdocumnetlist1').find('.drow').hide();
+            $container.find(rowSelector).hide();
         }
     }
 
+    /**
+     * Filter visa documents by matter
+     */
+    function filterVisaDocumentsByMatter(matterId) {
+        filterDocumentListRowsByMatter($('#visadocuments-tab .migdocumnetlist1'), matterId);
+    }
+
     function filterNominationDocumentsByMatter(matterId) {
-        if (matterId !== "") {
-            $('#nominationdocuments-tab .migdocumnetlist1').find('.drow').each(function() {
-                var docMatterId = $(this).data('matterid');
-                var hasNoMatter = !docMatterId || docMatterId === '' || docMatterId === 'null' || docMatterId === null || docMatterId === 0;
-                if (docMatterId == matterId || hasNoMatter) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
-        } else {
-            $('#nominationdocuments-tab .migdocumnetlist1').find('.drow').hide();
-        }
+        filterDocumentListRowsByMatter($('#nominationdocuments-tab .migdocumnetlist1'), matterId);
     }
 
     /**
