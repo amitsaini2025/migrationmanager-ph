@@ -47,6 +47,41 @@ class BansalSchedulingServiceTypeTest extends TestCase
         );
     }
 
+    public function test_melbourne_outside_australia_slot_lookup_uses_international_migration(): void
+    {
+        $this->assertSame(
+            'international-migration',
+            BansalSchedulingServiceType::fromEnquiryItem(8, 'melbourne')
+        );
+    }
+
+    public function test_melbourne_outside_australia_bansal_sync_uses_pr_complex(): void
+    {
+        $this->assertSame(
+            'pr_complex',
+            BansalSchedulingServiceType::bansalEnquiryTypeForApi(8, 'melbourne', 'international')
+        );
+    }
+
+    public function test_adelaide_outside_australia_bansal_sync_uses_ajay(): void
+    {
+        $this->assertSame(
+            'ajay',
+            BansalSchedulingServiceType::bansalEnquiryTypeForApi(8, 'adelaide', 'international')
+        );
+    }
+
+    public function test_outside_australia_bansal_service_type_slug(): void
+    {
+        $this->assertSame(
+            'international-migration',
+            BansalSchedulingServiceType::bansalServiceTypeForApi(
+                8,
+                'Anyone who is outside Australia'
+            )
+        );
+    }
+
     public function test_melbourne_employer_sponsored_bansal_sync_uses_pr_complex(): void
     {
         $this->assertSame(

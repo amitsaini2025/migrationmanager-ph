@@ -9,9 +9,9 @@ use Illuminate\Http\Request;
  * and builds Melbourne-only extras (is_paid, preferred_language) for get-datetime-backend
  * and get-disabled-datetime. Adelaide uses no extras so payloads stay unchanged for legacy behaviour.
  * Melbourne Family Visas (11) and Citizenship (12) use employer-sponsored timeslots on the
- * schedule API. Employer Sponsored (10), Family Visas (11), and Citizenship (12) use Bansal-valid
- * enquiry_type (pr_complex / ajay) and service_type slugs on add-appointment sync; CRM keeps
- * display labels locally.
+ * schedule API. Outside Australia (8), Employer Sponsored (10), Family Visas (11), and Citizenship
+ * (12) use Bansal-valid enquiry_type (pr_complex / ajay) and service_type slugs on add-appointment
+ * sync; CRM keeps display labels locally.
  */
 class BansalSchedulingServiceType
 {
@@ -19,7 +19,7 @@ class BansalSchedulingServiceType
     private const FAMILY_VISA_AND_CITIZENSHIP_NOE_IDS = [11, 12];
 
     /** NOE ids whose CRM enquiry_type must be remapped for Bansal add-appointment / re-sync API. */
-    private const BANSAL_SYNC_ENQUIRY_REMAP_NOE_IDS = [10, 11, 12];
+    private const BANSAL_SYNC_ENQUIRY_REMAP_NOE_IDS = [8, 10, 11, 12];
     /**
      * @var array<int, string>
      */
@@ -52,7 +52,7 @@ class BansalSchedulingServiceType
     /**
      * enquiry_type for Bansal add-appointment / re-sync API only.
      * Bansal accepts: tr, tourist, education, pr_complex, ajay, kunal.
-     * Employer Sponsored / Family Visas / Citizenship: Melbourne → pr_complex, Adelaide → ajay.
+     * Outside Australia / Employer Sponsored / Family Visas / Citizenship: Melbourne → pr_complex, Adelaide → ajay.
      */
     public static function bansalEnquiryTypeForApi(mixed $noeId, ?string $location, string $crmEnquiryType): string
     {
@@ -71,7 +71,7 @@ class BansalSchedulingServiceType
     }
 
     /**
-     * service_type slug for Bansal add-appointment / re-sync API (Employer Sponsored, Family Visas, Citizenship).
+     * service_type slug for Bansal add-appointment / re-sync API (Outside Australia, Employer Sponsored, Family Visas, Citizenship).
      */
     public static function bansalServiceTypeForApi(mixed $noeId, string $crmServiceType): string
     {
