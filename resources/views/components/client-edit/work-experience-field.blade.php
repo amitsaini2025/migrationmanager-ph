@@ -6,7 +6,7 @@
         @if($isCurrent)
         <div class="experience-current-toggle experience-current-readonly">
             <span class="experience-current-label">Current Experience?</span>
-            <label class="switch switch-readonly" title="Current experience (based on latest finish date)">
+            <label class="switch switch-readonly" title="Current experience (ongoing / no finish date, else latest finish)">
                 <input type="checkbox" checked disabled>
                 <span class="slider round"></span>
             </label>

@@ -925,14 +925,22 @@ function syncCurrentAddressIndicators() {
 }
 
 /**
- * Matches work experience display order — latest job_finish_date, then id DESC.
+ * Matches ClientExperience::ORDER_BY_DISPLAY — ongoing (no finish) first,
+ * then latest job_finish_date, then latest job_start_date, then id DESC.
  */
 function isBetterCurrentExperienceCandidate(candidate, winner) {
-    if (candidate.hasDate !== winner.hasDate) {
-        return candidate.hasDate;
+    // Empty finish date = ongoing employment = Current
+    if (candidate.hasFinishDate !== winner.hasFinishDate) {
+        return !candidate.hasFinishDate;
     }
-    if (candidate.hasDate && candidate.dateMs !== winner.dateMs) {
-        return candidate.dateMs > winner.dateMs;
+    if (candidate.hasFinishDate && candidate.finishDateMs !== winner.finishDateMs) {
+        return candidate.finishDateMs > winner.finishDateMs;
+    }
+    if (candidate.hasStartDate !== winner.hasStartDate) {
+        return candidate.hasStartDate;
+    }
+    if (candidate.hasStartDate && candidate.startDateMs !== winner.startDateMs) {
+        return candidate.startDateMs > winner.startDateMs;
     }
     if (candidate.experienceId !== winner.experienceId) {
         return candidate.experienceId > winner.experienceId;
@@ -940,12 +948,36 @@ function isBetterCurrentExperienceCandidate(candidate, winner) {
     return candidate.idx > winner.idx;
 }
 
+function scoreExperienceCandidate(experienceOrWrapper, idx) {
+    const isDom = experienceOrWrapper && experienceOrWrapper.querySelector;
+    const finishValue = isDom
+        ? (experienceOrWrapper.querySelector('input[name*="job_finish_date"]')?.value || '')
+        : (experienceOrWrapper.job_finish_date || '');
+    const startValue = isDom
+        ? (experienceOrWrapper.querySelector('input[name*="job_start_date"]')?.value || '')
+        : (experienceOrWrapper.job_start_date || '');
+    const experienceId = isDom
+        ? (parseInt(experienceOrWrapper.querySelector('input[name*="experience_id"]')?.value || '0', 10) || 0)
+        : (parseInt(experienceOrWrapper.experience_id || '0', 10) || 0);
+    const finishDateMs = parseAddressStartDateMs(finishValue);
+    const startDateMs = parseAddressStartDateMs(startValue);
+
+    return {
+        hasFinishDate: finishDateMs !== null,
+        finishDateMs: finishDateMs ?? 0,
+        hasStartDate: startDateMs !== null,
+        startDateMs: startDateMs ?? 0,
+        experienceId: experienceId,
+        idx: idx
+    };
+}
+
 function createReadonlyCurrentExperienceToggle() {
     const div = document.createElement('div');
     div.className = 'experience-current-toggle experience-current-readonly';
     div.innerHTML = `
         <span class="experience-current-label">Current Experience?</span>
-        <label class="switch switch-readonly" title="Current experience (based on latest finish date)">
+        <label class="switch switch-readonly" title="Current experience (ongoing / no finish date, else latest finish)">
             <input type="checkbox" checked disabled>
             <span class="slider round"></span>
         </label>
@@ -954,7 +986,8 @@ function createReadonlyCurrentExperienceToggle() {
 }
 
 /**
- * Show readonly current-experience indicator on the row with the latest finish date only.
+ * Show readonly current-experience indicator on the ongoing (no finish) row,
+ * else the row with the latest finish date.
  */
 function syncCurrentExperienceIndicators() {
     const container = document.getElementById('experienceContainer');
@@ -971,15 +1004,7 @@ function syncCurrentExperienceIndicators() {
     let winnerScore = null;
 
     wrappers.forEach(function(wrapper, idx) {
-        const finishInput = wrapper.querySelector('input[name*="job_finish_date"]');
-        const experienceId = parseInt(wrapper.querySelector('input[name*="experience_id"]')?.value || '0', 10) || 0;
-        const dateMs = parseAddressStartDateMs(finishInput?.value || '');
-        const score = {
-            hasDate: dateMs !== null,
-            dateMs: dateMs ?? 0,
-            experienceId: experienceId,
-            idx: idx
-        };
+        const score = scoreExperienceCandidate(wrapper, idx);
 
         if (winnerScore === null || isBetterCurrentExperienceCandidate(score, winnerScore)) {
             winnerIdx = idx;
@@ -1015,18 +1040,8 @@ function syncCurrentExperienceIndicators() {
 
 function sortExperiencesForDisplay(experiences) {
     return [...experiences].sort(function(a, b) {
-        const scoreA = {
-            hasDate: parseAddressStartDateMs(a.job_finish_date) !== null,
-            dateMs: parseAddressStartDateMs(a.job_finish_date) ?? 0,
-            experienceId: parseInt(a.experience_id || '0', 10) || 0,
-            idx: 0
-        };
-        const scoreB = {
-            hasDate: parseAddressStartDateMs(b.job_finish_date) !== null,
-            dateMs: parseAddressStartDateMs(b.job_finish_date) ?? 0,
-            experienceId: parseInt(b.experience_id || '0', 10) || 0,
-            idx: 0
-        };
+        const scoreA = scoreExperienceCandidate(a, 0);
+        const scoreB = scoreExperienceCandidate(b, 0);
 
         if (isBetterCurrentExperienceCandidate(scoreA, scoreB)) {
             return -1;
@@ -4375,8 +4390,8 @@ $(document).ready(function() {
         syncCurrentAddressIndicators();
     });
 
-    // Readonly current-experience indicator follows latest finish date in edit mode
-    $(document).on('change input', '#experienceContainer input[name*="job_finish_date"]', function() {
+    // Readonly current-experience indicator: ongoing (no finish) else latest finish
+    $(document).on('change input', '#experienceContainer input[name*="job_finish_date"], #experienceContainer input[name*="job_start_date"]', function() {
         syncCurrentExperienceIndicators();
     });
     

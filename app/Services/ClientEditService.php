@@ -168,7 +168,7 @@ class ClientEditService
      */
     protected function getExperiences(int $clientId)
     {
-        return ClientExperience::where('client_id', $clientId)->orderByRaw('job_finish_date DESC NULLS LAST')->get() ?? [];
+        return ClientExperience::where('client_id', $clientId)->orderedForDisplay()->get() ?? [];
     }
 
     /**

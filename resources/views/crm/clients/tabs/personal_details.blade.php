@@ -547,7 +547,7 @@
 
 
                     <?php
-                    $clientExperience_Info = App\Models\ClientExperience::select('job_title','job_country','job_start_date','job_finish_date')->where('client_id', $fetchedData->id)->orderByRaw('job_finish_date DESC NULLS LAST')->get();
+                    $clientExperience_Info = App\Models\ClientExperience::select('job_title','job_country','job_start_date','job_finish_date')->where('client_id', $fetchedData->id)->orderedForDisplay()->get();
                     ?>
                     @if(!empty($clientExperience_Info) && $clientExperience_Info->count() > 0)
                     <div class="card">

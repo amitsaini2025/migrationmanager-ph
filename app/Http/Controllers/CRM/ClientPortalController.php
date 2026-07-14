@@ -3562,7 +3562,7 @@ class ClientPortalController extends Controller
 		$visaCountries = ClientVisaCountry::with('matter')->where('client_id', $clientId)->orderBy('id')->get();
 		$clientTravels = ClientTravelInformation::where('client_id', $clientId)->orderByRaw('travel_arrival_date DESC NULLS LAST, created_at DESC')->get();
 		$qualifications = ClientQualification::where('client_id', $clientId)->orderByRaw('finish_date DESC NULLS LAST')->get();
-		$experiences = ClientExperience::where('client_id', $clientId)->orderByRaw('job_finish_date DESC NULLS LAST')->get();
+		$experiences = ClientExperience::where('client_id', $clientId)->orderedForDisplay()->get();
 		$clientOccupations = ClientOccupation::where('client_id', $clientId)->get();
 		$testScores = ClientTestScore::where('client_id', $clientId)->get();
 		return view('crm.clients.tabs.client_portal', compact(

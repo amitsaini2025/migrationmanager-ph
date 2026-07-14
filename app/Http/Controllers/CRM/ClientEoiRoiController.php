@@ -283,7 +283,7 @@ class ClientEoiRoiController extends Controller
             // Load client relationships needed for points calculation (following existing codebase pattern)
             $client->testScores = \App\Models\ClientTestScore::where('client_id', $client->id)->get();
             $client->qualifications = \App\Models\ClientQualification::where('client_id', $client->id)->orderByRaw('finish_date DESC NULLS LAST')->get();
-            $client->experiences = \App\Models\ClientExperience::where('client_id', $client->id)->orderByRaw('job_finish_date DESC NULLS LAST')->get();
+            $client->experiences = \App\Models\ClientExperience::where('client_id', $client->id)->orderedForDisplay()->get();
             $client->partner = \App\Models\ClientSpouseDetail::where('client_id', $client->id)->first();
 
             $subclass = $request->input('subclass');
