@@ -27,6 +27,15 @@ class ClientEmail extends Model
         'verification_sent_at' => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (ClientEmail $model) {
+            if ($model->email !== null && $model->email !== '') {
+                $model->email = Admin::sanitizeEmailAddress($model->email);
+            }
+        });
+    }
+
     // Relationships
     public function verifier()
     {

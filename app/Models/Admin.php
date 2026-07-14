@@ -99,6 +99,15 @@ class Admin extends Authenticatable
         'updated_at'
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (Admin $admin) {
+            if ($admin->email !== null && $admin->email !== '') {
+                $admin->email = self::sanitizeEmailAddress($admin->email);
+            }
+        });
+    }
+
 	public function countryData()
     {
         return $this->belongsTo('App\\Models\\Country','country');
@@ -409,12 +418,25 @@ class Admin extends Authenticatable
     }
 
     /**
+     * Normalize an email for storage/outbound use.
+     * Trims whitespace and trailing punctuation (e.g. "user@gmail.com.").
+     */
+    public static function sanitizeEmailAddress(?string $email): string
+    {
+        $email = trim((string) $email);
+        // Paste / sentence-ending periods and similar punctuation after the address
+        $email = rtrim($email, '.,;:');
+
+        return trim($email);
+    }
+
+    /**
      * Placeholder emails stored on company admin rows when the real email
      * already exists (admins.email unique). Not valid for outbound mail.
      */
     public static function isInternalPlaceholderEmail(?string $email): bool
     {
-        $email = strtolower(trim((string) $email));
+        $email = strtolower(self::sanitizeEmailAddress($email));
 
         return $email === '' || str_ends_with($email, '@lead.internal');
     }
@@ -427,7 +449,7 @@ class Admin extends Authenticatable
     {
         $candidates = [];
 
-        $primary = trim((string) ($this->email ?? ''));
+        $primary = self::sanitizeEmailAddress($this->email ?? '');
         if ($primary !== '') {
             $candidates[] = $primary;
         }
@@ -440,14 +462,14 @@ class Admin extends Authenticatable
             ->pluck('email');
 
         foreach ($rows as $rowEmail) {
-            $candidates[] = trim((string) $rowEmail);
+            $candidates[] = self::sanitizeEmailAddress($rowEmail);
         }
 
         if ($this->isCompany()) {
             $this->loadMissing('company.contactPerson');
             $contact = $this->company?->contactPerson;
             if ($contact) {
-                $cpEmail = trim((string) ($contact->email ?? ''));
+                $cpEmail = self::sanitizeEmailAddress($contact->email ?? '');
                 if ($cpEmail !== '') {
                     $candidates[] = $cpEmail;
                 }
@@ -457,7 +479,7 @@ class Admin extends Authenticatable
                     ->orderBy('id')
                     ->pluck('email');
                 foreach ($cpRows as $rowEmail) {
-                    $candidates[] = trim((string) $rowEmail);
+                    $candidates[] = self::sanitizeEmailAddress($rowEmail);
                 }
             }
         }

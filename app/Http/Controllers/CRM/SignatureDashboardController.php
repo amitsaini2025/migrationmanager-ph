@@ -504,28 +504,34 @@ class SignatureDashboardController extends Controller
             return back()->with('error', $message);
         }
 
-        // Upgrade any @lead.internal placeholder signers to the real company/contact email
+        // Upgrade placeholder (@lead.internal) signers and strip trailing punctuation on emails
         $recipient = $document->client?->resolveSigningRecipient();
-        $placeholderFixed = false;
+        $signerEmailFixed = false;
         foreach ($pendingSigners as $signer) {
-            if (!Admin::isInternalPlaceholderEmail($signer->email)) {
-                continue;
-            }
-            if (!$recipient) {
-                $message = 'Cannot send signature email: company has a placeholder (@lead.internal) address. Please add a real email on the company/contact profile.';
-                if ($request->ajax() || $request->wantsJson()) {
-                    return response()->json(['success' => false, 'message' => $message], 422);
+            $updates = [];
+            if (Admin::isInternalPlaceholderEmail($signer->email)) {
+                if (!$recipient) {
+                    $message = 'Cannot send signature email: company has a placeholder (@lead.internal) address. Please add a real email on the company/contact profile.';
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => $message], 422);
+                    }
+                    return back()->with('error', $message);
                 }
-                return back()->with('error', $message);
+                $updates['email'] = $recipient['email'];
+                $updates['name'] = $recipient['name'] ?: $signer->name;
+            } else {
+                $clean = Admin::sanitizeEmailAddress($signer->email);
+                if ($clean !== '' && $clean !== $signer->email) {
+                    $updates['email'] = $clean;
+                }
             }
-            $signer->update([
-                'email' => $recipient['email'],
-                'name' => $recipient['name'] ?: $signer->name,
-            ]);
-            $signer->refresh();
-            $placeholderFixed = true;
+            if ($updates !== []) {
+                $signer->update($updates);
+                $signer->refresh();
+                $signerEmailFixed = true;
+            }
         }
-        if ($placeholderFixed) {
+        if ($signerEmailFixed) {
             $signatureLinks = $pendingSigners->map(function ($s) use ($document) {
                 return [
                     'email' => $s->email,
