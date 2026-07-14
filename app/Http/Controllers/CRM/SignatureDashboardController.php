@@ -463,15 +463,87 @@ class SignatureDashboardController extends Controller
         
         // Check if document has signers
         $pendingSigners = $document->signers()->where('status', 'pending')->get();
+
+        // Self-heal: visa/nomination action-bar docs may be "placed" without a signer
+        // (e.g. nomination docs before the placement flow created one). Create from client email.
+        if ($pendingSigners->isEmpty()
+            && in_array($document->doc_type, ['visa', 'nomination'], true)
+            && $document->status === 'placed'
+            && !empty($document->client_id)
+        ) {
+            $client = $document->client;
+            $recipient = $client?->resolveSigningRecipient();
+            if (!$recipient) {
+                $message = 'Client email is required to send for signature. Please add a real email on the company/client profile.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => $message], 422);
+                }
+                return back()->with('error', $message);
+            }
+            $signer = $document->signers()->create([
+                'email' => $recipient['email'],
+                'name' => $recipient['name'],
+                'token' => \Illuminate\Support\Str::random(64),
+                'status' => 'pending',
+                'reminder_count' => 0,
+            ]);
+            $signingUrl = url("/sign/{$document->id}/{$signer->token}");
+            $document->update([
+                'signature_doc_link' => json_encode([
+                    ['email' => $signer->email, 'name' => $signer->name, 'url' => $signingUrl],
+                ]),
+            ]);
+            $pendingSigners = $document->signers()->where('status', 'pending')->get();
+        }
         
         if ($pendingSigners->isEmpty()) {
-            return back()->with('error', 'No pending signers found for this document.');
+            $message = 'No pending signers found for this document.';
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+            return back()->with('error', $message);
+        }
+
+        // Upgrade any @lead.internal placeholder signers to the real company/contact email
+        $recipient = $document->client?->resolveSigningRecipient();
+        $placeholderFixed = false;
+        foreach ($pendingSigners as $signer) {
+            if (!Admin::isInternalPlaceholderEmail($signer->email)) {
+                continue;
+            }
+            if (!$recipient) {
+                $message = 'Cannot send signature email: company has a placeholder (@lead.internal) address. Please add a real email on the company/contact profile.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => $message], 422);
+                }
+                return back()->with('error', $message);
+            }
+            $signer->update([
+                'email' => $recipient['email'],
+                'name' => $recipient['name'] ?: $signer->name,
+            ]);
+            $signer->refresh();
+            $placeholderFixed = true;
+        }
+        if ($placeholderFixed) {
+            $signatureLinks = $pendingSigners->map(function ($s) use ($document) {
+                return [
+                    'email' => $s->email,
+                    'name' => $s->name,
+                    'url' => url("/sign/{$document->id}/{$s->token}"),
+                ];
+            })->values()->all();
+            $document->update(['signature_doc_link' => json_encode($signatureLinks)]);
         }
         
         // Allow sending for any status except 'signed', 'void', or 'archived'
         $blockedStatuses = ['signed', 'void', 'archived'];
         if (in_array($document->status, $blockedStatuses)) {
-            return back()->with('error', "Document cannot be sent for signature because it is {$document->status}.");
+            $message = "Document cannot be sent for signature because it is {$document->status}.";
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+            return back()->with('error', $message);
         }
         
         $emailsSent = 0;
@@ -575,10 +647,17 @@ class SignatureDashboardController extends Controller
             if (!empty($errors)) {
                 $message .= " However, some emails failed: " . implode(', ', $errors);
             }
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => $message]);
+            }
             return back()->with('success', $message);
-        } else {
-            return back()->with('error', 'Failed to send any emails. Errors: ' . implode(', ', $errors));
         }
+
+        $message = 'Failed to send any emails. Errors: ' . implode(', ', $errors);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => false, 'message' => $message], 422);
+        }
+        return back()->with('error', $message);
     }
 
     public function copyLink($id)

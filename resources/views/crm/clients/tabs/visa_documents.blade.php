@@ -807,14 +807,42 @@
                 });
 
                 // --- Visa Signature Action Bar: Send, Revise, Remove, Reminder ---
-                $(document).on('click', '.visa-sig-send-btn', function() {
+                $(document).on('click', '.visa-sig-send-btn', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     var docId = $(this).data('doc-id');
                     if (!docId) return;
                     var $btn = $(this);
+                    var sendLabel = (typeof crmI === 'function' ? crmI('fas fa-paper-plane', { class: 'mr-1' }) : '<i class="fas fa-paper-plane mr-1"></i>') + ' Send';
                     $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span>Sending...');
-                    $.post('{{ url("/signatures") }}/' + docId + '/send', { _token: '{{ csrf_token() }}' })
-                        .done(function() { location.reload(); })
-                        .fail(function(xhr) { alert(xhr.responseJSON?.message || 'Failed to send'); $btn.prop('disabled', false).html(crmI('fas fa-paper-plane', { class: 'mr-1' }) + ' Send'); });
+                    $.ajax({
+                        url: '{{ url("/signatures") }}/' + docId + '/send',
+                        method: 'POST',
+                        data: { _token: '{{ csrf_token() }}' },
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .done(function(resp) {
+                            if (resp && resp.success === false) {
+                                var errMsg = resp.message || 'Failed to send';
+                                if (typeof iziToast !== 'undefined' && iziToast.show) {
+                                    iziToast.show({ message: errMsg, color: 'red', position: 'topRight', timeout: 5000 });
+                                } else { alert(errMsg); }
+                                $btn.prop('disabled', false).html(sendLabel);
+                                return;
+                            }
+                            var okMsg = (resp && resp.message) ? resp.message : 'Document sent for signature successfully.';
+                            if (typeof iziToast !== 'undefined' && iziToast.show) {
+                                iziToast.show({ message: okMsg, color: 'green', position: 'topRight', timeout: 4000 });
+                            } else { alert(okMsg); }
+                            $btn.prop('disabled', true).html(sendLabel);
+                        })
+                        .fail(function(xhr) {
+                            var errMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to send';
+                            if (typeof iziToast !== 'undefined' && iziToast.show) {
+                                iziToast.show({ message: errMsg, color: 'red', position: 'topRight', timeout: 5000 });
+                            } else { alert(errMsg); }
+                            $btn.prop('disabled', false).html(sendLabel);
+                        });
                 });
                 $(document).on('click', '.visa-sig-revise-btn', function() {
                     var docId = $(this).data('doc-id');

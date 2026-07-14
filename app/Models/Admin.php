@@ -407,4 +407,102 @@ class Admin extends Authenticatable
     {
         return $this->company?->company_website;
     }
+
+    /**
+     * Placeholder emails stored on company admin rows when the real email
+     * already exists (admins.email unique). Not valid for outbound mail.
+     */
+    public static function isInternalPlaceholderEmail(?string $email): bool
+    {
+        $email = strtolower(trim((string) $email));
+
+        return $email === '' || str_ends_with($email, '@lead.internal');
+    }
+
+    /**
+     * First deliverable (non-placeholder) email for this client/lead.
+     * Order: admins.email → client_emails → company contact person.
+     */
+    public function resolveDeliverableEmail(): ?string
+    {
+        $candidates = [];
+
+        $primary = trim((string) ($this->email ?? ''));
+        if ($primary !== '') {
+            $candidates[] = $primary;
+        }
+
+        $rows = ClientEmail::where('client_id', $this->id)
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->orderByRaw("CASE WHEN email_type = 'Personal' THEN 0 ELSE 1 END")
+            ->orderBy('id')
+            ->pluck('email');
+
+        foreach ($rows as $rowEmail) {
+            $candidates[] = trim((string) $rowEmail);
+        }
+
+        if ($this->isCompany()) {
+            $this->loadMissing('company.contactPerson');
+            $contact = $this->company?->contactPerson;
+            if ($contact) {
+                $cpEmail = trim((string) ($contact->email ?? ''));
+                if ($cpEmail !== '') {
+                    $candidates[] = $cpEmail;
+                }
+                $cpRows = ClientEmail::where('client_id', $contact->id)
+                    ->whereNotNull('email')
+                    ->where('email', '!=', '')
+                    ->orderBy('id')
+                    ->pluck('email');
+                foreach ($cpRows as $rowEmail) {
+                    $candidates[] = trim((string) $rowEmail);
+                }
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            if ($candidate !== '' && ! self::isInternalPlaceholderEmail($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Email + display name for signature / outbound client mail.
+     *
+     * @return array{email: string, name: string}|null
+     */
+    public function resolveSigningRecipient(): ?array
+    {
+        $email = $this->resolveDeliverableEmail();
+        if ($email === null) {
+            return null;
+        }
+
+        $name = trim((string) (($this->first_name ?? '') . ' ' . ($this->last_name ?? '')));
+
+        if ($this->isCompany()) {
+            $this->loadMissing('company.contactPerson');
+            $contact = $this->company?->contactPerson;
+            if ($contact) {
+                $cpName = trim((string) (($contact->first_name ?? '') . ' ' . ($contact->last_name ?? '')));
+                if ($cpName !== '') {
+                    $name = $cpName;
+                }
+            }
+            if ($name === '') {
+                $name = (string) ($this->company_name ?? '');
+            }
+        }
+
+        if ($name === '') {
+            $name = $email;
+        }
+
+        return ['email' => $email, 'name' => $name];
+    }
 }

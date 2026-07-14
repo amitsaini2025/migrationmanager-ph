@@ -1132,9 +1132,10 @@ class DocumentController extends Controller
                                    $document->doc_type === 'agreement' && 
                                    !empty($document->client_id);
             
-            // Visa document workflow: create signer and link, but do NOT send email (user clicks Send from action bar)
-            $isVisaDocument = !empty($document->client_matter_id) && 
-                              $document->doc_type === 'visa' && 
+            // Visa/nomination action-bar workflow: create signer and link, but do NOT send email
+            // (user clicks Send from the document tab action bar)
+            $isActionBarSignatureDoc = !empty($document->client_matter_id) &&
+                              in_array($document->doc_type, ['visa', 'nomination'], true) &&
                               !empty($document->client_id);
             
             // Force refresh by reloading document from database
@@ -1161,9 +1162,10 @@ class DocumentController extends Controller
                     if (!$client) {
                         throw new \Exception('Client not found for document');
                     }
-                    
-                    if (empty($client->email)) {
-                        throw new \Exception('Client email not available');
+
+                    $recipient = $client->resolveSigningRecipient();
+                    if (!$recipient) {
+                        throw new \Exception('Client email not available. Please add a real email on the company/client profile.');
                     }
                     
                     // Use the client's ID (primary key from admins table)
@@ -1171,8 +1173,8 @@ class DocumentController extends Controller
                     
                     // Create signer with token
                     $signer = $document->signers()->create([
-                        'email' => $client->email,
-                        'name' => trim(($client->first_name ?? '') . ' ' . ($client->last_name ?? '')),
+                        'email' => $recipient['email'],
+                        'name' => $recipient['name'],
                         'token' => \Illuminate\Support\Str::random(64),
                         'status' => 'pending',
                         'reminder_count' => 0,
@@ -1261,20 +1263,55 @@ class DocumentController extends Controller
                 }
             }
             
-            if ($isVisaDocument) {
-                // Visa document workflow: Create signer + link, status = placed (user sends from action bar)
+            if ($isActionBarSignatureDoc) {
+                // Visa/nomination workflow: Create signer + link, status = placed (user sends from action bar)
                 try {
                     $client = $document->client;
-                    if (!$client || empty($client->email)) {
-                        throw new \Exception($client ? 'Client email not available' : 'Client not found');
+                    if (!$client) {
+                        throw new \Exception('Client not found');
                     }
-                    $signer = $document->signers()->create([
-                        'email' => $client->email,
-                        'name' => trim(($client->first_name ?? '') . ' ' . ($client->last_name ?? '')),
-                        'token' => \Illuminate\Support\Str::random(64),
-                        'status' => 'pending',
-                        'reminder_count' => 0,
-                    ]);
+                    $recipient = $client->resolveSigningRecipient();
+                    if (!$recipient) {
+                        throw new \Exception('Client email not available. Please add a real email on the company/client profile.');
+                    }
+                    $signerEmail = $recipient['email'];
+                    $signerName = $recipient['name'];
+                    // Reuse pending signer for this email, or upgrade a placeholder signer
+                    $signer = $document->signers()
+                        ->where('status', 'pending')
+                        ->where('email', $signerEmail)
+                        ->first();
+                    if (!$signer) {
+                        $placeholderSigner = $document->signers()
+                            ->where('status', 'pending')
+                            ->get()
+                            ->first(fn ($s) => \App\Models\Admin::isInternalPlaceholderEmail($s->email));
+                        if ($placeholderSigner) {
+                            $placeholderSigner->update([
+                                'email' => $signerEmail,
+                                'name' => $signerName,
+                                'token' => $placeholderSigner->token ?: \Illuminate\Support\Str::random(64),
+                            ]);
+                            $signer = $placeholderSigner->fresh();
+                        }
+                    }
+                    if ($signer) {
+                        if (empty($signer->token)) {
+                            $signer->update([
+                                'token' => \Illuminate\Support\Str::random(64),
+                                'name' => $signerName ?: $signer->name,
+                            ]);
+                            $signer->refresh();
+                        }
+                    } else {
+                        $signer = $document->signers()->create([
+                            'email' => $signerEmail,
+                            'name' => $signerName,
+                            'token' => \Illuminate\Support\Str::random(64),
+                            'status' => 'pending',
+                            'reminder_count' => 0,
+                        ]);
+                    }
                     $signingUrl = url("/sign/{$document->id}/{$signer->token}");
                     $signatureLinks = [['email' => $signer->email, 'name' => $signer->name, 'url' => $signingUrl]];
                     $document->update([
@@ -1282,12 +1319,15 @@ class DocumentController extends Controller
                         'signature_doc_link' => json_encode($signatureLinks),
                     ]);
                     $encodedClientId = base64_encode(convert_uuencode($client->id));
-                    $redirectUrl = url("/clients/detail/{$encodedClientId}/visadocuments");
+                    $docsTab = $document->doc_type === 'nomination' ? 'nominationdocuments' : 'visadocuments';
+                    $redirectUrl = url("/clients/detail/{$encodedClientId}/{$docsTab}");
+                    $docLabel = $document->doc_type === 'nomination' ? 'nomination document' : 'visa document';
+                    $sourceKey = $document->doc_type === 'nomination' ? 'nomination_documents' : 'visa_documents';
                     ActivitiesLog::create([
                         'client_id' => $client->id,
                         'created_by' => auth('admin')->id(),
-                        'subject' => 'placed signature fields on visa document',
-                        'description' => '<ul><li><strong>Document:</strong> ' . htmlspecialchars($document->checklist ?? $document->file_name ?? 'Visa document') . '</li><li><strong>Signer:</strong> ' . htmlspecialchars($signer->email) . '</li><li><strong>Next:</strong> Click Send in the action bar to send the signing link</li></ul>',
+                        'subject' => "placed signature fields on {$docLabel}",
+                        'description' => '<ul><li><strong>Document:</strong> ' . htmlspecialchars($document->checklist ?? $document->file_name ?? ucfirst($docLabel)) . '</li><li><strong>Signer:</strong> ' . htmlspecialchars($signer->email) . '</li><li><strong>Next:</strong> Click Send in the action bar to send the signing link</li></ul>',
                         'activity_type' => 'signature',
                         'task_status' => 0,
                         'pin' => 0,
@@ -1296,13 +1336,17 @@ class DocumentController extends Controller
                         return response()->json([
                             'success' => true,
                             'message' => 'Signature fields saved. Use Send to send the signing link to the client.',
-                            'source' => 'visa_documents',
+                            'source' => $sourceKey,
                             'redirect_url' => $redirectUrl,
                         ]);
                     }
                     return redirect($redirectUrl)->with('success', 'Signature fields saved. Use the action bar to send.');
                 } catch (\Exception $e) {
-                    Log::error('Visa document signature setup failed', ['document_id' => $document->id, 'error' => $e->getMessage()]);
+                    Log::error('Action-bar signature document setup failed', [
+                        'document_id' => $document->id,
+                        'doc_type' => $document->doc_type,
+                        'error' => $e->getMessage(),
+                    ]);
                     if ($request->expectsJson()) {
                         return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
                     }
