@@ -1283,6 +1283,7 @@ public function getChapters(Request $request)
 			? $requestData['email_to']
 			: array_filter([(string) ($requestData['email_to'] ?? '')]);
 		$resolvedTo = [];
+		$unresolvedRecipientLabels = [];
 		foreach ($emailToList as $recipientId) {
 			if ($recipientId === '' || $recipientId === null) {
 				continue;
@@ -1297,10 +1298,35 @@ public function getChapters(Request $request)
 				}
 			} else {
 				$r = \App\Models\Admin::query()->where('id', '=', $recipientId, 'and')->first();
-				if ($r && ! empty($r->email)) {
-					$resolvedTo[] = $r->email;
+				if (! $r) {
+					continue;
+				}
+				// Prefer real contact/client_emails over company @lead.internal placeholders
+				$em = $r->resolveDeliverableEmail();
+				if ($em) {
+					$resolvedTo[] = $em;
+				} else {
+					$label = trim((string) (($r->first_name ?? '') . ' ' . ($r->last_name ?? '')));
+					if ($label === '') {
+						$label = trim((string) ($r->company_name ?? ''));
+					}
+					$unresolvedRecipientLabels[] = $label !== '' ? $label : ('ID ' . $r->id);
 				}
 			}
+		}
+		if ($unresolvedRecipientLabels !== []) {
+			$msg = 'Cannot send email: no real recipient email found for '
+				. implode(', ', array_unique($unresolvedRecipientLabels))
+				. '. Please add a real email on the company/contact profile.';
+			if ($request->ajax() || $request->wantsJson()) {
+				return response()->json([
+					'status' => false,
+					'success' => false,
+					'message' => $msg,
+				], 422);
+			}
+
+			return redirect()->back()->with('error', $msg)->withInput();
 		}
 		$obj->to_mail = $resolvedTo !== []
 			? implode(',', array_unique($resolvedTo))
@@ -1539,10 +1565,26 @@ public function getChapters(Request $request)
 			$ccarray = $this->resolveComposeEmailCcAddresses($requestData['email_cc'] ?? []);
 
 			try {
+				// Clients/leads: resolve real address (skip @lead.internal). Agents: unchanged.
+				if (@$requestData['type'] == 'agent') {
+					$recipientEmail = $client->email;
+				} else {
+					$recipientEmail = $client->resolveDeliverableEmail();
+					if (! $recipientEmail) {
+						$label = trim((string) (($client->first_name ?? '') . ' ' . ($client->last_name ?? '')));
+						if ($label === '') {
+							$label = trim((string) ($client->company_name ?? 'recipient'));
+						}
+						throw new \RuntimeException(
+							'No real recipient email found for ' . $label . '. Please add a real email on the company/contact profile.'
+						);
+					}
+				}
+
 				$this->emailService->sendEmail(
 					'emails.template',
 					['content' => $message],
-					$client->email,
+					$recipientEmail,
 					$subject,
 					$requestData['email_from'],
 					$preparedSendPaths,
@@ -1558,7 +1600,7 @@ public function getChapters(Request $request)
 					'email_log_id' => $obj->id,
 					'crm_admin_id' => $obj->client_id,
 					'recipient_admin_or_agent_id' => $l,
-					'recipient_email' => $client->email ?? null,
+					'recipient_email' => $recipientEmail,
 					'mail_type' => $requestData['type'] ?? 'client',
 				]);
 			} catch (\Exception $e) {
@@ -1667,7 +1709,11 @@ public function getChapters(Request $request)
 			}
 
 			if (filter_var($ccValue, FILTER_VALIDATE_EMAIL)) {
-				$ccEmails[] = $ccValue;
+				$clean = Admin::sanitizeEmailAddress($ccValue);
+				// Never CC internal company-lead placeholders
+				if ($clean !== '' && ! Admin::isInternalPlaceholderEmail($clean)) {
+					$ccEmails[] = $clean;
+				}
 				continue;
 			}
 
@@ -1676,8 +1722,11 @@ public function getChapters(Request $request)
 			}
 
 			$ccRow = Admin::query()->where('id', '=', (int) $ccValue, 'and')->first();
-			if ($ccRow && ! empty($ccRow->email)) {
-				$ccEmails[] = $ccRow->email;
+			if ($ccRow) {
+				$em = $ccRow->resolveDeliverableEmail();
+				if ($em) {
+					$ccEmails[] = $em;
+				}
 			}
 		}
 
