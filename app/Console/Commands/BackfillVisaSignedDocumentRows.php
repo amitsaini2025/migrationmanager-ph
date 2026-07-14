@@ -8,28 +8,35 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Creates missing visa "companion" rows (checklist = {parent}_signed) for parent documents
+ * Creates missing visa/nomination "companion" rows (checklist = {parent}_signed) for parent documents
  * that are already status signed with signed_doc_link, mirroring PublicDocumentController.
  */
 class BackfillVisaSignedDocumentRows extends Command
 {
     protected $signature = 'documents:backfill-visa-signed-rows
                             {--dry-run : List candidates without inserting}
-                            {--id=* : Limit to parent document id(s), comma-separated or repeated --id=}';
+                            {--id=* : Limit to parent document id(s), comma-separated or repeated --id=}
+                            {--doc-type=visa : Limit to visa and/or nomination (comma-separated). Default: visa}';
 
-    protected $description = 'Backfill missing visa *_signed document rows for signed parents';
+    protected $description = 'Backfill missing visa/nomination *_signed document rows for signed parents';
 
     public function handle(): int
     {
         $dryRun = (bool) $this->option('dry-run');
         $ids = $this->normalizeIds((array) $this->option('id'));
+        $docTypes = $this->normalizeDocTypes($this->option('doc-type'));
 
         if ($dryRun) {
             $this->warn('Dry run: no rows will be inserted.');
         }
 
+        $this->info('Backfilling doc_type(s): '.implode(', ', $docTypes));
+
         $query = Document::query()
-            ->where(DB::raw("LOWER(TRIM(COALESCE(doc_type, '')))"), '=', 'visa')
+            ->whereRaw(
+                "LOWER(TRIM(COALESCE(doc_type, ''))) IN (".implode(',', array_fill(0, count($docTypes), '?')).")",
+                $docTypes
+            )
             ->where('status', 'signed')
             ->whereNotNull('signed_doc_link')
             ->where('signed_doc_link', '!=', '')
@@ -62,7 +69,7 @@ class BackfillVisaSignedDocumentRows extends Command
         })->values();
 
         if ($parents->isEmpty()) {
-            $this->info('No parent documents need a visa _signed row.');
+            $this->info('No parent documents need a _signed companion row.');
             return self::SUCCESS;
         }
 
@@ -78,8 +85,9 @@ class BackfillVisaSignedDocumentRows extends Command
                 $baseChecklist = 'Document';
             }
             $signedChecklist = $baseChecklist . '_signed';
+            $parentType = strtolower(trim((string) ($parent->doc_type ?? '')));
 
-            $this->line("- Parent id={$parent->id} checklist=".json_encode($parent->checklist)." -> ".json_encode($signedChecklist));
+            $this->line("- Parent id={$parent->id} doc_type={$parentType} checklist=".json_encode($parent->checklist)." -> ".json_encode($signedChecklist));
 
             if ($dryRun) {
                 continue;
@@ -93,14 +101,15 @@ class BackfillVisaSignedDocumentRows extends Command
                     $signedDoc = $this->buildSignedCopyModel($parent, $signedPdfUrl, $signedChecklist);
                     $signedDoc->save();
                     $created++;
-                    Log::info('Backfill created visa _signed row', [
+                    Log::info('Backfill created _signed companion row', [
                         'parent_id' => $parent->id,
                         'signed_id' => $signedDoc->id,
+                        'doc_type' => $signedDoc->doc_type,
                     ]);
                 });
             } catch (\Throwable $e) {
                 $failed++;
-                Log::error('Backfill failed visa _signed row', [
+                Log::error('Backfill failed _signed companion row', [
                     'parent_id' => $parent->id,
                     'error' => $e->getMessage(),
                 ]);
@@ -115,6 +124,25 @@ class BackfillVisaSignedDocumentRows extends Command
         }
 
         return $failed > 0 ? self::FAILURE : self::SUCCESS;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function normalizeDocTypes(mixed $raw): array
+    {
+        $allowed = ['visa', 'nomination'];
+        if ($raw === null || $raw === '') {
+            return ['visa'];
+        }
+        $parts = preg_split('/\s*,\s*/', strtolower(trim((string) $raw)), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $types = [];
+        foreach ($parts as $part) {
+            if (in_array($part, $allowed, true)) {
+                $types[$part] = $part;
+            }
+        }
+        return $types !== [] ? array_values($types) : ['visa'];
     }
 
     /**
@@ -176,7 +204,8 @@ class BackfillVisaSignedDocumentRows extends Command
         $signedDoc->client_id = $document->client_id;
         $signedDoc->client_matter_id = $document->client_matter_id;
         $signedDoc->folder_name = (string) $document->folder_name;
-        $signedDoc->doc_type = 'visa';
+        $docTypeNorm = strtolower(trim((string) ($document->doc_type ?? '')));
+        $signedDoc->doc_type = in_array($docTypeNorm, ['visa', 'nomination'], true) ? $docTypeNorm : 'visa';
         $signedDoc->type = 'client';
         $signedDoc->user_id = $document->user_id;
         $signedDoc->status = 'signed';

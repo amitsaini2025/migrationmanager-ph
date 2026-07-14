@@ -573,7 +573,7 @@ class PublicDocumentController extends Controller
                     ]);
                 }
 
-                // For visa documents: create {checklist}_signed row in same category (if not already exists).
+                // For visa/nomination documents: create {checklist}_signed row in same category (if not already exists).
                 // Refresh so folder_name / checklist / matter match DB after save (avoid stale model skipping this block).
                 $document->refresh();
 
@@ -584,14 +584,15 @@ class PublicDocumentController extends Controller
                     $baseChecklist = 'Document';
                 }
                 $checklistAlreadySignedSuffix = str_ends_with($baseChecklist, '_signed');
+                $isVisaOrNominationDoc = in_array($docTypeNorm, ['visa', 'nomination'], true);
 
-                $shouldCreateVisaSignedCopy = $docTypeNorm === 'visa'
+                $shouldCreateSignedCopy = $isVisaOrNominationDoc
                     && (bool) $document->client_id
                     && $folderGuard !== ''
                     && !$checklistAlreadySignedSuffix;
 
-                if ($docTypeNorm === 'visa' && !$shouldCreateVisaSignedCopy) {
-                    Log::info('Skipping visa _signed document row', [
+                if ($isVisaOrNominationDoc && !$shouldCreateSignedCopy) {
+                    Log::info('Skipping _signed document row', [
                         'document_id' => $document->id,
                         'doc_type' => $document->doc_type,
                         'has_client_id' => (bool) $document->client_id,
@@ -602,7 +603,7 @@ class PublicDocumentController extends Controller
                     ]);
                 }
 
-                if ($shouldCreateVisaSignedCopy) {
+                if ($shouldCreateSignedCopy) {
                     $signedChecklist = $baseChecklist . '_signed';
                     $exists = Document::where('client_id', '=', $document->client_id, 'and')
                         ->where('folder_name', '=', $document->folder_name, 'and')
@@ -612,8 +613,9 @@ class PublicDocumentController extends Controller
                         ->exists();
 
                     if ($exists) {
-                        Log::info('Visa _signed row already present (active)', [
+                        Log::info('Signed companion row already present (active)', [
                             'document_id' => $document->id,
+                            'doc_type' => $docTypeNorm,
                             'signed_checklist' => $signedChecklist,
                             'folder_name' => $document->folder_name,
                             'client_matter_id' => $document->client_matter_id,
@@ -646,16 +648,22 @@ class PublicDocumentController extends Controller
                             $signedDoc->client_id = $document->client_id;
                             $signedDoc->client_matter_id = $document->client_matter_id;
                             $signedDoc->folder_name = (string) $document->folder_name;
-                            $signedDoc->doc_type = 'visa';
+                            // Keep companion in the same tab as the parent (visa vs nomination).
+                            $signedDoc->doc_type = $docTypeNorm;
                             $signedDoc->type = 'client';
                             $signedDoc->user_id = $document->user_id;
                             $signedDoc->status = 'signed';
                             $signedDoc->signed_doc_link = $signedPdfUrl;
                             $signedDoc->save();
-                            Log::info('Created visa _signed row', ['original_id' => $document->id, 'signed_id' => $signedDoc->id]);
+                            Log::info('Created _signed companion row', [
+                                'original_id' => $document->id,
+                                'signed_id' => $signedDoc->id,
+                                'doc_type' => $docTypeNorm,
+                            ]);
                         } catch (\Exception $e) {
-                            Log::error('Failed to create visa _signed row', [
+                            Log::error('Failed to create _signed companion row', [
                                 'document_id' => $document->id,
+                                'doc_type' => $docTypeNorm,
                                 'signed_checklist' => $signedChecklist ?? null,
                                 'error' => $e->getMessage(),
                                 'trace' => $e->getTraceAsString(),
