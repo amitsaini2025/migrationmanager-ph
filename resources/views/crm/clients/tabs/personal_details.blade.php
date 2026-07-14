@@ -564,9 +564,15 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach($clientExperience_Info as $experience)
+                                        @foreach($clientExperience_Info as $index => $experience)
                                             <tr>
-                                                <td>{{ $experience->job_title ?: 'N/A' }}</td>
+                                                <td>
+                                                    {{ $experience->job_title ?: 'N/A' }}
+                                                    {{-- First row = current (orderedForDisplay: ongoing / no finish first) --}}
+                                                    @if($index === 0)
+                                                        <span class="badge badge-success" style="margin-left: 6px; vertical-align: middle;">Current</span>
+                                                    @endif
+                                                </td>
                                                 <td>{{ $experience->job_country ?: 'N/A' }}</td>
                                                 <td>{{ $experience->job_start_date ? \Carbon\Carbon::parse($experience->job_start_date)->format('d/m/Y') : 'N/A' }}</td>
                                                 <td>{{ $experience->job_finish_date ? \Carbon\Carbon::parse($experience->job_finish_date)->format('d/m/Y') : 'N/A' }}</td>
