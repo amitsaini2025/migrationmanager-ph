@@ -191,6 +191,8 @@
                                     } else {
                                         echo 'N/A';
                                     }
+                                    // This field always shows the current/preferred address
+                                    echo ' <span class="badge badge-success" style="margin-left: 6px; vertical-align: middle;">Current</span>';
                                 } else {
                                     echo 'N/A';
                                 }
