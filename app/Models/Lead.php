@@ -30,8 +30,11 @@ class Lead extends Admin
     /**
      * Boot method to add global scopes
      */
-    protected static function booted()
+    protected static function booted(): void
     {
+        // Inherit Admin email sanitization on save
+        parent::booted();
+
         // Automatically filter all queries to leads only
         static::addGlobalScope('lead', function (Builder $builder) {
             $builder->where('type', 'lead')
