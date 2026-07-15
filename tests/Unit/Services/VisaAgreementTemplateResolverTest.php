@@ -367,4 +367,29 @@ class VisaAgreementTemplateResolverTest extends TestCase
         $this->assertSame('psa', $r['rule']);
         $this->assertSame('Service_Agreement_PSA.docx', $r['candidates'][0]);
     }
+
+    public function test_occupation_suggestion_matter_uses_skill_assessment_template(): void
+    {
+        $r = $this->resolver->determineCandidates(
+            false,
+            'os',
+            'Occupation Suggestion',
+            false
+        );
+        $this->assertSame('skill_assessment', $r['rule']);
+        $this->assertSame('Service_Agreement_Skill_Assessment.docx', $r['candidates'][0]);
+        $this->assertSame('Service_Agreement_general.docx', end($r['candidates']));
+    }
+
+    public function test_occupation_suggestion_title_without_os_nick_uses_skill_assessment_template(): void
+    {
+        $r = $this->resolver->determineCandidates(
+            false,
+            'gn',
+            'Occupation Suggestion',
+            false
+        );
+        $this->assertSame('skill_assessment', $r['rule']);
+        $this->assertSame('Service_Agreement_Skill_Assessment.docx', $r['candidates'][0]);
+    }
 }
