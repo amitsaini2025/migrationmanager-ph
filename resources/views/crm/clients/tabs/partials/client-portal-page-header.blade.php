@@ -80,7 +80,7 @@
                                 <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
                             </button>
                             <button type="button"
-                                class="workflow-v2-header-icon-btn workflow-v2-header-icon-btn--primary"
+                                class="workflow-v2-header-icon-btn workflow-v2-header-icon-btn--primary js-workflow-advance-btn"
                                 id="proceed-to-next-stage"
                                 data-matter-id="{{ $matter->id }}"
                                 data-next-stage-name="{{ $nextStageName ?? '' }}"
@@ -88,7 +88,7 @@
                                 data-tooltip="Proceed to Next Stage"
                                 title="Proceed to Next Stage"
                                 aria-label="Proceed to Next Stage"
-                                {{ $nextBtnDisabled ? 'disabled' : '' }}>
+                                {{ ($nextBtnDisabled || (int) ($currentStageOutstanding ?? 0) > 0) ? 'disabled' : '' }}>
                                 <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
                             </button>
                             @if($canDiscontinue)

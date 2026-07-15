@@ -3736,18 +3736,17 @@ class ClientPortalController extends Controller
 				], 400);
 			}
 
-			// Workflow tab: block advance until all required checklist items for the current stage are done
-			if ($request->input('source') !== 'client_portal') {
-				$outstandingRequired = \App\Support\WorkflowV2Display::outstandingRequiredForCurrentStage($clientMatter);
-				if ($outstandingRequired > 0) {
-					return response()->json([
-						'status' => false,
-						'message' => $outstandingRequired === 1
-							? 'Complete the remaining required checklist item before advancing to the next stage.'
-							: 'Complete all remaining required checklist items before advancing to the next stage.',
-						'outstanding_required' => $outstandingRequired,
-					], 422);
-				}
+			// Block advance until all required checklist items for the current stage are done
+			// (Workflow tab and Client Portal Activities share the same sequential checklist rules)
+			$outstandingRequired = \App\Support\WorkflowV2Display::outstandingRequiredForCurrentStage($clientMatter);
+			if ($outstandingRequired > 0) {
+				return response()->json([
+					'status' => false,
+					'message' => $outstandingRequired === 1
+						? 'Complete the remaining required checklist item before advancing to the next stage.'
+						: 'Complete all remaining required checklist items before advancing to the next stage.',
+					'outstanding_required' => $outstandingRequired,
+				], 422);
 			}
 
 			// When advancing to "Decision Received", require decision_outcome and decision_note

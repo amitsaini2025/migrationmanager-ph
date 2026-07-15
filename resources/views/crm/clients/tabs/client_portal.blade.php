@@ -112,7 +112,9 @@
                                                     @include('crm.clients.tabs.partials.workflow-v2-content', [
                                                         'wfShowHeader' => false,
                                                         'wfShowToolbar' => false,
-                                                        'wfShowFooterAdvance' => false,
+                                                        'wfShowFooterAdvance' => true,
+                                                        'wfChecklistInteractive' => true,
+                                                        'wfAdvanceButtonId' => 'client-portal-activities-proceed-to-next-stage',
                                                     ])
                                                 </div>
                                             @else

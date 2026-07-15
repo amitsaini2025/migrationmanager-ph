@@ -182,8 +182,11 @@
             if (targetPane) {
                 targetPane.classList.add('active');
             }
-            if (targetTab === 'activities' && typeof refreshWorkflowV2Icons === 'function') {
-                refreshWorkflowV2Icons(targetPane);
+            if (targetTab === 'activities') {
+                if (typeof refreshWorkflowV2Icons === 'function') {
+                    refreshWorkflowV2Icons(targetPane);
+                }
+                initWorkflowV2Root(document.getElementById('client_portal-tab'));
             }
         });
     }
@@ -232,19 +235,72 @@
             || document.getElementById('proceed-to-next-stage');
     }
 
-    function getWorkflowAdvanceButtons(root) {
-        var scope = root || document.getElementById('workflow-tab') || document;
-        var buttons = [];
-        if (scope.querySelectorAll) {
-            scope.querySelectorAll('.js-workflow-advance-btn, #workflow-tab-proceed-to-next-stage, #workflow-tab-proceed-to-next-stage-header').forEach(function(btn) {
-                buttons.push(btn);
-            });
-        }
-        if (!buttons.length) {
-            var fallback = getWorkflowTabAdvanceButton();
-            if (fallback) {
-                buttons.push(fallback);
+    function getWorkflowInteractiveRoot(fromEl) {
+        if (fromEl && fromEl.closest) {
+            var inPortal = fromEl.closest('#client_portal-tab');
+            if (inPortal && isWorkflowChecklistInteractive(inPortal)) {
+                return inPortal;
             }
+            var inWorkflow = fromEl.closest('#workflow-tab');
+            if (inWorkflow && isWorkflowChecklistInteractive(inWorkflow)) {
+                return inWorkflow;
+            }
+        }
+
+        var activeTab = getActiveTabId();
+        if (activeTab === 'client_portal') {
+            var portal = document.getElementById('client_portal-tab');
+            if (portal && isWorkflowChecklistInteractive(portal)) {
+                return portal;
+            }
+        }
+
+        var workflowTab = document.getElementById('workflow-tab');
+        if (workflowTab && isWorkflowChecklistInteractive(workflowTab)) {
+            return workflowTab;
+        }
+
+        var portalTab = document.getElementById('client_portal-tab');
+        if (portalTab && isWorkflowChecklistInteractive(portalTab)) {
+            return portalTab;
+        }
+
+        return workflowTab || portalTab || document;
+    }
+
+    function getWorkflowAdvanceButtons(root) {
+        var scope = root || getWorkflowInteractiveRoot() || document;
+        var buttons = [];
+        var seen = {};
+
+        function pushBtn(btn) {
+            if (!btn || seen[btn.id || buttons.length]) {
+                if (btn && !btn.id && buttons.indexOf(btn) === -1) {
+                    buttons.push(btn);
+                }
+                return;
+            }
+            if (btn.id) {
+                seen[btn.id] = true;
+            }
+            if (buttons.indexOf(btn) === -1) {
+                buttons.push(btn);
+            }
+        }
+
+        if (scope.querySelectorAll) {
+            scope.querySelectorAll(
+                '.js-workflow-advance-btn, #workflow-tab-proceed-to-next-stage, #workflow-tab-proceed-to-next-stage-header, #client-portal-activities-proceed-to-next-stage, #proceed-to-next-stage'
+            ).forEach(pushBtn);
+        }
+
+        // Client Portal page-header advance lives in the same tab root
+        if (scope.id === 'client_portal-tab' || (scope.closest && scope.closest('#client_portal-tab'))) {
+            pushBtn(document.getElementById('proceed-to-next-stage'));
+        }
+
+        if (!buttons.length) {
+            pushBtn(getWorkflowTabAdvanceButton());
         }
         return buttons;
     }
@@ -253,17 +309,19 @@
         if (!btn) {
             return;
         }
+        // Page-header portal advance stays visible; panel footer btn follows view stage
+        if (btn.id === 'proceed-to-next-stage') {
+            return;
+        }
         var advanceDisplay = btn.classList.contains('workflow-v2-advance-btn') ? '' : 'inline-flex';
         btn.style.display = isCurrentStage ? advanceDisplay : 'none';
     }
 
     function setWorkflowAdvanceButtonState(btn, isCurrentStage, outstandingRequired, isLastStage) {
-        var buttons = btn ? [btn] : [];
-        // Prefer syncing every Workflow tab advance control (header + footer).
-        var scope = (btn && btn.closest) ? (btn.closest('#workflow-tab') || document.getElementById('workflow-tab')) : document.getElementById('workflow-tab');
-        if (scope) {
-            buttons = getWorkflowAdvanceButtons(scope);
-        }
+        var scope = (btn && btn.closest)
+            ? (btn.closest('#workflow-tab') || btn.closest('#client_portal-tab') || getWorkflowInteractiveRoot(btn))
+            : getWorkflowInteractiveRoot();
+        var buttons = getWorkflowAdvanceButtons(scope);
         if (!buttons.length && btn) {
             buttons = [btn];
         }
@@ -283,7 +341,7 @@
     }
 
     function isWorkflowChecklistInteractive(root) {
-        var scope = root || document.getElementById('workflow-tab') || document;
+        var scope = root || getWorkflowInteractiveRoot() || document;
         var body = scope.querySelector
             ? scope.querySelector('#workflow-v2-body')
             : document.getElementById('workflow-v2-body');
@@ -291,7 +349,7 @@
     }
 
     function getWorkflowMatterId(root) {
-        var scope = root || document.getElementById('workflow-tab') || document;
+        var scope = root || getWorkflowInteractiveRoot() || document;
         var body = scope.querySelector
             ? scope.querySelector('#workflow-v2-body')
             : document.getElementById('workflow-v2-body');
@@ -398,11 +456,12 @@
         var completionRuleText = scope.querySelector('#workflow-v2-completion-rule-text');
         var checklistContainer = scope.querySelector('#workflow-v2-checklist-container');
         var fileNote = scope.querySelector('#workflow-v2-file-note-section');
-        var advanceBtn = scope.id === 'workflow-tab'
-            ? (scope.querySelector('.js-workflow-advance-btn.workflow-v2-advance-btn')
-                || scope.querySelector('#workflow-tab-proceed-to-next-stage')
-                || scope.querySelector('.js-workflow-advance-btn'))
-            : getWorkflowTabAdvanceButton();
+        var advanceBtn = scope.querySelector('.js-workflow-advance-btn.workflow-v2-advance-btn')
+            || scope.querySelector('#workflow-tab-proceed-to-next-stage')
+            || scope.querySelector('#client-portal-activities-proceed-to-next-stage')
+            || scope.querySelector('.js-workflow-advance-btn')
+            || (scope.id === 'client_portal-tab' ? document.getElementById('proceed-to-next-stage') : null)
+            || getWorkflowTabAdvanceButton();
 
         if (panel) {
             panel.setAttribute('data-view-stage-id', String(stage.id));
@@ -537,7 +596,8 @@
         if (!stageId) {
             return;
         }
-        var scope = root || item.closest('#workflow-tab') || document.getElementById('workflow-tab') || document;
+        var scope = root || item.closest('#workflow-tab') || item.closest('#client_portal-tab')
+            || document.getElementById('workflow-tab') || document.getElementById('client_portal-tab') || document;
         if (isWorkflowChecklistInteractive(scope)) {
             var data = parseWorkflowV2StagesData(scope);
             var stage = data && data.stages
@@ -633,7 +693,10 @@
                 return;
             }
 
-            var scope = root || document.getElementById('workflow-tab') || document;
+            var scope = root || checkbox.closest('#workflow-tab')
+                || checkbox.closest('#client_portal-tab')
+                || getWorkflowInteractiveRoot(checkbox)
+                || document;
             applyChecklistCompletionToStageData(scope, data);
             var panel = scope.querySelector
                 ? scope.querySelector('#workflow-v2-panel')
@@ -667,8 +730,8 @@
                 return;
             }
 
-            var scope = document.getElementById('workflow-tab');
-            if (!scope || !scope.contains(checkbox) || !isWorkflowChecklistInteractive(scope)) {
+            var scope = checkbox.closest('#workflow-tab') || checkbox.closest('#client_portal-tab');
+            if (!scope || !isWorkflowChecklistInteractive(scope)) {
                 return;
             }
 
@@ -712,11 +775,11 @@
     }
 
     /**
-     * Save pending Workflow tab file note (if any). Resolves even when there is nothing to save.
+     * Save pending interactive file note (if any). Resolves even when there is nothing to save.
      * Rejects only when a note was entered but save failed.
      */
-    function savePendingWorkflowFileNote() {
-        var scope = document.getElementById('workflow-tab');
+    function savePendingWorkflowFileNote(optionalScope) {
+        var scope = optionalScope || getWorkflowInteractiveRoot();
         if (!scope || !isWorkflowChecklistInteractive(scope)) {
             return Promise.resolve(null);
         }
@@ -785,8 +848,22 @@
         });
     }
 
-    function proceedWorkflowTabAfterFileNote(matterId, nextStageName, nextBtn) {
-        savePendingWorkflowFileNote()
+    function hasOutstandingRequiredInScope(scope) {
+        if (!scope || !isWorkflowChecklistInteractive(scope)) {
+            return false;
+        }
+        var stageData = parseWorkflowV2StagesData(scope);
+        var currentStage = stageData && stageData.stages
+            ? stageData.stages.find(function(s) {
+                return String(s.id) === String(stageData.currentStageId);
+            })
+            : null;
+        return !!(currentStage && (parseInt(currentStage.outstandingRequired, 10) || 0) > 0);
+    }
+
+    function proceedWorkflowTabAfterFileNote(matterId, nextStageName, nextBtn, optionalScope) {
+        var scope = optionalScope || getWorkflowInteractiveRoot(nextBtn);
+        savePendingWorkflowFileNote(scope)
             .then(function() {
                 if (nextStageName && nextStageName.toLowerCase() === 'decision received') {
                     document.getElementById('decision-received-matter-id').value = matterId;
@@ -806,23 +883,23 @@
             });
     }
 
-    function initWorkflowV2StageNavigation() {
-        var workflowTab = document.getElementById('workflow-tab');
-        if (!workflowTab) {
+    function initWorkflowV2Root(root) {
+        if (!root || !root.querySelector || !root.querySelector('#workflow-v2-body')) {
             return;
         }
 
-        bindWorkflowV2StageNavigation(workflowTab);
-        bindWorkflowChecklistInteractions();
-        refreshWorkflowV2Icons(workflowTab);
-        var panel = workflowTab.querySelector('#workflow-v2-panel');
+        refreshWorkflowV2Icons(root);
+        var panel = root.querySelector('#workflow-v2-panel');
         if (panel) {
             var viewStageId = panel.getAttribute('data-view-stage-id');
             if (viewStageId) {
-                showWorkflowV2Stage(viewStageId, workflowTab);
+                showWorkflowV2Stage(viewStageId, root);
             } else {
-                var advanceBtn = workflowTab.querySelector('#workflow-tab-proceed-to-next-stage');
-                var data = parseWorkflowV2StagesData(workflowTab);
+                var advanceBtn = root.querySelector('#workflow-tab-proceed-to-next-stage')
+                    || root.querySelector('#client-portal-activities-proceed-to-next-stage')
+                    || root.querySelector('.js-workflow-advance-btn')
+                    || (root.id === 'client_portal-tab' ? document.getElementById('proceed-to-next-stage') : null);
+                var data = parseWorkflowV2StagesData(root);
                 var currentStageData = data && data.stages
                     ? data.stages.find(function(s) {
                         return String(s.id) === String(data.currentStageId);
@@ -835,6 +912,13 @@
                 setWorkflowAdvanceButtonState(advanceBtn, true, outstanding, !hasNext);
             }
         }
+    }
+
+    function initWorkflowV2StageNavigation() {
+        bindWorkflowV2StageNavigation();
+        bindWorkflowChecklistInteractions();
+        initWorkflowV2Root(document.getElementById('workflow-tab'));
+        initWorkflowV2Root(document.getElementById('client_portal-tab'));
     }
 
     function refreshWorkflowTab() {
@@ -1003,7 +1087,11 @@
         }
 
         var btn = btnEl || getWorkflowTabAdvanceButton();
-        var isClientPortal = btn && btn.id === 'proceed-to-next-stage';
+        var isClientPortal = !!(btn && (
+            btn.id === 'proceed-to-next-stage'
+            || btn.id === 'client-portal-activities-proceed-to-next-stage'
+            || (btn.closest && btn.closest('#client_portal-tab'))
+        ));
         var orig = btn ? btn.innerHTML : '';
         if (btn) {
             btn.disabled = true;
@@ -1061,10 +1149,14 @@
         initialized = true;
 
         document.addEventListener('click', function(e) {
-            var clientPortalNextBtn = e.target.closest('#proceed-to-next-stage');
+            var clientPortalNextBtn = e.target.closest('#proceed-to-next-stage, #client-portal-activities-proceed-to-next-stage, #client_portal-tab .js-workflow-advance-btn');
             if (clientPortalNextBtn) {
                 e.preventDefault();
                 e.stopImmediatePropagation();
+
+                if (clientPortalNextBtn.disabled) {
+                    return;
+                }
 
                 var cpMatterId = clientPortalNextBtn.getAttribute('data-matter-id');
                 var cpNextStageName = (clientPortalNextBtn.getAttribute('data-next-stage-name') || '').trim();
@@ -1073,20 +1165,14 @@
                     return;
                 }
 
-                if (cpNextStageName && cpNextStageName.toLowerCase() === 'decision received') {
-                    document.getElementById('decision-received-matter-id').value = cpMatterId;
-                    document.getElementById('decision-outcome').value = '';
-                    document.getElementById('decision-note').value = '';
-                    var cpOutcomeErr = document.querySelector('.decision-outcome-error strong');
-                    var cpNoteErr = document.querySelector('.decision-note-error strong');
-                    if (cpOutcomeErr) cpOutcomeErr.textContent = '';
-                    if (cpNoteErr) cpNoteErr.textContent = '';
-                    $('#decision-received-modal').modal('show');
+                var portalScope = document.getElementById('client_portal-tab');
+                if (portalScope && isWorkflowChecklistInteractive(portalScope) && hasOutstandingRequiredInScope(portalScope)) {
+                    alert('Complete all required checklist items before advancing to the next stage.');
                     return;
                 }
 
                 if (!confirm('Are you sure you want to proceed to the next stage?')) return;
-                doProceedToNextStage(cpMatterId, null, null, clientPortalNextBtn);
+                proceedWorkflowTabAfterFileNote(cpMatterId, cpNextStageName, clientPortalNextBtn, portalScope);
                 return;
             }
 
@@ -1104,21 +1190,13 @@
                 }
 
                 var workflowTab = document.getElementById('workflow-tab');
-                if (workflowTab && isWorkflowChecklistInteractive(workflowTab)) {
-                    var stageData = parseWorkflowV2StagesData(workflowTab);
-                    var currentStage = stageData && stageData.stages
-                        ? stageData.stages.find(function(s) {
-                            return String(s.id) === String(stageData.currentStageId);
-                        })
-                        : null;
-                    if (currentStage && (parseInt(currentStage.outstandingRequired, 10) || 0) > 0) {
-                        alert('Complete all required checklist items before advancing to the next stage.');
-                        return;
-                    }
+                if (workflowTab && isWorkflowChecklistInteractive(workflowTab) && hasOutstandingRequiredInScope(workflowTab)) {
+                    alert('Complete all required checklist items before advancing to the next stage.');
+                    return;
                 }
 
                 if (!confirm('Are you sure you want to proceed to the next stage?')) return;
-                proceedWorkflowTabAfterFileNote(matterId, nextStageName, nextBtn);
+                proceedWorkflowTabAfterFileNote(matterId, nextStageName, nextBtn, workflowTab);
                 return;
             }
 
