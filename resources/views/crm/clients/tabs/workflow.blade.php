@@ -39,8 +39,10 @@
             @include('crm.clients.tabs.partials.workflow-v2-content', [
                 'wfShowHeader' => true,
                 'wfShowToolbar' => true,
+                // Footer "Advance to next stage" matches prototype; keep header arrow too.
                 'wfShowHeaderAdvance' => true,
-                'wfShowFooterAdvance' => false,
+                'wfShowFooterAdvance' => true,
+                'wfChecklistInteractive' => true,
                 'wfAdvanceButtonId' => 'workflow-tab-proceed-to-next-stage',
                 'wfBackButtonId' => 'workflow-tab-back-to-previous-stage',
                 'wfReopenButtonId' => 'workflow-tab-reopen',

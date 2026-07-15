@@ -3736,6 +3736,20 @@ class ClientPortalController extends Controller
 				], 400);
 			}
 
+			// Workflow tab: block advance until all required checklist items for the current stage are done
+			if ($request->input('source') !== 'client_portal') {
+				$outstandingRequired = \App\Support\WorkflowV2Display::outstandingRequiredForCurrentStage($clientMatter);
+				if ($outstandingRequired > 0) {
+					return response()->json([
+						'status' => false,
+						'message' => $outstandingRequired === 1
+							? 'Complete the remaining required checklist item before advancing to the next stage.'
+							: 'Complete all remaining required checklist items before advancing to the next stage.',
+						'outstanding_required' => $outstandingRequired,
+					], 422);
+				}
+			}
+
 			// When advancing to "Decision Received", require decision_outcome and decision_note
 			$nextStageName = $nextStage->name ?? '';
 			$isAdvancingToDecisionReceived = (strtolower(trim($nextStageName)) === 'decision received');
@@ -5053,6 +5067,226 @@ class ClientPortalController extends Controller
 			'success' => true,
 			'message' => $count . ' checklist' . ($count > 1 ? 's' : '') . ' added successfully.',
 			'data'    => $inserted,
+		]);
+	}
+
+	/**
+	 * POST /clients/matter/complete-workflow-checklist
+	 * Sequentially complete a workflow stage checklist item (Workflow tab).
+	 */
+	public function completeWorkflowChecklist(Request $request)
+	{
+		$request->validate([
+			'matter_id' => 'required|integer',
+			'checklist_id' => 'required|integer',
+		]);
+
+		if (!Schema::hasColumn('cp_doc_checklists', 'is_completed')) {
+			return response()->json([
+				'status' => false,
+				'message' => 'Checklist completion is not available. Please run database migrations.',
+			], 500);
+		}
+
+		$matterId = (int) $request->input('matter_id');
+		$checklistId = (int) $request->input('checklist_id');
+
+		$clientMatter = ClientMatter::find($matterId);
+		if (!$clientMatter) {
+			return response()->json([
+				'status' => false,
+				'message' => 'Client matter not found',
+			], 404);
+		}
+
+		$checklistItem = DB::table('cp_doc_checklists')
+			->where('id', $checklistId)
+			->where('client_matter_id', $matterId)
+			->first();
+
+		if (!$checklistItem) {
+			return response()->json([
+				'status' => false,
+				'message' => 'Checklist item not found for this matter.',
+			], 404);
+		}
+
+		$currentStage = !empty($clientMatter->workflow_stage_id)
+			? DB::table('workflow_stages')->where('id', $clientMatter->workflow_stage_id)->first()
+			: null;
+		$currentStageName = $currentStage->name ?? null;
+
+		if (!$currentStageName || strcasecmp(trim((string) $checklistItem->wf_stage), trim($currentStageName)) !== 0) {
+			return response()->json([
+				'status' => false,
+				'message' => 'Checklist items can only be completed on the current workflow stage.',
+			], 422);
+		}
+
+		if (\App\Support\WorkflowV2Display::checklistItemIsDone($checklistItem)) {
+			$checklist = \App\Support\WorkflowV2Display::checklistForStage(
+				$clientMatter,
+				(int) $currentStage->id,
+				$currentStageName
+			);
+
+			return response()->json([
+				'status' => true,
+				'message' => 'Checklist item was already completed.',
+				'already_done' => true,
+				'checklistRows' => $checklist['rows'],
+				'outstandingRequired' => $checklist['outstanding'],
+				'activeChecklistIndex' => \App\Support\WorkflowV2Display::activeChecklistIndex($checklist['rows']),
+			]);
+		}
+
+		$stageChecklist = \App\Support\WorkflowV2Display::checklistForStage(
+			$clientMatter,
+			(int) $currentStage->id,
+			$currentStageName
+		);
+		$activeIndex = \App\Support\WorkflowV2Display::activeChecklistIndex($stageChecklist['rows']);
+		$activeItem = $activeIndex >= 0 ? ($stageChecklist['rows'][$activeIndex] ?? null) : null;
+
+		if (!$activeItem || (int) ($activeItem['id'] ?? 0) !== $checklistId) {
+			return response()->json([
+				'status' => false,
+				'message' => 'Complete the previous checklist item first.',
+			], 422);
+		}
+
+		$adminUser = Auth::guard('admin')->user();
+		$now = now();
+
+		DB::table('cp_doc_checklists')
+			->where('id', $checklistId)
+			->where('client_matter_id', $matterId)
+			->update([
+				'is_completed' => true,
+				'completed_at' => $now,
+				'completed_by' => $adminUser ? $adminUser->id : null,
+				'updated_at' => $now,
+			]);
+
+		$checklist = \App\Support\WorkflowV2Display::checklistForStage(
+			$clientMatter,
+			(int) $currentStage->id,
+			$currentStageName
+		);
+
+		return response()->json([
+			'status' => true,
+			'message' => 'Checklist item completed.',
+			'checklistRows' => $checklist['rows'],
+			'outstandingRequired' => $checklist['outstanding'],
+			'activeChecklistIndex' => \App\Support\WorkflowV2Display::activeChecklistIndex($checklist['rows']),
+			'next_btn_disabled' => $checklist['outstanding'] > 0,
+		]);
+	}
+
+	/**
+	 * POST /clients/matter/workflow-file-note
+	 * Append a stamped file note for a matter + workflow stage (Workflow tab).
+	 */
+	public function saveWorkflowFileNote(Request $request)
+	{
+		$request->validate([
+			'matter_id' => 'required|integer',
+			'workflow_stage_id' => 'required|integer',
+			'note' => 'required|string|max:10000',
+		]);
+
+		if (!Schema::hasTable('workflow_file_notes')) {
+			return response()->json([
+				'status' => false,
+				'message' => 'File notes are not available. Please run database migrations.',
+			], 500);
+		}
+
+		$matterId = (int) $request->input('matter_id');
+		$stageId = (int) $request->input('workflow_stage_id');
+		$noteText = trim((string) $request->input('note'));
+
+		if ($noteText === '') {
+			return response()->json([
+				'status' => false,
+				'message' => 'Please enter a file note before saving.',
+			], 422);
+		}
+
+		$clientMatter = ClientMatter::find($matterId);
+		if (!$clientMatter) {
+			return response()->json([
+				'status' => false,
+				'message' => 'Client matter not found',
+			], 404);
+		}
+
+		$stage = DB::table('workflow_stages')->where('id', $stageId)->first();
+		if (!$stage) {
+			return response()->json([
+				'status' => false,
+				'message' => 'Workflow stage not found',
+			], 404);
+		}
+
+		// Only allow writing notes for the matter's current stage
+		if ((int) ($clientMatter->workflow_stage_id ?? 0) !== $stageId) {
+			return response()->json([
+				'status' => false,
+				'message' => 'File notes can only be added on the current workflow stage.',
+			], 422);
+		}
+
+		$adminUser = Auth::guard('admin')->user();
+		$userId = $adminUser ? (int) $adminUser->id : null;
+		$userName = 'Staff';
+		if ($adminUser) {
+			$userName = trim((string) ($adminUser->first_name ?? '')) !== ''
+				? trim(($adminUser->first_name ?? '') . ' ' . ($adminUser->last_name ?? ''))
+				: (string) ($adminUser->name ?? $adminUser->email ?? 'Staff');
+		}
+		$userName = trim($userName) !== '' ? trim($userName) : 'Staff';
+
+		$stamp = '[' . now()->format('d/m/y H:i') . ' — ' . $userName . ']';
+		$entry = $stamp . "\n" . $noteText;
+		$now = now();
+
+		$existing = DB::table('workflow_file_notes')
+			->where('client_matter_id', $matterId)
+			->where('workflow_stage_id', $stageId)
+			->first();
+
+		$body = $existing && trim((string) $existing->body) !== ''
+			? $entry . "\n\n" . trim((string) $existing->body)
+			: $entry;
+
+		if ($existing) {
+			DB::table('workflow_file_notes')
+				->where('id', $existing->id)
+				->update([
+					'body' => $body,
+					'updated_by' => $userId,
+					'updated_at' => $now,
+				]);
+		} else {
+			DB::table('workflow_file_notes')->insert([
+				'client_id' => $clientMatter->client_id,
+				'client_matter_id' => $matterId,
+				'workflow_stage_id' => $stageId,
+				'body' => $body,
+				'created_by' => $userId,
+				'updated_by' => $userId,
+				'created_at' => $now,
+				'updated_at' => $now,
+			]);
+		}
+
+		return response()->json([
+			'status' => true,
+			'message' => 'File note saved.',
+			'file_note_body' => $body,
+			'workflow_stage_id' => $stageId,
 		]);
 	}
 

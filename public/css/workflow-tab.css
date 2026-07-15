@@ -723,11 +723,39 @@
     background: #fff;
 }
 
+.workflow-v2-stage-item.is-locked {
+    opacity: 0.55;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.workflow-v2-stage-item.is-future .workflow-v2-stage-lock {
+    color: var(--wf-orange);
+}
+
+.workflow-v2-checklist-item.is-active-item {
+    border-color: var(--wf-blue);
+    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.15);
+}
+
+.workflow-v2-checklist-item.is-locked-item {
+    opacity: 0.55;
+    background: #f8fafc;
+}
+
 .workflow-v2-checklist-item input[type="checkbox"] {
     width: 18px;
     height: 18px;
     flex-shrink: 0;
     accent-color: var(--wf-blue);
+    cursor: default;
+}
+
+.workflow-v2-checklist-item.is-active-item input[type="checkbox"]:not(:disabled) {
+    cursor: pointer;
+}
+
+.workflow-v2-checklist-item.is-done input[type="checkbox"] {
     cursor: default;
 }
 
@@ -796,6 +824,25 @@
     color: var(--wf-muted);
     margin-top: 6px;
     font-style: italic;
+}
+
+.workflow-v2-file-note-history {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.88rem;
+    color: #334155;
+    background: #f8fafc;
+    border: 1px solid var(--wf-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    max-height: 220px;
+    overflow-y: auto;
+    line-height: 1.45;
+}
+
+.workflow-v2-file-note-history.is-empty {
+    display: none;
 }
 
 /* Footer */

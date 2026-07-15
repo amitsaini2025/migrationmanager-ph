@@ -83,6 +83,9 @@ class WorkflowV2Display
         $checklistRows = $viewChecklist['rows'];
         $outstandingRequired = $viewChecklist['outstanding'];
         $stageDisplay = $viewStageDisplay;
+        $fileNoteBody = ($matter && $resolvedViewStageId)
+            ? self::fileNoteBodyForStage($matter, (int) $resolvedViewStageId)
+            : '';
 
         $isDiscontinued = $matter && ($matter->matter_status ?? 1) == 0;
         $canReopen = in_array(
@@ -106,6 +109,16 @@ class WorkflowV2Display
         }
 
         $isLastStage = $nextStage === null;
+        $currentStageOutstanding = 0;
+        if ($matter && $currentStageRow) {
+            $currentStageChecklist = self::checklistForStage(
+                $matter,
+                (int) $currentStageRow->id,
+                $currentStageName
+            );
+            $currentStageOutstanding = (int) ($currentStageChecklist['outstanding'] ?? 0);
+        }
+        // Base disable = last stage only. Workflow tab applies outstanding gate via interactive flag / JS.
         $nextBtnDisabled = $isLastStage;
 
         $admin = Auth::guard('admin')->user();
@@ -113,6 +126,7 @@ class WorkflowV2Display
             && in_array((int) ($admin->role ?? 0), config('crm.matter_discontinue_role_ids', [1, 17, 16]), true);
 
         $isActive = $matter && ($matter->matter_status ?? 1) == 1;
+        $activeChecklistIndex = self::activeChecklistIndex($checklistRows);
 
         return array_merge(compact(
             'matter',
@@ -138,7 +152,10 @@ class WorkflowV2Display
             'isActive',
             'stagesPayload',
             'viewStageIndex',
-            'viewStageName'
+            'viewStageName',
+            'activeChecklistIndex',
+            'currentStageOutstanding',
+            'fileNoteBody'
         ), [
             'clientId' => $client->client_id ?? '',
             'viewStageId' => $resolvedViewStageId,
@@ -172,7 +189,9 @@ class WorkflowV2Display
                 'name' => $stageName,
                 'status' => $isActive ? 'active' : ($isCompleted ? 'completed' : ($isProtected ? 'locked' : 'future')),
                 'isCurrent' => $isActive,
+                'isCompleted' => (bool) $isCompleted,
                 'isProtected' => $isProtected,
+                'isFuture' => !$isActive && !$isCompleted,
                 'stageDisplay' => $stageDisplay ? [
                     'pending_from' => $stageDisplay['pending_from'] ?? null,
                     'completion_rule' => $stageDisplay['completion_rule'] ?? null,
@@ -180,6 +199,10 @@ class WorkflowV2Display
                 ] : null,
                 'checklistRows' => $checklist['rows'],
                 'outstandingRequired' => $checklist['outstanding'],
+                'activeChecklistIndex' => self::activeChecklistIndex($checklist['rows']),
+                'fileNoteBody' => ($matter && !empty($stageDisplay['file_note_section']))
+                    ? self::fileNoteBodyForStage($matter, (int) $stage->id)
+                    : '',
             ];
         }
 
@@ -206,7 +229,7 @@ class WorkflowV2Display
     /**
      * Resolve checklist rows for a matter + stage (cp_doc_checklists, admin templates, config fallback).
      *
-     * @return array{rows: array<int, array{label: string, required: bool, done: bool}>, outstanding: int}
+     * @return array{rows: array<int, array{id: int|null, label: string, required: bool, done: bool}>, outstanding: int}
      */
     public static function checklistForStage(?object $matter, int $stageId, ?string $stageName): array
     {
@@ -233,16 +256,13 @@ class WorkflowV2Display
             }
             $seenNames[$norm] = true;
 
-            $uploadCount = DB::table('documents')
-                ->where('cp_list_id', $cpItem->id)
-                ->where('type', 'workflow_checklist')
-                ->count();
-            $isDone = $uploadCount > 0;
+            $isDone = self::checklistItemIsDone($cpItem);
             $itemRequired = Schema::hasColumn('cp_doc_checklists', 'is_required')
                 ? (bool) $cpItem->is_required
                 : false;
 
             $rows[] = [
+                'id' => (int) $cpItem->id,
                 'label' => $label,
                 'required' => $itemRequired,
                 'done' => $isDone,
@@ -270,6 +290,7 @@ class WorkflowV2Display
 
                 $itemRequired = (bool) $template->is_required;
                 $rows[] = [
+                    'id' => null,
                     'label' => $label,
                     'required' => $itemRequired,
                     'done' => false,
@@ -292,6 +313,7 @@ class WorkflowV2Display
             if (!$hasAdminTemplates && $stageDisplay && !empty($stageDisplay['checklist_items'])) {
                 foreach ($stageDisplay['checklist_items'] as $item) {
                     $rows[] = [
+                        'id' => null,
                         'label' => $item['label'] ?? 'Item',
                         'required' => !empty($item['required']),
                         'done' => false,
@@ -304,6 +326,73 @@ class WorkflowV2Display
         }
 
         return ['rows' => $rows, 'outstanding' => $outstanding];
+    }
+
+    /**
+     * Whether a cp_doc_checklists row is considered complete (manual check or document upload).
+     */
+    public static function checklistItemIsDone(object $cpItem): bool
+    {
+        if (Schema::hasColumn('cp_doc_checklists', 'is_completed') && !empty($cpItem->is_completed)) {
+            return true;
+        }
+
+        return DB::table('documents')
+            ->where('cp_list_id', $cpItem->id)
+            ->where('type', 'workflow_checklist')
+            ->exists();
+    }
+
+    /**
+     * Index of the first incomplete checklist item (active for sequential checking), or -1 if all done.
+     *
+     * @param  array<int, array{done?: bool}>  $rows
+     */
+    public static function activeChecklistIndex(array $rows): int
+    {
+        foreach ($rows as $index => $row) {
+            if (empty($row['done'])) {
+                return (int) $index;
+            }
+        }
+
+        return -1;
+    }
+
+    /**
+     * Outstanding required checklist count for the matter's current workflow stage.
+     */
+    public static function outstandingRequiredForCurrentStage(?object $matter): int
+    {
+        if (!$matter || empty($matter->workflow_stage_id)) {
+            return 0;
+        }
+
+        $stage = DB::table('workflow_stages')->where('id', $matter->workflow_stage_id)->first();
+        if (!$stage || empty($stage->name)) {
+            return 0;
+        }
+
+        $checklist = self::checklistForStage($matter, (int) $stage->id, $stage->name);
+
+        return (int) ($checklist['outstanding'] ?? 0);
+    }
+
+    /**
+     * Saved file note body for a matter + stage (empty string when none).
+     */
+    public static function fileNoteBodyForStage(?object $matter, int $stageId): string
+    {
+        if (!$matter || $stageId <= 0 || !Schema::hasTable('workflow_file_notes')) {
+            return '';
+        }
+
+        $body = DB::table('workflow_file_notes')
+            ->where('client_matter_id', $matter->id)
+            ->where('workflow_stage_id', $stageId)
+            ->value('body');
+
+        return is_string($body) ? $body : '';
     }
 
     /**

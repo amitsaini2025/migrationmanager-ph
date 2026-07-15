@@ -4,11 +4,27 @@
     $wfShowHeaderAdvance = $wfShowHeaderAdvance ?? false;
     $wfShowFooterAdvance = $wfShowFooterAdvance ?? true;
     $wfShowPortalIdentity = $wfShowPortalIdentity ?? false;
+    $wfChecklistInteractive = $wfChecklistInteractive ?? false;
     $wfAdvanceButtonId = $wfAdvanceButtonId ?? 'workflow-tab-proceed-to-next-stage';
     $wfBackButtonId = $wfBackButtonId ?? 'workflow-tab-back-to-previous-stage';
     $wfReopenButtonId = $wfReopenButtonId ?? 'workflow-tab-reopen';
     $wfChangeWorkflowButtonId = $wfChangeWorkflowButtonId ?? 'workflow-tab-change-workflow';
     $wfDiscontinueButtonId = $wfDiscontinueButtonId ?? 'workflow-tab-discontinue';
+    $activeChecklistIndex = $activeChecklistIndex ?? \App\Support\WorkflowV2Display::activeChecklistIndex($checklistRows ?? []);
+    $currentStageOutstanding = $currentStageOutstanding ?? $outstandingRequired ?? 0;
+    $wfAdvanceDisabled = !empty($nextBtnDisabled)
+        || ($wfChecklistInteractive && (int) $currentStageOutstanding > 0);
+    $wfViewIsCurrent = $viewStageId && $currentStageId && (int) $viewStageId === (int) $currentStageId;
+    $wfViewIsPrevious = false;
+    if ($viewStageId && $currentStageId && !$wfViewIsCurrent) {
+        $wfViewStageRow = $allStages->firstWhere('id', $viewStageId);
+        $wfCurrentStageRow = $allStages->firstWhere('id', $currentStageId);
+        if ($wfViewStageRow && $wfCurrentStageRow) {
+            $wfViewSort = $wfViewStageRow->sort_order ?? $wfViewStageRow->id;
+            $wfCurrentSort = $wfCurrentStageRow->sort_order ?? $wfCurrentStageRow->id;
+            $wfViewIsPrevious = $wfViewSort < $wfCurrentSort;
+        }
+    }
 @endphp
 
 @if($matter)
@@ -85,15 +101,15 @@
                             </button>
                             @if($wfShowHeaderAdvance)
                                 <button type="button"
-                                    class="workflow-v2-header-icon-btn workflow-v2-header-icon-btn--primary"
-                                    id="{{ $wfAdvanceButtonId }}"
+                                    class="workflow-v2-header-icon-btn workflow-v2-header-icon-btn--primary js-workflow-advance-btn"
+                                    id="{{ $wfShowFooterAdvance ? $wfAdvanceButtonId . '-header' : $wfAdvanceButtonId }}"
                                     data-matter-id="{{ $matter->id }}"
                                     data-next-stage-name="{{ $nextStageName ?? '' }}"
                                     data-current-stage-name="{{ $currentStageName ?? '' }}"
                                     data-tooltip="Proceed to Next Stage"
                                     title="Proceed to Next Stage"
                                     aria-label="Proceed to Next Stage"
-                                    {{ $nextBtnDisabled ? 'disabled' : '' }}>
+                                    {{ $wfAdvanceDisabled ? 'disabled' : '' }}>
                                     <svg class="lucide icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
                                 </button>
                             @endif
@@ -157,7 +173,9 @@
     @if($allStages->count() > 0)
         <div class="workflow-v2-body" id="workflow-v2-body"
             data-current-stage-id="{{ $currentStageId ?? '' }}"
-            data-total-stages="{{ $totalStages }}">
+            data-total-stages="{{ $totalStages }}"
+            data-matter-id="{{ $matter->id }}"
+            data-checklist-interactive="{{ $wfChecklistInteractive ? '1' : '0' }}">
             <aside class="workflow-v2-stages">
                 <h3 class="workflow-v2-stages-title">Case Stages</h3>
                 <ul class="workflow-v2-stages-list" id="workflow-v2-stages-list">
@@ -171,20 +189,26 @@
                                 ? ($currentStageRowForList->sort_order ?? $currentStageRowForList->id)
                                 : null;
                             $wfIsCompleted = ($currentStageId && $currentStageSortForList !== null && $stageSort < $currentStageSortForList);
+                            $wfIsFuture = !$wfIsCurrent && !$wfIsCompleted;
                             $wfIsProtected = \App\Support\WorkflowV2Display::stageIsProtected($stage);
-                            $wfShowLockIcon = $wfIsProtected && !$wfIsCurrent && !$wfIsCompleted;
+                            $wfShowLockIcon = $wfChecklistInteractive
+                                ? $wfIsFuture
+                                : ($wfIsProtected && !$wfIsCurrent && !$wfIsCompleted);
+                            $wfStageClickable = !$wfChecklistInteractive || !$wfIsFuture;
                             $itemClass = trim(
                                 ($wfIsCurrent ? 'is-active ' : '')
                                 . ($wfIsCompleted ? 'is-completed ' : '')
-                                . ($wfIsViewing ? 'is-viewing' : '')
+                                . ($wfIsFuture ? 'is-future ' : '')
+                                . ($wfIsViewing ? 'is-viewing ' : '')
+                                . ($wfStageClickable ? 'is-clickable' : 'is-locked')
                             );
                         @endphp
-                        <li class="workflow-v2-stage-item is-clickable {{ $itemClass }}"
-                            role="button"
-                            tabindex="0"
+                        <li class="workflow-v2-stage-item {{ $itemClass }}"
+                            @if($wfStageClickable) role="button" tabindex="0" @else role="presentation" aria-disabled="true" @endif
                             data-stage-id="{{ $stage->id }}"
                             data-stage-index="{{ $stageIndex + 1 }}"
-                            aria-label="View stage {{ $stageIndex + 1 }}: {{ $stage->name }}"
+                            data-stage-status="{{ $wfIsCurrent ? 'current' : ($wfIsCompleted ? 'completed' : 'future') }}"
+                            aria-label="{{ $wfStageClickable ? 'View stage' : 'Locked stage' }} {{ $stageIndex + 1 }}: {{ $stage->name }}"
                             aria-current="{{ $wfIsViewing ? 'step' : 'false' }}">
                             <span class="workflow-v2-stage-num">{{ $stageIndex + 1 }}</span>
                             <span class="workflow-v2-stage-name">{{ $stage->name }}</span>
@@ -193,7 +217,7 @@
                                     <svg class="lucide icon workflow-v2-stage-lock-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                                 </span>
                             @elseif($wfShowLockIcon)
-                                <span class="workflow-v2-stage-lock" title="Protected stage" aria-hidden="true">
+                                <span class="workflow-v2-stage-lock" title="{{ $wfIsProtected ? 'Protected stage' : 'Locked stage' }}" aria-hidden="true">
                                     <svg class="lucide icon workflow-v2-stage-lock-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                                 </span>
                             @endif
@@ -225,17 +249,34 @@
                 </div>
 
                 <h3 class="workflow-v2-section-label">Checklist</h3>
-                <div id="workflow-v2-checklist-container">
+                <div id="workflow-v2-checklist-container"
+                    data-readonly="{{ (!$wfChecklistInteractive || !$wfViewIsCurrent) ? '1' : '0' }}">
                     @if(count($checklistRows) > 0)
                         <div class="workflow-v2-checklist" id="workflow-v2-checklist">
-                            @foreach($checklistRows as $checkItem)
-                                <div class="workflow-v2-checklist-item {{ !empty($checkItem['done']) ? 'is-done' : '' }}">
+                            @foreach($checklistRows as $checkIndex => $checkItem)
+                                @php
+                                    $itemDone = !empty($checkItem['done']);
+                                    $itemRequired = !empty($checkItem['required']);
+                                    $itemId = $checkItem['id'] ?? null;
+                                    $itemActive = $wfChecklistInteractive
+                                        && $wfViewIsCurrent
+                                        && !$itemDone
+                                        && (int) $activeChecklistIndex === (int) $checkIndex
+                                        && !empty($itemId);
+                                    $itemDisabled = !$itemActive;
+                                @endphp
+                                <div class="workflow-v2-checklist-item {{ $itemDone ? 'is-done' : '' }} {{ $itemActive ? 'is-active-item' : '' }} {{ $itemDisabled && !$itemDone ? 'is-locked-item' : '' }}"
+                                    data-checklist-id="{{ $itemId ?? '' }}"
+                                    data-checklist-index="{{ $checkIndex }}"
+                                    data-required="{{ $itemRequired ? '1' : '0' }}">
                                     <input type="checkbox"
-                                        {{ !empty($checkItem['done']) ? 'checked' : '' }}
-                                        disabled
+                                        class="workflow-v2-checklist-checkbox"
+                                        {{ $itemDone ? 'checked' : '' }}
+                                        {{ $itemDisabled ? 'disabled' : '' }}
+                                        data-checklist-id="{{ $itemId ?? '' }}"
                                         aria-label="{{ $checkItem['label'] }}">
                                     <span class="workflow-v2-checklist-label">{{ $checkItem['label'] }}</span>
-                                    @if(!empty($checkItem['required']))
+                                    @if($itemRequired)
                                         <span class="workflow-v2-required-badge">Required</span>
                                     @endif
                                 </div>
@@ -252,10 +293,15 @@
                 <div id="workflow-v2-file-note-section" class="workflow-v2-file-note"
                     style="{{ ($stageDisplay && !empty($stageDisplay['file_note_section'])) ? '' : 'display:none;' }}">
                     <h3 class="workflow-v2-section-label">File Note (Record Keeping)</h3>
-                    <textarea rows="4"
+                    <div id="workflow-v2-file-note-history"
+                        class="workflow-v2-file-note-history {{ empty($fileNoteBody) ? 'is-empty' : '' }}"
+                        @if(empty($fileNoteBody)) style="display:none;" @endif>{{ $fileNoteBody ?? '' }}</div>
+                    <textarea id="workflow-v2-file-note-input"
+                        rows="4"
                         placeholder="e.g. {{ now()->format('d/m/y') }} — client emailed re signed agreement..."
-                        aria-label="Workflow file note"></textarea>
-                    <p class="workflow-v2-file-note-hint">Auto-stamped with user + timestamp on save.</p>
+                        aria-label="Workflow file note"
+                        {{ ($wfChecklistInteractive && ($wfViewIsPrevious || !$wfViewIsCurrent)) ? 'disabled' : '' }}></textarea>
+                    <p class="workflow-v2-file-note-hint">Auto-stamped with user + timestamp when you advance to the next stage.</p>
                 </div>
 
                 <div class="workflow-v2-footer">
@@ -272,14 +318,14 @@
                     </div>
 
                     @if($wfShowFooterAdvance && !$isDiscontinued)
-                        <button class="workflow-v2-advance-btn"
+                        <button class="workflow-v2-advance-btn js-workflow-advance-btn"
                             id="{{ $wfAdvanceButtonId }}"
                             data-matter-id="{{ $matter->id }}"
                             data-next-stage-name="{{ $nextStageName ?? '' }}"
                             data-current-stage-name="{{ $currentStageName ?? '' }}"
                             title="Proceed to Next Stage"
                             style="{{ ($viewStageId && $currentStageId && (int) $viewStageId === (int) $currentStageId) ? '' : 'display:none;' }}"
-                            {{ $nextBtnDisabled ? 'disabled' : '' }}>
+                            {{ $wfAdvanceDisabled ? 'disabled' : '' }}>
                             Advance to next stage &rarr;
                         </button>
                     @endif

@@ -18,7 +18,9 @@
             updateDeadline: urls.updateDeadline,
             changeWorkflow: urls.changeWorkflow,
             discontinue: urls.discontinue,
-            reopen: urls.reopen
+            reopen: urls.reopen,
+            completeWorkflowChecklist: urls.completeWorkflowChecklist,
+            saveWorkflowFileNote: urls.saveWorkflowFileNote
         };
     }
 
@@ -222,10 +224,29 @@
     function getWorkflowTabAdvanceButton() {
         var workflowTab = document.getElementById('workflow-tab');
         if (workflowTab) {
-            return workflowTab.querySelector('#workflow-tab-proceed-to-next-stage');
+            return workflowTab.querySelector('.js-workflow-advance-btn.workflow-v2-advance-btn')
+                || workflowTab.querySelector('#workflow-tab-proceed-to-next-stage')
+                || workflowTab.querySelector('.js-workflow-advance-btn');
         }
         return document.getElementById('workflow-tab-proceed-to-next-stage')
             || document.getElementById('proceed-to-next-stage');
+    }
+
+    function getWorkflowAdvanceButtons(root) {
+        var scope = root || document.getElementById('workflow-tab') || document;
+        var buttons = [];
+        if (scope.querySelectorAll) {
+            scope.querySelectorAll('.js-workflow-advance-btn, #workflow-tab-proceed-to-next-stage, #workflow-tab-proceed-to-next-stage-header').forEach(function(btn) {
+                buttons.push(btn);
+            });
+        }
+        if (!buttons.length) {
+            var fallback = getWorkflowTabAdvanceButton();
+            if (fallback) {
+                buttons.push(fallback);
+            }
+        }
+        return buttons;
     }
 
     function setWorkflowAdvanceButtonVisible(btn, isCurrentStage) {
@@ -236,7 +257,64 @@
         btn.style.display = isCurrentStage ? advanceDisplay : 'none';
     }
 
-    function renderWorkflowV2Checklist(rows) {
+    function setWorkflowAdvanceButtonState(btn, isCurrentStage, outstandingRequired, isLastStage) {
+        var buttons = btn ? [btn] : [];
+        // Prefer syncing every Workflow tab advance control (header + footer).
+        var scope = (btn && btn.closest) ? (btn.closest('#workflow-tab') || document.getElementById('workflow-tab')) : document.getElementById('workflow-tab');
+        if (scope) {
+            buttons = getWorkflowAdvanceButtons(scope);
+        }
+        if (!buttons.length && btn) {
+            buttons = [btn];
+        }
+
+        var blocked = !!isLastStage || ((parseInt(outstandingRequired, 10) || 0) > 0);
+        buttons.forEach(function(advanceBtn) {
+            setWorkflowAdvanceButtonVisible(advanceBtn, isCurrentStage);
+            advanceBtn.disabled = blocked;
+            if (blocked && (parseInt(outstandingRequired, 10) || 0) > 0) {
+                advanceBtn.setAttribute('title', 'Complete all required checklist items to advance');
+                advanceBtn.setAttribute('data-tooltip', 'Complete all required checklist items to advance');
+            } else if (!isLastStage) {
+                advanceBtn.setAttribute('title', 'Proceed to Next Stage');
+                advanceBtn.setAttribute('data-tooltip', 'Proceed to Next Stage');
+            }
+        });
+    }
+
+    function isWorkflowChecklistInteractive(root) {
+        var scope = root || document.getElementById('workflow-tab') || document;
+        var body = scope.querySelector
+            ? scope.querySelector('#workflow-v2-body')
+            : document.getElementById('workflow-v2-body');
+        return !!(body && body.getAttribute('data-checklist-interactive') === '1');
+    }
+
+    function getWorkflowMatterId(root) {
+        var scope = root || document.getElementById('workflow-tab') || document;
+        var body = scope.querySelector
+            ? scope.querySelector('#workflow-v2-body')
+            : document.getElementById('workflow-v2-body');
+        return body ? (body.getAttribute('data-matter-id') || '') : '';
+    }
+
+    function getActiveChecklistIndex(rows) {
+        if (!rows || !rows.length) {
+            return -1;
+        }
+        for (var i = 0; i < rows.length; i++) {
+            if (!rows[i].done) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function renderWorkflowV2Checklist(rows, options) {
+        options = options || {};
+        var interactive = !!options.interactive;
+        var readOnly = options.readOnly !== false && !interactive;
+
         if (!rows || rows.length === 0) {
             return '<div class="workflow-v2-checklist-empty" id="workflow-v2-checklist-empty">'
                 + 'No checklist items for this stage. '
@@ -244,12 +322,27 @@
                 + '</div>';
         }
 
+        var activeIndex = getActiveChecklistIndex(rows);
         var html = '<div class="workflow-v2-checklist" id="workflow-v2-checklist">';
-        rows.forEach(function(item) {
+        rows.forEach(function(item, index) {
             var done = !!item.done;
             var required = !!item.required;
-            html += '<div class="workflow-v2-checklist-item' + (done ? ' is-done' : '') + '">'
-                + '<input type="checkbox"' + (done ? ' checked' : '') + ' disabled'
+            var itemId = item.id != null ? item.id : '';
+            var isActive = interactive && !readOnly && !done && activeIndex === index && !!itemId;
+            var disabled = !isActive;
+            var itemClass = 'workflow-v2-checklist-item'
+                + (done ? ' is-done' : '')
+                + (isActive ? ' is-active-item' : '')
+                + (disabled && !done ? ' is-locked-item' : '');
+
+            html += '<div class="' + itemClass + '"'
+                + ' data-checklist-id="' + escapeHtml(itemId) + '"'
+                + ' data-checklist-index="' + index + '"'
+                + ' data-required="' + (required ? '1' : '0') + '">'
+                + '<input type="checkbox" class="workflow-v2-checklist-checkbox"'
+                + (done ? ' checked' : '')
+                + (disabled ? ' disabled' : '')
+                + ' data-checklist-id="' + escapeHtml(itemId) + '"'
                 + ' aria-label="' + escapeHtml(item.label) + '">'
                 + '<span class="workflow-v2-checklist-label">' + escapeHtml(item.label) + '</span>';
             if (required) {
@@ -306,7 +399,9 @@
         var checklistContainer = scope.querySelector('#workflow-v2-checklist-container');
         var fileNote = scope.querySelector('#workflow-v2-file-note-section');
         var advanceBtn = scope.id === 'workflow-tab'
-            ? scope.querySelector('#workflow-tab-proceed-to-next-stage')
+            ? (scope.querySelector('.js-workflow-advance-btn.workflow-v2-advance-btn')
+                || scope.querySelector('#workflow-tab-proceed-to-next-stage')
+                || scope.querySelector('.js-workflow-advance-btn'))
             : getWorkflowTabAdvanceButton();
 
         if (panel) {
@@ -320,6 +415,7 @@
         }
 
         var display = stage.stageDisplay || {};
+        var isCurrentStage = String(stage.id) === String(data.currentStageId);
         if (badges) {
             if (display.pending_from) {
                 badges.style.display = '';
@@ -341,15 +437,47 @@
             }
         }
         if (checklistContainer) {
-            checklistContainer.innerHTML = renderWorkflowV2Checklist(stage.checklistRows || []);
+            var interactive = isWorkflowChecklistInteractive(scope);
+            checklistContainer.setAttribute('data-readonly', (interactive && isCurrentStage) ? '0' : '1');
+            checklistContainer.innerHTML = renderWorkflowV2Checklist(stage.checklistRows || [], {
+                interactive: interactive && isCurrentStage,
+                readOnly: !interactive || !isCurrentStage
+            });
         }
         if (fileNote) {
             fileNote.style.display = display.file_note_section ? '' : 'none';
+            var historyEl = fileNote.querySelector('#workflow-v2-file-note-history');
+            var fileNoteTextarea = fileNote.querySelector('#workflow-v2-file-note-input')
+                || fileNote.querySelector('textarea');
+            var noteBody = stage.fileNoteBody || '';
+            if (historyEl) {
+                historyEl.textContent = noteBody;
+                historyEl.classList.toggle('is-empty', !noteBody);
+                historyEl.style.display = noteBody ? '' : 'none';
+            }
+            if (fileNoteTextarea) {
+                // New-entry field: clear when switching stages; history shown above
+                fileNoteTextarea.value = '';
+                fileNoteTextarea.disabled = isWorkflowChecklistInteractive(scope) && !isCurrentStage;
+            }
         }
         updateWorkflowV2Outstanding(stage.outstandingRequired, scope);
 
-        var isCurrentStage = String(stage.id) === String(data.currentStageId);
-        setWorkflowAdvanceButtonVisible(advanceBtn, isCurrentStage);
+        var currentStageData = data.stages.find(function(s) {
+            return String(s.id) === String(data.currentStageId);
+        });
+        var currentOutstanding = currentStageData
+            ? (currentStageData.outstandingRequired || 0)
+            : (stage.outstandingRequired || 0);
+        var hasNextStage = !!(currentStageData && data.stages.some(function(s) {
+            return s.index > currentStageData.index;
+        }));
+        setWorkflowAdvanceButtonState(
+            advanceBtn,
+            isCurrentStage,
+            currentOutstanding,
+            !hasNextStage
+        );
 
         var stageItems = scope.querySelectorAll
             ? scope.querySelectorAll('.workflow-v2-stage-item[data-stage-id]')
@@ -364,44 +492,318 @@
     var workflowV2StageNavBound = false;
 
     function bindWorkflowV2StageNavigation(root) {
-        var scope = root || document.getElementById('workflow-tab') || document;
-        var list = scope.querySelector
-            ? scope.querySelector('#workflow-v2-stages-list')
-            : document.getElementById('workflow-v2-stages-list');
-        if (!list) {
+        if (workflowV2StageNavBound) {
             return;
         }
+        workflowV2StageNavBound = true;
 
-        if (!workflowV2StageNavBound) {
-            workflowV2StageNavBound = true;
-            list.addEventListener('click', function(e) {
-                var item = e.target.closest('.workflow-v2-stage-item[data-stage-id]');
-                if (!item) {
-                    return;
-                }
-                updateWorkflowV2StageFromItem(item, scope);
-            });
-            list.addEventListener('keydown', function(e) {
-                if (e.key !== 'Enter' && e.key !== ' ') {
-                    return;
-                }
-                var item = e.target.closest('.workflow-v2-stage-item[data-stage-id]');
-                if (!item) {
-                    return;
-                }
-                e.preventDefault();
-                updateWorkflowV2StageFromItem(item, scope);
-            });
-        }
+        document.addEventListener('click', function(e) {
+            var item = e.target.closest('.workflow-v2-stage-item[data-stage-id]');
+            if (!item) {
+                return;
+            }
+            var scope = item.closest('#workflow-tab') || item.closest('#client_portal-tab');
+            if (!scope) {
+                return;
+            }
+            updateWorkflowV2StageFromItem(item, scope.id === 'workflow-tab' ? scope : (scope.querySelector('#workflow-tab') || scope));
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter' && e.key !== ' ') {
+                return;
+            }
+            var item = e.target.closest('.workflow-v2-stage-item[data-stage-id]');
+            if (!item) {
+                return;
+            }
+            var scope = item.closest('#workflow-tab') || item.closest('#client_portal-tab');
+            if (!scope) {
+                return;
+            }
+            e.preventDefault();
+            updateWorkflowV2StageFromItem(item, scope.id === 'workflow-tab' ? scope : scope);
+        });
     }
 
     function updateWorkflowV2StageFromItem(item, root) {
+        if (!item) {
+            return;
+        }
+        if (item.classList.contains('is-locked') || item.getAttribute('aria-disabled') === 'true') {
+            return;
+        }
         var stageId = item.getAttribute('data-stage-id');
         if (!stageId) {
             return;
         }
         var scope = root || item.closest('#workflow-tab') || document.getElementById('workflow-tab') || document;
+        if (isWorkflowChecklistInteractive(scope)) {
+            var data = parseWorkflowV2StagesData(scope);
+            var stage = data && data.stages
+                ? data.stages.find(function(s) { return String(s.id) === String(stageId); })
+                : null;
+            if (stage && stage.isFuture) {
+                return;
+            }
+            var status = item.getAttribute('data-stage-status');
+            if (status === 'future') {
+                return;
+            }
+        }
         showWorkflowV2Stage(stageId, scope);
+    }
+
+    function applyChecklistCompletionToStageData(scope, payload) {
+        var data = parseWorkflowV2StagesData(scope);
+        if (!data || !data.stages || !payload) {
+            return data;
+        }
+        var currentId = data.currentStageId;
+        data.stages.forEach(function(stage) {
+            if (String(stage.id) !== String(currentId)) {
+                return;
+            }
+            if (payload.checklistRows) {
+                stage.checklistRows = payload.checklistRows;
+            }
+            if (typeof payload.outstandingRequired !== 'undefined') {
+                stage.outstandingRequired = payload.outstandingRequired;
+            }
+            if (typeof payload.activeChecklistIndex !== 'undefined') {
+                stage.activeChecklistIndex = payload.activeChecklistIndex;
+            }
+        });
+        var scriptEl = scope.querySelector
+            ? scope.querySelector('#workflow-v2-stages-data')
+            : document.getElementById('workflow-v2-stages-data');
+        if (scriptEl) {
+            scriptEl.textContent = JSON.stringify(data);
+        }
+        return data;
+    }
+
+    function completeWorkflowChecklistItem(checkbox, root) {
+        var urls = workflowUrls();
+        if (!urls.completeWorkflowChecklist) {
+            alert('Workflow configuration error. Please refresh the page.');
+            checkbox.checked = false;
+            return;
+        }
+
+        var checklistId = checkbox.getAttribute('data-checklist-id');
+        var matterId = getWorkflowMatterId(root);
+        if (!checklistId || !matterId) {
+            checkbox.checked = false;
+            alert('Checklist item is not ready to complete yet.');
+            return;
+        }
+
+        if (!confirm('Mark this checklist item as complete? This cannot be undone.')) {
+            checkbox.checked = false;
+            return;
+        }
+
+        checkbox.disabled = true;
+        checkbox.checked = true;
+
+        fetch(urls.completeWorkflowChecklist, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken(),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                matter_id: matterId,
+                checklist_id: checklistId
+            })
+        })
+        .then(function(r) {
+            return r.json().then(function(data) {
+                return { ok: r.ok, data: data };
+            });
+        })
+        .then(function(result) {
+            var data = result.data || {};
+            if (!result.ok || !data.status) {
+                checkbox.checked = false;
+                checkbox.disabled = false;
+                alert(data.message || 'Failed to complete checklist item.');
+                return;
+            }
+
+            var scope = root || document.getElementById('workflow-tab') || document;
+            applyChecklistCompletionToStageData(scope, data);
+            var panel = scope.querySelector
+                ? scope.querySelector('#workflow-v2-panel')
+                : document.getElementById('workflow-v2-panel');
+            var viewStageId = panel
+                ? panel.getAttribute('data-view-stage-id')
+                : null;
+            if (viewStageId) {
+                showWorkflowV2Stage(viewStageId, scope);
+            }
+        })
+        .catch(function(err) {
+            console.error(err);
+            checkbox.checked = false;
+            checkbox.disabled = false;
+            alert('An error occurred while completing the checklist item.');
+        });
+    }
+
+    var workflowChecklistBound = false;
+
+    function bindWorkflowChecklistInteractions() {
+        if (workflowChecklistBound) {
+            return;
+        }
+        workflowChecklistBound = true;
+
+        document.addEventListener('click', function(e) {
+            var checkbox = e.target.closest('.workflow-v2-checklist-checkbox');
+            if (!checkbox) {
+                return;
+            }
+
+            var scope = document.getElementById('workflow-tab');
+            if (!scope || !scope.contains(checkbox) || !isWorkflowChecklistInteractive(scope)) {
+                return;
+            }
+
+            // Always intercept — browser may already flip checked before this handler runs
+            e.preventDefault();
+
+            if (checkbox.disabled) {
+                return;
+            }
+
+            var item = checkbox.closest('.workflow-v2-checklist-item');
+            if (item && item.classList.contains('is-done')) {
+                checkbox.checked = true;
+                return;
+            }
+
+            // Reset any native toggle; completion flow owns checked state after confirm
+            checkbox.checked = false;
+            completeWorkflowChecklistItem(checkbox, scope);
+        });
+    }
+
+    var workflowFileNoteBound = false;
+
+    function applyFileNoteToStageData(scope, stageId, body) {
+        var data = parseWorkflowV2StagesData(scope);
+        if (!data || !data.stages) {
+            return;
+        }
+        data.stages.forEach(function(stage) {
+            if (String(stage.id) === String(stageId)) {
+                stage.fileNoteBody = body || '';
+            }
+        });
+        var scriptEl = scope.querySelector
+            ? scope.querySelector('#workflow-v2-stages-data')
+            : document.getElementById('workflow-v2-stages-data');
+        if (scriptEl) {
+            scriptEl.textContent = JSON.stringify(data);
+        }
+    }
+
+    /**
+     * Save pending Workflow tab file note (if any). Resolves even when there is nothing to save.
+     * Rejects only when a note was entered but save failed.
+     */
+    function savePendingWorkflowFileNote() {
+        var scope = document.getElementById('workflow-tab');
+        if (!scope || !isWorkflowChecklistInteractive(scope)) {
+            return Promise.resolve(null);
+        }
+
+        var urls = workflowUrls();
+        var textarea = scope.querySelector('#workflow-v2-file-note-input');
+        var fileNoteSection = scope.querySelector('#workflow-v2-file-note-section');
+        if (!textarea || !fileNoteSection || fileNoteSection.style.display === 'none' || textarea.disabled) {
+            return Promise.resolve(null);
+        }
+
+        var note = String(textarea.value || '').trim();
+        if (!note) {
+            return Promise.resolve(null);
+        }
+
+        if (!urls.saveWorkflowFileNote) {
+            return Promise.reject(new Error('Workflow configuration error. Please refresh the page.'));
+        }
+
+        var matterId = getWorkflowMatterId(scope);
+        var panel = scope.querySelector('#workflow-v2-panel');
+        var stageId = panel ? panel.getAttribute('data-view-stage-id') : '';
+        var data = parseWorkflowV2StagesData(scope);
+        if (!stageId && data) {
+            stageId = data.currentStageId ? String(data.currentStageId) : '';
+        }
+
+        if (!matterId || !stageId) {
+            return Promise.reject(new Error('Unable to save file note for this stage.'));
+        }
+
+        return fetch(urls.saveWorkflowFileNote, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken(),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                matter_id: matterId,
+                workflow_stage_id: stageId,
+                note: note
+            })
+        })
+        .then(function(r) {
+            return r.json().then(function(payload) {
+                return { ok: r.ok, data: payload };
+            });
+        })
+        .then(function(result) {
+            var payload = result.data || {};
+            if (!result.ok || !payload.status) {
+                throw new Error(payload.message || 'Failed to save file note.');
+            }
+            var body = payload.file_note_body || '';
+            applyFileNoteToStageData(scope, stageId, body);
+            var historyEl = scope.querySelector('#workflow-v2-file-note-history');
+            if (historyEl) {
+                historyEl.textContent = body;
+                historyEl.classList.toggle('is-empty', !body);
+                historyEl.style.display = body ? '' : 'none';
+            }
+            textarea.value = '';
+            return payload;
+        });
+    }
+
+    function proceedWorkflowTabAfterFileNote(matterId, nextStageName, nextBtn) {
+        savePendingWorkflowFileNote()
+            .then(function() {
+                if (nextStageName && nextStageName.toLowerCase() === 'decision received') {
+                    document.getElementById('decision-received-matter-id').value = matterId;
+                    document.getElementById('decision-outcome').value = '';
+                    document.getElementById('decision-note').value = '';
+                    var outcomeErr = document.querySelector('.decision-outcome-error strong');
+                    var noteErr = document.querySelector('.decision-note-error strong');
+                    if (outcomeErr) outcomeErr.textContent = '';
+                    if (noteErr) noteErr.textContent = '';
+                    $('#decision-received-modal').modal('show');
+                    return;
+                }
+                doProceedToNextStage(matterId, null, null, nextBtn);
+            })
+            .catch(function(err) {
+                alert((err && err.message) ? err.message : 'Failed to save file note.');
+            });
     }
 
     function initWorkflowV2StageNavigation() {
@@ -411,6 +813,7 @@
         }
 
         bindWorkflowV2StageNavigation(workflowTab);
+        bindWorkflowChecklistInteractions();
         refreshWorkflowV2Icons(workflowTab);
         var panel = workflowTab.querySelector('#workflow-v2-panel');
         if (panel) {
@@ -419,7 +822,17 @@
                 showWorkflowV2Stage(viewStageId, workflowTab);
             } else {
                 var advanceBtn = workflowTab.querySelector('#workflow-tab-proceed-to-next-stage');
-                setWorkflowAdvanceButtonVisible(advanceBtn, true);
+                var data = parseWorkflowV2StagesData(workflowTab);
+                var currentStageData = data && data.stages
+                    ? data.stages.find(function(s) {
+                        return String(s.id) === String(data.currentStageId);
+                    })
+                    : null;
+                var outstanding = currentStageData ? (currentStageData.outstandingRequired || 0) : 0;
+                var hasNext = !!(currentStageData && data.stages.some(function(s) {
+                    return s.index > currentStageData.index;
+                }));
+                setWorkflowAdvanceButtonState(advanceBtn, true, outstanding, !hasNext);
             }
         }
     }
@@ -677,9 +1090,12 @@
                 return;
             }
 
-            var nextBtn = e.target.closest('#workflow-tab-proceed-to-next-stage');
+            var nextBtn = e.target.closest('#workflow-tab-proceed-to-next-stage, #workflow-tab-proceed-to-next-stage-header, #workflow-tab .js-workflow-advance-btn');
             if (nextBtn) {
                 e.preventDefault();
+                if (nextBtn.disabled) {
+                    return;
+                }
                 var matterId = nextBtn.getAttribute('data-matter-id');
                 var nextStageName = (nextBtn.getAttribute('data-next-stage-name') || '').trim();
                 if (!matterId) {
@@ -687,20 +1103,22 @@
                     return;
                 }
 
-                if (nextStageName && nextStageName.toLowerCase() === 'decision received') {
-                    document.getElementById('decision-received-matter-id').value = matterId;
-                    document.getElementById('decision-outcome').value = '';
-                    document.getElementById('decision-note').value = '';
-                    var outcomeErr = document.querySelector('.decision-outcome-error strong');
-                    var noteErr = document.querySelector('.decision-note-error strong');
-                    if (outcomeErr) outcomeErr.textContent = '';
-                    if (noteErr) noteErr.textContent = '';
-                    $('#decision-received-modal').modal('show');
-                    return;
+                var workflowTab = document.getElementById('workflow-tab');
+                if (workflowTab && isWorkflowChecklistInteractive(workflowTab)) {
+                    var stageData = parseWorkflowV2StagesData(workflowTab);
+                    var currentStage = stageData && stageData.stages
+                        ? stageData.stages.find(function(s) {
+                            return String(s.id) === String(stageData.currentStageId);
+                        })
+                        : null;
+                    if (currentStage && (parseInt(currentStage.outstandingRequired, 10) || 0) > 0) {
+                        alert('Complete all required checklist items before advancing to the next stage.');
+                        return;
+                    }
                 }
 
                 if (!confirm('Are you sure you want to proceed to the next stage?')) return;
-                doProceedToNextStage(matterId, null, null, nextBtn);
+                proceedWorkflowTabAfterFileNote(matterId, nextStageName, nextBtn);
                 return;
             }
 

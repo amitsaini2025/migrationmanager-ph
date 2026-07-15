@@ -1275,6 +1275,8 @@ $(document).ready(function() {
             changeWorkflow: '{{ route("clients.matter.change-workflow") }}',
             discontinue: '{{ route("clients.matter.discontinue") }}',
             reopen: '{{ route("clients.matter.reopen") }}',
+            completeWorkflowChecklist: '{{ route("clients.matter.complete-workflow-checklist") }}',
+            saveWorkflowFileNote: '{{ route("clients.matter.workflow-file-note") }}',
         }
     };
     
