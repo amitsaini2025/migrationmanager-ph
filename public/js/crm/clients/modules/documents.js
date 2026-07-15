@@ -499,4 +499,125 @@
         $(document).on('mouseleave', '.download-file, .renamedoc', function() { $(this).css('background-color', ''); });
     });
 
+    /**
+     * Append a newly created personal document category tab + empty pane without page reload.
+     * Returns true on success, false if the personal documents UI is missing / incomplete.
+     */
+    function escapePersonalDocHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text == null ? '' : String(text);
+        return div.innerHTML;
+    }
+
+    function personalDocIcon(legacyClass, options) {
+        if (typeof window.crmI === 'function') {
+            return window.crmI(legacyClass, options || {});
+        }
+        return '';
+    }
+
+    window.appendPersonalDocCategoryUi = function(category) {
+        var id = category && category.id;
+        var title = category && category.title;
+        if (!id || !title) {
+            return false;
+        }
+
+        var $tab = $('#personaldocuments-tab');
+        var $nav = $tab.find('nav.subtabs2').first();
+        var $content = $tab.find('.subtab2-content').first();
+        if (!$tab.length || !$nav.length || !$content.length) {
+            return false;
+        }
+
+        if ($nav.find('.subtab2-button[data-subtab2="' + id + '"]').length) {
+            $nav.find('.subtab2-button').removeClass('active');
+            $content.find('.subtab2-pane').removeClass('active');
+            $nav.find('.subtab2-button[data-subtab2="' + id + '"]').addClass('active');
+            $content.find('[id="' + id + '-subtab2"]').addClass('active');
+            return true;
+        }
+
+        var safeTitle = escapePersonalDocHtml(title);
+        var canDelete = !!category.can_delete;
+        var editIcon = personalDocIcon('fa-edit');
+        var trashIcon = personalDocIcon('fa-trash');
+        var fileIcon = personalDocIcon('fa-file-alt');
+        var plusIcon = personalDocIcon('fa-plus');
+        var uploadIcon = personalDocIcon('fa-upload');
+        var cloudIcon = personalDocIcon('fa-cloud-upload-alt', { style: 'font-size: 48px; color: #2563eb; margin-bottom: 15px;' });
+
+        var actionsHtml = '<div class="action-buttons" style="display: none; position: absolute; top: 0; right: -8px;">' +
+            '<button type="button" class="btn btn-sm btn-warning update-personal-cat-title" data-id="' + id + '" style="padding: 2px 0px 2px 6px;">' + editIcon + '</button>';
+        if (canDelete) {
+            actionsHtml += '<button type="button" class="btn btn-sm btn-danger delete-personal-cat-title" data-id="' + id + '" data-title="' + safeTitle + '" style="padding: 2px 0px 2px 6px;">' + trashIcon + '</button>';
+        }
+        actionsHtml += '</div>';
+
+        var $btnWrap = $(
+            '<div style="display: inline-block; position: relative;" class="button-container">' +
+                '<button type="button" class="subtab2-button" data-subtab2="' + id + '">' + safeTitle + '</button>' +
+                actionsHtml +
+            '</div>'
+        );
+        $nav.append($btnWrap);
+
+        var paneHtml =
+            '<div class="subtab2-pane" id="' + id + '-subtab2">' +
+                '<div class="checklist-table-container" style="vertical-align: top; margin-top: 10px; width: 760px;">' +
+                    '<div class="subtab2-header" style="margin-left: 10px;">' +
+                        '<h3>' + fileIcon + ' ' + safeTitle + ' Documents</h3>' +
+                        '<div style="display: flex; gap: 10px;">' +
+                            '<button type="button" class="btn add-checklist-btn add_education_doc" data-type="personal" data-categoryid="' + id + '">' +
+                                plusIcon + ' Add Checklist' +
+                            '</button>' +
+                            '<button type="button" class="btn btn-info bulk-upload-toggle-btn" data-categoryid="' + id + '" data-categoryname="' + safeTitle + '">' +
+                                uploadIcon + ' Bulk Upload' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="bulk-upload-dropzone-container" id="bulk-upload-' + id + '" style="display: none; margin: 15px 0; padding: 20px; border: 2px dashed #4a90e2; border-radius: 8px; background-color: #f8f9fa;">' +
+                        '<div class="bulk-upload-dropzone" data-categoryid="' + id + '" style="text-align: center; padding: 30px; cursor: pointer;">' +
+                            cloudIcon +
+                            '<p style="font-size: 16px; color: #374151; margin-bottom: 10px;">' +
+                                '<strong>Drag and drop files here</strong> or <strong>click to browse</strong>' +
+                            '</p>' +
+                            '<p style="font-size: 14px; color: #4b5563;">You can select multiple files at once</p>' +
+                            '<input type="file" class="bulk-upload-file-input" data-categoryid="' + id + '" multiple style="display: none;" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">' +
+                        '</div>' +
+                        '<div class="bulk-upload-file-list" style="display: none; margin-top: 20px;">' +
+                            '<h5 style="margin-bottom: 15px;">Files Selected: <span class="file-count">0</span></h5>' +
+                            '<div class="bulk-upload-files-container"></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<table class="checklist-table">' +
+                        '<thead><tr><th>Checklist</th><th>File Name</th><th></th></tr></thead>' +
+                        '<tbody class="tdata persdocumnetlist documnetlist_' + id + '"></tbody>' +
+                    '</table>' +
+                '</div>' +
+                '<div class="grid_data griddata_' + id + '"><div class="clearfix"></div></div>' +
+                '<div class="preview-pane file-preview-container preview-container-' + id + '" style="display: inline; margin-top: 15px !important; width: 499px;">' +
+                    '<p style="color: #374151;">Click on a file to preview it here.</p>' +
+                '</div>' +
+            '</div>';
+
+        $content.append(paneHtml);
+
+        // Match page-load behavior (sidebar-tabs.js): list view is default, grid is hidden.
+        // Leaving .grid_data visible (width:100%) squeezes the checklist column in the flex row.
+        var $newPane = $content.find('[id="' + id + '-subtab2"]');
+        $newPane.find('.grid_data').hide();
+
+        $nav.find('.subtab2-button').removeClass('active');
+        $content.find('.subtab2-pane').removeClass('active');
+        $btnWrap.find('.subtab2-button').addClass('active');
+        $newPane.addClass('active');
+
+        if (typeof refreshLucideIcons === 'function') {
+            refreshLucideIcons($tab[0]);
+        }
+
+        return true;
+    };
+
 })(typeof jQuery !== 'undefined' ? jQuery : null);

@@ -904,7 +904,6 @@ function customValidate(formName, savetype = '')
 					}
 
                     else if(formName == 'add_pers_doc_cat_form'){
-                        var client_id = $('#add_pers_doc_cat_form input[name="client_id"]').val();
                         var myform = document.getElementById('add_pers_doc_cat_form');
                         var fd = new FormData(myform);
                         $.ajax({
@@ -918,9 +917,27 @@ function customValidate(formName, savetype = '')
                                 $('#addpersonaldoccatmodel').modal('hide');
                                 $('.popuploader').hide();
                                 if(obj.status){
-									localStorage.setItem('activeTab', 'documentalls');
-                                    location.reload();
+									localStorage.setItem('activeTab', 'personaldocuments');
+									$('#personal_doc_category').val('');
+									var appended = false;
+									try {
+										if (typeof window.appendPersonalDocCategoryUi === 'function') {
+											appended = !!window.appendPersonalDocCategoryUi(obj);
+										}
+									} catch (appendErr) {
+										console.warn('[AddPersDocCat] UI append failed, falling back to reload', appendErr);
+										appended = false;
+									}
+									if (!appended) {
+										location.reload();
+										return;
+									}
                                     $('.custom-error-msg').html('<span class="alert alert-success">'+obj.message+'</span>');
+									if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
+										toastr.success(obj.message);
+									} else if (typeof iziToast !== 'undefined' && typeof iziToast.success === 'function') {
+										iziToast.success({ message: obj.message, position: 'topRight', timeout: 3000 });
+									}
                                 }else{
                                     $('.custom-error-msg').html('<span class="alert alert-danger">'+obj.message+'</span>');
                                 }

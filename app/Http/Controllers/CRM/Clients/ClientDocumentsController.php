@@ -2872,9 +2872,19 @@ class ClientDocumentsController extends Controller
             $category->client_id = $clientId ?? null;
             $category->save();
 
+            $canDelete = Auth::check()
+                && in_array(
+                    (int) (Auth::user()->role ?? 0),
+                    config('crm.personal_document_category_delete_role_ids', [1, 16]),
+                    true
+                );
+
             return response()->json([
                 'status' => true,
-                'message' => 'Personal Document Category added successfully.'
+                'message' => 'Personal Document Category added successfully.',
+                'id' => $category->id,
+                'title' => $category->title,
+                'can_delete' => $canDelete,
             ]);
         } catch (\Exception $e) {
             return response()->json([

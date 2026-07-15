@@ -207,34 +207,20 @@
 
 
 
-    //Document subtab like - Personal
-
-    $('.subtab2-button').click(function(e) {
-
+    // Document subtab like - Personal (delegated so dynamically added categories work)
+    $(document).on('click', '.subtab2-button', function(e) {
         e.preventDefault();
 
-
-
         // Remove active class from all buttons and panes
-
         $('.subtab2-button').removeClass('active');
-
         $('.subtab2-pane').removeClass('active');
 
-
-
         // Add active class to clicked button
-
         $(this).addClass('active');
 
-
-
         // Show corresponding pane
-
-        const subtabId2 = $(this).data('subtab2'); //alert(subtabId2);
-
+        const subtabId2 = $(this).data('subtab2');
         $(`#${subtabId2}-subtab2`).addClass('active');
-
     });
 
 
