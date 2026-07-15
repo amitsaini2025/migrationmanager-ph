@@ -18,6 +18,24 @@ return [
 
     'skill_assessment' => 'Service_Agreement_Skill_Assessment.docx',
 
+    /*
+    | Skill assessment template: matter nick_name (exact, case-insensitive) or title substring.
+    | Covers named assessing authorities (APC, AASW, Physiotherapy Council) plus generic skill assessment.
+    */
+    'skill_assessment_matter_nick_names' => [
+        'skillassessment',
+        'skillassment',
+        'apc',
+        'aasw',
+    ],
+
+    'skill_assessment_title_markers' => [
+        'skill assessment',
+        'australian pharmacy council',
+        'australian association of social workers',
+        'australian physiotherapy council',
+    ],
+
     'psa' => 'Service_Agreement_PSA.docx',
 
     'job_ready' => 'Service_Agreement_Job_Ready.docx',

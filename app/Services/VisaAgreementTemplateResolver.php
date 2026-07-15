@@ -332,12 +332,21 @@ class VisaAgreementTemplateResolver
             return true;
         }
 
-        if (in_array($nick, ['skillassessment', 'skillassment'], true)) {
-            return true;
+        foreach (config('visa_agreement_templates.skill_assessment_matter_nick_names', [
+            'skillassessment',
+            'skillassment',
+        ]) as $n) {
+            if ($nick === strtolower(trim((string) $n))) {
+                return true;
+            }
         }
 
-        if (str_contains($titleLower, 'skill assessment')) {
-            return true;
+        foreach (config('visa_agreement_templates.skill_assessment_title_markers', [
+            'skill assessment',
+        ]) as $marker) {
+            if (str_contains($titleLower, strtolower(trim((string) $marker)))) {
+                return true;
+            }
         }
 
         return str_contains($titleLower, 'vetassess');

@@ -306,4 +306,65 @@ class VisaAgreementTemplateResolverTest extends TestCase
         $this->assertSame('skill_assessment', $r['rule']);
         $this->assertSame('Service_Agreement_Skill_Assessment.docx', $r['candidates'][0]);
     }
+
+    public function test_australian_pharmacy_council_apc_title_uses_skill_assessment_template(): void
+    {
+        $r = $this->resolver->determineCandidates(
+            false,
+            'apc',
+            'Skill Assessment_Australian Pharmacy Council_APC',
+            false
+        );
+        $this->assertSame('skill_assessment', $r['rule']);
+        $this->assertSame('Service_Agreement_Skill_Assessment.docx', $r['candidates'][0]);
+        $this->assertSame('Service_Agreement_general.docx', end($r['candidates']));
+    }
+
+    public function test_aasw_matter_uses_skill_assessment_template(): void
+    {
+        $r = $this->resolver->determineCandidates(
+            false,
+            'aasw',
+            'Australian Association of Social Workers',
+            false
+        );
+        $this->assertSame('skill_assessment', $r['rule']);
+        $this->assertSame('Service_Agreement_Skill_Assessment.docx', $r['candidates'][0]);
+    }
+
+    public function test_australian_physiotherapy_council_matter_uses_skill_assessment_template(): void
+    {
+        $r = $this->resolver->determineCandidates(
+            false,
+            'apc',
+            'Skill assessment - Australian Physiotherapy Council',
+            false
+        );
+        $this->assertSame('skill_assessment', $r['rule']);
+        $this->assertSame('Service_Agreement_Skill_Assessment.docx', $r['candidates'][0]);
+    }
+
+    public function test_aasw_title_without_skill_nick_still_uses_skill_assessment_template(): void
+    {
+        $r = $this->resolver->determineCandidates(
+            false,
+            'gn',
+            'Australian Association of Social Workers',
+            false
+        );
+        $this->assertSame('skill_assessment', $r['rule']);
+        $this->assertSame('Service_Agreement_Skill_Assessment.docx', $r['candidates'][0]);
+    }
+
+    public function test_psa_still_takes_priority_over_skill_assessment_title_markers(): void
+    {
+        $r = $this->resolver->determineCandidates(
+            false,
+            'psa',
+            'Provisional Skills Assessment - Australian Physiotherapy Council',
+            false
+        );
+        $this->assertSame('psa', $r['rule']);
+        $this->assertSame('Service_Agreement_PSA.docx', $r['candidates'][0]);
+    }
 }
