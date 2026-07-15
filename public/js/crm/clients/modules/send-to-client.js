@@ -6,6 +6,41 @@
 (function() {
     'use strict';
 
+    function showSendInProgress(title, text) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: title || 'Sending...',
+                text: text || 'Please wait.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: function() {
+                    Swal.showLoading();
+                }
+            });
+            return;
+        }
+        if (typeof $ !== 'undefined' && $('.popuploader').length) {
+            $('.popuploader').show();
+        }
+    }
+
+    function showSendResult(ok, message) {
+        if (typeof $ !== 'undefined' && $('.popuploader').length) {
+            $('.popuploader').hide();
+        }
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: ok ? 'success' : 'error',
+                title: ok ? 'Success!' : 'Error',
+                text: message,
+                timer: ok ? 3000 : undefined
+            });
+            return;
+        }
+        alert((ok ? '' : 'Error: ') + message);
+    }
+
     /**
      * Send Invoice to Client
      */
@@ -39,6 +74,7 @@
         var originalHtml = $btn.html();
         $btn.html(crmI('fas fa-spinner fa-spin') + ' Sending...');
         $btn.prop('disabled', true);
+        showSendInProgress('Sending Invoice...', 'Sending invoice #' + invoiceNo + ' to the client.');
 
         $.ajax({
             url: window.ClientDetailConfig.urls.sendInvoiceToClient + '/' + invoiceId,
@@ -48,30 +84,13 @@
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(response) {
-                if (response.status) {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: response.message,
-                            timer: 3000
-                        });
-                    } else {
-                        alert(response.message);
-                    }
-                } else {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: response.message
-                        });
-                    } else {
-                        alert('Error: ' + response.message);
-                    }
-                }
                 $btn.html(originalHtml);
                 $btn.prop('disabled', false);
+                if (response.status) {
+                    showSendResult(true, response.message);
+                } else {
+                    showSendResult(false, response.message || 'Failed to send invoice.');
+                }
             },
             error: function(xhr) {
                 console.error('Error sending invoice to client:', xhr);
@@ -79,17 +98,9 @@
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;
                 }
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: errorMsg
-                    });
-                } else {
-                    alert('Error: ' + errorMsg);
-                }
                 $btn.html(originalHtml);
                 $btn.prop('disabled', false);
+                showSendResult(false, errorMsg);
             }
         });
     }
@@ -127,6 +138,7 @@
         var originalHtml = $btn.html();
         $btn.html(crmI('fas fa-spinner fa-spin') + ' Sending...');
         $btn.prop('disabled', true);
+        showSendInProgress('Sending Receipt...', 'Sending receipt #' + receiptNo + ' to the client.');
 
         $.ajax({
             url: window.ClientDetailConfig.urls.sendClientFundReceiptToClient + '/' + receiptId,
@@ -136,30 +148,13 @@
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(response) {
-                if (response.status) {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: response.message,
-                            timer: 3000
-                        });
-                    } else {
-                        alert(response.message);
-                    }
-                } else {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: response.message
-                        });
-                    } else {
-                        alert('Error: ' + response.message);
-                    }
-                }
                 $btn.html(originalHtml);
                 $btn.prop('disabled', false);
+                if (response.status) {
+                    showSendResult(true, response.message);
+                } else {
+                    showSendResult(false, response.message || 'Failed to send receipt.');
+                }
             },
             error: function(xhr) {
                 console.error('Error sending client fund receipt to client:', xhr);
@@ -167,17 +162,9 @@
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;
                 }
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: errorMsg
-                    });
-                } else {
-                    alert('Error: ' + errorMsg);
-                }
                 $btn.html(originalHtml);
                 $btn.prop('disabled', false);
+                showSendResult(false, errorMsg);
             }
         });
     }
@@ -321,6 +308,7 @@
         var originalHtml = $btn.html();
         $btn.html(crmI('fas fa-spinner fa-spin') + ' Sending...');
         $btn.prop('disabled', true);
+        showSendInProgress('Sending Receipt...', 'Sending office receipt #' + receiptNo + ' to the client.');
 
         $.ajax({
             url: window.ClientDetailConfig.urls.sendOfficeReceiptToClient + '/' + receiptId,
@@ -330,30 +318,13 @@
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(response) {
-                if (response.status) {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: response.message,
-                            timer: 3000
-                        });
-                    } else {
-                        alert(response.message);
-                    }
-                } else {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: response.message
-                        });
-                    } else {
-                        alert('Error: ' + response.message);
-                    }
-                }
                 $btn.html(originalHtml);
                 $btn.prop('disabled', false);
+                if (response.status) {
+                    showSendResult(true, response.message);
+                } else {
+                    showSendResult(false, response.message || 'Failed to send receipt.');
+                }
             },
             error: function(xhr) {
                 console.error('Error sending office receipt to client:', xhr);
@@ -361,17 +332,9 @@
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;
                 }
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: errorMsg
-                    });
-                } else {
-                    alert('Error: ' + errorMsg);
-                }
                 $btn.html(originalHtml);
                 $btn.prop('disabled', false);
+                showSendResult(false, errorMsg);
             }
         });
     }

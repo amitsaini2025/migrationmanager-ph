@@ -244,6 +244,16 @@
 .transaction-table-wrapper { overflow-x: auto !important; max-width: 100% !important; }
 .transaction-table { max-width: 100% !important; }
 .account-section * { max-width: 100% !important; box-sizing: border-box !important; }
+/* Reference dropdowns must escape the table scrollport / max-width clamp */
+.account-section .dropdown,
+.account-section .dropdown-menu,
+.account-section .dropdown-menu * {
+  max-width: none !important;
+}
+.transaction-table-wrapper:has(.dropdown-menu.show),
+.account-section:has(.dropdown-menu.show) {
+  overflow: visible !important;
+}
 
 /* Emails Tab CSS (beginning) */
 .emails-container { padding: 0; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }

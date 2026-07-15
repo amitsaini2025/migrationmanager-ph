@@ -205,7 +205,7 @@
 
                             <td style="text-align: center; vertical-align: middle;">
                                 <div class="dropdown d-inline-block">
-                                    <span class="reference-dropdown-trigger dropdown-toggle" id="dropdownReceipt{{$rec_val->id}}" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
+                                    <span class="reference-dropdown-trigger dropdown-toggle" id="dropdownReceipt{{$rec_val->id}}" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
                                         <?php echo $rec_val->trans_no;?> @icon('fa-caret-down', ['style' => 'font-size: 11px; opacity: 0.6; margin-left: 3px;'])
                                     </span>
                                     <div class="dropdown-menu" aria-labelledby="dropdownReceipt{{$rec_val->id}}">
@@ -419,7 +419,7 @@
                                     data-invoice-status="{{$inc_val->invoice_status}}">
                                         <td style="text-align: center; vertical-align: middle;">
                                             <div class="dropdown d-inline-block">
-                                            <span class="reference-dropdown-trigger dropdown-toggle" id="dropdownInvoice{{$inc_val->id}}" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
+                                            <span class="reference-dropdown-trigger dropdown-toggle" id="dropdownInvoice{{$inc_val->id}}" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
                                                 <?php echo $inc_val->trans_no;?> @icon('fa-caret-down', ['style' => 'font-size: 11px; opacity: 0.6; margin-left: 3px;'])
                                             </span>
                                             <div class="dropdown-menu" aria-labelledby="dropdownInvoice{{$inc_val->id}}">
@@ -678,7 +678,7 @@
                                 
                                     <td style="text-align: center; vertical-align: middle;">
                                         <div class="dropdown d-inline-block">
-                                        <span class="reference-dropdown-trigger dropdown-toggle" id="dropdownOffice{{$off_val->id}}" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
+                                        <span class="reference-dropdown-trigger dropdown-toggle" id="dropdownOffice{{$off_val->id}}" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
                                             <?php echo $off_val->trans_no;?> @icon('fa-caret-down', ['style' => 'font-size: 11px; opacity: 0.6; margin-left: 3px;'])
                                         </span>
                                         <div class="dropdown-menu" aria-labelledby="dropdownOffice{{$off_val->id}}">
@@ -2221,9 +2221,15 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 /* Override restrictive parent rules for dropdowns */
+.account-section .dropdown,
+.account-section .dropdown-menu,
+.account-section .dropdown-menu * {
+    max-width: none !important;
+}
 .account-section .dropdown-menu {
     max-width: none !important;
     overflow: visible !important;
+    max-height: none !important;
 }
 
 /* Unallocated Office Receipt - Red Background */
