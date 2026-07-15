@@ -632,92 +632,27 @@
         });
     }
 
+    /**
+     * Document-delegated clicks cover static and dynamically inserted menu items
+     * (including Hubdoc buttons). Kept as a no-op stub so existing call sites stay safe.
+     */
     function attachSendToClientHandlers() {
-        $('.dropdown-menu .send-invoice-to-client').off('click').on('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleSendInvoiceToClient($(this));
-        });
+        // no-op: handlers are document-delegated below
+    }
 
-        $('.dropdown-menu .send-client-fund-receipt-to-client').off('click').on('click', function(e) {
+    function bindSendToClientClick(selector, handler) {
+        $(document).on('click', selector, function(e) {
             e.preventDefault();
             e.stopPropagation();
-            handleSendClientFundReceiptToClient($(this));
-        });
-
-        $('.dropdown-menu .send-office-receipt-to-client').off('click').on('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleSendOfficeReceiptToClient($(this));
-        });
-
-        $('.dropdown-menu .send-to-client-portal-btn').off('click').on('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleSendInvoiceToClientApplication($(this));
-        });
-
-        $('.dropdown-menu .send-to-hubdoc-btn').off('click').on('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleSendToHubdoc($(this));
-        });
-
-        $('.dropdown-menu .refresh-hubdoc-status').off('click').on('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleRefreshHubdocStatus($(this));
+            handler($(this));
         });
     }
 
-    setTimeout(function() {
-        attachSendToClientHandlers();
-    }, 500);
-
-    $(document).on('shown.bs.dropdown', function() {
-        attachSendToClientHandlers();
-    });
-
-    $(document).on('click', '.send-invoice-to-client', function() {
-        if ($(this).closest('.dropdown-menu').length > 0) {
-            return;
-        }
-        handleSendInvoiceToClient($(this));
-    });
-
-    $(document).on('click', '.send-client-fund-receipt-to-client', function() {
-        if ($(this).closest('.dropdown-menu').length > 0) {
-            return;
-        }
-        handleSendClientFundReceiptToClient($(this));
-    });
-
-    $(document).on('click', '.send-office-receipt-to-client', function() {
-        if ($(this).closest('.dropdown-menu').length > 0) {
-            return;
-        }
-        handleSendOfficeReceiptToClient($(this));
-    });
-
-    $(document).on('click', '.send-to-client-portal-btn', function() {
-        if ($(this).closest('.dropdown-menu').length > 0) {
-            return;
-        }
-        handleSendInvoiceToClientApplication($(this));
-    });
-
-    $(document).on('click', '.send-to-hubdoc-btn', function() {
-        if ($(this).closest('.dropdown-menu').length > 0) {
-            return;
-        }
-        handleSendToHubdoc($(this));
-    });
-
-    $(document).on('click', '.refresh-hubdoc-status', function() {
-        if ($(this).closest('.dropdown-menu').length > 0) {
-            return;
-        }
-        handleRefreshHubdocStatus($(this));
-    });
+    bindSendToClientClick('.send-invoice-to-client', handleSendInvoiceToClient);
+    bindSendToClientClick('.send-client-fund-receipt-to-client', handleSendClientFundReceiptToClient);
+    bindSendToClientClick('.send-office-receipt-to-client', handleSendOfficeReceiptToClient);
+    bindSendToClientClick('.send-to-client-portal-btn', handleSendInvoiceToClientApplication);
+    bindSendToClientClick('.send-to-hubdoc-btn', handleSendToHubdoc);
+    bindSendToClientClick('.refresh-hubdoc-status', handleRefreshHubdocStatus);
 
 })();

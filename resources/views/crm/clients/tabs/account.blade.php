@@ -255,10 +255,6 @@
                                             data-matter-id="<?php echo $rec_val->client_matter_id; ?>">
                                             @icon('fa-upload') <?php echo !empty($rec_val->uploaded_doc_id) ? 'Replace' : 'Upload'; ?> Receipt Document
                                         </a>
-                                        <div class="dropdown-divider"></div>
-                                        <a class="dropdown-item send-client-fund-receipt-to-client" href="javascript:;" data-receipt-id="<?php echo $rec_val->id; ?>" data-receipt-no="<?php echo $rec_val->trans_no; ?>">
-                                            @icon('fa-envelope') Send to Client
-                                        </a>
                                         <?php if($rec_val->client_fund_ledger_type !== 'Fee Transfer'){ ?>
                                         <div class="dropdown-divider"></div>
                                         <a class="dropdown-item edit-ledger-entry" href="javascript:;"

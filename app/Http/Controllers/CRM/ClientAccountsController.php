@@ -69,6 +69,45 @@ class ClientAccountsController extends Controller
     }
 
     /**
+     * Load PDF bytes for email attachment: prefer S3 disk get, then HTTP URL fallback.
+     */
+    protected function getDocumentPdfContent(object $document, ?int $clientId = null, string $defaultDocType = 'receipts'): ?string
+    {
+        try {
+            if (!empty($document->myfile_key)) {
+                $s3Path = $document->myfile_key;
+
+                if (strpos($s3Path, '/') === false && $clientId) {
+                    $clientInfo = DB::table('admins')->select('client_id')->where('id', $clientId)->first();
+                    $clientUniqueId = $clientInfo->client_id ?? 'unknown';
+                    $docType = $document->doc_type ?? $defaultDocType;
+                    $s3Path = $clientUniqueId . '/' . $docType . '/' . $s3Path;
+                }
+
+                if (Storage::disk('s3')->exists($s3Path)) {
+                    $content = Storage::disk('s3')->get($s3Path);
+                    if (!empty($content)) {
+                        return $content;
+                    }
+                }
+            }
+
+            if (!empty($document->myfile)) {
+                $content = @file_get_contents($document->myfile);
+                if ($content !== false && $content !== '') {
+                    return $content;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to load document PDF content: ' . $e->getMessage(), [
+                'document_id' => $document->id ?? null,
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
      * Apply enhanced date filtering to query
      * Supports quick presets, custom date range, and financial year
      *
@@ -6219,40 +6258,32 @@ public function getInvoiceAmount(Request $request)
             }
 
             // Get or generate PDF
-            $pdfUrl = null;
+            $existingPdf = null;
             if (!empty($record_get->pdf_document_id)) {
                 $existingPdf = DB::table('documents')
                     ->where('id', $record_get->pdf_document_id)
                     ->first();
-                
-                if ($existingPdf && !empty($existingPdf->myfile)) {
-                    $pdfUrl = $existingPdf->myfile;
-                }
             }
 
-            if (!$pdfUrl) {
+            if (!$existingPdf || empty($existingPdf->myfile)) {
                 // Generate PDF if not exists
                 $genRequest = new Request();
-                $response = $this->genClientFundReceipt($genRequest, $id);
-                
+                $this->genClientFundReceipt($genRequest, $id);
+
                 // Get the newly created PDF
                 $record_get = DB::table('account_client_receipts')
                     ->where('receipt_type', 1)
                     ->where('id', $id)
                     ->first();
-                
+
                 if (!empty($record_get->pdf_document_id)) {
                     $existingPdf = DB::table('documents')
                         ->where('id', $record_get->pdf_document_id)
                         ->first();
-                    
-                    if ($existingPdf && !empty($existingPdf->myfile)) {
-                        $pdfUrl = $existingPdf->myfile;
-                    }
                 }
             }
 
-            if (!$pdfUrl) {
+            if (!$existingPdf || (empty($existingPdf->myfile) && empty($existingPdf->myfile_key))) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Failed to generate PDF'
@@ -6269,8 +6300,8 @@ public function getInvoiceAmount(Request $request)
                 "If you have any questions, please don't hesitate to contact us.<br><br>" .
                 "Best regards,<br>Bansal Immigration";
 
-            $pdfContent = file_get_contents($pdfUrl);
-            if ($pdfContent === false || $pdfContent === '') {
+            $pdfContent = $this->getDocumentPdfContent($existingPdf, (int) $record_get->client_id, 'receipts');
+            if ($pdfContent === null || $pdfContent === '') {
                 return response()->json([
                     'status' => false,
                     'message' => 'Failed to download receipt PDF'
