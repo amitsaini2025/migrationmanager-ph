@@ -18,6 +18,7 @@ class Kernel extends ConsoleKernel
 
         '\App\Console\Commands\InPersonCompleteTaskRemoval',
         '\App\Console\Commands\ProcessServiceAccountTokens',
+        '\App\Console\Commands\ClearStuckServiceAccountTokenJobs',
         '\App\Console\Commands\MigrateSecondDatabase',
         '\App\Console\Commands\CleanUtf8Data',
         '\App\Console\Commands\BackfillEoiRoiData',

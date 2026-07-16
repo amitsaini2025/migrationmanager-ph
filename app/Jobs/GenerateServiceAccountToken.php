@@ -7,7 +7,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Admin;
 use App\Http\Controllers\API\ServiceAccountController;
@@ -16,6 +15,12 @@ use Illuminate\Http\Request;
 class GenerateServiceAccountToken implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    /**
+     * If the Admin was deleted after the job was queued, discard the job
+     * instead of failing and blocking other Redis queue work (e.g. emails).
+     */
+    public $deleteWhenMissingModels = true;
 
     protected $admin;
     protected $serviceName;
@@ -49,7 +54,7 @@ class GenerateServiceAccountToken implements ShouldQueue
         try {
             // Use provided password or default (decrypt_password column removed Phase 4)
             $adminPassword = $this->password ?: 'admin123';
-            
+
             // Create a mock request object
             $request = new Request([
                 'service_name' => $this->serviceName,
@@ -61,7 +66,7 @@ class GenerateServiceAccountToken implements ShouldQueue
             // Call the controller method directly instead of making HTTP request
             $controller = new ServiceAccountController();
             $response = $controller->generateToken($request);
-            
+
             // Get the response data
             $result = json_decode($response->getContent(), true);
 
@@ -71,8 +76,8 @@ class GenerateServiceAccountToken implements ShouldQueue
                     'service_token' => $result['token'] ?? null,
                     'token_generated_at' => now()
                 ]);
-                
-                Log::info('Service account token generated successfully in background job', [
+
+                Log::info('Service account token generation succeeded in background job', [
                     'admin_id' => $this->admin->id,
                     'admin_email' => $this->admin->email,
                     'token' => $result['token'] ?? 'N/A'
@@ -86,8 +91,8 @@ class GenerateServiceAccountToken implements ShouldQueue
             }
         } catch (\Exception $e) {
             Log::error('Exception occurred while generating service account token in background job', [
-                'admin_id' => $this->admin->id,
-                'admin_email' => $this->admin->email,
+                'admin_id' => $this->admin->id ?? null,
+                'admin_email' => $this->admin->email ?? null,
                 'error' => $e->getMessage()
             ]);
         }
@@ -102,9 +107,9 @@ class GenerateServiceAccountToken implements ShouldQueue
     public function failed(\Throwable $exception)
     {
         Log::error('Service account token generation job failed', [
-            'admin_id' => $this->admin->id,
-            'admin_email' => $this->admin->email,
+            'admin_id' => $this->admin->id ?? null,
+            'admin_email' => $this->admin->email ?? null,
             'error' => $exception->getMessage()
         ]);
     }
-} 
+}
