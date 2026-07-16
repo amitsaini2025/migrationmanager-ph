@@ -17,6 +17,9 @@
 					<div class="card">
 						<div class="card-header">
 							<h4>Audit Logs</h4>
+							<div class="card-header-action">
+								<a href="{{ route('adminconsole.staff.active') }}" class="btn btn-primary">Back</a>
+							</div>
 						</div>
 						<div class="card-body">
 							<form method="GET" action="{{ route('auditlogs.index') }}" class="mb-4">
@@ -45,47 +48,52 @@
 									<thead>
 										<tr>
 											<th>ID</th>
-											<th>Level</th>
-											<th>Date</th>
 											<th>Staff</th>
+											<th>Date & Time</th>
 											<th>IP Address</th>
-											<th>Message</th>
+											<th>Type</th>
 										</tr>
 									</thead>
 									<tbody class="tdata">
 									@if(count($lists) > 0)
 										@foreach($lists as $list)
+										@php
+											$staff = ($list->user_id && isset($staffById[$list->user_id])) ? $staffById[$list->user_id] : null;
+											$isActivity = ($list->message === ($activityMessage ?? 'Active in CRM (session)'));
+										@endphp
 										<tr>
-											<td>{{$list->id}}</td>
+											<td>{{ $list->id }}</td>
 											<td>
-												@if($list->level == 'info')
-													<span class="badge badge-success">Info</span>
-												@elseif($list->level == 'critical')
-													<span class="badge badge-danger">Critical</span>
-												@elseif($list->level == 'warning')
-													<span class="badge badge-warning">Warning</span>
+												@if($staff)
+													<a href="#">{{ $staff->first_name }}</a>
 												@endif
 											</td>
-											<td>{{date('d/m/Y', strtotime($list->created_at))}}</td>
 											<td>
-											<?php
-											if($list->user_id != ''){
-												$staff = \App\Models\Staff::where('id', $list->user_id)->first();
-												if($staff){
-												?>
-												<a href="#">{{$staff->first_name}}</a>
-												<?php
-												}
-											}
-											?>
+												@if($list->created_at)
+													{{ date('d/m/Y H:i', strtotime($isActivity ? $list->updated_at : $list->created_at)) }}
+												@else
+													—
+												@endif
 											</td>
-											<td><a target="_blank" href="https://whatismyipaddress.com/ip/{{$list->ip_address}}">{{$list->ip_address}}</a></td>
-											<td>{{$list->message}}</td>
+											<td>
+												@if($list->ip_address)
+													<a target="_blank" href="https://whatismyipaddress.com/ip/{{ $list->ip_address }}">{{ $list->ip_address }}</a>
+												@else
+													—
+												@endif
+											</td>
+											<td>
+												@if($isActivity)
+													<span class="badge badge-info">Via Existing Session</span>
+												@else
+													<span class="badge badge-primary">Via Login Page</span>
+												@endif
+											</td>
 										</tr>
 										@endforeach
 									@else
 										<tr>
-											<td colspan="6" style="text-align:center;">No audit logs found</td>
+											<td colspan="5" style="text-align:center;">No audit logs found</td>
 										</tr>
 									@endif
 									</tbody>

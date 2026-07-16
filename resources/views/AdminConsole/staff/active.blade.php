@@ -21,6 +21,7 @@
 						<div class="card-header">
 							<h4>Staff</h4>
 							<div class="card-header-action">
+								<a href="{{ route('auditlogs.index') }}" class="btn btn-primary mr-2">Audit Logs</a>
 								<a href="{{ route('adminconsole.staff.create') }}" class="btn btn-primary">Add Staff</a>
 							</div>
 						</div>

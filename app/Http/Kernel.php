@@ -39,6 +39,8 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
 			//\App\Http\Middleware\HttpsProtocol::class
+            // Tracks daily CRM presence for logged-in staff; no-op for guests; never blocks requests
+            \App\Http\Middleware\TrackStaffCrmActivity::class,
         ],
 
         'api' => [
