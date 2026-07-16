@@ -135,6 +135,25 @@ class EmailLog extends Authenticatable
     }
 
     /**
+     * Emails that should appear in CRM Emails → Sent (compose, fetched-sent, and Account receipt/invoice sends).
+     * Keeps other system_generated categories (portal, appointments, etc.) out of the Sent tab.
+     */
+    public function scopeForCrmSentMailbox($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('conversion_type')
+                ->orWhere(function ($subQuery) {
+                    $subQuery->where('conversion_type', 'conversion_email_fetch')
+                        ->where('mail_body_type', 'sent');
+                })
+                ->orWhere(function ($subQuery) {
+                    $subQuery->where('conversion_type', 'system_generated')
+                        ->whereIn('system_email_category', ['receipt', 'invoice']);
+                });
+        });
+    }
+
+    /**
      * Get the user who uploaded the email.
      */
     public function uploader(): BelongsTo
