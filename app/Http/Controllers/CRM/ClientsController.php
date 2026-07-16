@@ -4598,21 +4598,24 @@ class ClientsController extends Controller
             $query = \App\Models\EmailLog::where('client_matter_id', $client_matter_id)
                 ->where('type', 'client')
                 ->where('mail_type', 1)
-                ->where(function ($query) {
-                    $query->whereNull('conversion_type')
-                        ->orWhere(function ($subQuery) {
-                            $subQuery->where('conversion_type', 'conversion_email_fetch')
-                                ->where('mail_body_type', 'sent');
-                        });
-                })
+                ->forCrmSentMailbox()
                 ->with(['labels', 'attachments']);
 
             // Filter by type
             if ($type !== '') {
                 if ($type == 1) {
-                    $query->whereNotNull('conversion_type');
+                    // IMAP / uploaded fetched sent mail only
+                    $query->where('conversion_type', 'conversion_email_fetch')
+                        ->where('mail_body_type', 'sent');
                 } elseif ($type == 2) {
-                    $query->whereNull('conversion_type');
+                    // CRM compose + Account receipt/invoice sends
+                    $query->where(function ($q) {
+                        $q->whereNull('conversion_type')
+                            ->orWhere(function ($sub) {
+                                $sub->where('conversion_type', 'system_generated')
+                                    ->whereIn('system_email_category', ['receipt', 'invoice']);
+                            });
+                    });
                 }
             }
 

@@ -20,13 +20,7 @@ class OutgoingEmailSearchService
     {
         return EmailLog::query()
             ->where('mail_type', 1)
-            ->where(function (Builder $q) {
-                $q->whereNull('conversion_type')
-                  ->orWhere(function (Builder $s) {
-                      $s->where('conversion_type', 'conversion_email_fetch')
-                        ->where('mail_body_type', 'sent');
-                  });
-            });
+            ->forCrmSentMailbox();
     }
 
     /**

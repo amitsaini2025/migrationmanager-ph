@@ -23,6 +23,7 @@ use App\Services\FinancialStatsService;
 use App\Services\InvoicePaymentSyncService;
 use App\Services\FCMService;
 use App\Services\SystemEmailLogService;
+use App\Services\CrmSentEmailS3Service;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
@@ -105,6 +106,34 @@ class ClientAccountsController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Persist PDF copy for Emails → Sent attachment UI (same path as CRM compose).
+     * Does not affect SendGrid delivery — failures are logged only.
+     */
+    protected function archiveAccountSendEmailPdf($emailLog, string $subject, string $messageHtml, string $pdfContent, string $fileName): void
+    {
+        if (!$emailLog || $pdfContent === '' || $fileName === '') {
+            return;
+        }
+
+        try {
+            app(CrmSentEmailS3Service::class)->storeToS3(
+                $emailLog,
+                $subject,
+                $messageHtml,
+                [[
+                    'content' => $pdfContent,
+                    'name' => $fileName,
+                ]]
+            );
+        } catch (\Exception $e) {
+            Log::warning('Account send email PDF archive failed (email still queued)', [
+                'email_log_id' => $emailLog->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -6192,9 +6221,19 @@ public function getInvoiceAmount(Request $request)
                 'subject'   => $subject,
                 'message'   => $emailContent,
                 'client_id' => $record_get->client_id,
+                'client_matter_id' => $receipt_entry->client_matter_id ?? $record_get->client_matter_id ?? null,
                 'user_id'   => Auth::user()->id,
+                'has_attachments' => true,
             ]);
             $invoiceArray['email_log_id'] = $log->id;
+
+            $this->archiveAccountSendEmailPdf(
+                $log,
+                $subject,
+                $emailContent,
+                $pdfContent,
+                'Invoice-' . $invoiceNo . '.pdf'
+            );
 
             Mail::mailer('sendgrid')->to($clientEmail)->queue(new \App\Mail\InvoiceEmailManager($invoiceArray));
 
@@ -6327,9 +6366,19 @@ public function getInvoiceAmount(Request $request)
                 'subject'   => $subject,
                 'message'   => $emailContent,
                 'client_id' => $record_get->client_id,
+                'client_matter_id' => $record_get->client_matter_id ?? null,
                 'user_id'   => Auth::user()->id,
+                'has_attachments' => true,
             ]);
             $invoiceArray['email_log_id'] = $log->id;
+
+            $this->archiveAccountSendEmailPdf(
+                $log,
+                $subject,
+                $emailContent,
+                $pdfContent,
+                'Receipt-' . $receiptNo . '.pdf'
+            );
 
             Mail::mailer('sendgrid')->to($clientEmail)->queue(new \App\Mail\InvoiceEmailManager($invoiceArray));
 
@@ -6470,9 +6519,19 @@ public function getInvoiceAmount(Request $request)
                 'subject'   => $subject,
                 'message'   => $emailContent,
                 'client_id' => $record_get->client_id,
+                'client_matter_id' => $record_get->client_matter_id ?? null,
                 'user_id'   => Auth::user()->id,
+                'has_attachments' => true,
             ]);
             $invoiceArray['email_log_id'] = $log->id;
+
+            $this->archiveAccountSendEmailPdf(
+                $log,
+                $subject,
+                $emailContent,
+                $pdfContent,
+                'Office-Receipt-' . $receiptNo . '.pdf'
+            );
 
             Mail::mailer('sendgrid')->to($clientEmail)->queue(new \App\Mail\InvoiceEmailManager($invoiceArray));
 
