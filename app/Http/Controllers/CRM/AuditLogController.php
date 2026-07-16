@@ -2,15 +2,9 @@
 namespace App\Http\Controllers\CRM;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redirect;
-
-use App\Models\Admin;
+use App\Models\Staff;
 use App\Models\StaffLoginLog;
- 
-use Auth;
+use Illuminate\Http\Request;
 
 class AuditLogController extends Controller
 {
@@ -23,19 +17,24 @@ class AuditLogController extends Controller
     {
         $this->middleware('auth:admin');
     }
+
 	/**
-     * All Vendors.
+     * Audit login logs, optionally filtered by staff.
      *
      * @return \Illuminate\Http\Response
      */
-	public function index(Request $request)  
-	{		
-	
-		$query 		= StaffLoginLog::query(); 
-		$totalData 	= $query->count();	//for all data
-		$lists		= $query->sortable(['id' => 'desc'])->paginate(20);
-		return view('crm.auditlogs.index', compact(['lists', 'totalData']));
+	public function index(Request $request)
+	{
+		$query = StaffLoginLog::query();
+
+		if ($request->filled('staff_id')) {
+			$query->where('user_id', $request->integer('staff_id'));
+		}
+
+		$totalData = $query->count();
+		$lists = $query->sortable(['id' => 'desc'])->paginate(20);
+		$staffList = Staff::where('status', 1)->orderBy('first_name')->get();
+
+		return view('crm.auditlogs.index', compact(['lists', 'totalData', 'staffList']));
 	}
-	
-	
 }
