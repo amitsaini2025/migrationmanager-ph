@@ -8107,6 +8107,19 @@ class ClientsController extends Controller
                 ], 422);
             }
 
+            // Hidden service_id must match visible radioGroup (calendar uses radio; submit used to send stale service_id)
+            if ($request->has('radioGroup')) {
+                $radioServiceId = (int) $request->input('radioGroup');
+                if (in_array($radioServiceId, [1, 2, 3], true) && (int) $requestData['service_id'] !== $radioServiceId) {
+                    Log::warning('Appointment book service_id mismatch; using radioGroup', [
+                        'service_id' => $requestData['service_id'],
+                        'radioGroup' => $radioServiceId,
+                        'client_id' => $requestData['client_id'] ?? null,
+                    ]);
+                    $requestData['service_id'] = $radioServiceId;
+                }
+            }
+
             // NOE 6 & 7: paid Comprehensive Migration Advice only (form service_id 2)
             if (in_array((int) $requestData['noe_id'], [6, 7], true) && (int) $requestData['service_id'] !== 2) {
                 return response()->json([

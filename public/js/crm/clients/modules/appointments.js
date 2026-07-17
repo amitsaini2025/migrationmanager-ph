@@ -65,6 +65,17 @@
             return { is_paid: isPaid, preferred_language: lang };
         }
 
+        /** Keep hidden service_id aligned with the visible service radio (submit uses service_id). */
+        function syncAppointFormServiceIdFromRadio() {
+            var checked = $('#appointform input[name="radioGroup"]:checked').val();
+            if (checked) {
+                $('#appointform input[name="service_id"]').val(checked);
+            }
+            return checked || '';
+        }
+
+        window.syncAppointFormServiceIdFromRadio = syncAppointFormServiceIdFromRadio;
+
         $(document).delegate('.enquiry_item', 'change', function(){
 
             var id = $(this).val();
@@ -598,11 +609,7 @@
 
             var id = $(this).val();
 
-            if ($("input[name='radioGroup'][value='" + id + "']").prop("checked")) {
-
-                $('#service_id').val(id);
-
-            }
+            syncAppointFormServiceIdFromRadio();
 
             //console.log($('#service_id').val());
 

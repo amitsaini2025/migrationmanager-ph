@@ -834,9 +834,13 @@ function applyServiceVisibilityForNatureOfEnquiry(selectedValue) {
 			r3.checked = false;
 		}
 		if (r2) {
+			var prevServiceId = document.getElementById('service_id').value;
 			r2.checked = true;
 			document.getElementById('service_id').value = '2';
 			toggleVideoCallOption('2');
+			if (prevServiceId !== '2' && typeof $ !== 'undefined') {
+				$(r2).trigger('change');
+			}
 		}
 		document.querySelectorAll('#create_appoint .service-card-compact').forEach(function (c) {
 			c.classList.remove('selected');
@@ -958,21 +962,22 @@ document.addEventListener('DOMContentLoaded', function() {
 				// Add selected class to clicked card
 				card.classList.add('selected');
 				
-				// Check the radio button
 				const radio = card.querySelector('input[type="radio"]');
-			if (radio) {
-				radio.checked = true;
-				document.getElementById('service_id').value = radio.value;
-			}
-				
-				// Toggle Video Call option visibility based on service
-				toggleVideoCallOption(serviceId);
-				
-				// Show appointment details section
-				if (typeof $ !== 'undefined') {
-					$('#appointment_details').show();
-				} else {
-					document.getElementById('appointment_details').style.display = 'block';
+				if (radio) {
+					const prevServiceId = document.getElementById('service_id').value;
+					radio.checked = true;
+					if (prevServiceId !== serviceId && typeof $ !== 'undefined') {
+						$(radio).trigger('change');
+					} else {
+						document.getElementById('service_id').value = serviceId;
+						toggleVideoCallOption(serviceId);
+						if (typeof $ !== 'undefined') {
+							$('#appointment_details').show();
+							$('.appointment_row').show();
+						} else {
+							document.getElementById('appointment_details').style.display = 'block';
+						}
+					}
 				}
 			}
 		}

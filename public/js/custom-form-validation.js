@@ -1995,6 +1995,21 @@ function customValidate(formName, savetype = '')
 
                     else if(formName == 'appointform'){
 						var client_id = $('#appointform input[name="client_id"]').val();
+                        if (typeof window.syncAppointFormServiceIdFromRadio === 'function') {
+                            window.syncAppointFormServiceIdFromRadio();
+                        } else {
+                            var checkedService = $('#appointform input[name="radioGroup"]:checked').val();
+                            if (checkedService) {
+                                $('#appointform input[name="service_id"]').val(checkedService);
+                            }
+                        }
+                        var selectedService = $('#appointform input[name="radioGroup"]:checked').val();
+                        var hiddenService = $('#appointform input[name="service_id"]').val();
+                        if (selectedService && hiddenService && selectedService !== hiddenService) {
+                            $('.popuploader').hide();
+                            $('.custom-error-msg').html('<span class="alert alert-danger">Service selection is out of sync. Please re-select the service and time slot.</span>');
+                            return false;
+                        }
 						 var appoint_date = $('#timeslot_col_date').val(); //alert(appoint_date);
                         var appoint_time = $('#timeslot_col_time').val(); //alert(appoint_time);
 
