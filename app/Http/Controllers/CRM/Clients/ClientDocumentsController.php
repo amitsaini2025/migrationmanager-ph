@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\Admin;
 use App\Models\ActivitiesLog;
 use App\Models\Document;
+use App\Models\Form956;
 use App\Models\ClientMatter;
 // use App\Models\VisaDocChecklist; // REMOVED: VisaDocChecklist model has been deleted
 use App\Models\PersonalDocumentType;
@@ -855,7 +856,6 @@ class ClientDocumentsController extends Controller
                         $admin = $fetch->staff;
                         $VisaDocumentType = VisaDocumentType::query()->where('id', $fetch->folder_name)->first();
                         $fileUrl = $fetch->myfile_key ? $fetch->myfile : 'https://' . env('AWS_BUCKET') . '.s3.' . env('AWS_DEFAULT_REGION') . '.amazonaws.com/' . $fetch->client_id . '/visa/' . $fetch->myfile;
-                        $isForm956 = !empty($fetch->form956_id);
                         
                         // Hide non-matching documents with CSS (original behavior)
                         if (
@@ -869,7 +869,7 @@ class ClientDocumentsController extends Controller
                         ?>
                         <tr class="drow" data-matterid="<?php echo $fetch->client_matter_id;?>" data-catid="<?php echo $fetch->folder_name;?>" id="id_<?php echo $fetch->id; ?>" <?php echo $showCls;?>>
                             <td style="white-space: initial;">
-                                <div data-id="<?php echo $fetch->id;?>" data-visachecklistname="<?php echo htmlspecialchars($fetch->checklist); ?>" class="visachecklist-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" style="display: flex; align-items: center; gap: 8px;"<?php if (!$isForm956) { ?> oncontextmenu="showVisaChecklistContextMenu(event, <?php echo $fetch->id; ?>); return false;"<?php } ?>>
+                                <div data-id="<?php echo $fetch->id;?>" data-visachecklistname="<?php echo htmlspecialchars($fetch->checklist); ?>" class="visachecklist-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" style="display: flex; align-items: center; gap: 8px;" oncontextmenu="showVisaChecklistContextMenu(event, <?php echo $fetch->id; ?>); return false;">
                                     <span style="flex: 1;"><?php echo htmlspecialchars($fetch->checklist); ?></span>
                                 </div>
                             </td>
@@ -921,7 +921,7 @@ class ClientDocumentsController extends Controller
                             <td>
                                 <!-- Hidden elements for context menu actions -->
                                 <a class="renamechecklist" data-id="<?php echo $fetch->id; ?>" href="javascript:;" style="display: none;"></a>
-                                <?php if (!$fetch->file_name && !$isForm956): ?>
+                                <?php if (!$fetch->file_name): ?>
                                 <a class="delete-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" href="javascript:;" style="display: none;"></a>
                                 <?php endif; ?>
                                 <?php if ($fetch->myfile): ?>
@@ -1197,7 +1197,6 @@ class ClientDocumentsController extends Controller
             $admin = $fetch->staff;
             $visaDocumentType = VisaDocumentType::query()->where('id', $fetch->folder_name)->first();
             $fileUrl = $fetch->myfile_key ? $fetch->myfile : 'https://' . env('AWS_BUCKET') . '.s3.' . env('AWS_DEFAULT_REGION') . '.amazonaws.com/' . $fetch->client_id . '/visa/' . $fetch->myfile;
-            $isForm956 = ! empty($fetch->form956_id);
 
             if ($clientMatterId != $fetch->client_matter_id || $folderName != $fetch->folder_name) {
                 $showCls = "style='display: none;'";
@@ -1207,7 +1206,7 @@ class ClientDocumentsController extends Controller
             ?>
             <tr class="drow" data-matterid="<?php echo $fetch->client_matter_id;?>" data-catid="<?php echo $fetch->folder_name;?>" id="id_<?php echo $fetch->id; ?>" <?php echo $showCls;?>>
                 <td style="white-space: initial;">
-                    <div data-id="<?php echo $fetch->id;?>" data-visachecklistname="<?php echo htmlspecialchars($fetch->checklist); ?>" class="visachecklist-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" style="display: flex; align-items: center; gap: 8px;"<?php if (!$isForm956) { ?> oncontextmenu="showVisaChecklistContextMenu(event, <?php echo $fetch->id; ?>); return false;"<?php } ?>>
+                    <div data-id="<?php echo $fetch->id;?>" data-visachecklistname="<?php echo htmlspecialchars($fetch->checklist); ?>" class="visachecklist-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" style="display: flex; align-items: center; gap: 8px;" oncontextmenu="showVisaChecklistContextMenu(event, <?php echo $fetch->id; ?>); return false;">
                         <span style="flex: 1;"><?php echo htmlspecialchars($fetch->checklist); ?></span>
                     </div>
                 </td>
@@ -1249,7 +1248,7 @@ class ClientDocumentsController extends Controller
                 </td>
                 <td>
                     <a class="renamechecklist" data-id="<?php echo $fetch->id; ?>" href="javascript:;" style="display: none;"></a>
-                    <?php if (!$fetch->file_name && !$isForm956) { ?>
+                    <?php if (!$fetch->file_name) { ?>
                     <a class="delete-checklist-btn" data-id="<?php echo $fetch->id; ?>" data-checklist="<?php echo htmlspecialchars($fetch->checklist); ?>" href="javascript:;" style="display: none;"></a>
                     <?php } ?>
                     <?php if ($fetch->myfile) { ?>
@@ -2676,12 +2675,17 @@ class ClientDocumentsController extends Controller
             $checklistName = $document->checklist;
             $clientId = $document->client_id;
             $folderName = $document->folder_name;
+            $form956Id = $document->form956_id;
             
             // Delete the document record
             /** @disregard P1005 Intelephense: Model::delete() is 0-arg; can be confused with Query Builder. */
             $deleted = $document->delete();
             
             if ($deleted) {
+                if ($form956Id && !Document::query()->where('form956_id', $form956Id)->exists()) {
+                    Form956::query()->where('id', $form956Id)->delete();
+                }
+
                 // Log activity
                 $matterRef = $this->getMatterReference($clientId);
                 $subject = !empty($matterRef) 

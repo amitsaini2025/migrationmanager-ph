@@ -204,7 +204,7 @@
                                                     ?>
                                                     <tr class="drow" data-matterid="<?= $fetch->client_matter_id ?>" data-catid="<?= $fetch->folder_name ?>" id="id_<?= $fetch->id ?>">
                                                         <td style="white-space: initial;">
-                                                            <div data-id="<?= $fetch->id ?>" data-visachecklistname="<?= htmlspecialchars($fetch->checklist) ?>" class="visachecklist-row" title="Uploaded by: <?= htmlspecialchars($admin->first_name ?? 'NA') ?> on <?= date('d/m/Y H:i', strtotime($fetch->created_at)) ?>" style="display: flex; align-items: center; gap: 8px;"<?php if (!$isForm956): ?> oncontextmenu="showVisaChecklistContextMenu(event, <?= $fetch->id ?>); return false;"<?php endif; ?>>
+                                                            <div data-id="<?= $fetch->id ?>" data-visachecklistname="<?= htmlspecialchars($fetch->checklist) ?>" class="visachecklist-row" title="Uploaded by: <?= htmlspecialchars($admin->first_name ?? 'NA') ?> on <?= date('d/m/Y H:i', strtotime($fetch->created_at)) ?>" style="display: flex; align-items: center; gap: 8px;" oncontextmenu="showVisaChecklistContextMenu(event, <?= $fetch->id ?>); return false;">
                                                                 <span style="flex: 1;"><?= htmlspecialchars($fetch->checklist) ?></span>
                                                             </div>
                                                         </td>
@@ -265,7 +265,7 @@
                                                         </td>
                                                         <td>
                                                             <a class="renamechecklist" data-id="<?= $fetch->id ?>" href="javascript:;" style="display: none;"></a>
-                                                            <?php if (!$fetch->file_name && !$isForm956): ?>
+                                                            <?php if (!$fetch->file_name): ?>
                                                             <a class="delete-checklist-btn" data-id="<?= $fetch->id ?>" data-checklist="<?= htmlspecialchars($fetch->checklist) ?>" href="javascript:;" style="display: none;"></a>
                                                             <?php endif; ?>
                                                             <?php if ($fetch->myfile): ?>
@@ -328,7 +328,7 @@
                                                     ?>
                                                     <tr class="drow visa-signed-row" data-matterid="<?= $signedDoc->client_matter_id ?>" data-catid="<?= $signedDoc->folder_name ?>" id="id_<?= $signedDoc->id ?>">
                                                         <td style="white-space: initial;">
-                                                            <div data-id="<?= $signedDoc->id ?>" data-visachecklistname="<?= htmlspecialchars($signedDoc->checklist) ?>" class="visachecklist-row" style="display: flex; align-items: center; gap: 8px;"<?php if (!$signedIsForm956): ?> oncontextmenu="showVisaChecklistContextMenu(event, <?= $signedDoc->id ?>); return false;"<?php endif; ?>>
+                                                            <div data-id="<?= $signedDoc->id ?>" data-visachecklistname="<?= htmlspecialchars($signedDoc->checklist) ?>" class="visachecklist-row" style="display: flex; align-items: center; gap: 8px;" oncontextmenu="showVisaChecklistContextMenu(event, <?= $signedDoc->id ?>); return false;">
                                                                 <span style="flex: 1;"><?= htmlspecialchars($signedDoc->checklist) ?></span>
                                                             </div>
                                                         </td>
@@ -373,7 +373,7 @@
                                                 ?>
                                                     <tr class="drow visa-signed-row" data-matterid="<?= $signedDoc->client_matter_id ?>" data-catid="<?= $signedDoc->folder_name ?>" id="id_<?= $signedDoc->id ?>">
                                                         <td style="white-space: initial;">
-                                                            <div data-id="<?= $signedDoc->id ?>" data-visachecklistname="<?= htmlspecialchars($signedDoc->checklist) ?>" class="visachecklist-row" style="display: flex; align-items: center; gap: 8px;"<?php if (!$signedIsForm956): ?> oncontextmenu="showVisaChecklistContextMenu(event, <?= $signedDoc->id ?>); return false;"<?php endif; ?>>
+                                                            <div data-id="<?= $signedDoc->id ?>" data-visachecklistname="<?= htmlspecialchars($signedDoc->checklist) ?>" class="visachecklist-row" style="display: flex; align-items: center; gap: 8px;" oncontextmenu="showVisaChecklistContextMenu(event, <?= $signedDoc->id ?>); return false;">
                                                                 <span style="flex: 1;"><?= htmlspecialchars($signedDoc->checklist) ?></span>
                                                             </div>
                                                         </td>

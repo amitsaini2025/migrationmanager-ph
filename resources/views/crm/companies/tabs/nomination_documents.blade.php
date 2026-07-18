@@ -571,7 +571,7 @@
                                                             <div data-id="<?= $fetch->id ?>" data-visachecklistname="<?= htmlspecialchars($fetch->checklist) ?>" class="visachecklist-row" title="Uploaded by: <?= htmlspecialchars($admin->first_name ?? 'NA') ?> on <?= date('d/m/Y H:i', strtotime($fetch->created_at)) ?>" style="display: flex; align-items: center; gap: 8px;">
                                                                 <span style="flex: 1;"><?= htmlspecialchars($fetch->checklist) ?></span>
                                                                 <div class="checklist-actions" style="display: flex; gap: 5px;">
-                                                                    <?php if (!$fetch->file_name && !$isForm956): ?>
+                                                                    <?php if (!$fetch->file_name): ?>
                                                                     <a href="javascript:;" class="edit-checklist-btn" data-id="<?= $fetch->id ?>" data-checklist="<?= htmlspecialchars($fetch->checklist) ?>" title="Edit Checklist Name" style="color: #007bff; cursor: pointer;">
                                                                         @icon('fa-edit')
                                                                     </a>
