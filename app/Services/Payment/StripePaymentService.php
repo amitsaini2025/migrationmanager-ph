@@ -424,18 +424,17 @@ class StripePaymentService
 
             $amountInCents = (int) round($amount * 100);
 
+            // Match the working Bansal website payload (simple card intent).
+            // automatic_payment_methods is omitted — it can fail on accounts not configured for it.
             $paymentIntent = PaymentIntent::create([
                 'amount' => $amountInCents,
                 'currency' => 'aud',
-                'automatic_payment_methods' => [
-                    'enabled' => true,
-                ],
+                'payment_method_types' => ['card'],
                 'description' => sprintf(
                     'Appointment payment #%d - %s',
                     $appointment->id,
                     $appointment->service_type ?? 'consultation'
                 ),
-                'receipt_email' => $appointment->client_email,
                 'metadata' => [
                     'appointment_id' => (string) $appointment->id,
                     'payment_token' => (string) ($appointment->payment_token ?? ''),
