@@ -796,6 +796,31 @@
 <!-- Account Tab JavaScript -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    function getCurrentMatterNameForAccount() {
+        if ($('.general_matter_checkbox_client_detail').is(':checked')) {
+            return 'General Matter';
+        }
+        var $option = $('#sel_matter_id_client_detail option:selected');
+        if (!$option.length || !$option.val()) {
+            return '';
+        }
+        return $.trim($option.text()).replace(/\([^)]*\)\s*$/, '').trim();
+    }
+
+    function prefillClientFundsLedgerDescription() {
+        var matterName = getCurrentMatterNameForAccount();
+        if (!matterName) {
+            return;
+        }
+        var $firstRow = $('#client_receipt_form .productitem tr.clonedrow').first();
+        if (!$firstRow.length) {
+            $firstRow = $('#client_receipt_form .productitem tr').first();
+        }
+        if ($firstRow.length) {
+            $firstRow.find('input[name="description[]"]').val(matterName);
+        }
+    }
+
     // Improved Create Receipt Button Click Handler
     // Automatically selects the correct form based on which button was clicked
     // SOLUTION 4: Use namespaced event with higher priority to prevent conflicts
@@ -895,6 +920,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('🔄 Re-verified invoice form settings');
             } else if (receiptType == '1') {
                 $('#client_matter_id_ledger').val(selectedMatter);
+                prefillClientFundsLedgerDescription();
                 console.log('🔄 Re-verified ledger form settings');
             } else if (receiptType == '2') {
                 $('#client_matter_id_office').val(selectedMatter);
