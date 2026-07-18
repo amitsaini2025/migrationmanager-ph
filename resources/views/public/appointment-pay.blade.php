@@ -17,7 +17,9 @@
     .detail { margin-bottom: 10px; font-size: 14px; line-height: 1.5; }
     .detail strong { display: inline-block; min-width: 72px; color: #555; }
     .amount { font-size: 28px; font-weight: bold; color: #1c2a3a; margin: 20px 0 16px; text-align: center; }
-    #payment-element { margin: 16px 0; }
+    .card-label { display: block; font-size: 14px; font-weight: bold; color: #555; margin-bottom: 8px; }
+    #card-element { padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; margin-bottom: 8px; }
+    #card-errors { font-size: 13px; color: #b71c1c; min-height: 18px; margin-bottom: 12px; }
     #pay-button { width: 100%; padding: 14px; background: #1c2a3a; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
     #pay-button:disabled { opacity: .6; cursor: not-allowed; }
     .msg { padding: 14px; border-radius: 6px; margin-bottom: 16px; font-size: 14px; }
@@ -46,7 +48,9 @@
       <div class="amount">${{ number_format($amount, 2) }} AUD</div>
 
       <form id="payment-form">
-        <div id="payment-element"></div>
+        <label class="card-label" for="card-element">Card details</label>
+        <div id="card-element"></div>
+        <div id="card-errors" role="alert"></div>
         <div id="payment-message"></div>
         <button id="pay-button" type="submit">Pay now</button>
       </form>
@@ -60,71 +64,84 @@
 <script>
 (function () {
   const stripe = Stripe(@json($stripeKey));
-  const token = @json($token);
   const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
   const intentUrl = @json(route('public.appointment.pay.intent', ['token' => $token]));
   const completeUrl = @json(route('public.appointment.pay.complete', ['token' => $token]));
+  const clientName = @json($appointment->client_name);
+  const clientEmail = @json($appointment->client_email);
   const payButton = document.getElementById('pay-button');
   const paymentMessage = document.getElementById('payment-message');
+  const cardErrors = document.getElementById('card-errors');
   const form = document.getElementById('payment-form');
   const successPanel = document.getElementById('success-panel');
-  let elements, clientSecret;
 
-  async function initialize() {
-    payButton.disabled = true;
-    paymentMessage.textContent = 'Loading secure payment form…';
-    try {
-      const res = await fetch(intentUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrfToken
-        },
-        body: JSON.stringify({})
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Unable to load payment form.');
-      }
-      clientSecret = data.client_secret;
-      elements = stripe.elements({ clientSecret });
-      const paymentElement = elements.create('payment');
-      paymentElement.mount('#payment-element');
-      payButton.disabled = false;
-      paymentMessage.textContent = '';
-    } catch (e) {
-      paymentMessage.textContent = e.message || 'Unable to load payment form.';
+  const elements = stripe.elements({ locale: 'en-AU' });
+  const cardElement = elements.create('card', {
+    style: {
+      base: {
+        fontSize: '16px',
+        color: '#32325d',
+        fontFamily: 'Arial, sans-serif',
+        '::placeholder': { color: '#aab7c4' }
+      },
+      invalid: { color: '#b71c1c' }
     }
+  });
+  cardElement.mount('#card-element');
+
+  cardElement.on('change', function (event) {
+    cardErrors.textContent = event.error ? event.error.message : '';
+  });
+
+  async function createPaymentIntent() {
+    const res = await fetch(intentUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': csrfToken
+      },
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Unable to start payment.');
+    }
+    return data.client_secret;
   }
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
     payButton.disabled = true;
     paymentMessage.textContent = 'Processing payment…';
-
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      redirect: 'if_required',
-      confirmParams: {
-        receipt_email: @json($appointment->client_email),
-      },
-    });
-
-    if (error) {
-      paymentMessage.textContent = error.message || 'Payment failed.';
-      payButton.disabled = false;
-      return;
-    }
-
-    if (!paymentIntent || paymentIntent.status !== 'succeeded') {
-      paymentMessage.textContent = 'Payment was not completed. Please try again.';
-      payButton.disabled = false;
-      return;
-    }
+    cardErrors.textContent = '';
 
     try {
+      const clientSecret = await createPaymentIntent();
+
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            name: clientName,
+            email: clientEmail,
+          },
+        },
+      });
+
+      if (error) {
+        paymentMessage.textContent = error.message || 'Payment failed.';
+        payButton.disabled = false;
+        return;
+      }
+
+      if (!paymentIntent || paymentIntent.status !== 'succeeded') {
+        paymentMessage.textContent = 'Payment was not completed. Please try again.';
+        payButton.disabled = false;
+        return;
+      }
+
       const res = await fetch(completeUrl, {
         method: 'POST',
         headers: {
@@ -137,18 +154,17 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || 'Payment recorded failed.');
+        throw new Error(data.message || 'Payment could not be recorded.');
       }
+
       form.style.display = 'none';
       successPanel.style.display = 'block';
       successPanel.textContent = data.message || 'Payment successful. Thank you!';
     } catch (err) {
-      paymentMessage.textContent = err.message || 'Payment succeeded but confirmation failed. Please contact the office.';
+      paymentMessage.textContent = err.message || 'Payment failed. Please try again.';
       payButton.disabled = false;
     }
   });
-
-  initialize();
 })();
 </script>
 @endif

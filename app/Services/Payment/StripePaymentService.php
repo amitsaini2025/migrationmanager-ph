@@ -16,6 +16,7 @@ use Stripe\Exception\ApiErrorException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Exception;
+use Stripe\StripeClient;
 
 class StripePaymentService
 {
@@ -424,21 +425,23 @@ class StripePaymentService
 
             $amountInCents = (int) round($amount * 100);
 
-            // Match the working Bansal website payload (simple card intent).
-            // automatic_payment_methods is omitted — it can fail on accounts not configured for it.
-            $paymentIntent = PaymentIntent::create([
+            // Match Bansal website: StripeClient + minimal PaymentIntent payload.
+            $client = new StripeClient([
+                'api_key' => config('services.stripe.secret'),
+            ]);
+
+            $paymentIntent = $client->paymentIntents->create([
                 'amount' => $amountInCents,
                 'currency' => 'aud',
-                'payment_method_types' => ['card'],
-                'description' => sprintf(
-                    'Appointment payment #%d - %s',
-                    $appointment->id,
-                    $appointment->service_type ?? 'consultation'
-                ),
                 'metadata' => [
                     'appointment_id' => (string) $appointment->id,
                     'payment_token' => (string) ($appointment->payment_token ?? ''),
                 ],
+                'description' => sprintf(
+                    'Immigration Consultation - %s for %s',
+                    $appointment->service_type ?? 'consultation',
+                    $appointment->client_name ?? 'Client'
+                ),
             ]);
 
             return [
@@ -450,6 +453,18 @@ class StripePaymentService
                     'currency' => 'AUD',
                 ],
                 'message' => 'Payment intent created.',
+            ];
+        } catch (ApiErrorException $e) {
+            Log::error('Failed to create public appointment PaymentIntent', [
+                'appointment_id' => $appointment->id,
+                'error' => $e->getMessage(),
+                'stripe_code' => $e->getStripeCode(),
+            ]);
+
+            return [
+                'success' => false,
+                'data' => [],
+                'message' => 'Unable to start payment. Please try again or contact the office.',
             ];
         } catch (Exception $e) {
             Log::error('Failed to create public appointment PaymentIntent', [
