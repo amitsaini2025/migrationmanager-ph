@@ -21,6 +21,8 @@ class BookingAppointment extends Model
     protected $fillable = [
         'bansal_appointment_id',
         'order_hash',
+        'payment_token',
+        'payment_token_expires_at',
         'client_id',
         'consultant_id',
         'assigned_by_admin_id',
@@ -83,6 +85,7 @@ class BookingAppointment extends Model
             'reminder_sms_sent_at' => 'datetime',
             'synced_from_bansal_at' => 'datetime',
             'last_synced_at' => 'datetime',
+            'payment_token_expires_at' => 'datetime',
             'is_paid' => 'boolean',
             'confirmation_email_sent' => 'boolean',
             'reminder_sms_sent' => 'boolean',

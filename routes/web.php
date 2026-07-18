@@ -23,6 +23,7 @@ use App\Http\Controllers\CRM\ReportController;
 use App\Http\Controllers\Auth\AdminLoginController;
 use App\Http\Controllers\CRM\ReverbMessagingLabController;
 use App\Http\Controllers\Public\PublicLeadInquiryController;
+use App\Http\Controllers\Public\PublicAppointmentPaymentController;
 use App\Http\Controllers\Public\PublicPhoneCallController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
@@ -65,6 +66,12 @@ Route::post("/{$publicLeadPath}/cancel", [PublicLeadInquiryController::class, 'c
     ->name('public.lead-inquiry.cancel');
 
 Route::middleware('throttle:60,1')->get('/phone-call', PublicPhoneCallController::class)->name('public.phone-call');
+
+Route::middleware('throttle:60,1')->group(function () {
+    Route::get('/appointment/pay/{token}', [PublicAppointmentPaymentController::class, 'show'])->name('public.appointment.pay');
+    Route::post('/appointment/pay/{token}/intent', [PublicAppointmentPaymentController::class, 'createIntent'])->name('public.appointment.pay.intent');
+    Route::post('/appointment/pay/{token}/complete', [PublicAppointmentPaymentController::class, 'complete'])->name('public.appointment.pay.complete');
+});
 
 // Cache clearing route - protected with authentication
 Route::get('/clear-cache', function() {

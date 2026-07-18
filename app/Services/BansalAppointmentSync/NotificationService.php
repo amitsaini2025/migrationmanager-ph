@@ -3,6 +3,7 @@
 namespace App\Services\BansalAppointmentSync;
 
 use App\Models\BookingAppointment;
+use App\Services\AppointmentPaymentLinkService;
 use App\Services\Sms\UnifiedSmsManager;
 use App\Services\SystemEmailLogService;
 use Illuminate\Support\Facades\Log;
@@ -16,6 +17,76 @@ class NotificationService
     {
         $this->smsManager = $smsManager;
         $this->systemEmailLog = $systemEmailLog;
+    }
+
+    /**
+     * Send the appropriate booking email: payment link for unpaid paid appointments,
+     * or the standard detailed confirmation for free / already-paid bookings.
+     */
+    public function sendBookingConfirmationEmail(BookingAppointment $appointment): bool
+    {
+        $paymentLinkService = app(AppointmentPaymentLinkService::class);
+
+        if ($paymentLinkService->requiresOnlinePayment($appointment)) {
+            return $this->sendPaidAppointmentPaymentEmail($appointment);
+        }
+
+        return $this->sendDetailedConfirmationEmail($appointment);
+    }
+
+    /**
+     * Send payment link email for paid appointments awaiting online payment.
+     */
+    public function sendPaidAppointmentPaymentEmail(BookingAppointment $appointment): bool
+    {
+        try {
+            if (empty($appointment->client_email)) {
+                return false;
+            }
+
+            $paymentLinkService = app(AppointmentPaymentLinkService::class);
+            if (! $paymentLinkService->requiresOnlinePayment($appointment)) {
+                return false;
+            }
+
+            $appointment = $paymentLinkService->ensurePaymentToken($appointment);
+            $paymentUrl = $paymentLinkService->paymentUrl($appointment);
+            if (! $paymentUrl) {
+                return false;
+            }
+
+            $details = [
+                'client_name' => $appointment->client_name,
+                'appointment_datetime' => $appointment->appointment_datetime,
+                'timeslot_full' => $appointment->timeslot_full,
+                'location' => $appointment->location,
+                'service_type' => $appointment->service_type,
+                'amount' => (float) ($appointment->final_amount ?? $appointment->amount),
+                'payment_url' => $paymentUrl,
+            ];
+
+            $this->systemEmailLog->logAndSendMailable([
+                'category' => 'appointment_payment',
+                'from_mail' => config('mail.from.address'),
+                'to_mail' => $appointment->client_email,
+                'subject' => 'Complete Your Appointment Payment - Bansal Immigration',
+                'client_id' => $appointment->client_id,
+            ], new \App\Mail\AppointmentPaidPaymentLink($details), $appointment->client_email);
+
+            Log::info('Sent paid appointment payment link email', [
+                'appointment_id' => $appointment->id,
+                'email' => $appointment->client_email,
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to send paid appointment payment link email', [
+                'appointment_id' => $appointment->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     /**

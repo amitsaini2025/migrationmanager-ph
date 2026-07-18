@@ -398,6 +398,75 @@ class StripePaymentService
     }
 
     /**
+     * Create a PaymentIntent for the public appointment pay-by-link page (AUD).
+     *
+     * @return array{success: bool, data: array, message: string}
+     */
+    public function createPublicPaymentIntent(BookingAppointment $appointment): array
+    {
+        try {
+            if (! config('services.stripe.secret')) {
+                return [
+                    'success' => false,
+                    'data' => [],
+                    'message' => 'Payment system is not configured. Please contact the office.',
+                ];
+            }
+
+            $amount = (float) ($appointment->final_amount ?? $appointment->amount);
+            if ($amount <= 0) {
+                return [
+                    'success' => false,
+                    'data' => [],
+                    'message' => 'Invalid appointment amount.',
+                ];
+            }
+
+            $amountInCents = (int) round($amount * 100);
+
+            $paymentIntent = PaymentIntent::create([
+                'amount' => $amountInCents,
+                'currency' => 'aud',
+                'automatic_payment_methods' => [
+                    'enabled' => true,
+                ],
+                'description' => sprintf(
+                    'Appointment payment #%d - %s',
+                    $appointment->id,
+                    $appointment->service_type ?? 'consultation'
+                ),
+                'receipt_email' => $appointment->client_email,
+                'metadata' => [
+                    'appointment_id' => (string) $appointment->id,
+                    'payment_token' => (string) ($appointment->payment_token ?? ''),
+                ],
+            ]);
+
+            return [
+                'success' => true,
+                'data' => [
+                    'client_secret' => $paymentIntent->client_secret,
+                    'payment_intent_id' => $paymentIntent->id,
+                    'amount' => $amount,
+                    'currency' => 'AUD',
+                ],
+                'message' => 'Payment intent created.',
+            ];
+        } catch (Exception $e) {
+            Log::error('Failed to create public appointment PaymentIntent', [
+                'appointment_id' => $appointment->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'data' => [],
+                'message' => 'Unable to start payment. Please try again or contact the office.',
+            ];
+        }
+    }
+
+    /**
      * Record payment by PaymentIntent ID (Option C: frontend owns PaymentIntent, backend only records).
      * Call this after the frontend has created and confirmed the PaymentIntent with Stripe.
      *

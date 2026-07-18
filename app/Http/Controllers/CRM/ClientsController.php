@@ -8443,7 +8443,7 @@ class ClientsController extends Controller
             if ($request->has('send_confirmation_email') && $request->boolean('send_confirmation_email')) {
                 try {
                     $notificationService = app(\App\Services\BansalAppointmentSync\NotificationService::class);
-                    $confirmationEmailSent = $notificationService->sendDetailedConfirmationEmail($appointment);
+                    $confirmationEmailSent = $notificationService->sendBookingConfirmationEmail($appointment);
                     $confirmationEmailFailed = !$confirmationEmailSent;
                 } catch (\Exception $e) {
                     $confirmationEmailFailed = true;
