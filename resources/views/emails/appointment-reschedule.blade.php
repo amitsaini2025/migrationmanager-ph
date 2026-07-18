@@ -67,7 +67,7 @@
         <table cellpadding="0" cellspacing="0" border="0" role="presentation" align="center" style="margin:0 auto 12px auto; border-collapse:collapse;">
           <tr>
             <td align="center" style="padding:12px 18px; background-color:#ffffff; border-radius:10px; border:1px solid #dbe4ec;">
-              <img src="{{ asset('img/logo.png') }}" alt="Bansal Immigration Consultants" style="display:block; border:0; outline:none; text-decoration:none; max-width:260px; width:auto; height:auto;" />
+              @include('emails.partials.inline-logo')
             </td>
           </tr>
         </table>
