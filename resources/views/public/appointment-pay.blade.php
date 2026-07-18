@@ -40,8 +40,8 @@
     @else
       <div class="msg info">Please complete payment to confirm your appointment.</div>
       <div class="detail"><strong>Client:</strong> {{ $appointment->client_name }}</div>
-      <div class="detail"><strong>Date:</strong> {{ $appointment->appointment_datetime?->format('l, d F Y') }}</div>
-      <div class="detail"><strong>Time:</strong> {{ $appointment->timeslot_full ?? $appointment->appointment_datetime?->format('h:i A') }}</div>
+      <div class="detail"><strong>Date:</strong> {{ $appointmentDate }}</div>
+      <div class="detail"><strong>Time:</strong> {{ $appointmentTime }}</div>
       <div class="detail"><strong>Service:</strong> {{ $appointment->service_type }}</div>
       <div class="amount">${{ number_format($amount, 2) }} AUD</div>
 

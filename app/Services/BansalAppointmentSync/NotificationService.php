@@ -55,23 +55,13 @@ class NotificationService
                 return false;
             }
 
-            $details = [
-                'client_name' => $appointment->client_name,
-                'appointment_datetime' => $appointment->appointment_datetime,
-                'timeslot_full' => $appointment->timeslot_full,
-                'location' => $appointment->location,
-                'service_type' => $appointment->service_type,
-                'amount' => (float) ($appointment->final_amount ?? $appointment->amount),
-                'payment_url' => $paymentUrl,
-            ];
-
             $this->systemEmailLog->logAndSendMailable([
                 'category' => 'appointment_payment',
                 'from_mail' => config('mail.from.address'),
                 'to_mail' => $appointment->client_email,
                 'subject' => 'Complete Your Appointment Payment - Bansal Immigration',
                 'client_id' => $appointment->client_id,
-            ], new \App\Mail\AppointmentPaidPaymentLink($details), $appointment->client_email);
+            ], new \App\Mail\AppointmentPaidPaymentLink($appointment, $paymentUrl), $appointment->client_email);
 
             Log::info('Sent paid appointment payment link email', [
                 'appointment_id' => $appointment->id,

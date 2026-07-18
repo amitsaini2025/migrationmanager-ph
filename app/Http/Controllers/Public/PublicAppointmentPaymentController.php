@@ -7,6 +7,7 @@ use App\Mail\AppointmentDetailedConfirmation;
 use App\Services\AppointmentPaymentLinkService;
 use App\Services\Payment\StripePaymentService;
 use App\Services\SystemEmailLogService;
+use App\Support\AppointmentEmailFormatter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -36,6 +37,8 @@ class PublicAppointmentPaymentController extends Controller
         return view('public.appointment-pay', [
             'error' => null,
             'appointment' => $appointment,
+            'appointmentDate' => AppointmentEmailFormatter::formatDate($appointment),
+            'appointmentTime' => AppointmentEmailFormatter::formatTimeRange($appointment),
             'stripeKey' => config('services.stripe.key'),
             'token' => $token,
             'amount' => (float) ($appointment->final_amount ?? $appointment->amount),

@@ -2,6 +2,8 @@
 
 namespace App\Mail;
 
+use App\Models\BookingAppointment;
+use App\Support\AppointmentEmailFormatter;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -13,7 +15,8 @@ class AppointmentPaidPaymentLink extends Mailable
     use Queueable, SerializesModels;
 
     public function __construct(
-        public array $details
+        public BookingAppointment $appointment,
+        public string $paymentUrl,
     ) {
     }
 
@@ -26,20 +29,20 @@ class AppointmentPaidPaymentLink extends Mailable
 
     public function content(): Content
     {
-        $location = $this->details['location'] ?? 'melbourne';
+        $location = $this->appointment->location ?? 'melbourne';
 
         return new Content(
             view: 'emails.appointment-paid-payment',
             with: [
-                'clientName' => $this->details['client_name'] ?? 'Valued Client',
-                'appointmentDate' => $this->details['appointment_datetime']?->format('l, d F Y') ?? 'N/A',
-                'appointmentTime' => $this->details['timeslot_full'] ?? 'N/A',
+                'clientName' => $this->appointment->client_name ?? 'Valued Client',
+                'appointmentDate' => AppointmentEmailFormatter::formatDate($this->appointment),
+                'appointmentTime' => AppointmentEmailFormatter::formatTimeRange($this->appointment),
                 'locationAddress' => $this->getLocationAddress($location),
-                'serviceType' => filled($this->details['service_type'] ?? null)
-                    ? (string) $this->details['service_type']
+                'serviceType' => filled($this->appointment->service_type)
+                    ? (string) $this->appointment->service_type
                     : 'N/A',
-                'amount' => number_format((float) ($this->details['amount'] ?? 0), 2),
-                'paymentUrl' => $this->details['payment_url'] ?? '#',
+                'amount' => number_format((float) ($this->appointment->final_amount ?? $this->appointment->amount), 2),
+                'paymentUrl' => $this->paymentUrl,
                 'locationPhone' => $this->getLocationPhone($location),
                 'locationPhoneTel' => str_replace(
                     [' ', '-'],
