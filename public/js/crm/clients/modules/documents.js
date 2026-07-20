@@ -51,9 +51,22 @@
     $(document).ready(function() {
         // ---- Update Personal Document Category ----
         $(document).on('click', '.update-personal-cat-title', function() {
-            var id = $(this).data('id');
-            var newTitle = prompt('Enter new title for the category:');
+            var $editBtn = $(this);
+            if ($editBtn.data('updating')) {
+                return;
+            }
+            var id = $editBtn.data('id');
+            var currentTitle = ($editBtn.attr('data-title') || $editBtn.data('title') || '').toString().trim();
+            if (!currentTitle) {
+                currentTitle = $editBtn.closest('.button-container').find('.subtab2-button').first().text().trim();
+            }
+            var newTitle = prompt('Enter new title for the category:', currentTitle);
             if (newTitle) {
+                newTitle = newTitle.trim();
+            }
+            if (newTitle) {
+                $editBtn.data('updating', true).prop('disabled', true);
+                $('.popuploader').show();
                 $.ajax({
                     url: window.ClientDetailConfig.urls.updatePersonalCategory,
                     method: 'POST',
@@ -65,10 +78,29 @@
                     success: function(response) {
                         if (response.status) {
                             alert(response.message);
-                            location.reload();
+                            var updated = false;
+                            try {
+                                if (typeof window.renamePersonalDocCategoryUi === 'function') {
+                                    updated = !!window.renamePersonalDocCategoryUi(id, newTitle);
+                                }
+                            } catch (renameErr) {
+                                console.warn('[UpdatePersDocCat] UI rename failed, falling back to reload', renameErr);
+                                updated = false;
+                            }
+                            if (!updated) {
+                                location.reload();
+                                return;
+                            }
                         } else {
                             alert(response.message);
                         }
+                    },
+                    error: function() {
+                        alert('An error occurred while updating the category. Please try again.');
+                    },
+                    complete: function() {
+                        $('.popuploader').hide();
+                        $editBtn.data('updating', false).prop('disabled', false);
                     }
                 });
             }
@@ -188,8 +220,12 @@
         // ---- Delete Personal Document Category ----
         $(document).on('click', '.delete-personal-cat-title', function(e) {
             e.preventDefault();
-            var id = $(this).data('id');
-            var title = $(this).data('title') || 'this category';
+            var $deleteBtn = $(this);
+            if ($deleteBtn.data('deleting')) {
+                return;
+            }
+            var id = $deleteBtn.data('id');
+            var title = $deleteBtn.data('title') || 'this category';
             var warningMessage = '⚠️ WARNING: You are about to delete the category "' + title + '"\n\n' +
                 'This action will permanently remove the category from the system.\n\n' +
                 'Requirements:\n' +
@@ -204,6 +240,8 @@
                     'This will permanently delete the category and any not-used documents linked to it.\n\n' +
                     'Click OK to delete or Cancel to abort.';
                 if (confirm(confirmMessage)) {
+                    $deleteBtn.data('deleting', true).prop('disabled', true);
+                    $('.popuploader').show();
                     $.ajax({
                         url: window.ClientDetailConfig.urls.deletePersonalCategory,
                         method: 'POST',
@@ -214,7 +252,19 @@
                         success: function(response) {
                             if (response.status) {
                                 alert('✓ Success: ' + response.message);
-                                location.reload();
+                                var removed = false;
+                                try {
+                                    if (typeof window.removePersonalDocCategoryUi === 'function') {
+                                        removed = !!window.removePersonalDocCategoryUi(id);
+                                    }
+                                } catch (removeErr) {
+                                    console.warn('[DeletePersDocCat] UI remove failed, falling back to reload', removeErr);
+                                    removed = false;
+                                }
+                                if (!removed) {
+                                    location.reload();
+                                    return;
+                                }
                             } else {
                                 alert('✗ Error: ' + (response.message || 'Failed to delete category.'));
                             }
@@ -225,6 +275,10 @@
                                 errorMsg = xhr.responseJSON.message;
                             }
                             alert('✗ Error: ' + errorMsg);
+                        },
+                        complete: function() {
+                            $('.popuploader').hide();
+                            $deleteBtn.data('deleting', false).prop('disabled', false);
                         }
                     });
                 }
@@ -547,10 +601,10 @@
         var uploadIcon = personalDocIcon('fa-upload');
         var cloudIcon = personalDocIcon('fa-cloud-upload-alt', { style: 'font-size: 48px; color: #2563eb; margin-bottom: 15px;' });
 
-        var actionsHtml = '<div class="action-buttons" style="display: none; position: absolute; top: 0; right: -8px;">' +
-            '<button type="button" class="btn btn-sm btn-warning update-personal-cat-title" data-id="' + id + '" style="padding: 2px 0px 2px 6px;">' + editIcon + '</button>';
+        var actionsHtml = '<div class="action-buttons" style="display: none; position: absolute;">' +
+            '<button type="button" class="btn btn-sm btn-warning update-personal-cat-title" data-id="' + id + '" data-title="' + safeTitle + '">' + editIcon + '</button>';
         if (canDelete) {
-            actionsHtml += '<button type="button" class="btn btn-sm btn-danger delete-personal-cat-title" data-id="' + id + '" data-title="' + safeTitle + '" style="padding: 2px 0px 2px 6px;">' + trashIcon + '</button>';
+            actionsHtml += '<button type="button" class="btn btn-sm btn-danger delete-personal-cat-title" data-id="' + id + '" data-title="' + safeTitle + '">' + trashIcon + '</button>';
         }
         actionsHtml += '</div>';
 
@@ -638,6 +692,106 @@
 
         if (typeof refreshLucideIcons === 'function') {
             refreshLucideIcons($tab[0]);
+        }
+
+        return true;
+    };
+
+    /**
+     * Rename a personal document category tab + pane labels without page reload.
+     * Returns true on success, false if UI could not be updated safely.
+     */
+    window.renamePersonalDocCategoryUi = function(categoryId, newTitle) {
+        var id = categoryId;
+        var title = (newTitle == null ? '' : String(newTitle)).trim();
+        if (id == null || id === '' || !title) {
+            return false;
+        }
+
+        var $tab = $('#personaldocuments-tab');
+        var $nav = $tab.find('nav.subtabs2').first();
+        var $content = $tab.find('.subtab2-content').first();
+        if (!$tab.length || !$nav.length || !$content.length) {
+            return false;
+        }
+
+        var $btn = $nav.find('.subtab2-button[data-subtab2="' + id + '"]');
+        var $pane = $content.find('[id="' + id + '-subtab2"]');
+        if (!$btn.length || !$pane.length) {
+            return false;
+        }
+
+        var $btnWrap = $btn.closest('.button-container');
+
+        $btn.text(title);
+        $btnWrap.find('.update-personal-cat-title').attr('data-title', title);
+        $btnWrap.find('.delete-personal-cat-title').attr('data-title', title);
+
+        var $h3 = $pane.find('.subtab2-header h3').first();
+        if ($h3.length) {
+            var $icon = $h3.children().first().clone();
+            $h3.empty();
+            if ($icon.length) {
+                $h3.append($icon);
+                $h3.append(document.createTextNode(' '));
+            }
+            $h3.append(document.createTextNode(title + ' Documents'));
+        }
+
+        $pane.find('.bulk-upload-toggle-btn[data-categoryid="' + id + '"]').attr('data-categoryname', title);
+        $pane.find('[data-doccategory]').each(function() {
+            $(this).attr('data-doccategory', title);
+        });
+        $pane.find('input[name="doccategory"]').val(title);
+
+        return true;
+    };
+
+    /**
+     * Remove a personal document category tab + pane without page reload.
+     * Returns true on success, false if UI could not be updated safely.
+     */
+    window.removePersonalDocCategoryUi = function(categoryId) {
+        var id = categoryId;
+        if (id == null || id === '') {
+            return false;
+        }
+
+        var $tab = $('#personaldocuments-tab');
+        var $nav = $tab.find('nav.subtabs2').first();
+        var $content = $tab.find('.subtab2-content').first();
+        if (!$tab.length || !$nav.length || !$content.length) {
+            return false;
+        }
+
+        var $btn = $nav.find('.subtab2-button[data-subtab2="' + id + '"]');
+        var $pane = $content.find('[id="' + id + '-subtab2"]');
+        if (!$btn.length && !$pane.length) {
+            // Already gone — treat as success so we do not force a reload.
+            return true;
+        }
+
+        var wasActive = $btn.hasClass('active') || $pane.hasClass('active');
+        var $btnWrap = $btn.closest('.button-container');
+
+        if ($btnWrap.length) {
+            $btnWrap.remove();
+        } else if ($btn.length) {
+            $btn.remove();
+        }
+        if ($pane.length) {
+            $pane.remove();
+        }
+
+        if (wasActive) {
+            var $fallbackBtn = $nav.find('.subtab2-button').first();
+            if ($fallbackBtn.length) {
+                $nav.find('.subtab2-button').removeClass('active');
+                $content.find('.subtab2-pane').removeClass('active');
+                $fallbackBtn.addClass('active');
+                var fallbackId = $fallbackBtn.data('subtab2');
+                $content.find('[id="' + fallbackId + '-subtab2"]').addClass('active');
+            }
         }
 
         return true;

@@ -906,6 +906,9 @@ function customValidate(formName, savetype = '')
                     else if(formName == 'add_pers_doc_cat_form'){
                         var myform = document.getElementById('add_pers_doc_cat_form');
                         var fd = new FormData(myform);
+                        var $createBtn = $('#addpersonaldoccatmodel').find('button.btn-primary').first();
+                        $createBtn.prop('disabled', true);
+                        // popuploader already shown by customValidate() for all form submits
                         $.ajax({
                             type:'post',
                             url:$("form[name="+formName+"]").attr('action'),
@@ -915,7 +918,6 @@ function customValidate(formName, savetype = '')
                             success: function(response){
                                 var obj = response; // Remove $.parseJSON(response)
                                 $('#addpersonaldoccatmodel').modal('hide');
-                                $('.popuploader').hide();
                                 if(obj.status){
 									localStorage.setItem('activeTab', 'personaldocuments');
 									$('#personal_doc_category').val('');
@@ -941,6 +943,13 @@ function customValidate(formName, savetype = '')
                                 }else{
                                     $('.custom-error-msg').html('<span class="alert alert-danger">'+obj.message+'</span>');
                                 }
+                            },
+                            error: function(){
+                                $('.custom-error-msg').html('<span class="alert alert-danger">An error occurred while adding the category. Please try again.</span>');
+                            },
+                            complete: function(){
+                                $('.popuploader').hide();
+                                $createBtn.prop('disabled', false);
                             }
                         });
                     }
