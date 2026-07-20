@@ -11,7 +11,8 @@ class ConsultantAssignmentService
      * Assign consultant based on appointment details.
      *
      * Adelaide: education (NOE 5) or tourist (NOE 4) → Adelaide Education calendar; all other Adelaide bookings → Adelaide calendar.
-     * Melbourne: calendar follows service line (tourist, education, Ajay, JRP, employer-sponsored, Kunal, etc.).
+     * Melbourne: calendar follows service line (tourist, education, Ajay, JRP, employer-sponsored, etc.).
+     * GSM, EOI/ROI, TR 485, and JRP/Skill Assessment use free → JRP calendar, paid → Employer Sponsored calendar (all languages).
      */
     public function assignConsultant(array $appointmentData): ?AppointmentConsultant
     {
@@ -88,19 +89,9 @@ class ConsultantAssignmentService
             return 'paid';
         }
 
-        // TR (485) + JRP / Skill assessment → same JRP calendar (paid or free)
-        if (in_array($noeId, [2, 3], true)) {
-            return 'jrp';
-        }
-
         // Outside Australia / international migration → Employer Sponsored Calendar
         if ($noeId === 8) {
             return 'paid';
-        }
-
-        // EOI / ROI
-        if ($noeId === 9) {
-            return $this->melbournePunjabiGsmEoiCalendarOverride($appointment) ?? 'kunal';
         }
 
         // Employer Sponsored (494, 482, 186, DAMA)
@@ -108,9 +99,9 @@ class ConsultantAssignmentService
             return 'paid';
         }
 
-        // GSM (491, 190, 189, 191) → Kunal calendar (explicit NOE; not overseas/employer split)
-        if ($noeId === 1) {
-            return $this->melbournePunjabiGsmEoiCalendarOverride($appointment) ?? 'kunal';
+        // GSM, EOI/ROI, TR (485), JRP / Skill assessment → free: JRP; paid: Employer Sponsored (all languages)
+        if (in_array($noeId, [1, 2, 3, 9], true)) {
+            return $this->melbourneFreePaidCalendarOverride($appointment, $noeId) ?? 'jrp';
         }
 
         // Unknown NOE: classify from text (EOI/GSM/employer keywords), else employer-sponsored (legacy PR)
@@ -122,7 +113,7 @@ class ConsultantAssignmentService
     }
 
     /**
-     * Classify Melbourne calendar when `noe_id` is missing (sync/legacy): EOI/GSM → kunal, employer keywords → paid, else paid (old PR bucket).
+     * Classify Melbourne calendar when `noe_id` is missing (sync/legacy): EOI/GSM → free/paid split, employer keywords → paid, else paid (old PR bucket).
      */
     protected function melbournePrCalendarType(array $appointment, $serviceId): string
     {
@@ -138,12 +129,12 @@ class ConsultantAssignmentService
 
         // EOI / ROI
         if (preg_match('/\beoi\b|expression\s+of\s+interest|\broi\b|points\s+table|skillselect/i', $haystack)) {
-            return $this->melbournePunjabiGsmEoiCalendarOverride($appointment, true) ?? 'kunal';
+            return $this->melbourneFreePaidCalendarOverride($appointment, null, true) ?? 'jrp';
         }
 
         // GSM subclasses / general skilled
         if (preg_match('/\b(491|190|189|191)\b|gsm|general\s+skilled|skilled\s+nominated|subclass\s*(491|190|189|191)/i', $haystack)) {
-            return $this->melbournePunjabiGsmEoiCalendarOverride($appointment, true) ?? 'kunal';
+            return $this->melbourneFreePaidCalendarOverride($appointment, null, true) ?? 'jrp';
         }
 
         // Employer Sponsored (494, 482, 186, 407, DAMA, etc.)
@@ -167,26 +158,23 @@ class ConsultantAssignmentService
     }
 
     /**
-     * Melbourne + Punjabi + GSM or EOI/ROI: free → JRP calendar; paid → Employer Sponsored calendar.
-     * Otherwise returns null and callers keep existing behaviour (e.g. Kunal).
+     * Melbourne GSM, EOI/ROI, TR 485, JRP/Skill Assessment: free → JRP calendar; paid → Employer Sponsored calendar.
+     * Applies to all languages (English, Hindi, Punjabi).
      *
+     * @param  int|null  $noeId  Resolved NOE when already known by caller.
      * @param  bool  $legacyGsmOrEoiFromText  When true, treat missing NOE as GSM/EOI if matched from enquiry text only.
      */
-    protected function melbournePunjabiGsmEoiCalendarOverride(array $appointment, bool $legacyGsmOrEoiFromText = false): ?string
+    protected function melbourneFreePaidCalendarOverride(array $appointment, ?int $noeId = null, bool $legacyGsmOrEoiFromText = false): ?string
     {
-        if (! $this->isPreferredLanguagePunjabi($appointment)) {
+        $resolvedNoe = $noeId ?? $this->resolveNoeId($appointment);
+        $applies = in_array($resolvedNoe, [1, 2, 3, 9], true)
+            || ($legacyGsmOrEoiFromText && $resolvedNoe === null);
+
+        if (! $applies) {
             return null;
         }
 
-        $noeId = $this->resolveNoeId($appointment);
-        $isGsmOrEoi = in_array($noeId, [1, 9], true)
-            || ($legacyGsmOrEoiFromText && $noeId === null);
-
-        if (! $isGsmOrEoi) {
-            return null;
-        }
-
-        $bucket = $this->resolveFreeVsPaidForPunjabiGsmEoiOverride($appointment);
+        $bucket = $this->resolveFreeVsPaidBucket($appointment);
         if ($bucket === null) {
             return null;
         }
@@ -194,17 +182,10 @@ class ConsultantAssignmentService
         return $bucket === 'free' ? 'jrp' : 'paid';
     }
 
-    protected function isPreferredLanguagePunjabi(array $appointment): bool
-    {
-        $lang = strtolower(trim((string) ($appointment['preferred_language'] ?? '')));
-
-        return $lang === 'punjabi';
-    }
-
     /**
-     * @return 'free'|'paid'|null null = unknown; callers fall back to default calendar (e.g. kunal)
+     * @return 'free'|'paid'|null null = unknown; callers fall back to default calendar (e.g. jrp)
      */
-    protected function resolveFreeVsPaidForPunjabiGsmEoiOverride(array $appointment): ?string
+    protected function resolveFreeVsPaidBucket(array $appointment): ?string
     {
         $serviceId = $appointment['service_id'] ?? null;
         if ($serviceId !== null && $serviceId !== '') {

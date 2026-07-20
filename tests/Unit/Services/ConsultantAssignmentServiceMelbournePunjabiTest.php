@@ -58,9 +58,9 @@ class ConsultantAssignmentServiceMelbournePunjabiTest extends TestCase
         ]));
     }
 
-    public function test_melbourne_english_gsm_free_still_kunal(): void
+    public function test_melbourne_english_gsm_free_goes_jrp(): void
     {
-        $this->assertSame('kunal', $this->calendarType([
+        $this->assertSame('jrp', $this->calendarType([
             'noe_id' => 1,
             'location' => 'melbourne',
             'inperson_address' => 2,
@@ -68,6 +68,84 @@ class ConsultantAssignmentServiceMelbournePunjabiTest extends TestCase
             'specific_service' => 'consultation',
             'preferred_language' => 'English',
             'service_type' => 'GSM Visas: 491, 190, 189, 191',
+        ]));
+    }
+
+    public function test_melbourne_hindi_gsm_paid_goes_employer_sponsored(): void
+    {
+        $this->assertSame('paid', $this->calendarType([
+            'noe_id' => 1,
+            'location' => 'melbourne',
+            'inperson_address' => 2,
+            'service_id' => 1,
+            'specific_service' => 'paid-consultation',
+            'preferred_language' => 'Hindi',
+            'service_type' => 'GSM Visas: 491, 190, 189, 191',
+        ]));
+    }
+
+    public function test_melbourne_english_eoi_paid_goes_employer_sponsored(): void
+    {
+        $this->assertSame('paid', $this->calendarType([
+            'noe_id' => 9,
+            'location' => 'melbourne',
+            'inperson_address' => 2,
+            'service_id' => 1,
+            'specific_service' => 'paid-consultation',
+            'preferred_language' => 'English',
+            'service_type' => 'EOI/ROI',
+        ]));
+    }
+
+    public function test_melbourne_tr_485_free_goes_jrp(): void
+    {
+        $this->assertSame('jrp', $this->calendarType([
+            'noe_id' => 2,
+            'location' => 'melbourne',
+            'inperson_address' => 2,
+            'service_id' => 2,
+            'specific_service' => 'consultation',
+            'preferred_language' => 'English',
+            'service_type' => 'TR: 485 visa',
+        ]));
+    }
+
+    public function test_melbourne_tr_485_paid_goes_employer_sponsored(): void
+    {
+        $this->assertSame('paid', $this->calendarType([
+            'noe_id' => 2,
+            'location' => 'melbourne',
+            'inperson_address' => 2,
+            'service_id' => 1,
+            'specific_service' => 'paid-consultation',
+            'preferred_language' => 'Hindi',
+            'service_type' => 'TR: 485 visa',
+        ]));
+    }
+
+    public function test_melbourne_jrp_skill_assessment_free_goes_jrp(): void
+    {
+        $this->assertSame('jrp', $this->calendarType([
+            'noe_id' => 3,
+            'location' => 'melbourne',
+            'inperson_address' => 2,
+            'service_id' => 2,
+            'specific_service' => 'consultation',
+            'preferred_language' => 'Punjabi',
+            'service_type' => 'JRP/Skill Assessment',
+        ]));
+    }
+
+    public function test_melbourne_jrp_skill_assessment_paid_goes_employer_sponsored(): void
+    {
+        $this->assertSame('paid', $this->calendarType([
+            'noe_id' => 3,
+            'location' => 'melbourne',
+            'inperson_address' => 2,
+            'service_id' => 1,
+            'specific_service' => 'paid-consultation',
+            'preferred_language' => 'English',
+            'service_type' => 'JRP/Skill Assessment',
         ]));
     }
 

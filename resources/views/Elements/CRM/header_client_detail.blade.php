@@ -48,9 +48,6 @@
                     <a class="dropdown-item" href="{{ route('booking.appointments.calendar', ['type' => 'ajay']) }}">
                         @icon('fa-calendar-alt', ['class' => 'mr-2']) Ajay Calendar
                     </a>
-                    <a class="dropdown-item" href="{{ route('booking.appointments.calendar', ['type' => 'kunal']) }}">
-                        @icon('fa-calendar-alt', ['class' => 'mr-2']) Kunal Calendar
-                    </a>
                     <a class="dropdown-item" href="{{ route('booking.appointments.calendar', ['type' => 'arun']) }}">
                         @icon('fa-calendar-alt', ['class' => 'mr-2']) Arun Calendar
                     </a>

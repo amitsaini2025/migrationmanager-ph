@@ -43,10 +43,6 @@
                        class="btn btn-sm {{ $type === 'ajay' ? 'btn-primary' : 'btn-outline-primary' }}">
                         @icon('fa-calendar-alt') Ajay Calendar
                     </a>
-                    <a href="{{ route('booking.appointments.calendar', ['type' => 'kunal']) }}" 
-                       class="btn btn-sm {{ $type === 'kunal' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        @icon('fa-calendar-alt') Kunal Calendar
-                    </a>
                     <a href="{{ route('booking.appointments.calendar', ['type' => 'arun']) }}" 
                        class="btn btn-sm {{ $type === 'arun' ? 'btn-primary' : 'btn-outline-primary' }}">
                         @icon('fa-calendar-alt') Arun Calendar

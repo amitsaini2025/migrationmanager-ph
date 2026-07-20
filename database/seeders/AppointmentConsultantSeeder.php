@@ -104,8 +104,8 @@ class AppointmentConsultantSeeder extends Seeder
                 'calendar_type' => 'kunal',
                 'location' => 'melbourne',
                 'specializations' => json_encode([]),
-                'is_active' => true,
-                'show_in_filter' => true,
+                'is_active' => false,
+                'show_in_filter' => false,
             ],
             [
                 'name' => 'Arun Calendar',

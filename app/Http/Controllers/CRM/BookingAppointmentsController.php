@@ -116,7 +116,7 @@ class BookingAppointmentsController extends Controller
         }
         
         // List filter: all active consultants; labels use crm_display_label (e.g. Employer Sponsored Calendar, not personal names)
-        $calendarOrder = ['paid' => 1, 'jrp' => 2, 'education' => 3, 'tourist' => 4, 'adelaide' => 5, 'adelaide_education' => 6, 'ajay' => 7, 'kunal' => 8, 'arun' => 9];
+        $calendarOrder = ['paid' => 1, 'jrp' => 2, 'education' => 3, 'tourist' => 4, 'adelaide' => 5, 'adelaide_education' => 6, 'ajay' => 7, 'arun' => 8];
         $consultants = AppointmentConsultant::active()
             ->get()
             ->sortBy(fn ($c) => $calendarOrder[$c->calendar_type] ?? 99)
@@ -318,7 +318,7 @@ class BookingAppointmentsController extends Controller
      */
     public function calendar($type)
     {
-        $validTypes = ['paid', 'jrp', 'education', 'tourist', 'adelaide', 'adelaide_education', 'ajay', 'kunal', 'arun'];
+        $validTypes = ['paid', 'jrp', 'education', 'tourist', 'adelaide', 'adelaide_education', 'ajay', 'arun'];
         
         if (!in_array($type, $validTypes)) {
             abort(404);
@@ -343,7 +343,6 @@ class BookingAppointmentsController extends Controller
             'adelaide' => 'Adelaide Office',
             'adelaide_education' => 'Adelaide Education',
             'ajay' => 'Ajay Calendar',
-            'kunal' => 'Kunal Calendar',
             'arun' => 'Arun Calendar',
             default => ucfirst($type)
         };
