@@ -168,11 +168,59 @@ class BansalSchedulingServiceTypeTest extends TestCase
         );
     }
 
-    public function test_other_noe_bansal_service_type_unchanged(): void
+    public function test_other_noe_bansal_service_type_uses_slug(): void
     {
         $this->assertSame(
-            'TR: 485 visa',
+            'temporary-residency',
             BansalSchedulingServiceType::bansalServiceTypeForApi(2, 'TR: 485 visa')
+        );
+    }
+
+    public function test_melbourne_eoi_bansal_sync_uses_pr_complex(): void
+    {
+        $this->assertSame(
+            'pr_complex',
+            BansalSchedulingServiceType::bansalEnquiryTypeForApi(9, 'melbourne', 'eoi')
+        );
+    }
+
+    public function test_melbourne_jrp_bansal_sync_uses_pr_complex(): void
+    {
+        $this->assertSame(
+            'pr_complex',
+            BansalSchedulingServiceType::bansalEnquiryTypeForApi(3, 'melbourne', 'jrp')
+        );
+    }
+
+    public function test_melbourne_gsm_bansal_sync_uses_pr_complex(): void
+    {
+        $this->assertSame(
+            'pr_complex',
+            BansalSchedulingServiceType::bansalEnquiryTypeForApi(1, 'melbourne', 'pr_complex')
+        );
+    }
+
+    public function test_melbourne_eoi_bansal_service_type_slug(): void
+    {
+        $this->assertSame(
+            'eoi-roi',
+            BansalSchedulingServiceType::bansalServiceTypeForApi(9, 'EOI/ROI')
+        );
+    }
+
+    public function test_melbourne_jrp_bansal_service_type_slug(): void
+    {
+        $this->assertSame(
+            'jrp-skill-assessment',
+            BansalSchedulingServiceType::bansalServiceTypeForApi(3, 'JRP/Skill Assessment')
+        );
+    }
+
+    public function test_melbourne_gsm_bansal_service_type_slug(): void
+    {
+        $this->assertSame(
+            'permanent-residency',
+            BansalSchedulingServiceType::bansalServiceTypeForApi(1, 'GSM Visas: 491, 190, 189, 191')
         );
     }
 }
