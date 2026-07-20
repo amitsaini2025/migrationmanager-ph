@@ -29,6 +29,7 @@ class Kernel extends ConsoleKernel
         '\App\Console\Commands\SendAppointmentReminders',
         '\App\Console\Commands\TestBansalApiConnection',
         '\App\Console\Commands\BackfillBansalAppointments',
+        '\App\Console\Commands\MigrateKunalCalendarAppointments',
         
         // Signature Management System Commands
         '\App\Console\Commands\ArchiveOldDrafts',
