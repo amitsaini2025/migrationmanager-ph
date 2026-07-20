@@ -613,6 +613,29 @@
         $btnWrap.find('.subtab2-button').addClass('active');
         $newPane.addClass('active');
 
+        // Match detail-main.js page-load preview sizing so the new pane gets natural height.
+        // Scoped to this pane only so existing category preview panes are untouched.
+        var $newPreview = $newPane.find('.preview-pane.file-preview-container');
+        if ($newPreview.length) {
+            $newPreview.css({
+                'display': 'flex',
+                'flex-direction': 'column',
+                'margin-top': '15px',
+                'width': '499px',
+                'min-height': '500px',
+                'height': 'calc(100vh - 200px)',
+                'border': '1px solid #dee2e6',
+                'border-radius': '4px',
+                'padding': '15px',
+                'background': '#fff',
+                'position': 'sticky',
+                'top': '20px'
+            });
+            if (typeof window.adjustPreviewContainers === 'function') {
+                window.adjustPreviewContainers();
+            }
+        }
+
         if (typeof refreshLucideIcons === 'function') {
             refreshLucideIcons($tab[0]);
         }
