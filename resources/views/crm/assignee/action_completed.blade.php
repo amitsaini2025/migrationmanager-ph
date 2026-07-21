@@ -279,7 +279,20 @@
                                             @foreach($assignees_completed as $list)
                                                 <?php
                                                     $staff = $list->noteStaff;
-                                                    $full_name = $staff ? ($staff->first_name ?? 'N/A') . ' ' . ($staff->last_name ?? 'N/A') : 'N/A';
+                                                    $full_name = 'N/A';
+                                                    if (
+                                                        $list->noteClient
+                                                        && (int) $list->user_id === (int) $list->client_id
+                                                        && in_array((string) ($list->task_group ?? ''), ['Client Portal', 'EOI/ROI Amendment'], true)
+                                                    ) {
+                                                        $full_name = trim($list->noteClient->company_name_or_personal_name ?? '');
+                                                        if ($full_name === '') {
+                                                            $full_name = trim(($list->noteClient->first_name ?? '') . ' ' . ($list->noteClient->last_name ?? ''));
+                                                        }
+                                                        $full_name = $full_name !== '' ? $full_name : 'N/P';
+                                                    } elseif ($staff) {
+                                                        $full_name = ($staff->first_name ?? 'N/A') . ' ' . ($staff->last_name ?? 'N/A');
+                                                    }
                                                     $client_name = $list->noteClient ? trim($list->noteClient->company_name_or_personal_name) : 'N/P';
                                                     if ($list->noteClient && $client_name === '') {
                                                         $client_name = trim($list->noteClient->first_name . ' ' . $list->noteClient->last_name) ?: 'N/P';

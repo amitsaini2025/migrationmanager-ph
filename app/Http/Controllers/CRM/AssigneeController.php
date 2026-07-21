@@ -453,21 +453,7 @@ class AssigneeController extends Controller
                         return $done_action;
                     })
                     ->addColumn('assigner_name', function($data) {
-                        try {
-                            // Client Portal actions created by client (e.g. upload from mobile): show client name as assigner
-                            if (isset($data->task_group) && (string) $data->task_group === 'Client Portal' && (int) $data->user_id === (int) $data->client_id && $data->noteClient) {
-                                $portalLabel = Utf8Helper::safeSanitize(trim($data->noteClient->company_name_or_personal_name ?? ''));
-                                return $portalLabel !== '' ? $portalLabel : 'N/P';
-                            }
-                            if ($data->noteStaff) {
-                                $firstName = Utf8Helper::safeSanitize($data->noteStaff->first_name ?? '');
-                                $lastName = Utf8Helper::safeSanitize($data->noteStaff->last_name ?? '');
-                                return $firstName . ' ' . $lastName;
-                            }
-                            return 'N/P';
-                        } catch (\Exception $e) {
-                            return 'N/P';
-                        }
+                        return $this->resolveAssignerNameForAction($data);
                     })
                     ->addColumn('client_reference', function($data) {
                         try {
@@ -554,10 +540,24 @@ class AssigneeController extends Controller
                     // Define how to filter computed columns
                     ->filterColumn('assigner_name', function($query, $keyword) {
                         $keywordLower = strtolower($keyword);
-                        $query->whereHas('noteStaff', function($q) use ($keywordLower) {
-                            $q->whereRaw('LOWER(first_name) LIKE ?', ['%' . $keywordLower . '%'])
-                              ->orWhereRaw('LOWER(last_name) LIKE ?', ['%' . $keywordLower . '%'])
-                              ->orWhereRaw("LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE ?", ['%' . $keywordLower . '%']);
+                        $query->where(function ($assignerQuery) use ($keywordLower) {
+                            $assignerQuery->whereHas('noteStaff', function($q) use ($keywordLower) {
+                                $q->whereRaw('LOWER(first_name) LIKE ?', ['%' . $keywordLower . '%'])
+                                  ->orWhereRaw('LOWER(last_name) LIKE ?', ['%' . $keywordLower . '%'])
+                                  ->orWhereRaw("LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE ?", ['%' . $keywordLower . '%']);
+                            })->orWhere(function ($clientAssignerQuery) use ($keywordLower) {
+                                $clientAssignerQuery
+                                    ->whereIn('task_group', ['Client Portal', 'EOI/ROI Amendment'])
+                                    ->whereColumn('user_id', 'client_id')
+                                    ->whereHas('noteClient', function ($q) use ($keywordLower) {
+                                        $q->whereRaw('LOWER(first_name) LIKE ?', ['%' . $keywordLower . '%'])
+                                          ->orWhereRaw('LOWER(last_name) LIKE ?', ['%' . $keywordLower . '%'])
+                                          ->orWhereRaw('LOWER(client_id) LIKE ?', ['%' . $keywordLower . '%'])
+                                          ->orWhereHas('company', function ($cq) use ($keywordLower) {
+                                              $cq->whereRaw('LOWER(company_name) LIKE ?', ['%' . $keywordLower . '%']);
+                                          });
+                                    });
+                            });
                         });
                     })
                     ->filterColumn('client_reference', function($query, $keyword) {
@@ -915,6 +915,42 @@ class AssigneeController extends Controller
                 'success' => false,
                 'message' => 'An error occurred while updating the action: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Resolve Action page "Assigner Name" for staff- or client-initiated actions.
+     */
+    private function resolveAssignerNameForAction($data): string
+    {
+        try {
+            $taskGroup = (string) ($data->task_group ?? '');
+            if (
+                $data->noteClient
+                && (int) $data->user_id === (int) $data->client_id
+                && in_array($taskGroup, ['Client Portal', 'EOI/ROI Amendment'], true)
+            ) {
+                $label = Utf8Helper::safeSanitize(trim($data->noteClient->company_name_or_personal_name ?? ''));
+                if ($label === '') {
+                    $label = trim(
+                        Utf8Helper::safeSanitize($data->noteClient->first_name ?? '') . ' '
+                        . Utf8Helper::safeSanitize($data->noteClient->last_name ?? '')
+                    );
+                }
+
+                return $label !== '' ? $label : 'N/P';
+            }
+
+            if ($data->noteStaff) {
+                $firstName = Utf8Helper::safeSanitize($data->noteStaff->first_name ?? '');
+                $lastName = Utf8Helper::safeSanitize($data->noteStaff->last_name ?? '');
+
+                return trim($firstName . ' ' . $lastName) !== '' ? trim($firstName . ' ' . $lastName) : 'N/P';
+            }
+
+            return 'N/P';
+        } catch (\Exception $e) {
+            return 'N/P';
         }
     }
 
