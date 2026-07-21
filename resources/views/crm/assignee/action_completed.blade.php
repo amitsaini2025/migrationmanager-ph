@@ -252,6 +252,7 @@
                                     </button>
                                     <button type="button">
                                         <a href="{{URL::to('/action_completed?group_type=Client Portal')}}" id="Client Portal" class="group_type {{ $task_group == 'Client Portal' ? 'active' : '' }}">@icon('fa-globe', ['aria-hidden' => 'true']) Client Portal <span class="countAction">{{ $taskGroupCounts['Client Portal'] }}</span></a>
+                                        <a href="{{ URL::to('/action_completed?group_type=' . urlencode('EOI/ROI Amendment')) }}" id="EOI/ROI Amendment" class="group_type {{ $task_group == 'EOI/ROI Amendment' ? 'active' : '' }}">@icon('fa-edit', ['aria-hidden' => 'true']) EOI/ROI Amendment <span class="countAction">{{ $taskGroupCounts['EOI/ROI Amendment'] ?? 0 }}</span></a>
                                         <a href="{{URL::to('/action_completed?group_type=Follow Up')}}" id="Follow Up" class="group_type {{ $task_group == 'Follow Up' ? 'active' : '' }}">@icon('fa-calendar-check-o', ['aria-hidden' => 'true']) Follow up <span class="countAction">{{ $taskGroupCounts['Follow Up'] ?? 0 }}</span></a>
                                     </button>
                                 </div>

@@ -10,6 +10,7 @@ use App\Models\VisaDocumentType;
 use App\Models\ActivitiesLog;
 use App\Services\PointsService;
 use App\Services\EmailConfigService;
+use App\Services\EoiClientConfirmationNotificationService;
 use App\Support\StaffClientVisibility;
 use App\Traits\ClientAuthorization;
 use App\Mail\EoiConfirmationMail;
@@ -870,6 +871,8 @@ class EoiRoiSheetController extends Controller
                     'eoi_confirmation'
                 );
 
+                EoiClientConfirmationNotificationService::notifyStaff($eoi, 'confirmation');
+
                 return redirect()->route('client.eoi.success', ['token' => $token])
                     ->with('success', 'Thank you! Your EOI details have been confirmed.');
 
@@ -890,6 +893,12 @@ class EoiRoiSheetController extends Controller
                     'EOI Amendment Requested by Client',
                     'Client requested amendments for EOI #' . $eoi->EOI_number . '. Notes: ' . $request->input('notes'),
                     'eoi_amendment'
+                );
+
+                EoiClientConfirmationNotificationService::notifyStaff(
+                    $eoi,
+                    'amendment',
+                    $request->input('notes')
                 );
 
                 return redirect()->route('client.eoi.success', ['token' => $token])

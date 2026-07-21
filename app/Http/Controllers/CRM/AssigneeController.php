@@ -318,6 +318,7 @@ class AssigneeController extends Controller
             'Urgent' => $groupedCounts['Urgent'] ?? 0,
             'Personal Action' => $groupedCounts['Personal Action'] ?? 0,
             'Client Portal' => $groupedCounts['Client Portal'] ?? 0,
+            'EOI/ROI Amendment' => $groupedCounts['EOI/ROI Amendment'] ?? 0,
             'Follow Up' => $groupedCounts['Follow Up'] ?? 0,
         ];
 
@@ -372,6 +373,8 @@ class AssigneeController extends Controller
                             $actionGroup = 'Client Portal';
                         } elseif ($actionGroup == 'follow_up') {
                             $actionGroup = 'Follow Up';
+                        } elseif ($actionGroup == 'eoi_roi_amendment') {
+                            $actionGroup = 'EOI/ROI Amendment';
                         } else {
                             $actionGroup = ucfirst($actionGroup);
                         }
@@ -607,6 +610,7 @@ class AssigneeController extends Controller
             'urgent' => 0,
             'personal_action' => 0,
             'client_portal' => 0,
+            'eoi_roi_amendment' => 0,
             'follow_up' => 0,
         ];
 
@@ -631,6 +635,7 @@ class AssigneeController extends Controller
                 ->distinct(DB::raw("COALESCE(NULLIF(unique_group_id, ''), CONCAT('note_', id))"))
                 ->count(DB::raw("COALESCE(NULLIF(unique_group_id, ''), CONCAT('note_', id))"))
             : (clone $query)->where('task_group', 'Client Portal')->count();
+        $counts['eoi_roi_amendment'] = (clone $query)->where('task_group', 'EOI/ROI Amendment')->count();
         $counts['follow_up'] = (clone $query)->where('task_group', 'Follow Up')->count();
 
         return response()->json($counts);
@@ -815,7 +820,7 @@ class AssigneeController extends Controller
             'client_id' => 'nullable|string', // Client ID is optional for Personal Actions
             'assigned_to' => 'required|exists:staff,id',
             'description' => 'required|string',
-            'task_group' => 'required|string|in:Call,Checklist,Review,Query,Urgent,Personal Action,Client Portal',
+            'task_group' => 'required|string|in:Call,Checklist,Review,Query,Urgent,Personal Action,Client Portal,EOI/ROI Amendment',
         ]);
 
         try {
