@@ -807,18 +807,26 @@ document.addEventListener('DOMContentLoaded', function() {
         return $.trim($option.text()).replace(/\([^)]*\)\s*$/, '').trim();
     }
 
-    function prefillClientFundsLedgerDescription() {
+    function prefillReceiptDescriptionForAccount(formSelector, rowSelector) {
         var matterName = getCurrentMatterNameForAccount();
         if (!matterName) {
             return;
         }
-        var $firstRow = $('#client_receipt_form .productitem tr.clonedrow').first();
+        var $firstRow = $(formSelector + ' ' + rowSelector).first();
         if (!$firstRow.length) {
-            $firstRow = $('#client_receipt_form .productitem tr').first();
+            $firstRow = $(formSelector + ' tr').first();
         }
         if ($firstRow.length) {
             $firstRow.find('input[name="description[]"]').val(matterName);
         }
+    }
+
+    function prefillClientFundsLedgerDescription() {
+        prefillReceiptDescriptionForAccount('#client_receipt_form .productitem', 'tr.clonedrow');
+    }
+
+    function prefillDirectOfficeReceiptDescription() {
+        prefillReceiptDescriptionForAccount('#office_receipt_form .productitem_office', 'tr.clonedrow_office');
     }
 
     // Improved Create Receipt Button Click Handler
@@ -924,6 +932,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('🔄 Re-verified ledger form settings');
             } else if (receiptType == '2') {
                 $('#client_matter_id_office').val(selectedMatter);
+                prefillDirectOfficeReceiptDescription();
                 console.log('🔄 Re-verified office receipt form settings');
             }
         }, 100);
