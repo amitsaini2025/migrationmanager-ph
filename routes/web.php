@@ -225,6 +225,7 @@ Route::middleware(['auth:admin'])->group(function() {
     Route::prefix('leads')->name('leads.')->group(function () {
         // List & Detail
         Route::get('/', [LeadController::class, 'index'])->name('index');
+        Route::get('/export-list/{format}', [LeadController::class, 'exportList'])->name('export-list');
         Route::get('/detail/{id}', [LeadController::class, 'detail'])->name('detail');
         Route::get('/history/{id}', [LeadController::class, 'history'])->name('history');
         

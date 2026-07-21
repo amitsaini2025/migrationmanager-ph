@@ -85,6 +85,7 @@ use App\Services\EmailLogListService;
 use App\Services\Sms\UnifiedSmsManager;
 use App\Services\BansalAppointmentSync\BansalApiClient;
 use App\Services\ClientExportService;
+use App\Services\ClientLeadListExportService;
 use App\Services\FCMService;
 use App\Services\ClientImportService;
 use App\Services\JobReadyAgreementFeeTablePatcher;
@@ -192,6 +193,28 @@ class ClientsController extends Controller
 		}
 		
 		return view('crm.clients.index', compact(['lists', 'totalData', 'perPage']));
+    }
+
+    /**
+     * Export filtered client list as CSV or Excel.
+     */
+    public function exportList(Request $request, string $format)
+    {
+        if (! $this->hasModuleAccess('20')) {
+            return redirect()->route('clients.index')
+                ->with('error', config('constants.unauthorized'));
+        }
+
+        if (! in_array($format, ['csv', 'excel'], true)) {
+            abort(404);
+        }
+
+        $query = $this->applyClientFilters($this->getBaseClientQuery(), $request);
+        $exportService = app(ClientLeadListExportService::class);
+
+        return $format === 'csv'
+            ? $exportService->streamCsv($query, 'client', 'clients_export')
+            : $exportService->downloadExcel($query, 'client', 'clients_export');
     }
 
     public function clientsmatterslist(Request $request)

@@ -19,6 +19,7 @@ use App\Models\Matter;
 use Carbon\Carbon;
 use App\Traits\ClientHelpers;
 use App\Services\ClientReferenceService;
+use App\Services\ClientLeadListExportService;
 use App\Support\StaffClientVisibility;
 use App\Services\LeadFollowUpNoteService;
 use App\Models\Staff;
@@ -49,71 +50,7 @@ class LeadController extends Controller
         
         $perPage = 20;
         if ($this->staffRoleCanOpenLeadList($module_access)) { //dd('yes');
-            // Using Lead model - automatically filters by type='lead' and is_deleted=null
-            $query = Lead::where('is_archived', 0);
-            StaffClientVisibility::restrictLeadListQuery($query);
-
-            // Apply filters using modern syntax
-            $query->when($request->filled('client_id'), function ($q) use ($request) {
-                return $q->where('client_id', $request->input('client_id'));
-            });
-
-            $query->when($request->filled('type'), function ($q) use ($request) {
-                return $q->where('type', $request->input('type'));
-            });
-
-            $query->when($request->filled('name'), function ($q) use ($request) {
-                $nameLower = strtolower($request->input('name'));
-                return $q->whereRaw('LOWER(first_name) LIKE ?', ['%' . $nameLower . '%']);
-            });
-
-            $query->when($request->filled('email'), function ($q) use ($request) {
-                $email = $request->input('email');
-                // For universal email (demo@gmail.com), also search for timestamped versions
-                if ($email === 'demo@gmail.com') {
-                    $emailLower = strtolower($email);
-                    return $q->where(function($subQuery) use ($email, $emailLower) {
-                        $subQuery->whereRaw('LOWER(email) = ?', [$emailLower])
-                                 ->orWhereRaw('LOWER(email) LIKE ?', ['demo_%@gmail.com']);
-                    });
-                }
-                return $q->where('email', $email);
-            });
-
-            $query->when($request->filled('phone'), function ($q) use ($request) {
-                $phone = $request->input('phone');
-                // For universal phone (4444444444), also search for timestamped versions
-                if ($phone === '4444444444') {
-                    return $q->where(function ($phoneQuery) use ($phone) {
-                        $phoneQuery->where('phone', $phone)
-                                  ->orWhere('phone', 'LIKE', $phone . '_%');
-                    });
-                }
-                return $q->where('phone', 'LIKE', '%' . $request->input('phone') . '%');
-            });
-
-            $query->when(! $request->boolean('include_inactive'), function ($q) use ($request) {
-                $inactiveStages = ['not_qualified', 'hostile'];
-                if ($request->filled('lead_stage_filter') && in_array($request->input('lead_stage_filter'), $inactiveStages, true)) {
-                    return $q;
-                }
-
-                return $q->where('status', 1);
-            });
-
-            $query->when($request->filled('lead_stage_filter'), function ($q) use ($request) {
-                return $q->where('lead_status', $request->input('lead_stage_filter'));
-            });
-
-            if ($request->filled('quick_date_range') || $request->filled('from_date') || $request->filled('to_date')) {
-                [$startDate, $endDate] = $this->resolveLeadDateRange($request);
-                $dateColumn = $request->input('date_filter_field', 'created_at');
-
-                if ($startDate && $endDate && in_array($dateColumn, ['created_at', 'updated_at'], true)) {
-                    $query->whereBetween($dateColumn, [$startDate, $endDate]);
-                }
-            }
-
+            $query = $this->buildLeadListQuery($request);
             $totalData = (clone $query)->count();
 
             $allowedPerPage = [10, 20, 50, 100, 200];
@@ -144,6 +81,104 @@ class LeadController extends Controller
         }
         
         return view('crm.leads.index', compact('lists', 'totalData', 'perPage', 'leadStageLabels'));
+    }
+
+    /**
+     * Export filtered lead list as CSV or Excel.
+     */
+    public function exportList(Request $request, string $format)
+    {
+        $roles = \App\Models\UserRole::find(Auth::user()->role);
+        $module_access = $this->decodeRoleModuleAccess($roles?->module_access);
+
+        if (! $this->staffRoleCanOpenLeadList($module_access)) {
+            return redirect()->route('leads.index')
+                ->with('error', config('constants.unauthorized'));
+        }
+
+        if (! in_array($format, ['csv', 'excel'], true)) {
+            abort(404);
+        }
+
+        $query = $this->buildLeadListQuery($request);
+        $exportService = app(ClientLeadListExportService::class);
+
+        return $format === 'csv'
+            ? $exportService->streamCsv($query, 'lead', 'leads_export')
+            : $exportService->downloadExcel($query, 'lead', 'leads_export');
+    }
+
+    /**
+     * Build the lead list query with the same filters as the index page.
+     */
+    protected function buildLeadListQuery(Request $request)
+    {
+        $query = Lead::where('is_archived', 0);
+        StaffClientVisibility::restrictLeadListQuery($query);
+
+        $query->when($request->filled('client_id'), function ($q) use ($request) {
+            return $q->where('client_id', $request->input('client_id'));
+        });
+
+        $query->when($request->filled('type'), function ($q) use ($request) {
+            return $q->where('type', $request->input('type'));
+        });
+
+        $query->when($request->filled('name'), function ($q) use ($request) {
+            $nameLower = strtolower($request->input('name'));
+
+            return $q->whereRaw('LOWER(first_name) LIKE ?', ['%' . $nameLower . '%']);
+        });
+
+        $query->when($request->filled('email'), function ($q) use ($request) {
+            $email = $request->input('email');
+            if ($email === 'demo@gmail.com') {
+                $emailLower = strtolower($email);
+
+                return $q->where(function ($subQuery) use ($email, $emailLower) {
+                    $subQuery->whereRaw('LOWER(email) = ?', [$emailLower])
+                        ->orWhereRaw('LOWER(email) LIKE ?', ['demo_%@gmail.com']);
+                });
+            }
+
+            return $q->where('email', $email);
+        });
+
+        $query->when($request->filled('phone'), function ($q) use ($request) {
+            $phone = $request->input('phone');
+            if ($phone === '4444444444') {
+                return $q->where(function ($phoneQuery) use ($phone) {
+                    $phoneQuery->where('phone', $phone)
+                        ->orWhere('phone', 'LIKE', $phone . '_%');
+                });
+            }
+
+            return $q->where('phone', 'LIKE', '%' . $request->input('phone') . '%');
+        });
+
+        $query->when(! $request->boolean('include_inactive'), function ($q) use ($request) {
+            $inactiveStages = ['not_qualified', 'hostile'];
+            if ($request->filled('lead_stage_filter') && in_array($request->input('lead_stage_filter'), $inactiveStages, true)) {
+                return $q;
+            }
+
+            return $q->where('status', 1);
+        });
+
+        $query->when($request->filled('lead_stage_filter'), function ($q) use ($request) {
+            return $q->where('lead_status', $request->input('lead_stage_filter'));
+        });
+
+        if ($request->filled('quick_date_range') || $request->filled('from_date') || $request->filled('to_date')) {
+            [$startDate, $endDate] = $this->resolveLeadDateRange($request);
+            $dateColumn = $request->input('date_filter_field', 'created_at');
+
+            if ($startDate && $endDate && in_array($dateColumn, ['created_at', 'updated_at'], true)) {
+                $query->whereBetween($dateColumn, [$startDate, $endDate]);
+            }
+        }
+
+        return $query;
     }
 
     /**

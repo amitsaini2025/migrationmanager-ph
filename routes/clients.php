@@ -38,6 +38,7 @@ use App\Http\Controllers\AdminConsole\Sms\SmsTemplateController;
 
 /*---------- Client CRUD Operations ----------*/
 Route::get('/clients', [ClientsController::class, 'index'])->name('clients.index');
+Route::get('/clients/export-list/{format}', [ClientsController::class, 'exportList'])->name('clients.export-list');
 Route::get('/clientsmatterslist', [ClientsController::class, 'clientsmatterslist'])->name('clients.clientsmatterslist');
 Route::get('/clientsclosedmatterslist', [ClientsController::class, 'closedmatterslist'])->name('clients.closedmatterslist');
 Route::get('/clientsemaillist', [ClientsController::class, 'clientsemaillist'])->name('clients.clientsemaillist');
