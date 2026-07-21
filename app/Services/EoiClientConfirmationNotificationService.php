@@ -35,10 +35,7 @@ class EoiClientConfirmationNotificationService
             $eoiNumber = $eoi->EOI_number ?? ('#' . $eoi->id);
 
             if ($eventType === 'amendment') {
-                $message = $clientName . ' requested amendments for EOI #' . $eoiNumber;
-                if ($clientNotes !== null && trim($clientNotes) !== '') {
-                    $message .= '. Notes: ' . trim($clientNotes);
-                }
+                $message = self::buildAmendmentMessage($eoi, $clientNotes);
                 $notificationType = 'eoi_amendment';
             } elseif ($eventType === 'confirmation') {
                 $message = $clientName . ' confirmed EOI details for EOI #' . $eoiNumber;
@@ -48,11 +45,7 @@ class EoiClientConfirmationNotificationService
             }
 
             $matter = self::resolveClientMatter($clientId);
-            $notificationUrl = url('/clients/detail/' . base64_encode(convert_uuencode((string) $clientId)));
-            if ($matter && !empty($matter->client_unique_matter_no)) {
-                $notificationUrl .= '/' . $matter->client_unique_matter_no;
-            }
-            $notificationUrl .= '/eoiroi';
+            $notificationUrl = self::buildEoiNotificationUrl($clientId, $matter);
 
             $moduleId = $matter ? (int) $matter->id : (int) $eoi->id;
 
@@ -118,20 +111,200 @@ class EoiClientConfirmationNotificationService
         }
     }
 
+    /**
+     * Backfill missing verifier notifications and PA actions for existing amendment requests.
+     *
+     * @return array{action: string, notification: string, reason: string|null}
+     */
+    public static function backfillAmendmentRequest(
+        ClientEoiReference $eoi,
+        bool $withNotifications = true,
+        bool $dryRun = false
+    ): array {
+        $result = [
+            'action' => 'skipped',
+            'notification' => $withNotifications ? 'skipped' : 'disabled',
+            'reason' => null,
+        ];
+
+        $clientId = (int) $eoi->client_id;
+        if ($clientId <= 0) {
+            $result['reason'] = 'Missing client_id';
+
+            return $result;
+        }
+
+        if ($eoi->client_confirmation_status !== 'amendment_requested') {
+            $result['reason'] = 'Status is not amendment_requested';
+
+            return $result;
+        }
+
+        $message = self::buildAmendmentMessage($eoi, $eoi->client_confirmation_notes);
+        $matter = self::resolveClientMatter($clientId);
+        $moduleId = $matter ? (int) $matter->id : (int) $eoi->id;
+        $notificationUrl = self::buildEoiNotificationUrl($clientId, $matter);
+        $eoiNumber = (string) ($eoi->EOI_number ?? $eoi->id);
+
+        if ($matter === null) {
+            $result['reason'] = 'No active client matter found';
+        } else {
+            $personAssistingId = (int) ($matter->sel_person_assisting ?? 0);
+            if ($personAssistingId <= 0) {
+                $result['action'] = 'skipped';
+                $result['reason'] = ($result['reason'] ? $result['reason'] . '; ' : '') . 'No Person Assisting on matter';
+            } elseif (self::hasOpenAmendmentAction($clientId, $personAssistingId, $eoiNumber)) {
+                $result['action'] = 'skipped';
+            } elseif ($dryRun) {
+                $result['action'] = 'would_create';
+            } else {
+                $created = self::createPersonAssistingAction(
+                    $clientId,
+                    (int) $matter->id,
+                    $message,
+                    $matter,
+                    'EOI/ROI Amendment'
+                );
+                $result['action'] = $created ? 'created' : 'skipped';
+            }
+        }
+
+        if (!$withNotifications) {
+            return $result;
+        }
+
+        $verifierId = (int) ($eoi->checked_by ?? 0);
+        if ($verifierId <= 0) {
+            $result['notification'] = 'skipped';
+            $result['reason'] = ($result['reason'] ? $result['reason'] . '; ' : '') . 'No verifier (checked_by)';
+
+            return $result;
+        }
+
+        if (!Staff::where('id', $verifierId)->exists()) {
+            $result['notification'] = 'skipped';
+            $result['reason'] = ($result['reason'] ? $result['reason'] . '; ' : '') . 'Verifier staff record not found';
+
+            return $result;
+        }
+
+        if (self::hasAmendmentNotification($clientId, $verifierId, $eoiNumber)) {
+            $result['notification'] = 'skipped';
+
+            return $result;
+        }
+
+        if ($dryRun) {
+            $result['notification'] = 'would_create';
+
+            return $result;
+        }
+
+        try {
+            Notification::create([
+                'sender_id' => $clientId,
+                'receiver_id' => $verifierId,
+                'module_id' => $moduleId,
+                'url' => $notificationUrl,
+                'notification_type' => 'eoi_amendment',
+                'message' => $message,
+                'receiver_status' => 0,
+                'seen' => 0,
+            ]);
+            $unreadCount = (int) DB::table('notifications')
+                ->where('receiver_id', $verifierId)
+                ->where('receiver_status', 0)
+                ->count();
+            broadcast(new NotificationCountUpdated($verifierId, $unreadCount, $message, $notificationUrl));
+            $result['notification'] = 'created';
+        } catch (\Exception $e) {
+            Log::warning('EOI amendment backfill: failed to create verifier notification', [
+                'eoi_id' => $eoi->id,
+                'receiver_id' => $verifierId,
+                'error' => $e->getMessage(),
+            ]);
+            $result['notification'] = 'failed';
+            $result['reason'] = ($result['reason'] ? $result['reason'] . '; ' : '') . 'Notification error: ' . $e->getMessage();
+        }
+
+        return $result;
+    }
+
+    public static function buildAmendmentMessage(ClientEoiReference $eoi, ?string $clientNotes = null): string
+    {
+        $client = $eoi->relationLoaded('client') ? $eoi->client : $eoi->client()->first();
+        $clientName = $client
+            ? trim(($client->first_name ?? '') . ' ' . ($client->last_name ?? ''))
+            : 'Client';
+        if ($clientName === '') {
+            $clientName = 'Client';
+        }
+
+        $eoiNumber = $eoi->EOI_number ?? ('#' . $eoi->id);
+        $message = $clientName . ' requested amendments for EOI #' . $eoiNumber;
+        $notes = $clientNotes ?? $eoi->client_confirmation_notes;
+        if ($notes !== null && trim((string) $notes) !== '') {
+            $message .= '. Notes: ' . trim((string) $notes);
+        }
+
+        return $message;
+    }
+
+    public static function hasOpenAmendmentAction(int $clientId, int $assignedTo, string $eoiNumber): bool
+    {
+        if ($clientId <= 0 || $assignedTo <= 0 || trim($eoiNumber) === '') {
+            return false;
+        }
+
+        return Note::query()
+            ->where('client_id', $clientId)
+            ->where('assigned_to', $assignedTo)
+            ->where('is_action', 1)
+            ->where('type', 'client')
+            ->where('status', '<>', '1')
+            ->where('task_group', 'EOI/ROI Amendment')
+            ->where('description', 'like', '%EOI #' . $eoiNumber . '%')
+            ->exists();
+    }
+
+    public static function hasAmendmentNotification(int $clientId, int $receiverId, string $eoiNumber): bool
+    {
+        if ($clientId <= 0 || $receiverId <= 0 || trim($eoiNumber) === '') {
+            return false;
+        }
+
+        return Notification::query()
+            ->where('sender_id', $clientId)
+            ->where('receiver_id', $receiverId)
+            ->where('notification_type', 'eoi_amendment')
+            ->where('message', 'like', '%' . $eoiNumber . '%')
+            ->exists();
+    }
+
+    protected static function buildEoiNotificationUrl(int $clientId, ?ClientMatter $matter): string
+    {
+        $notificationUrl = url('/clients/detail/' . base64_encode(convert_uuencode((string) $clientId)));
+        if ($matter && !empty($matter->client_unique_matter_no)) {
+            $notificationUrl .= '/' . $matter->client_unique_matter_no;
+        }
+
+        return $notificationUrl . '/eoiroi';
+    }
+
     protected static function createPersonAssistingAction(
         int $clientId,
         ?int $matterId,
         string $description,
         ?ClientMatter $matter,
         string $taskGroup = 'Client Portal'
-    ): void {
+    ): bool {
         if ($clientId <= 0 || trim($description) === '' || $matter === null) {
-            return;
+            return false;
         }
 
         $personAssistingId = (int) ($matter->sel_person_assisting ?? 0);
         if ($personAssistingId <= 0 || !Staff::where('id', $personAssistingId)->exists()) {
-            return;
+            return false;
         }
 
         $actionNote = new Note();
@@ -148,9 +321,11 @@ class EoiClientConfirmationNotificationService
         $actionNote->pin = 0;
         $actionNote->unique_group_id = 'group_' . uniqid('', true);
         $actionNote->save();
+
+        return true;
     }
 
-    protected static function resolveClientMatter(int $clientId): ?ClientMatter
+    public static function resolveClientMatter(int $clientId): ?ClientMatter
     {
         $eoiMatter = ClientMatter::query()
             ->where('client_id', $clientId)
