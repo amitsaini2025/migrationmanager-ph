@@ -242,9 +242,11 @@
                                 </option>
                             @endforeach
                         </select>
+                        @if(Auth::user() && (int) Auth::user()->role === 1)
                         <a href="javascript:;" class="btn btn-theme btn-theme-sm" onclick="exportLeadList()" title="Export lead list as CSV">
                             @icon('fa-file-export') Export CSV
                         </a>
+                        @endif
                         <a href="javascript:;" class="btn btn-theme btn-theme-sm filter_btn">
                             @icon('fa-filter') Filter
                         </a>

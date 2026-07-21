@@ -96,6 +96,11 @@ class LeadController extends Controller
                 ->with('error', config('constants.unauthorized'));
         }
 
+        if ((int) (Auth::user()->role ?? 0) !== 1) {
+            return redirect()->route('leads.index')
+                ->with('error', config('constants.unauthorized'));
+        }
+
         $query = $this->buildLeadListQuery($request);
 
         return app(ClientLeadListExportService::class)

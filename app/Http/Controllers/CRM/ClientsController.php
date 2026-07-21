@@ -205,6 +205,11 @@ class ClientsController extends Controller
                 ->with('error', config('constants.unauthorized'));
         }
 
+        if ((int) (Auth::user()->role ?? 0) !== 1) {
+            return redirect()->route('clients.index')
+                ->with('error', config('constants.unauthorized'));
+        }
+
         $query = $this->applyClientFilters($this->getBaseClientQuery(), $request);
 
         return app(ClientLeadListExportService::class)
