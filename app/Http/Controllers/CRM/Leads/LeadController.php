@@ -84,9 +84,9 @@ class LeadController extends Controller
     }
 
     /**
-     * Export filtered lead list as CSV or Excel.
+     * Export filtered lead list as CSV.
      */
-    public function exportList(Request $request, string $format)
+    public function exportList(Request $request)
     {
         $roles = \App\Models\UserRole::find(Auth::user()->role);
         $module_access = $this->decodeRoleModuleAccess($roles?->module_access);
@@ -96,16 +96,10 @@ class LeadController extends Controller
                 ->with('error', config('constants.unauthorized'));
         }
 
-        if (! in_array($format, ['csv', 'excel'], true)) {
-            abort(404);
-        }
-
         $query = $this->buildLeadListQuery($request);
-        $exportService = app(ClientLeadListExportService::class);
 
-        return $format === 'csv'
-            ? $exportService->streamCsv($query, 'lead', 'leads_export')
-            : $exportService->downloadExcel($query, 'lead', 'leads_export');
+        return app(ClientLeadListExportService::class)
+            ->streamCsv($query, 'lead', 'leads_export');
     }
 
     /**

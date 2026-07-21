@@ -54,7 +54,7 @@ class ClientLeadListExportTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->staff, 'admin')
-            ->get(route('clients.export-list', ['format' => 'csv', 'name' => 'Exportable']));
+            ->get(route('clients.export-list', ['name' => 'Exportable']));
 
         $response->assertOk();
         $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
@@ -66,7 +66,7 @@ class ClientLeadListExportTest extends TestCase
         $this->assertStringNotContainsString('OTH1002', $content);
     }
 
-    public function test_lead_excel_export_includes_lead_details(): void
+    public function test_lead_csv_export_includes_lead_details(): void
     {
         Lead::create([
             'type' => 'lead',
@@ -81,15 +81,14 @@ class ClientLeadListExportTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->staff, 'admin')
-            ->get(route('leads.export-list', ['format' => 'excel']));
+            ->get(route('leads.export-list'));
 
         $response->assertOk();
-        $response->assertHeader(
-            'content-type',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        );
+        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
 
-        $this->assertNotEmpty($response->streamedContent());
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('LED2001', $content);
+        $this->assertStringContainsString('lead.export@test.com', $content);
     }
 
     public function test_export_service_builds_complete_row_for_client(): void
@@ -112,12 +111,5 @@ class ClientLeadListExportTest extends TestCase
         $this->assertSame('Builder', $row[2]);
         $this->assertSame('row.builder@test.com', $row[3]);
         $this->assertSame('Active', $row[7]);
-    }
-
-    public function test_invalid_export_format_returns_not_found(): void
-    {
-        $this->actingAs($this->staff, 'admin')
-            ->get(route('clients.export-list', ['format' => 'pdf']))
-            ->assertNotFound();
     }
 }

@@ -196,25 +196,19 @@ class ClientsController extends Controller
     }
 
     /**
-     * Export filtered client list as CSV or Excel.
+     * Export filtered client list as CSV.
      */
-    public function exportList(Request $request, string $format)
+    public function exportList(Request $request)
     {
         if (! $this->hasModuleAccess('20')) {
             return redirect()->route('clients.index')
                 ->with('error', config('constants.unauthorized'));
         }
 
-        if (! in_array($format, ['csv', 'excel'], true)) {
-            abort(404);
-        }
-
         $query = $this->applyClientFilters($this->getBaseClientQuery(), $request);
-        $exportService = app(ClientLeadListExportService::class);
 
-        return $format === 'csv'
-            ? $exportService->streamCsv($query, 'client', 'clients_export')
-            : $exportService->downloadExcel($query, 'client', 'clients_export');
+        return app(ClientLeadListExportService::class)
+            ->streamCsv($query, 'client', 'clients_export');
     }
 
     public function clientsmatterslist(Request $request)

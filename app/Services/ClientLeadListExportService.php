@@ -3,21 +3,26 @@
 namespace App\Services;
 
 use App\Models\Admin;
+use App\Models\ClientAddress;
+use App\Models\ClientCharacter;
+use App\Models\ClientContact;
+use App\Models\ClientEmail;
 use App\Models\ClientMatter;
+use App\Models\ClientPassportInformation;
+use App\Models\ClientTestScore;
+use App\Models\ClientTravelInformation;
+use App\Models\ClientVisaCountry;
 use App\Models\Staff;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClientLeadListExportService
 {
     public const EXPORT_LIMIT = 10000;
 
-    public function __construct(
-        private readonly ClientExportService $clientExportService
-    ) {
-    }
+    public const CHUNK_SIZE = 200;
 
     /**
      * @return list<string>
@@ -82,12 +87,19 @@ class ClientLeadListExportService
         $filename = $filenamePrefix . '_' . date('Y-m-d_His') . '.csv';
 
         return response()->streamDownload(function () use ($query, $headers, $recordType) {
+            @set_time_limit(0);
+
             $out = fopen('php://output', 'w');
             fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
             fputcsv($out, $headers);
 
-            $this->chunkRecords($query, function (Admin $admin) use ($out, $recordType) {
-                fputcsv($out, $this->buildRow($admin, $recordType));
+            $this->chunkRecords($query, $recordType, function (Admin $admin, array $batch) use ($out, $recordType) {
+                fputcsv($out, $this->buildRow($admin, $recordType, $batch));
+
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
             });
 
             fclose($out);
@@ -96,34 +108,10 @@ class ClientLeadListExportService
         ]);
     }
 
-    public function downloadExcel(Builder $query, string $recordType, string $filenamePrefix): StreamedResponse
-    {
-        $headers = $this->getHeaders($recordType);
-        $filename = $filenamePrefix . '_' . date('Y-m-d_His') . '.xlsx';
-
-        return response()->streamDownload(function () use ($query, $headers, $recordType) {
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-            $sheet->fromArray($headers, null, 'A1');
-
-            $rowIndex = 2;
-            $this->chunkRecords($query, function (Admin $admin) use ($sheet, $recordType, &$rowIndex) {
-                $sheet->fromArray($this->buildRow($admin, $recordType), null, 'A' . $rowIndex);
-                $rowIndex++;
-            });
-
-            $writer = new Xlsx($spreadsheet);
-            $writer->save('php://output');
-            $spreadsheet->disconnectWorksheets();
-        }, $filename, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        ]);
-    }
-
     /**
-     * @param  callable(Admin): void  $callback
+     * @param  callable(Admin, array): void  $callback
      */
-    protected function chunkRecords(Builder $query, callable $callback): void
+    protected function chunkRecords(Builder $query, string $recordType, callable $callback): void
     {
         $count = 0;
         $staffNames = [];
@@ -131,7 +119,9 @@ class ClientLeadListExportService
         (clone $query)
             ->with(['company'])
             ->orderBy('id')
-            ->chunkById(200, function ($chunk) use ($callback, &$count, &$staffNames) {
+            ->chunkById(self::CHUNK_SIZE, function ($chunk) use ($callback, $recordType, &$count, &$staffNames) {
+                $clientIds = $chunk->pluck('id')->map(fn ($id) => (int) $id)->all();
+
                 $userIds = $chunk->pluck('user_id')->filter()->unique()->values()->all();
                 $missingIds = array_diff($userIds, array_keys($staffNames));
 
@@ -144,6 +134,8 @@ class ClientLeadListExportService
                         });
                 }
 
+                $batch = $this->loadBatchContext($clientIds, $recordType);
+
                 foreach ($chunk as $admin) {
                     if ($count >= self::EXPORT_LIMIT) {
                         return false;
@@ -153,74 +145,290 @@ class ClientLeadListExportService
                         ? ($staffNames[$admin->user_id] ?? '')
                         : '';
 
-                    $callback($admin);
+                    $callback($admin, $batch);
                     $count++;
                 }
             });
     }
 
     /**
+     * Preload related records for a chunk of client/lead IDs (avoids N+1 exportClient calls).
+     *
+     * @param  list<int>  $clientIds
+     * @return array<string, mixed>
+     */
+    protected function loadBatchContext(array $clientIds, string $recordType): array
+    {
+        if ($clientIds === []) {
+            return [
+                'addresses' => collect(),
+                'contacts' => collect(),
+                'emails' => collect(),
+                'passports' => collect(),
+                'travel' => collect(),
+                'visas' => collect(),
+                'latest_visas' => collect(),
+                'character' => collect(),
+                'test_scores' => collect(),
+                'matter_counts' => collect(),
+            ];
+        }
+
+        $addresses = ClientAddress::query()
+            ->whereIn('client_id', $clientIds)
+            ->get()
+            ->groupBy('client_id');
+
+        $contacts = ClientContact::query()
+            ->whereIn('client_id', $clientIds)
+            ->get()
+            ->groupBy('client_id');
+
+        $emails = ClientEmail::query()
+            ->whereIn('client_id', $clientIds)
+            ->get()
+            ->groupBy('client_id');
+
+        $passports = ClientPassportInformation::query()
+            ->whereIn('client_id', $clientIds)
+            ->get()
+            ->keyBy('client_id');
+
+        $travel = ClientTravelInformation::query()
+            ->whereIn('client_id', $clientIds)
+            ->get()
+            ->groupBy('client_id');
+
+        $visas = ClientVisaCountry::query()
+            ->with('matter')
+            ->whereIn('client_id', $clientIds)
+            ->orderBy('id')
+            ->get()
+            ->groupBy('client_id');
+
+        $latestVisas = $visas->map(function (Collection $items) {
+            return $items->sortByDesc('id')->first();
+        });
+
+        $character = ClientCharacter::query()
+            ->whereIn('client_id', $clientIds)
+            ->get()
+            ->groupBy('client_id');
+
+        $testScores = ClientTestScore::query()
+            ->whereIn('client_id', $clientIds)
+            ->orderByDesc('updated_at')
+            ->get()
+            ->groupBy('client_id');
+
+        $matterCounts = collect();
+        if ($recordType === 'client') {
+            $matterCounts = ClientMatter::query()
+                ->selectRaw('client_id, COUNT(*) as aggregate')
+                ->whereIn('client_id', $clientIds)
+                ->where('matter_status', 1)
+                ->groupBy('client_id')
+                ->pluck('aggregate', 'client_id');
+        }
+
+        return [
+            'addresses' => $addresses,
+            'contacts' => $contacts,
+            'emails' => $emails,
+            'passports' => $passports,
+            'travel' => $travel,
+            'visas' => $visas,
+            'latest_visas' => $latestVisas,
+            'character' => $character,
+            'test_scores' => $testScores,
+            'matter_counts' => $matterCounts,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $batch
      * @return list<scalar|null>
      */
-    public function buildRow(Admin $admin, string $recordType): array
+    public function buildRow(Admin $admin, string $recordType, ?array $batch = null): array
     {
-        $export = $this->clientExportService->exportClient((int) $admin->id);
-        $client = $export['client'] ?? [];
-        $passport = $export['passport'] ?? null;
+        if ($batch === null) {
+            $batch = $this->loadBatchContext([(int) $admin->id], $recordType);
+        }
+
+        $clientId = (int) $admin->id;
+        $passport = $batch['passports'][$clientId] ?? null;
+        $latestVisa = $batch['latest_visas'][$clientId] ?? null;
+        [$visaType, $visaDescription, $visaExpiry] = $this->resolveLatestVisaSummary($latestVisa);
 
         $row = [
-            $client['client_id'] ?? $admin->client_id,
-            $client['first_name'] ?? $admin->first_name,
-            $client['last_name'] ?? $admin->last_name,
-            $client['email'] ?? $admin->email,
-            $client['phone'] ?? $admin->phone,
-            $client['country_code'] ?? $admin->country_code,
-            $client['type'] ?? $admin->type,
-            $this->formatStatus($client['status'] ?? $admin->status),
-            $client['lead_status'] ?? $admin->lead_status,
+            $admin->client_id,
+            $admin->first_name,
+            $admin->last_name,
+            $admin->email,
+            $admin->phone,
+            $admin->country_code,
+            $admin->type,
+            $this->formatStatus($admin->status),
+            $admin->lead_status,
             $this->formatDateTime($admin->followup_date),
-            $client['source'] ?? $admin->source,
-            $client['tagname'] ?? $admin->tagname,
-            $client['dob'] ?? null,
-            $client['gender'] ?? null,
-            $client['marital_status'] ?? $admin->marital_status,
-            $client['address'] ?? $admin->address,
-            $client['city'] ?? $admin->city,
-            $client['state'] ?? $admin->state,
-            $client['country'] ?? $admin->country,
-            $client['zip'] ?? $admin->zip,
-            $passport['passport_number'] ?? ($client['passport_number'] ?? null),
-            $passport['passport_country'] ?? ($client['country_passport'] ?? null),
-            $passport['passport_issue_date'] ?? null,
-            $passport['passport_expiry_date'] ?? null,
-            $client['visa_type'] ?? null,
-            $client['visa_opt'] ?? null,
-            $client['visaExpiry'] ?? null,
+            $admin->source,
+            $admin->tagname,
+            $admin->dob,
+            $admin->gender,
+            $admin->marital_status,
+            $admin->address,
+            $admin->city,
+            $admin->state,
+            $admin->country,
+            $admin->zip,
+            $passport?->passport ?? ($admin->passport_number ?? null),
+            $passport?->passport_country ?? ($admin->country_passport ?? null),
+            $this->formatDateValue($passport?->passport_issue_date),
+            $this->formatDateValue($passport?->passport_expiry_date),
+            $visaType,
+            $visaDescription,
+            $visaExpiry,
             $admin->is_company ? 'Yes' : 'No',
             $admin->company?->company_name,
             $admin->company?->company_website,
             $admin->assignedStaffName ?? '',
-            $client['agent_id'] ?? $admin->agent_id ?? null,
-            $this->formatAddresses($export['addresses'] ?? []),
-            $this->formatContacts($export['contacts'] ?? []),
-            $this->formatEmails($export['emails'] ?? []),
-            $this->formatTravel($export['travel'] ?? []),
-            $this->formatVisaHistory($export['visa_countries'] ?? []),
-            $this->formatCharacter($export['character'] ?? []),
-            $this->formatTestScores($export['test_scores'] ?? []),
+            $admin->agent_id ?? null,
+            $this->formatAddresses($this->mapAddresses($batch['addresses'][$clientId] ?? collect())),
+            $this->formatContacts($this->mapContacts($batch['contacts'][$clientId] ?? collect())),
+            $this->formatEmails($this->mapEmails($batch['emails'][$clientId] ?? collect())),
+            $this->formatTravel($this->mapTravel($batch['travel'][$clientId] ?? collect())),
+            $this->formatVisaHistory($this->mapVisas($batch['visas'][$clientId] ?? collect())),
+            $this->formatCharacter($this->mapCharacter($batch['character'][$clientId] ?? collect())),
+            $this->formatTestScores($this->mapTestScores($batch['test_scores'][$clientId] ?? collect())),
         ];
 
         if ($recordType === 'client') {
-            $row[] = ClientMatter::query()
-                ->where('client_id', $admin->id)
-                ->where('matter_status', 1)
-                ->count();
+            $row[] = (int) ($batch['matter_counts'][$clientId] ?? 0);
         }
 
         $row[] = $this->formatDateTime($admin->created_at);
         $row[] = $this->formatDateTime($admin->updated_at);
 
         return $row;
+    }
+
+    /**
+     * @return array{0: ?string, 1: ?string, 2: ?string}
+     */
+    protected function resolveLatestVisaSummary(?ClientVisaCountry $visa): array
+    {
+        if (! $visa) {
+            return [null, null, null];
+        }
+
+        $matter = $visa->matter;
+        $visaType = $matter ? ($matter->nick_name ?? $matter->title) : (string) $visa->visa_type;
+
+        return [
+            $visaType,
+            $visa->visa_description,
+            $this->formatDateValue($visa->visa_expiry_date),
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function mapAddresses(Collection $items): array
+    {
+        return $items->map(fn (ClientAddress $address) => [
+            'address' => $address->address,
+            'address_line_1' => $address->address_line_1,
+            'address_line_2' => $address->address_line_2,
+            'suburb' => $address->suburb,
+            'city' => $address->suburb,
+            'state' => $address->state,
+            'country' => $address->country,
+            'zip' => $address->zip,
+        ])->values()->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function mapContacts(Collection $items): array
+    {
+        return $items->map(fn (ClientContact $contact) => [
+            'contact_type' => $contact->contact_type,
+            'country_code' => $contact->country_code,
+            'phone' => $contact->phone,
+        ])->values()->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function mapEmails(Collection $items): array
+    {
+        return $items->map(fn (ClientEmail $email) => [
+            'email_type' => $email->email_type,
+            'email' => $email->email,
+        ])->values()->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function mapTravel(Collection $items): array
+    {
+        return $items->map(fn (ClientTravelInformation $travel) => [
+            'travel_country_visited' => $travel->travel_country_visited,
+            'travel_arrival_date' => $travel->travel_arrival_date,
+            'travel_departure_date' => $travel->travel_departure_date,
+            'travel_purpose' => $travel->travel_purpose,
+        ])->values()->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function mapVisas(Collection $items): array
+    {
+        return $items->map(function (ClientVisaCountry $visa) {
+            $matter = $visa->matter;
+
+            return [
+                'visa_type' => $visa->visa_type,
+                'visa_type_matter_title' => $matter?->title,
+                'visa_type_matter_nick_name' => $matter?->nick_name,
+                'visa_description' => $visa->visa_description,
+                'visa_expiry_date' => $this->formatDateValue($visa->visa_expiry_date),
+                'visa_grant_date' => $this->formatDateValue($visa->visa_grant_date),
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function mapCharacter(Collection $items): array
+    {
+        return $items->map(fn (ClientCharacter $record) => [
+            'type_of_character' => $record->type_of_character,
+            'character_detail' => $record->character_detail,
+            'character_date' => $record->character_date,
+        ])->values()->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function mapTestScores(Collection $items): array
+    {
+        return $items->map(fn (ClientTestScore $score) => [
+            'test_type' => $score->test_type,
+            'listening' => $score->listening,
+            'reading' => $score->reading,
+            'writing' => $score->writing,
+            'speaking' => $score->speaking,
+            'overall_score' => $score->overall_score,
+            'test_date' => $this->formatDateValue($score->test_date),
+        ])->values()->all();
     }
 
     /**
@@ -359,5 +567,26 @@ class ClientLeadListExportService
         }
 
         return (string) $value;
+    }
+
+    protected function formatDateValue(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (is_string($value) && $value !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return $value;
+        }
+
+        try {
+            return Carbon::parse($value)->format('Y-m-d');
+        } catch (\Throwable) {
+            return is_scalar($value) ? (string) $value : null;
+        }
     }
 }

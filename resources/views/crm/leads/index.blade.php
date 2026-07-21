@@ -97,14 +97,6 @@
         flex-wrap: wrap;
     }
 
-    .listing-container .card-header-actions .btn-group .dropdown-toggle::after {
-        margin-left: 6px;
-    }
-
-    .listing-container .card-header-actions .dropdown-menu {
-        min-width: 180px;
-    }
-
     .listing-container .per-page-select {
         border: 1px solid white !important;
         border-radius: 8px !important;
@@ -250,15 +242,9 @@
                                 </option>
                             @endforeach
                         </select>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-theme btn-theme-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export lead list">
-                                @icon('fa-file-export') Export
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item has-icon" href="javascript:;" onclick="exportLeadList('csv')">@icon('fa-file-csv') Export CSV</a></li>
-                                <li><a class="dropdown-item has-icon" href="javascript:;" onclick="exportLeadList('excel')">@icon('fa-file-excel') Export Excel</a></li>
-                            </ul>
-                        </div>
+                        <a href="javascript:;" class="btn btn-theme btn-theme-sm" onclick="exportLeadList()" title="Export lead list as CSV">
+                            @icon('fa-file-export') Export CSV
+                        </a>
                         <a href="javascript:;" class="btn btn-theme btn-theme-sm filter_btn">
                             @icon('fa-filter') Filter
                         </a>
@@ -619,11 +605,11 @@
 @endsection
 @push('scripts')
 <script>
-function exportLeadList(format) {
+function exportLeadList() {
     var params = new URLSearchParams(window.location.search);
     params.delete('page');
     params.delete('per_page');
-    var baseUrl = '{{ route('leads.export-list', ['format' => '__FORMAT__']) }}'.replace('__FORMAT__', format);
+    var baseUrl = '{{ route('leads.export-list') }}';
     window.location.href = baseUrl + (params.toString() ? '?' + params.toString() : '');
 }
 
