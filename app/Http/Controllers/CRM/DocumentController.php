@@ -21,6 +21,7 @@ use App\Models\Email;
 use App\Models\EmailLog;
 use App\Helpers\TempFileHelper;
 use App\Services\PythonService;
+use App\Services\SignedDocumentS3PathResolver;
 
 class DocumentController extends Controller
 {
@@ -2339,149 +2340,83 @@ class DocumentController extends Controller
     */
 
     public function downloadSigned($id)
-    {  
+    {
         try {
             $document = Document::findOrFail($id);
             $this->authorizeDocumentAssociatedAccess($document);
 
-            $fileUrl = $document->signed_doc_link;
-            $filename = $document->getSignedDownloadFilename();
-            
-            if (!$fileUrl) {
-                return abort(400, 'Missing signed document link');
+            if (! $document->signed_doc_link) {
+                abort(400, 'Missing signed document link');
             }
-            
+
+            $filename = str_replace('"', "'", $document->getSignedDownloadFilename());
+
             Log::info('Download signed document attempt', [
                 'document_id' => $id,
-                'signed_doc_link' => $fileUrl
+                'signed_doc_link' => $document->signed_doc_link,
             ]);
-            
-            // Parse the URL to extract storage path
-            $parsed = parse_url($fileUrl);
-            $urlPath = $parsed['path'] ?? '';
-            
-            // Check if it's a local storage path (contains /storage/)
-            if (strpos($urlPath, '/storage/') !== false) {
-                // This is a local storage path: /storage/signed/50236_signed.pdf
-                // Extract: signed/50236_signed.pdf
-                $parts = explode('/storage/', $urlPath);
-                $relativePath = end($parts);
-                
-                Log::info('Checking local storage', [
-                    'relativePath' => $relativePath,
-                    'fullPath' => storage_path('app/public/' . $relativePath),
-                    'exists' => Storage::disk('public')->exists($relativePath)
+
+            $location = SignedDocumentS3PathResolver::locateSignedPdfFile($document);
+
+            if ($location === null) {
+                Log::error('Signed document file not found', [
+                    'document_id' => $id,
+                    'signed_doc_link' => $document->signed_doc_link,
                 ]);
-                
-                // Check if file exists in storage/app/public/
-                if (!Storage::disk('public')->exists($relativePath)) {
-                    Log::error('File not found in local storage', [
-                        'relativePath' => $relativePath,
-                        'fullPath' => storage_path('app/public/' . $relativePath)
-                    ]);
-                    return abort(404, 'Signed document file not found in storage');
-                }
-                
-                // Direct PHP output - bypass all Laravel/Symfony processing
-                $filePath = storage_path('app/public/' . $relativePath);
-                
-                // Verify file exists and get size before output
-                if (!file_exists($filePath)) {
-                    Log::error('File path does not exist', ['filePath' => $filePath]);
-                    return abort(404, 'Signed document file not found');
-                }
-                
-                $fileSize = filesize($filePath);
-                if ($fileSize === false || $fileSize === 0) {
-                    Log::error('Invalid file size', ['filePath' => $filePath, 'size' => $fileSize]);
-                    return abort(404, 'Signed document file is invalid or empty');
-                }
-                
-                Log::info('Attempting direct PHP file output', [
-                    'relativePath' => $relativePath,
-                    'filePath' => $filePath,
-                    'filename' => $filename,
-                    'filesize' => $fileSize
-                ]);
-                
-                // Clear any output buffers
-                if (ob_get_level()) {
-                    ob_end_clean();
-                }
-                
-                // Set headers directly
-                header('Content-Type: application/pdf');
-                header('Content-Disposition: attachment; filename="' . $filename . '"');
-                header('Content-Length: ' . $fileSize);
-                header('Cache-Control: no-cache, must-revalidate');
-                header('Pragma: public');
-                header('Expires: 0');
-                
-                // Output file
-                readfile($filePath);
-                
-                Log::info('File output completed');
-                
-                exit;
+                abort(404, 'Signed document file not found');
             }
-            
-            // Try S3 storage
-            if (isset($parsed['path']) && !empty($parsed['path'])) {
-                $s3Key = ltrim($parsed['path'], '/');
-                /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
-                $disk = Storage::disk('s3');
-                
-                Log::info('Checking S3 storage', [
-                    's3Key' => $s3Key,
-                    'url' => $fileUrl
+
+            if ($location['disk'] === 'local') {
+                return response()->download($location['path'], $filename, [
+                    'Content-Type' => 'application/pdf',
                 ]);
-                
-                if ($disk->exists($s3Key)) {
-                    try {
-                        $tempUrl = $disk->temporaryUrl(
-                            $s3Key,
-                            now()->addMinutes(5),
-                            ['ResponseContentDisposition' => 'attachment; filename="' . $filename . '"']
-                        );
-                        
-                        Log::info('S3 temporary URL generated', [
-                            's3Key' => $s3Key,
-                            'tempUrl' => $tempUrl
-                        ]);
-                        
-                        return redirect($tempUrl);
-                    } catch (\Exception $e) {
-                        Log::error('Failed to generate S3 temporary URL', [
-                            's3Key' => $s3Key,
-                            'error' => $e->getMessage()
-                        ]);
-                        // Fall through to error handling
-                    }
-                } else {
-                    Log::warning('File not found in S3', [
-                        's3Key' => $s3Key,
-                        'url' => $fileUrl
-                    ]);
-                }
             }
-            
-            // If neither local nor S3 worked, return error
-            Log::error('Unexpected URL format - not a valid storage path', [
-                'url' => $fileUrl,
-                'path' => $urlPath,
-                'parsed' => $parsed
-            ]);
-            
-            return abort(400, 'Invalid storage URL format or file not found');
-            
-        } catch (\Exception $e) {
+
+            /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+            $disk = Storage::disk('s3');
+            $s3Key = $location['key'];
+
+            try {
+                $tempUrl = $disk->temporaryUrl(
+                    $s3Key,
+                    now()->addMinutes(5),
+                    ['ResponseContentDisposition' => 'attachment; filename="' . $filename . '"']
+                );
+
+                Log::info('S3 temporary URL generated for signed download', [
+                    'document_id' => $id,
+                    's3_key' => $s3Key,
+                ]);
+
+                return redirect($tempUrl);
+            } catch (\Throwable $e) {
+                Log::warning('S3 temporaryUrl failed, streaming signed PDF through app', [
+                    'document_id' => $id,
+                    's3_key' => $s3Key,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return response($disk->get($s3Key), 200, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                    'Content-Length' => $disk->size($s3Key),
+                    'Cache-Control' => 'private, no-cache',
+                ]);
+            }
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            throw $e;
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            throw $e;
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
             Log::error('Error downloading signed document', [
                 'document_id' => $id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
-            return abort(500, 'Error generating download link: ' . $e->getMessage());
+
+            abort(500, 'Error generating download link');
         }
     }
 
@@ -2494,52 +2429,44 @@ class DocumentController extends Controller
             $document = Document::findOrFail($id);
             $this->authorizeDocumentAssociatedAccess($document);
             $fileUrl = $document->signed_doc_link;
-            if (!$fileUrl && str_ends_with((string) ($document->checklist ?? ''), '_signed')) {
+            if (! $fileUrl && str_ends_with((string) ($document->checklist ?? ''), '_signed')) {
                 $fileUrl = $document->myfile;
             }
-            if (!$fileUrl) {
-                return abort(404, 'Signed document not available for preview.');
+            if (! $fileUrl) {
+                abort(404, 'Signed document not available for preview.');
             }
 
             $filename = str_replace('"', "'", $document->getSignedDownloadFilename());
-            $parsed = parse_url($fileUrl);
-            $urlPath = $parsed['path'] ?? '';
+            $location = SignedDocumentS3PathResolver::locateSignedPdfFile($document, $fileUrl);
 
-            if (strpos($urlPath, '/storage/') !== false) {
-                $parts = explode('/storage/', $urlPath);
-                $relativePath = end($parts);
-                if (!Storage::disk('public')->exists($relativePath)) {
-                    return abort(404, 'File not found');
-                }
-                $filePath = storage_path('app/public/' . $relativePath);
+            if ($location === null) {
+                return redirect()->away($fileUrl);
+            }
 
-                return response()->file($filePath, [
+            if ($location['disk'] === 'local') {
+                return response()->file($location['path'], [
                     'Content-Disposition' => 'inline; filename="' . $filename . '"',
                 ]);
             }
 
-            if (isset($parsed['path']) && $parsed['path'] !== '') {
-                $s3Key = ltrim(urldecode($parsed['path']), '/');
-                $disk = Storage::disk('s3');
-                if ($disk->exists($s3Key)) {
-                    $content = $disk->get($s3Key);
+            $disk = Storage::disk('s3');
 
-                    return response($content, 200, [
-                        'Content-Type'        => 'application/pdf',
-                        'Content-Disposition' => 'inline; filename="' . $filename . '"',
-                        'Content-Length'      => strlen($content),
-                        'Cache-Control'       => 'private, max-age=300',
-                    ]);
-                }
-            }
-
-            return redirect()->away($fileUrl);
+            return response($disk->get($location['key']), 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $filename . '"',
+                'Content-Length' => $disk->size($location['key']),
+                'Cache-Control' => 'private, max-age=300',
+            ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return abort(404);
-        } catch (\Exception $e) {
+            throw $e;
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            throw $e;
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
             Log::error('previewSigned failed', ['id' => $id, 'error' => $e->getMessage()]);
 
-            return abort(500, 'Unable to preview signed document.');
+            abort(500, 'Unable to preview signed document.');
         }
     }
 
@@ -2551,54 +2478,39 @@ class DocumentController extends Controller
             if ($document->signed_doc_link) {
                 $signedDocUrl = $document->signed_doc_link;
                 $downloadUrl = null;
-                
-                // Parse the URL to get the path
-                $parsed = parse_url($signedDocUrl);
-                $urlPath = $parsed['path'] ?? '';
-                
-                // Check if it's a local storage path (contains /storage/)
-                if (strpos($urlPath, '/storage/') !== false) {
-                    // Extract the path after /storage/
-                    $parts = explode('/storage/', $urlPath);
-                    $relativePath = end($parts);
-                    
-                    // Check if file exists in local storage
-                    if (Storage::disk('public')->exists($relativePath)) {
-                        // Generate a temporary download route for local files
+                $location = SignedDocumentS3PathResolver::locateSignedPdfFile($document);
+
+                if ($location !== null) {
+                    if ($location['disk'] === 'local') {
                         $downloadUrl = route('documents.download.signed', $document->id);
-                    }
-                } else {
-                    // Try S3 storage
-                    if (isset($parsed['path'])) {
-                        // Remove leading slash
-                        $s3Key = ltrim($parsed['path'], '/');
-                        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
-                        $disk = Storage::disk('s3');
-                        if ($disk->exists($s3Key)) {
+                    } else {
+                        try {
+                            /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+                            $disk = Storage::disk('s3');
                             $dlName = str_replace('"', "'", $document->getSignedDownloadFilename());
                             $downloadUrl = $disk->temporaryUrl(
-                                $s3Key,
+                                $location['key'],
                                 now()->addMinutes(5),
                                 [
                                     'ResponseContentDisposition' => 'attachment; filename="' . $dlName . '"',
                                 ]
                             );
+                        } catch (\Throwable $e) {
+                            $downloadUrl = route('documents.download.signed', $document->id);
                         }
                     }
                 }
-                
-                // If we found a valid download URL, show the download & thank you view
+
                 if ($downloadUrl) {
                     return view('crm.documents.download_and_thankyou', [
                         'downloadUrl' => $downloadUrl,
-                        'thankyouUrl' => route('public.documents.thankyou', ['id' => $id])
+                        'thankyouUrl' => route('public.documents.thankyou', ['id' => $id]),
                     ]);
                 }
-                
-                // Fallback: direct download if S3 key not found or file missing
+
                 return view('crm.documents.download_and_thankyou', [
                     'downloadUrl' => $signedDocUrl,
-                    'thankyouUrl' => route('public.documents.thankyou', ['id' => $id])
+                    'thankyouUrl' => route('public.documents.thankyou', ['id' => $id]),
                 ]);
             }
             return redirect()->back()->with('error', 'Signed document not found.');

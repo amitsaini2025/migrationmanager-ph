@@ -953,47 +953,41 @@ class PublicDocumentController extends Controller
     {
         try {
             $document = Document::findOrFail($id);
-            
+
             if ($document->signed_doc_link) {
                 $signedDocUrl = $document->signed_doc_link;
-                
-                // Parse the URL to get the path
-                $parsed = parse_url($signedDocUrl);
-                $urlPath = $parsed['path'] ?? '';
-                
-                // Check if it's a local storage path (contains /storage/)
-                if (strpos($urlPath, '/storage/') !== false) {
-                    // Extract the path after /storage/
-                    $parts = explode('/storage/', $urlPath);
-                    $relativePath = end($parts);
-                    
-                    // Check if file exists in local storage
-                    if (Storage::disk('public')->exists($relativePath)) {
-                        $filePath = storage_path('app/public/' . $relativePath);
-                        return response()->download($filePath, $document->getSignedDownloadFilename());
+                $location = SignedDocumentS3PathResolver::locateSignedPdfFile($document);
+
+                if ($location !== null) {
+                    if ($location['disk'] === 'local') {
+                        return response()->download(
+                            $location['path'],
+                            $document->getSignedDownloadFilename()
+                        );
                     }
-                }
-                
-                // Try S3 storage
-                if (isset($parsed['path'])) {
-                    $s3Key = ltrim($parsed['path'], '/');
+
                     /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
                     $disk = Storage::disk('s3');
-                    
-                    if ($disk->exists($s3Key)) {
-                        $dlName = $document->getSignedDownloadFilename();
-                        $tempUrl = $disk->temporaryUrl(
-                            $s3Key,
+                    $dlName = str_replace('"', "'", $document->getSignedDownloadFilename());
+
+                    try {
+                        return redirect($disk->temporaryUrl(
+                            $location['key'],
                             now()->addMinutes(5),
-                            ['ResponseContentDisposition' => 'attachment; filename="' . str_replace('"', "'", $dlName) . '"']
-                        );
-                        return redirect($tempUrl);
+                            ['ResponseContentDisposition' => 'attachment; filename="' . $dlName . '"']
+                        ));
+                    } catch (\Throwable $e) {
+                        return response($disk->get($location['key']), 200, [
+                            'Content-Type' => 'application/pdf',
+                            'Content-Disposition' => 'attachment; filename="' . $dlName . '"',
+                            'Content-Length' => $disk->size($location['key']),
+                        ]);
                     }
                 }
-                
+
                 return redirect($signedDocUrl);
             }
-            
+
             return redirect('/')->with('error', 'Signed document not found.');
         } catch (\Exception $e) {
             Log::error('Error downloading signed document', [
