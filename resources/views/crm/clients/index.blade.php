@@ -112,6 +112,26 @@
         flex-wrap: wrap;
     }
 
+    .listing-container .card-header-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .listing-container .list-record-total {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
     .listing-container .per-page-select {
         border: 1px solid white !important;
         border-radius: 8px !important;
@@ -256,7 +276,15 @@
                 <div class="custom-error-msg">
                 </div>
                 <div class="card-header">
-                    <h4>All Clients</h4>
+                    <div class="card-header-title">
+                        <h4>All Clients</h4>
+                        @php
+                            $filteredTotal = (int) ($lists->total() ?? 0);
+                        @endphp
+                        <span class="list-record-total" title="Total records matching current filters">
+                            Total: {{ number_format($filteredTotal) }}
+                        </span>
+                    </div>
 
                     <div class="card-header-actions">
                         @if(Auth::user() && in_array(Auth::user()->role, [1, 12]))
@@ -272,7 +300,7 @@
                             @endforeach
                         </select>
                         @if(Auth::user() && (int) Auth::user()->role === 1)
-                        <a href="javascript:;" class="btn btn-theme btn-theme-sm" onclick="exportClientList()" title="Export client list as CSV">
+                        <a href="javascript:;" class="btn btn-theme btn-theme-sm" onclick="exportClientList({{ $filteredTotal }})" title="Export client list as CSV">
                             @icon('fa-file-export') Export CSV
                         </a>
                         @endif
@@ -466,7 +494,7 @@
                                 </tr>
                             </thead>
                             <tbody class="tdata">
-                                @if(@$totalData !== 0)
+                                @if($filteredTotal > 0)
                                 <?php $i=0; ?>
                                     @foreach (@$lists as $list)
                                     <tr id="id_{{@$list->id}}">
@@ -649,7 +677,26 @@
 @endsection
 @push('scripts')
 <script>
-function exportClientList() {
+function exportClientList(filteredTotal) {
+    var exportLimit = {{ \App\Services\ClientLeadListExportService::EXPORT_LIMIT }};
+    var total = parseInt(filteredTotal, 10) || 0;
+
+    if (total === 0) {
+        alert('No clients match the current filters.');
+        return;
+    }
+
+    var exportCount = Math.min(total, exportLimit);
+    var message = 'Export ' + exportCount + ' client(s) as CSV?\n\nThe file will include an Export Summary footer showing total matching and exported counts.';
+
+    if (total > exportLimit) {
+        message += '\n\nWarning: ' + total + ' clients match your filters, but only the first ' + exportLimit + ' will be exported.';
+    }
+
+    if (!confirm(message)) {
+        return;
+    }
+
     var params = new URLSearchParams(window.location.search);
     params.delete('page');
     params.delete('per_page');

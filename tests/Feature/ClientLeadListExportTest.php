@@ -64,6 +64,9 @@ class ClientLeadListExportTest extends TestCase
         $this->assertStringContainsString('EXP1001', $content);
         $this->assertStringContainsString('exportable.client@test.com', $content);
         $this->assertStringNotContainsString('OTH1002', $content);
+        $this->assertStringContainsString('Export Summary', $content);
+        $this->assertStringContainsString('Total exported', $content);
+        $this->assertStringContainsString('Export complete', $content);
     }
 
     public function test_lead_csv_export_includes_lead_details(): void
@@ -89,6 +92,21 @@ class ClientLeadListExportTest extends TestCase
         $content = $response->streamedContent();
         $this->assertStringContainsString('LED2001', $content);
         $this->assertStringContainsString('lead.export@test.com', $content);
+        $this->assertStringContainsString('Export Summary', $content);
+        $this->assertStringContainsString('Total exported', $content);
+    }
+
+    public function test_export_preview_reports_cap_when_over_limit(): void
+    {
+        $service = app(ClientLeadListExportService::class);
+        $query = Admin::query()->whereRaw('1 = 0');
+
+        $preview = $service->buildExportPreview($query);
+
+        $this->assertSame(0, $preview['total_matching']);
+        $this->assertSame(0, $preview['expected_export_count']);
+        $this->assertFalse($preview['capped']);
+        $this->assertSame(ClientLeadListExportService::EXPORT_LIMIT, $preview['limit']);
     }
 
     public function test_export_service_builds_complete_row_for_client(): void

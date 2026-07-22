@@ -85,15 +85,17 @@ class ClientLeadListExportService
     {
         $headers = $this->getHeaders($recordType);
         $filename = $filenamePrefix . '_' . date('Y-m-d_His') . '.csv';
+        $totalMatching = $this->countMatching($query);
+        $expectedExportCount = min($totalMatching, self::EXPORT_LIMIT);
 
-        return response()->streamDownload(function () use ($query, $headers, $recordType) {
+        return response()->streamDownload(function () use ($query, $headers, $recordType, $totalMatching) {
             @set_time_limit(0);
 
             $out = fopen('php://output', 'w');
             fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
             fputcsv($out, $headers);
 
-            $this->chunkRecords($query, $recordType, function (Admin $admin, array $batch) use ($out, $recordType) {
+            $exportedCount = $this->chunkRecords($query, $recordType, function (Admin $admin, array $batch) use ($out, $recordType) {
                 fputcsv($out, $this->buildRow($admin, $recordType, $batch));
 
                 if (ob_get_level() > 0) {
@@ -102,16 +104,59 @@ class ClientLeadListExportService
                 flush();
             });
 
+            $this->writeExportSummary($out, $totalMatching, $exportedCount);
+
             fclose($out);
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',
+            'X-Export-Total-Matching' => (string) $totalMatching,
+            'X-Export-Expected-Count' => (string) $expectedExportCount,
+            'X-Export-Limit' => (string) self::EXPORT_LIMIT,
+            'X-Export-Capped' => $totalMatching > self::EXPORT_LIMIT ? '1' : '0',
         ]);
     }
 
+    public function countMatching(Builder $query): int
+    {
+        return (int) (clone $query)->count();
+    }
+
     /**
-     * @param  callable(Admin, array): void  $callback
+     * @return array{total_matching: int, expected_export_count: int, capped: bool, limit: int}
      */
-    protected function chunkRecords(Builder $query, string $recordType, callable $callback): void
+    public function buildExportPreview(Builder $query): array
+    {
+        $totalMatching = $this->countMatching($query);
+
+        return [
+            'total_matching' => $totalMatching,
+            'expected_export_count' => min($totalMatching, self::EXPORT_LIMIT),
+            'capped' => $totalMatching > self::EXPORT_LIMIT,
+            'limit' => self::EXPORT_LIMIT,
+        ];
+    }
+
+    protected function writeExportSummary($out, int $totalMatching, int $exportedCount): void
+    {
+        fputcsv($out, []);
+        fputcsv($out, ['Export Summary']);
+        fputcsv($out, ['Total matching records', $totalMatching]);
+        fputcsv($out, ['Total exported', $exportedCount]);
+        fputcsv($out, [
+            'Export complete',
+            ($totalMatching <= self::EXPORT_LIMIT && $exportedCount === $totalMatching) ? 'Yes' : 'Partial',
+        ]);
+        fputcsv($out, [
+            'Export capped at limit',
+            $totalMatching > self::EXPORT_LIMIT ? 'Yes (max ' . self::EXPORT_LIMIT . ')' : 'No',
+        ]);
+        fputcsv($out, ['Exported at', now()->format('Y-m-d H:i:s')]);
+    }
+
+    /**
+     * @return int Number of rows exported
+     */
+    protected function chunkRecords(Builder $query, string $recordType, callable $callback): int
     {
         $count = 0;
         $staffNames = [];
@@ -149,6 +194,8 @@ class ClientLeadListExportService
                     $count++;
                 }
             });
+
+        return $count;
     }
 
     /**
