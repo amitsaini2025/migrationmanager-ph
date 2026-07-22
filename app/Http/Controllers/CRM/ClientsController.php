@@ -213,7 +213,7 @@ class ClientsController extends Controller
         $query = $this->applyClientFilters($this->getBaseClientQuery(), $request);
 
         return app(ClientLeadListExportService::class)
-            ->streamCsv($query, 'client', 'clients_export');
+            ->export($query, 'client', 'clients_export');
     }
 
     public function clientsmatterslist(Request $request)

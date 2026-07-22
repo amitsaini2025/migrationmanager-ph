@@ -104,7 +104,7 @@ class LeadController extends Controller
         $query = $this->buildLeadListQuery($request);
 
         return app(ClientLeadListExportService::class)
-            ->streamCsv($query, 'lead', 'leads_export');
+            ->export($query, 'lead', 'leads_export');
     }
 
     /**

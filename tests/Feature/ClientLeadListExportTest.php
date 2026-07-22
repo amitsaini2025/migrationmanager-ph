@@ -65,8 +65,8 @@ class ClientLeadListExportTest extends TestCase
         $this->assertStringContainsString('exportable.client@test.com', $content);
         $this->assertStringNotContainsString('OTH1002', $content);
         $this->assertStringContainsString('Export Summary', $content);
-        $this->assertStringContainsString('Total exported', $content);
-        $this->assertStringContainsString('Export complete', $content);
+        $this->assertStringContainsString('Total exported in this file', $content);
+        $this->assertStringContainsString('Export complete for this file', $content);
     }
 
     public function test_lead_csv_export_includes_lead_details(): void
@@ -93,7 +93,17 @@ class ClientLeadListExportTest extends TestCase
         $this->assertStringContainsString('LED2001', $content);
         $this->assertStringContainsString('lead.export@test.com', $content);
         $this->assertStringContainsString('Export Summary', $content);
-        $this->assertStringContainsString('Total exported', $content);
+        $this->assertStringContainsString('Total exported in this file', $content);
+    }
+
+    public function test_calculate_batch_count_for_large_exports(): void
+    {
+        $service = app(ClientLeadListExportService::class);
+
+        $this->assertSame(1, $service->calculateBatchCount(1));
+        $this->assertSame(1, $service->calculateBatchCount(10000));
+        $this->assertSame(2, $service->calculateBatchCount(10001));
+        $this->assertSame(2, $service->calculateBatchCount(10146));
     }
 
     public function test_export_preview_reports_cap_when_over_limit(): void
@@ -105,6 +115,7 @@ class ClientLeadListExportTest extends TestCase
 
         $this->assertSame(0, $preview['total_matching']);
         $this->assertSame(0, $preview['expected_export_count']);
+        $this->assertSame(0, $preview['batch_count']);
         $this->assertFalse($preview['capped']);
         $this->assertSame(ClientLeadListExportService::EXPORT_LIMIT, $preview['limit']);
     }

@@ -644,11 +644,12 @@ function exportLeadList(filteredTotal) {
         return;
     }
 
-    var exportCount = Math.min(total, exportLimit);
+    var exportCount = total;
+    var batchCount = Math.ceil(total / exportLimit);
     var message = 'Export ' + exportCount + ' lead(s) as CSV?\n\nThe file will include an Export Summary footer showing total matching and exported counts.';
 
-    if (total > exportLimit) {
-        message += '\n\nWarning: ' + total + ' leads match your filters, but only the first ' + exportLimit + ' will be exported.';
+    if (batchCount > 1) {
+        message = 'Export ' + exportCount + ' lead(s) automatically in ' + batchCount + ' CSV files inside one ZIP download.\n\nFiles will be named batch 1 of ' + batchCount + ', batch 2 of ' + batchCount + ', and so on.';
     }
 
     if (!confirm(message)) {

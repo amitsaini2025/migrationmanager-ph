@@ -17,12 +17,37 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use ZipArchive;
 
 class ClientLeadListExportService
 {
     public const EXPORT_LIMIT = 10000;
 
     public const CHUNK_SIZE = 200;
+
+    /**
+     * Export list as CSV, or as a ZIP of batch CSV files when over the per-file limit.
+     */
+    public function export(Builder $query, string $recordType, string $filenamePrefix): StreamedResponse
+    {
+        $totalMatching = $this->countMatching($query);
+        $batchCount = $this->calculateBatchCount($totalMatching);
+
+        if ($batchCount <= 1) {
+            return $this->streamCsv($query, $recordType, $filenamePrefix, $totalMatching);
+        }
+
+        return $this->streamZipBatches($query, $recordType, $filenamePrefix, $totalMatching, $batchCount);
+    }
+
+    public function calculateBatchCount(int $totalMatching): int
+    {
+        if ($totalMatching <= 0) {
+            return 0;
+        }
+
+        return (int) ceil($totalMatching / self::EXPORT_LIMIT);
+    }
 
     /**
      * @return list<string>
@@ -81,39 +106,173 @@ class ClientLeadListExportService
         return $headers;
     }
 
-    public function streamCsv(Builder $query, string $recordType, string $filenamePrefix): StreamedResponse
+    public function streamCsv(Builder $query, string $recordType, string $filenamePrefix, ?int $totalMatching = null): StreamedResponse
     {
         $headers = $this->getHeaders($recordType);
         $filename = $filenamePrefix . '_' . date('Y-m-d_His') . '.csv';
-        $totalMatching = $this->countMatching($query);
-        $expectedExportCount = min($totalMatching, self::EXPORT_LIMIT);
+        $totalMatching = $totalMatching ?? $this->countMatching($query);
 
         return response()->streamDownload(function () use ($query, $headers, $recordType, $totalMatching) {
             @set_time_limit(0);
 
             $out = fopen('php://output', 'w');
-            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($out, $headers);
-
-            $exportedCount = $this->chunkRecords($query, $recordType, function (Admin $admin, array $batch) use ($out, $recordType) {
-                fputcsv($out, $this->buildRow($admin, $recordType, $batch));
-
-                if (ob_get_level() > 0) {
-                    ob_flush();
-                }
-                flush();
-            });
-
-            $this->writeExportSummary($out, $totalMatching, $exportedCount);
-
+            $this->writeCsvBatch($out, $query, $headers, $recordType, $totalMatching, 1, 1, 0, $totalMatching, true);
             fclose($out);
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'X-Export-Total-Matching' => (string) $totalMatching,
-            'X-Export-Expected-Count' => (string) $expectedExportCount,
+            'X-Export-Expected-Count' => (string) $totalMatching,
+            'X-Export-Batch-Count' => '1',
             'X-Export-Limit' => (string) self::EXPORT_LIMIT,
-            'X-Export-Capped' => $totalMatching > self::EXPORT_LIMIT ? '1' : '0',
+            'X-Export-Capped' => '0',
         ]);
+    }
+
+    protected function streamZipBatches(
+        Builder $query,
+        string $recordType,
+        string $filenamePrefix,
+        int $totalMatching,
+        int $batchCount
+    ): StreamedResponse {
+        $filename = $filenamePrefix . '_' . date('Y-m-d_His') . '_batches.zip';
+        $headers = $this->getHeaders($recordType);
+
+        return response()->streamDownload(function () use ($query, $recordType, $filenamePrefix, $totalMatching, $batchCount, $headers) {
+            @set_time_limit(0);
+
+            $zipPath = tempnam(sys_get_temp_dir(), 'crm_export_zip_');
+            if ($zipPath === false) {
+                throw new \RuntimeException('Unable to create temporary export file.');
+            }
+
+            $zip = new ZipArchive();
+            if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+                @unlink($zipPath);
+                throw new \RuntimeException('Unable to create export ZIP archive.');
+            }
+
+            for ($batchNumber = 1; $batchNumber <= $batchCount; $batchNumber++) {
+                $offset = ($batchNumber - 1) * self::EXPORT_LIMIT;
+                $batchLimit = min(self::EXPORT_LIMIT, $totalMatching - $offset);
+                $csvContent = $this->buildCsvBatchString(
+                    $query,
+                    $headers,
+                    $recordType,
+                    $totalMatching,
+                    $batchNumber,
+                    $batchCount,
+                    $offset,
+                    $batchLimit
+                );
+
+                $zip->addFromString(
+                    sprintf('%s_batch_%d_of_%d.csv', $filenamePrefix, $batchNumber, $batchCount),
+                    $csvContent
+                );
+            }
+
+            $zip->close();
+
+            $handle = fopen($zipPath, 'rb');
+            if ($handle !== false) {
+                while (! feof($handle)) {
+                    echo fread($handle, 8192);
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+                fclose($handle);
+            }
+
+            @unlink($zipPath);
+        }, $filename, [
+            'Content-Type' => 'application/zip',
+            'X-Export-Total-Matching' => (string) $totalMatching,
+            'X-Export-Expected-Count' => (string) $totalMatching,
+            'X-Export-Batch-Count' => (string) $batchCount,
+            'X-Export-Limit' => (string) self::EXPORT_LIMIT,
+            'X-Export-Capped' => '0',
+        ]);
+    }
+
+    /**
+     * @param  resource  $out
+     */
+    protected function writeCsvBatch(
+        $out,
+        Builder $query,
+        array $headers,
+        string $recordType,
+        int $totalMatching,
+        int $batchNumber,
+        int $batchCount,
+        int $offset,
+        int $batchLimit,
+        bool $flushStream = false
+    ): int {
+        fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        fputcsv($out, $headers);
+
+        $exportedCount = $this->chunkRecords(
+            $this->buildBatchQuery($query, $offset),
+            $recordType,
+            function (Admin $admin, array $batch) use ($out, $recordType, $flushStream) {
+                fputcsv($out, $this->buildRow($admin, $recordType, $batch));
+
+                if ($flushStream) {
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+            },
+            $batchLimit
+        );
+
+        $this->writeExportSummary($out, $totalMatching, $exportedCount, $batchNumber, $batchCount);
+
+        return $exportedCount;
+    }
+
+    protected function buildCsvBatchString(
+        Builder $query,
+        array $headers,
+        string $recordType,
+        int $totalMatching,
+        int $batchNumber,
+        int $batchCount,
+        int $offset,
+        int $batchLimit
+    ): string {
+        $handle = fopen('php://temp', 'r+');
+        if ($handle === false) {
+            throw new \RuntimeException('Unable to create temporary CSV buffer.');
+        }
+
+        $this->writeCsvBatch($handle, $query, $headers, $recordType, $totalMatching, $batchNumber, $batchCount, $offset, $batchLimit);
+        rewind($handle);
+        $content = stream_get_contents($handle);
+        fclose($handle);
+
+        return $content === false ? '' : $content;
+    }
+
+    protected function buildBatchQuery(Builder $query, int $offset): Builder
+    {
+        $batchQuery = (clone $query)->orderBy('id');
+
+        if ($offset <= 0) {
+            return $batchQuery;
+        }
+
+        $startId = (clone $query)->orderBy('id')->offset($offset)->limit(1)->value('id');
+        if ($startId !== null) {
+            $batchQuery->where('id', '>=', $startId);
+        }
+
+        return $batchQuery;
     }
 
     public function countMatching(Builder $query): int
@@ -127,44 +286,58 @@ class ClientLeadListExportService
     public function buildExportPreview(Builder $query): array
     {
         $totalMatching = $this->countMatching($query);
+        $batchCount = $this->calculateBatchCount($totalMatching);
 
         return [
             'total_matching' => $totalMatching,
-            'expected_export_count' => min($totalMatching, self::EXPORT_LIMIT),
-            'capped' => $totalMatching > self::EXPORT_LIMIT,
+            'expected_export_count' => $totalMatching,
+            'batch_count' => $batchCount,
+            'capped' => $batchCount > 1,
             'limit' => self::EXPORT_LIMIT,
         ];
     }
 
-    protected function writeExportSummary($out, int $totalMatching, int $exportedCount): void
-    {
+    protected function writeExportSummary(
+        $out,
+        int $totalMatching,
+        int $exportedCount,
+        ?int $batchNumber = null,
+        ?int $batchTotal = null
+    ): void {
         fputcsv($out, []);
         fputcsv($out, ['Export Summary']);
+        if ($batchNumber !== null && $batchTotal !== null) {
+            fputcsv($out, ['Export batch', $batchNumber . ' of ' . $batchTotal]);
+            fputcsv($out, ['Records in this file', $exportedCount]);
+        }
         fputcsv($out, ['Total matching records', $totalMatching]);
-        fputcsv($out, ['Total exported', $exportedCount]);
+        fputcsv($out, ['Total exported in this file', $exportedCount]);
         fputcsv($out, [
-            'Export complete',
-            ($totalMatching <= self::EXPORT_LIMIT && $exportedCount === $totalMatching) ? 'Yes' : 'Partial',
+            'Export complete for this file',
+            $exportedCount > 0 ? 'Yes' : 'No',
         ]);
-        fputcsv($out, [
-            'Export capped at limit',
-            $totalMatching > self::EXPORT_LIMIT ? 'Yes (max ' . self::EXPORT_LIMIT . ')' : 'No',
-        ]);
+        if ($batchNumber !== null && $batchTotal !== null && $batchTotal > 1) {
+            fputcsv($out, [
+                'All batches required',
+                'Yes (' . $batchTotal . ' files in ZIP download)',
+            ]);
+        }
         fputcsv($out, ['Exported at', now()->format('Y-m-d H:i:s')]);
     }
 
     /**
      * @return int Number of rows exported
      */
-    protected function chunkRecords(Builder $query, string $recordType, callable $callback): int
+    protected function chunkRecords(Builder $query, string $recordType, callable $callback, ?int $maxRecords = null): int
     {
         $count = 0;
         $staffNames = [];
+        $limit = $maxRecords ?? self::EXPORT_LIMIT;
 
         (clone $query)
             ->with(['company'])
             ->orderBy('id')
-            ->chunkById(self::CHUNK_SIZE, function ($chunk) use ($callback, $recordType, &$count, &$staffNames) {
+            ->chunkById(self::CHUNK_SIZE, function ($chunk) use ($callback, $recordType, &$count, &$staffNames, $limit) {
                 $clientIds = $chunk->pluck('id')->map(fn ($id) => (int) $id)->all();
 
                 $userIds = $chunk->pluck('user_id')->filter()->unique()->values()->all();
@@ -182,7 +355,7 @@ class ClientLeadListExportService
                 $batch = $this->loadBatchContext($clientIds, $recordType);
 
                 foreach ($chunk as $admin) {
-                    if ($count >= self::EXPORT_LIMIT) {
+                    if ($count >= $limit) {
                         return false;
                     }
 
