@@ -214,6 +214,35 @@ class CompanyVisaAgreementMacroBuilder
     }
 
     /**
+     * First email / checklist compose fee macros — same mapping as agreement Section 4:
+     * TotalDoHASurcharges = DoHA charges incl. surcharge; TotalEstimatedOthCosts = additional_fee_1.
+     *
+     * @return array{Blocktotalfeesincltax: string, TotalDoHASurcharges: string, TotalEstimatedOthCosts: string, GrandTotalFeesAndCosts: string}
+     */
+    public static function buildFirstEmailComposeFeeMacros(
+        float $blockTotalFeesInclTax,
+        float $totalDoHACharges,
+        float $totalDoHASurchargesOnly,
+        float $additionalFee1
+    ): array {
+        $dohaInclSurcharge = self::calculateDohaChargesInclSurcharges(
+            $totalDoHACharges,
+            $totalDoHASurchargesOnly
+        );
+
+        return [
+            'Blocktotalfeesincltax' => number_format($blockTotalFeesInclTax, 2, '.', ''),
+            'TotalDoHASurcharges' => $dohaInclSurcharge,
+            'TotalEstimatedOthCosts' => number_format($additionalFee1, 2, '.', ''),
+            'GrandTotalFeesAndCosts' => self::calculateGrandTotalFeesAndCosts(
+                $blockTotalFeesInclTax,
+                $dohaInclSurcharge,
+                $additionalFee1
+            ),
+        ];
+    }
+
+    /**
      * Section 4 grand total for company nomination / sponsorship templates.
      *
      * Company templates merge TotalDoHASurcharges in the DoHA row (not TotalDoHAChargesInclSurcharge),

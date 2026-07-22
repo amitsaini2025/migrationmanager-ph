@@ -28,6 +28,7 @@ use App\Models\McqChapter;
 use App\Models\McqSubject;
 use App\Services\EmailService;
 use App\Services\CrmSentEmailS3Service;
+use App\Services\CompanyVisaAgreementMacroBuilder;
 use App\Support\ComposeEmailPayload;
 use App\Support\SendGridFromAllowedDomains;
 use App\Support\StaffClientVisibility;
@@ -1147,14 +1148,13 @@ public function getChapters(Request $request)
 					floatval($matterInfo->Dept_Nomination_Application_Charge ?? 0) +
 					floatval($matterInfo->Dept_Sponsorship_Application_Charge ?? 0);
 			}
-			$grandTotal = $blockTotal + $totalDepartmentCharges + $totalSurcharges + $totalOther;
-
-			$values['Blocktotalfeesincltax'] = number_format($blockTotal, 2, '.', '');
-			// First email template: "Department fee, including the card Surcharge" row uses ${TotalDoHASurcharges} → send department total to match checklist
-			$values['TotalDoHASurcharges'] = number_format($totalDepartmentCharges, 2, '.', '');
-			// First email template: "Other Costs (estimated)" row uses ${TotalEstimatedOthCosts} → send surcharge to match checklist
-			$values['TotalEstimatedOthCosts'] = number_format($totalSurcharges, 2, '.', '');
-			$values['GrandTotalFeesAndCosts'] = number_format($grandTotal, 2, '.', '');
+			$feeMacros = CompanyVisaAgreementMacroBuilder::buildFirstEmailComposeFeeMacros(
+				$blockTotal,
+				$totalDepartmentCharges,
+				$totalSurcharges,
+				$totalOther
+			);
+			$values = array_merge($values, $feeMacros);
 		}
 
 		$signingUrl = $this->getAgreementSigningUrlForMatter($clientMatterId);

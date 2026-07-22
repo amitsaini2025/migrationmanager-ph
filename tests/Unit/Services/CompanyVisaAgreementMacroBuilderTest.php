@@ -155,4 +155,34 @@ class CompanyVisaAgreementMacroBuilderTest extends TestCase
         $this->assertSame('100.00', $macros['DoHANominationApplicantSurcharge']);
         $this->assertSame('200.00', $macros['DoHASponsorshipApplicantSurcharge']);
     }
+
+    public function test_build_first_email_compose_fee_macros_john_son_tv3_case(): void
+    {
+        $macros = CompanyVisaAgreementMacroBuilder::buildFirstEmailComposeFeeMacros(
+            550.00,
+            630.00,
+            8.82,
+            1.18
+        );
+
+        $this->assertSame('550.00', $macros['Blocktotalfeesincltax']);
+        $this->assertSame('638.82', $macros['TotalDoHASurcharges']);
+        $this->assertSame('1.18', $macros['TotalEstimatedOthCosts']);
+        $this->assertSame('1190.00', $macros['GrandTotalFeesAndCosts']);
+    }
+
+    public function test_build_first_email_compose_fee_macros_zero_surcharge_and_other_costs(): void
+    {
+        $macros = CompanyVisaAgreementMacroBuilder::buildFirstEmailComposeFeeMacros(
+            550.00,
+            630.00,
+            0.00,
+            0.00
+        );
+
+        $this->assertSame('550.00', $macros['Blocktotalfeesincltax']);
+        $this->assertSame('630.00', $macros['TotalDoHASurcharges']);
+        $this->assertSame('0.00', $macros['TotalEstimatedOthCosts']);
+        $this->assertSame('1180.00', $macros['GrandTotalFeesAndCosts']);
+    }
 }
