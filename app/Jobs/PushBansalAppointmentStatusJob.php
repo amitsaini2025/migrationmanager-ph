@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\BookingAppointment;
-use App\Services\BansalAppointmentSync\AppointmentSyncService;
+use App\Services\BansalAppointmentSync\BansalAppointmentRecoveryService;
 use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,7 +30,7 @@ class PushBansalAppointmentStatusJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(AppointmentSyncService $syncService): void
+    public function handle(BansalAppointmentRecoveryService $recoveryService): void
     {
         $appointment = BookingAppointment::find($this->appointmentId);
 
@@ -42,23 +42,28 @@ class PushBansalAppointmentStatusJob implements ShouldQueue
             return;
         }
 
-        try {
-            $syncService->pushStatusUpdate($appointment, $this->status, $this->reason);
+        $result = $recoveryService->syncStatus($appointment, $this->status, $this->reason);
+
+        if ($result['synced']) {
+            if ($result['bansal_appointment_id'] !== null) {
+                $appointment->bansal_appointment_id = $result['bansal_appointment_id'];
+            }
 
             $appointment->forceFill([
                 'last_synced_at' => now(),
                 'sync_status' => 'synced',
                 'sync_error' => null,
             ])->save();
-        } catch (Exception $e) {
-            $appointment->forceFill([
-                'sync_status' => 'error',
-                'sync_error' => $e->getMessage(),
-            ])->save();
 
-            // Re-throw so the job is marked as failed and can be retried if configured.
-            throw $e;
+            return;
         }
+
+        $appointment->forceFill([
+            'sync_status' => 'error',
+            'sync_error' => $result['error'],
+        ])->save();
+
+        throw new Exception($result['error'] ?? 'Failed to sync appointment status with Bansal API.');
     }
 }
 

@@ -1775,16 +1775,17 @@ class ClientPortalAppointmentController extends BaseController
             // Sync with Bansal API if applicable
             $syncError = null;
             if ($appointment->bansal_appointment_id) {
-                try {
-                    $bansalApiClient = app(\App\Services\BansalAppointmentSync\BansalApiClient::class);
-                    
-                    // Call Bansal API to update status
-                    // The API expects 'cancel' or 'complete' as type, not 'cancelled' or 'completed'
-                    $bansalApiClient->updateAppointmentStatus(
-                        $appointment->bansal_appointment_id,
-                        $request->type, // 'cancel' or 'complete'
-                        $request->cancel_reason ?? null
-                    );
+                $recoveryService = app(\App\Services\BansalAppointmentSync\BansalAppointmentRecoveryService::class);
+                $result = $recoveryService->syncStatus(
+                    $appointment,
+                    $newStatus,
+                    $request->cancel_reason ?? null
+                );
+
+                if ($result['synced']) {
+                    if ($result['bansal_appointment_id'] !== null) {
+                        $appointment->bansal_appointment_id = $result['bansal_appointment_id'];
+                    }
 
                     $appointment->forceFill([
                         'last_synced_at' => now(),
@@ -1797,8 +1798,8 @@ class ClientPortalAppointmentController extends BaseController
                         'bansal_appointment_id' => $appointment->bansal_appointment_id,
                         'status' => $newStatus
                     ]);
-                } catch (\Exception $e) {
-                    $syncError = $e->getMessage();
+                } else {
+                    $syncError = $result['error'];
 
                     Log::error('Failed to sync appointment status with Bansal API', [
                         'appointment_id' => $appointment->id,
@@ -1961,117 +1962,34 @@ class ClientPortalAppointmentController extends BaseController
             $newBansalAppointmentId = null;
 
             if (($datetimeChanged || $meetingTypeChanged || $preferredLanguageChanged) && !empty($appointment->bansal_appointment_id)) {
-                try {
-                    $bansalApiClient = app(\App\Services\BansalAppointmentSync\BansalApiClient::class);
-                    
-                    // Determine which fields to send to API
-                    $apiDate = $datetimeChanged ? $request->appointment_date : $appointment->appointment_datetime->format('Y-m-d');
-                    $apiTime = $datetimeChanged ? $request->appointment_time : $appointment->appointment_datetime->format('H:i');
-                    $apiMeetingType = $meetingTypeChanged ? $meetingTypeNormalized : ($appointment->meeting_type ?? 'in_person');
-                    $apiPreferredLanguage = $preferredLanguageChanged ? $preferredLanguage : ($appointment->preferred_language ?? 'English');
+                $apiDate = $datetimeChanged ? $request->appointment_date : $appointment->appointment_datetime->format('Y-m-d');
+                $apiTime = $datetimeChanged ? $request->appointment_time : $appointment->appointment_datetime->format('H:i');
+                $apiMeetingType = $meetingTypeChanged ? $meetingTypeNormalized : ($appointment->meeting_type ?? 'in_person');
+                $apiPreferredLanguage = $preferredLanguageChanged ? $preferredLanguage : ($appointment->preferred_language ?? 'English');
 
-                    $apiResponse = $bansalApiClient->rescheduleAppointment(
-                        (int) $appointment->bansal_appointment_id,
-                        $apiDate,
-                        $apiTime,
-                        $apiMeetingType,
-                        $apiPreferredLanguage
-                    );
+                $recoveryService = app(\App\Services\BansalAppointmentSync\BansalAppointmentRecoveryService::class);
+                $result = $recoveryService->syncReschedule(
+                    $appointment,
+                    $apiDate,
+                    $apiTime,
+                    $apiMeetingType,
+                    $apiPreferredLanguage
+                );
 
-                    if ($apiResponse['success'] ?? false) {
-                        $apiSynced = true;
-                        $appointment->last_synced_at = now();
-                        $appointment->sync_status = 'synced';
-                        $appointment->sync_error = null;
-                    } else {
-                        $errorMessage = $apiResponse['message'] ?? 'Failed to update appointment on website.';
-                        $errors = $apiResponse['errors'] ?? [];
-                        
-                        // Check if error is "invalid appointment id"
-                        if (strpos(strtolower($errorMessage), 'appointment id is invalid') !== false || 
-                            (isset($errors['appointment_id']) && strpos(strtolower(implode(' ', $errors['appointment_id'])), 'invalid') !== false)) {
-                            
-                            // Try to create new appointment via API
-                            try {
-                                $newBansalAppointmentId = $this->createAppointmentViaApi(
-                                    $appointment, 
-                                    $bansalApiClient,
-                                    $apiDate,
-                                    $apiTime,
-                                    $apiMeetingType,
-                                    $apiPreferredLanguage
-                                );
-                                
-                                if ($newBansalAppointmentId) {
-                                    $appointment->bansal_appointment_id = $newBansalAppointmentId;
-                                    $appointment->last_synced_at = now();
-                                    $appointment->sync_status = 'synced';
-                                    $appointment->sync_error = null;
-                                    $apiSynced = true;
-                                } else {
-                                    $syncError = 'Failed to create appointment on website. Original error: ' . $errorMessage;
-                                    $appointment->sync_status = 'error';
-                                    $appointment->sync_error = $syncError;
-                                }
-                            } catch (\Exception $createException) {
-                                $syncError = 'Failed to create appointment on website: ' . $createException->getMessage();
-                                $appointment->sync_status = 'error';
-                                $appointment->sync_error = $syncError;
-                            }
-                        } else {
-                            $syncError = $errorMessage;
-                            $appointment->sync_status = 'error';
-                            $appointment->sync_error = $syncError;
-                        }
+                $apiSynced = $result['synced'];
+                $syncError = $result['error'];
+                $newBansalAppointmentId = $result['created_new'] ? $result['bansal_appointment_id'] : null;
+
+                if ($result['synced']) {
+                    if ($result['bansal_appointment_id'] !== null) {
+                        $appointment->bansal_appointment_id = $result['bansal_appointment_id'];
                     }
-                } catch (\Exception $e) {
-                    $syncError = $e->getMessage();
-                    
-                    // Check if error is "invalid appointment id"
-                    if (strpos(strtolower($syncError), 'appointment id is invalid') !== false) {
-                        try {
-                            $bansalApiClient = app(\App\Services\BansalAppointmentSync\BansalApiClient::class);
-                            $newBansalAppointmentId = $this->createAppointmentViaApi(
-                                $appointment,
-                                $bansalApiClient,
-                                $apiDate,
-                                $apiTime,
-                                $apiMeetingType,
-                                $apiPreferredLanguage
-                            );
-                            
-                            if ($newBansalAppointmentId) {
-                                $appointment->bansal_appointment_id = $newBansalAppointmentId;
-                                $appointment->last_synced_at = now();
-                                $appointment->sync_status = 'synced';
-                                $appointment->sync_error = null;
-                                $apiSynced = true;
-                                $syncError = null;
-                            } else {
-                                $syncError = 'Failed to create appointment on website. Original error: ' . $syncError;
-                                $appointment->sync_status = 'error';
-                                $appointment->sync_error = $syncError;
-                            }
-                        } catch (\Exception $createException) {
-                            $createErrorMessage = $createException->getMessage();
-                            
-                            if (stripos($createErrorMessage, 'time is outside of available booking hours') !== false || 
-                                stripos($createErrorMessage, 'outside of available booking hours') !== false) {
-                                $syncError = 'The selected appointment time is not available for booking. Please choose a different time slot.';
-                            } elseif (stripos($createErrorMessage, 'time slot') !== false || 
-                                      stripos($createErrorMessage, 'slot') !== false) {
-                                $syncError = 'The selected time slot is not available. Please choose a different time.';
-                            } else {
-                                $syncError = 'Failed to create appointment on website: ' . $createErrorMessage;
-                            }
-                            
-                            $appointment->sync_status = 'error';
-                            $appointment->sync_error = $syncError;
-                        }
-                    } else {
-                        $appointment->sync_status = 'error';
-                        $appointment->sync_error = $syncError;
-                    }
+                    $appointment->last_synced_at = now();
+                    $appointment->sync_status = 'synced';
+                    $appointment->sync_error = null;
+                } else {
+                    $appointment->sync_status = 'error';
+                    $appointment->sync_error = $syncError;
                 }
             } else {
                 // No bansal_appointment_id, so just update locally
