@@ -53,11 +53,19 @@ class BansalAppointmentRecoveryService
     }
 
     /**
+     * Earliest appointment date included in bulk 404 retry (today in app timezone, including past times today).
+     */
+    public static function notFoundRetryEarliestAppointmentDate(): Carbon
+    {
+        return Carbon::today(config('app.timezone'));
+    }
+
+    /**
      * Existing CRM rows that failed because Bansal could not find the linked appointment ID.
      */
-    public function eligibleNotFoundQuery(): Builder
+    public function eligibleNotFoundQuery(bool $includePast = false): Builder
     {
-        return BookingAppointment::query()
+        $query = BookingAppointment::query()
             ->where('sync_status', 'error')
             ->where(function (Builder $query): void {
                 $query->where('sync_error', 'like', '%' . self::APPOINTMENT_NOT_FOUND_SYNC_ERROR . '%')
@@ -69,9 +77,17 @@ class BansalAppointmentRecoveryService
                 }
                 $query->where('sync_error', 'not like', '%' . RetryInvalidEnquirySyncService::INVALID_ENQUIRY_SYNC_ERROR . '%');
             })
-            ->where('appointment_datetime', '>', now())
-            ->where('status', '!=', 'cancelled')
-            ->orderBy('appointment_datetime');
+            ->where('status', '!=', 'cancelled');
+
+        if (!$includePast) {
+            $query->whereDate(
+                'appointment_datetime',
+                '>=',
+                self::notFoundRetryEarliestAppointmentDate()
+            );
+        }
+
+        return $query->orderBy('appointment_datetime');
     }
 
     /**

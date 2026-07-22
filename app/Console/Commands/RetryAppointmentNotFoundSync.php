@@ -13,6 +13,7 @@ class RetryAppointmentNotFoundSync extends Command
     protected $signature = 'booking:retry-not-found-sync
                             {--id= : Process a single booking_appointments.id}
                             {--limit= : Maximum number of appointments to process}
+                            {--include-past : Also retry appointments before today}
                             {--dry-run : Preview recovery actions without calling the Bansal API}
                             {--force : Skip confirmation prompt}
                             {--delay=1 : Seconds to wait between API calls}';
@@ -21,7 +22,7 @@ class RetryAppointmentNotFoundSync extends Command
 
     public function handle(BansalAppointmentRecoveryService $recoveryService): int
     {
-        $query = $recoveryService->eligibleNotFoundQuery();
+        $query = $recoveryService->eligibleNotFoundQuery((bool) $this->option('include-past'));
 
         if ($this->option('id')) {
             $query->where('id', (int) $this->option('id'));
@@ -36,7 +37,8 @@ class RetryAppointmentNotFoundSync extends Command
 
         if ($count === 0) {
             $this->info('No eligible appointments found.');
-            $this->line('Criteria: sync_status=error, 404/appointment not found sync_error, upcoming, not cancelled.');
+            $this->line('Criteria: sync_status=error, 404/appointment not found sync_error, appointment date today or later, not cancelled.');
+            $this->line('Use --include-past to retry older appointments. Completed appointments are included.');
             $this->line('Excluded: invalid enquiry type errors (use booking:retry-invalid-enquiry-sync).');
 
             return self::SUCCESS;

@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Services\BansalAppointmentSync\BansalAppointmentRecoveryService;
 use App\Services\BansalAppointmentSync\RetryInvalidEnquirySyncService;
+use Carbon\Carbon;
 use Tests\TestCase;
 
 class BansalAppointmentRecoveryServiceTest extends TestCase
@@ -45,5 +46,21 @@ class BansalAppointmentRecoveryServiceTest extends TestCase
             RetryInvalidEnquirySyncService::MIN_UNSYNCED_BANSAL_ID,
             2000000
         );
+    }
+
+    public function test_not_found_retry_earliest_appointment_date_is_start_of_today_in_app_timezone(): void
+    {
+        config(['app.timezone' => 'Australia/Melbourne']);
+        Carbon::setTestNow(Carbon::parse('2026-07-22 17:30:00', 'Australia/Melbourne'));
+
+        try {
+            $date = BansalAppointmentRecoveryService::notFoundRetryEarliestAppointmentDate();
+
+            $this->assertSame('2026-07-22', $date->toDateString());
+            $this->assertSame('00:00:00', $date->format('H:i:s'));
+            $this->assertSame('Australia/Melbourne', $date->timezone->getName());
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 }
