@@ -36,7 +36,12 @@ class RetryInvalidEnquiryTypeSync extends Command
 
         if ($count === 0) {
             $this->info('No eligible appointments found.');
-            $this->line('Criteria: sync_status=error, sync_error="' . RetryInvalidEnquirySyncService::INVALID_ENQUIRY_SYNC_ERROR . '", temp bansal_appointment_id, upcoming, not cancelled.');
+            $this->line('Criteria: sync_status=error, invalid enquiry type sync_error, temp bansal_appointment_id, upcoming, not cancelled.');
+            $this->line('Matching sync_error values:');
+            foreach (RetryInvalidEnquirySyncService::invalidEnquirySyncErrors() as $syncError) {
+                $this->line('  - ' . $syncError);
+            }
+            $this->line('  - (or any sync_error containing "' . RetryInvalidEnquirySyncService::INVALID_ENQUIRY_SYNC_ERROR . '")');
 
             return self::SUCCESS;
         }

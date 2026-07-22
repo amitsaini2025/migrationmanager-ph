@@ -12,7 +12,30 @@ class RetryInvalidEnquirySyncService
 {
     public const INVALID_ENQUIRY_SYNC_ERROR = 'The selected enquiry type is invalid.';
 
+    public const INVALID_ENQUIRY_SYNC_ERROR_PREFIXED = 'Failed to create appointment on website: The selected enquiry type is invalid.';
+
     public const MIN_UNSYNCED_BANSAL_ID = 2000000;
+
+    /**
+     * @return list<string>
+     */
+    public static function invalidEnquirySyncErrors(): array
+    {
+        return [
+            self::INVALID_ENQUIRY_SYNC_ERROR,
+            self::INVALID_ENQUIRY_SYNC_ERROR_PREFIXED,
+        ];
+    }
+
+    public static function matchesInvalidEnquirySyncError(?string $syncError): bool
+    {
+        if ($syncError === null || $syncError === '') {
+            return false;
+        }
+
+        return in_array($syncError, self::invalidEnquirySyncErrors(), true)
+            || str_contains($syncError, self::INVALID_ENQUIRY_SYNC_ERROR);
+    }
 
     public function __construct(
         protected BansalApiClient $apiClient
@@ -26,7 +49,10 @@ class RetryInvalidEnquirySyncService
     {
         return BookingAppointment::query()
             ->where('sync_status', 'error')
-            ->where('sync_error', self::INVALID_ENQUIRY_SYNC_ERROR)
+            ->where(function (Builder $query): void {
+                $query->whereIn('sync_error', self::invalidEnquirySyncErrors())
+                    ->orWhere('sync_error', 'like', '%' . self::INVALID_ENQUIRY_SYNC_ERROR);
+            })
             ->where('bansal_appointment_id', '>=', self::MIN_UNSYNCED_BANSAL_ID)
             ->where('appointment_datetime', '>', now())
             ->where('status', '!=', 'cancelled')

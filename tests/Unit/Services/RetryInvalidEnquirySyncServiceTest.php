@@ -73,4 +73,20 @@ class RetryInvalidEnquirySyncServiceTest extends TestCase
             $service->extractBansalAppointmentId(['success' => true, 'data' => ['id' => 12345]])
         );
     }
+
+    public function test_matches_invalid_enquiry_sync_error_variants(): void
+    {
+        $this->assertTrue(RetryInvalidEnquirySyncService::matchesInvalidEnquirySyncError(
+            RetryInvalidEnquirySyncService::INVALID_ENQUIRY_SYNC_ERROR
+        ));
+        $this->assertTrue(RetryInvalidEnquirySyncService::matchesInvalidEnquirySyncError(
+            RetryInvalidEnquirySyncService::INVALID_ENQUIRY_SYNC_ERROR_PREFIXED
+        ));
+        $this->assertTrue(RetryInvalidEnquirySyncService::matchesInvalidEnquirySyncError(
+            'Failed to create appointment on website. Original error: The selected enquiry type is invalid.'
+        ));
+        $this->assertFalse(RetryInvalidEnquirySyncService::matchesInvalidEnquirySyncError(
+            'The selected time slot is not available.'
+        ));
+    }
 }
