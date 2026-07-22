@@ -29,7 +29,9 @@ class EmailLogListService
                 return $query->orderBy('from_mail')->orderBy('created_at', 'DESC');
             case 'date':
             default:
-                return $query->orderBy('created_at', 'DESC');
+                // Sort by the email's actual sent/received date; fall back to upload time for
+                // CRM-sent rows or legacy uploads that never stored received_date.
+                return $query->orderByRaw('COALESCE(received_date, created_at) DESC');
         }
     }
 
