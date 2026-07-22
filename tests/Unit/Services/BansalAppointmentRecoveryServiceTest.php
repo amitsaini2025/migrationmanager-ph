@@ -26,6 +26,19 @@ class BansalAppointmentRecoveryServiceTest extends TestCase
         ));
     }
 
+    public function test_matches_appointment_not_found_sync_error_excludes_invalid_enquiry_errors(): void
+    {
+        $this->assertTrue(BansalAppointmentRecoveryService::matchesAppointmentNotFoundSyncError(
+            'HTTP request returned status code 404: {"success":false,"message":"Appointment not found"}'
+        ));
+        $this->assertFalse(BansalAppointmentRecoveryService::matchesAppointmentNotFoundSyncError(
+            RetryInvalidEnquirySyncService::INVALID_ENQUIRY_SYNC_ERROR
+        ));
+        $this->assertFalse(BansalAppointmentRecoveryService::matchesAppointmentNotFoundSyncError(
+            'The selected time slot is not available.'
+        ));
+    }
+
     public function test_temp_id_threshold_matches_retry_service_constant(): void
     {
         $this->assertSame(

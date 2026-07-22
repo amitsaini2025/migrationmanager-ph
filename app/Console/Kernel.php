@@ -31,6 +31,7 @@ class Kernel extends ConsoleKernel
         '\App\Console\Commands\TestBansalApiConnection',
         '\App\Console\Commands\BackfillBansalAppointments',
         '\App\Console\Commands\RetryInvalidEnquiryTypeSync',
+        '\App\Console\Commands\RetryAppointmentNotFoundSync',
         '\App\Console\Commands\MigrateKunalCalendarAppointments',
         
         // Signature Management System Commands

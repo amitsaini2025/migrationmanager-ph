@@ -5,10 +5,12 @@ namespace App\Services\BansalAppointmentSync;
 use App\Models\BookingAppointment;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 
 class BansalAppointmentRecoveryService
 {
+    public const APPOINTMENT_NOT_FOUND_SYNC_ERROR = 'Appointment not found';
     public function __construct(
         protected BansalApiClient $apiClient,
         protected RetryInvalidEnquirySyncService $createService
@@ -32,6 +34,74 @@ class BansalAppointmentRecoveryService
         return str_contains($normalized, 'appointment id is invalid')
             || str_contains($normalized, 'appointment not found')
             || str_contains($normalized, 'status code 404');
+    }
+
+    public static function matchesAppointmentNotFoundSyncError(?string $syncError): bool
+    {
+        if ($syncError === null || $syncError === '') {
+            return false;
+        }
+
+        if (RetryInvalidEnquirySyncService::matchesInvalidEnquirySyncError($syncError)) {
+            return false;
+        }
+
+        $normalized = strtolower($syncError);
+
+        return str_contains($normalized, strtolower(self::APPOINTMENT_NOT_FOUND_SYNC_ERROR))
+            || str_contains($normalized, 'status code 404');
+    }
+
+    /**
+     * Existing CRM rows that failed because Bansal could not find the linked appointment ID.
+     */
+    public function eligibleNotFoundQuery(): Builder
+    {
+        return BookingAppointment::query()
+            ->where('sync_status', 'error')
+            ->where(function (Builder $query): void {
+                $query->where('sync_error', 'like', '%' . self::APPOINTMENT_NOT_FOUND_SYNC_ERROR . '%')
+                    ->orWhere('sync_error', 'like', '%status code 404%');
+            })
+            ->where(function (Builder $query): void {
+                foreach (RetryInvalidEnquirySyncService::invalidEnquirySyncErrors() as $invalidEnquiryError) {
+                    $query->where('sync_error', '!=', $invalidEnquiryError);
+                }
+                $query->where('sync_error', 'not like', '%' . RetryInvalidEnquirySyncService::INVALID_ENQUIRY_SYNC_ERROR . '%');
+            })
+            ->where('appointment_datetime', '>', now())
+            ->where('status', '!=', 'cancelled')
+            ->orderBy('appointment_datetime');
+    }
+
+    /**
+     * @return array{synced: bool, error: ?string, bansal_appointment_id: ?int, created_new: bool, action: ?string}
+     */
+    public function retryNotFoundSync(BookingAppointment $appointment): array
+    {
+        $existingId = $this->findExistingBansalAppointmentId($appointment);
+        $result = $this->recoverWithCreate(
+            $appointment,
+            $appointment->sync_error ?? 'Appointment not found on Bansal website.'
+        );
+
+        $action = 'failed';
+        if ($result['synced']) {
+            if ($existingId !== null && $result['bansal_appointment_id'] === $existingId) {
+                $action = 'linked';
+            } elseif ($result['created_new']) {
+                $action = 'created';
+            } else {
+                $action = 'linked';
+            }
+        } else {
+            $appointment->forceFill([
+                'sync_status' => 'error',
+                'sync_error' => $result['error'],
+            ])->save();
+        }
+
+        return array_merge($result, ['action' => $action]);
     }
 
     /**
