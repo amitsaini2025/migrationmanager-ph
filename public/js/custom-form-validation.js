@@ -955,9 +955,11 @@ function customValidate(formName, savetype = '')
                     }
 
                     else if(formName == 'add_visa_doc_cat_form'){
-                        var client_id = $('#add_visa_doc_cat_form input[name="client_id"]').val();
                         var myform = document.getElementById('add_visa_doc_cat_form');
                         var fd = new FormData(myform);
+                        var $createBtn = $('#addvisadoccatmodel').find('button.btn-primary').first();
+                        $createBtn.prop('disabled', true);
+                        // popuploader already shown by customValidate() for all form submits
                         $.ajax({
                             type:'post',
                             url:$("form[name="+formName+"]").attr('action'),
@@ -967,22 +969,48 @@ function customValidate(formName, savetype = '')
                             success: function(response){
                                 var obj = response; // Remove $.parseJSON(response)
                                 $('#addvisadoccatmodel').modal('hide');
-                                $('.popuploader').hide();
                                 if(obj.status){
-									localStorage.setItem('activeTab', 'documentalls');
-                                    location.reload();
+									localStorage.setItem('activeTab', 'visadocuments');
+									$('#visa_doc_category').val('');
+									var appended = false;
+									try {
+										if (typeof window.appendVisaDocCategoryUi === 'function') {
+											appended = !!window.appendVisaDocCategoryUi(obj);
+										}
+									} catch (appendErr) {
+										console.warn('[AddVisaDocCat] UI append failed, falling back to reload', appendErr);
+										appended = false;
+									}
+									if (!appended) {
+										location.reload();
+										return;
+									}
                                     $('.custom-error-msg').html('<span class="alert alert-success">'+obj.message+'</span>');
+									if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
+										toastr.success(obj.message);
+									} else if (typeof iziToast !== 'undefined' && typeof iziToast.success === 'function') {
+										iziToast.success({ message: obj.message, position: 'topRight', timeout: 3000 });
+									}
                                 }else{
                                     $('.custom-error-msg').html('<span class="alert alert-danger">'+obj.message+'</span>');
                                 }
+                            },
+                            error: function(){
+                                $('.custom-error-msg').html('<span class="alert alert-danger">An error occurred while adding the category. Please try again.</span>');
+                            },
+                            complete: function(){
+                                $('.popuploader').hide();
+                                $createBtn.prop('disabled', false);
                             }
                         });
                     }
 
                     else if(formName == 'add_nom_doc_cat_form'){
-                        var client_id = $('#add_nom_doc_cat_form input[name="clientid"]').val();
                         var myform = document.getElementById('add_nom_doc_cat_form');
                         var fd = new FormData(myform);
+                        var $createBtn = $('#addnominationdoccatmodel').find('button.btn-primary').first();
+                        $createBtn.prop('disabled', true);
+                        // popuploader already shown by customValidate() for all form submits
                         $.ajax({
                             type:'post',
                             url:$("form[name="+formName+"]").attr('action'),
@@ -992,14 +1020,38 @@ function customValidate(formName, savetype = '')
                             success: function(response){
                                 var obj = response;
                                 $('#addnominationdoccatmodel').modal('hide');
-                                $('.popuploader').hide();
                                 if(obj.status){
 									localStorage.setItem('activeTab', 'nominationdocuments');
-                                    location.reload();
+									$('#nomination_doc_category').val('');
+									var appended = false;
+									try {
+										if (typeof window.appendNominationDocCategoryUi === 'function') {
+											appended = !!window.appendNominationDocCategoryUi(obj);
+										}
+									} catch (appendErr) {
+										console.warn('[AddNomDocCat] UI append failed, falling back to reload', appendErr);
+										appended = false;
+									}
+									if (!appended) {
+										location.reload();
+										return;
+									}
                                     $('.custom-error-msg').html('<span class="alert alert-success">'+obj.message+'</span>');
+									if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
+										toastr.success(obj.message);
+									} else if (typeof iziToast !== 'undefined' && typeof iziToast.success === 'function') {
+										iziToast.success({ message: obj.message, position: 'topRight', timeout: 3000 });
+									}
                                 }else{
                                     $('.custom-error-msg').html('<span class="alert alert-danger">'+obj.message+'</span>');
                                 }
+                            },
+                            error: function(){
+                                $('.custom-error-msg').html('<span class="alert alert-danger">An error occurred while adding the category. Please try again.</span>');
+                            },
+                            complete: function(){
+                                $('.popuploader').hide();
+                                $createBtn.prop('disabled', false);
                             }
                         });
                     }

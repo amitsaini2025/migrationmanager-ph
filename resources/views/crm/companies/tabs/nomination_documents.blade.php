@@ -134,8 +134,8 @@
                                             <?= htmlspecialchars($catVal->title) ?>
                                         </button>
                                         <?php if ($isClientGenerated): ?>
-                                            <div class="action-buttons" style="display: none; position: absolute; top: 0; right: -8px;">
-                                                <button class="btn btn-sm btn-warning update-nomination-cat-title" data-id="<?= $id ?>" style="padding: 2px 0px 2px 6px;">@icon('fa-edit', ['aria-hidden' => 'true'])</button>
+                                            <div class="action-buttons" style="display: none; position: absolute;">
+                                                <button type="button" class="btn btn-sm btn-warning update-nomination-cat-title" data-id="<?= $id ?>" data-title="<?= htmlspecialchars($catVal->title) ?>">@icon('fa-edit', ['aria-hidden' => 'true'])</button>
                                             </div>
                                         <?php endif; ?>
                                     </div>

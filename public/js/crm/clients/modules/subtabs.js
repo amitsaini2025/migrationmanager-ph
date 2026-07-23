@@ -225,34 +225,20 @@
 
 
 
-    //Document subtab like - Visa
-
-    $('.subtab6-button').click(function(e) {
-
+    // Document subtab like - Visa (delegated so dynamically added categories work)
+    $(document).on('click', '.subtab6-button', function(e) {
         e.preventDefault();
 
-
-
         // Remove active class from all buttons and panes
-
         $('.subtab6-button').removeClass('active');
-
         $('.subtab6-pane').removeClass('active');
 
-
-
         // Add active class to clicked button
-
         $(this).addClass('active');
 
-
-
         // Show corresponding pane
-
-        const subtabId6 = $(this).data('subtab6'); //alert(subtabId6);
-
+        const subtabId6 = $(this).data('subtab6');
         $(`#${subtabId6}-subtab6`).addClass('active');
-
     });
 
 

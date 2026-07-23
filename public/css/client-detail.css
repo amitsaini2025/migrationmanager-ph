@@ -713,6 +713,74 @@
   margin: 0 !important;
 }
 
+/* Compact hover edit/delete for Visa Documents custom categories only */
+#visadocuments-tab .button-container:has(.action-buttons) .subtab6-button {
+  padding-right: 36px;
+}
+#visadocuments-tab .button-container > .action-buttons {
+  top: -6px !important;
+  right: 2px !important;
+  gap: 2px !important;
+  z-index: 3;
+  align-items: center;
+}
+#visadocuments-tab .button-container > .action-buttons .btn {
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 3px !important;
+}
+#visadocuments-tab .button-container > .action-buttons .btn svg,
+#visadocuments-tab .button-container > .action-buttons .btn i {
+  width: 11px !important;
+  height: 11px !important;
+  max-width: 11px !important;
+  max-height: 11px !important;
+  font-size: 11px !important;
+  margin: 0 !important;
+}
+
+/* Compact hover edit for Nomination Documents custom categories only */
+#nominationdocuments-tab .button-container:has(.action-buttons) .subtab6-button {
+  padding-right: 28px;
+}
+#nominationdocuments-tab .button-container > .action-buttons {
+  top: -6px !important;
+  right: 2px !important;
+  gap: 2px !important;
+  z-index: 3;
+  align-items: center;
+}
+#nominationdocuments-tab .button-container > .action-buttons .btn {
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 3px !important;
+}
+#nominationdocuments-tab .button-container > .action-buttons .btn svg,
+#nominationdocuments-tab .button-container > .action-buttons .btn i {
+  width: 11px !important;
+  height: 11px !important;
+  max-width: 11px !important;
+  max-height: 11px !important;
+  font-size: 11px !important;
+  margin: 0 !important;
+}
+
 /* Client Portal Toggle Switch Styles */
 .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; }
 .toggle-switch input { opacity: 0; width: 0; height: 0; }

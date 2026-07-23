@@ -3023,9 +3023,20 @@ class ClientDocumentsController extends Controller
             $category->client_matter_id = $clientMatterId ?? null;
             $category->save();
 
+            $canDelete = Auth::check()
+                && in_array(
+                    (int) (Auth::user()->role ?? 0),
+                    config('crm.visa_document_category_delete_role_ids', [1, 16]),
+                    true
+                );
+
             return response()->json([
                 'status' => true,
-                'message' => 'Visa Document Category added successfully.'
+                'message' => 'Visa Document Category added successfully.',
+                'id' => $category->id,
+                'title' => $category->title,
+                'can_delete' => $canDelete,
+                'client_matter_id' => $category->client_matter_id,
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -3255,6 +3266,9 @@ class ClientDocumentsController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'Nomination document category added successfully.',
+                'id' => $category->id,
+                'title' => $category->title,
+                'client_matter_id' => $category->client_matter_id,
             ]);
         } catch (\Exception $e) {
             return response()->json([

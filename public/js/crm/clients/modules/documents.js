@@ -108,9 +108,22 @@
 
         // ---- Update Visa Document Category ----
         $(document).on('click', '.update-visa-cat-title', function() {
-            var id = $(this).data('id');
-            var newTitle = prompt('Enter new title for the category:');
+            var $editBtn = $(this);
+            if ($editBtn.data('updating')) {
+                return;
+            }
+            var id = $editBtn.data('id');
+            var currentTitle = ($editBtn.attr('data-title') || $editBtn.data('title') || '').toString().trim();
+            if (!currentTitle) {
+                currentTitle = $editBtn.closest('.button-container').find('.subtab6-button').first().text().trim();
+            }
+            var newTitle = prompt('Enter new title for the category:', currentTitle);
             if (newTitle) {
+                newTitle = newTitle.trim();
+            }
+            if (newTitle) {
+                $editBtn.data('updating', true).prop('disabled', true);
+                $('.popuploader').show();
                 $.ajax({
                     url: window.ClientDetailConfig.urls.updateVisaCategory,
                     method: 'POST',
@@ -122,10 +135,29 @@
                     success: function(response) {
                         if (response.status) {
                             alert(response.message);
-                            location.reload();
+                            var updated = false;
+                            try {
+                                if (typeof window.renameVisaDocCategoryUi === 'function') {
+                                    updated = !!window.renameVisaDocCategoryUi(id, newTitle);
+                                }
+                            } catch (renameErr) {
+                                console.warn('[UpdateVisaDocCat] UI rename failed, falling back to reload', renameErr);
+                                updated = false;
+                            }
+                            if (!updated) {
+                                location.reload();
+                                return;
+                            }
                         } else {
-                            alert(response.message);
+                            alert(response.message || 'Failed to update category.');
                         }
+                    },
+                    error: function() {
+                        alert('An error occurred while updating the category. Please try again.');
+                    },
+                    complete: function() {
+                        $('.popuploader').hide();
+                        $editBtn.data('updating', false).prop('disabled', false);
                     }
                 });
             }
@@ -133,8 +165,19 @@
 
         // ---- Update Nomination Document Category ----
         $(document).on('click', '.update-nomination-cat-title', function() {
-            var id = $(this).data('id');
-            var newTitle = prompt('Enter new title for the category:');
+            var $editBtn = $(this);
+            if ($editBtn.data('updating')) {
+                return;
+            }
+            var id = $editBtn.data('id');
+            var currentTitle = ($editBtn.attr('data-title') || $editBtn.data('title') || '').toString().trim();
+            if (!currentTitle) {
+                currentTitle = $editBtn.closest('.button-container').find('.subtab6-button').first().text().trim();
+            }
+            var newTitle = prompt('Enter new title for the category:', currentTitle);
+            if (newTitle) {
+                newTitle = newTitle.trim();
+            }
             if (newTitle) {
                 var url = (window.ClientDetailConfig && window.ClientDetailConfig.urls && window.ClientDetailConfig.urls.updateNominationCategory)
                     ? window.ClientDetailConfig.urls.updateNominationCategory
@@ -143,6 +186,8 @@
                     alert('Nomination category update URL is not configured.');
                     return;
                 }
+                $editBtn.data('updating', true).prop('disabled', true);
+                $('.popuploader').show();
                 $.ajax({
                     url: url,
                     method: 'POST',
@@ -154,10 +199,29 @@
                     success: function(response) {
                         if (response.status) {
                             alert(response.message);
-                            location.reload();
+                            var updated = false;
+                            try {
+                                if (typeof window.renameNominationDocCategoryUi === 'function') {
+                                    updated = !!window.renameNominationDocCategoryUi(id, newTitle);
+                                }
+                            } catch (renameErr) {
+                                console.warn('[UpdateNomDocCat] UI rename failed, falling back to reload', renameErr);
+                                updated = false;
+                            }
+                            if (!updated) {
+                                location.reload();
+                                return;
+                            }
                         } else {
-                            alert(response.message);
+                            alert(response.message || 'Failed to update category.');
                         }
+                    },
+                    error: function() {
+                        alert('An error occurred while updating the category. Please try again.');
+                    },
+                    complete: function() {
+                        $('.popuploader').hide();
+                        $editBtn.data('updating', false).prop('disabled', false);
                     }
                 });
             }
@@ -166,6 +230,10 @@
         // ---- Delete Visa Document Category ----
         $(document).on('click', '.delete-visa-cat-title', function(e) {
             e.preventDefault();
+            var $deleteBtn = $(this);
+            if ($deleteBtn.data('deleting')) {
+                return;
+            }
             var url = (window.ClientDetailConfig && window.ClientDetailConfig.urls && window.ClientDetailConfig.urls.deleteVisaCategory)
                 ? window.ClientDetailConfig.urls.deleteVisaCategory
                 : '';
@@ -173,8 +241,8 @@
                 alert('Visa category delete is not configured.');
                 return;
             }
-            var id = $(this).data('id');
-            var title = $(this).data('title') || 'this category';
+            var id = $deleteBtn.data('id');
+            var title = $deleteBtn.data('title') || 'this category';
             var warningMessage = '⚠️ WARNING: You are about to delete the visa category "' + title + '"\n\n' +
                 'This action will permanently remove the category from the system.\n\n' +
                 'Requirements:\n' +
@@ -190,6 +258,8 @@
                     'This will permanently delete the category and any not-used documents linked to it.\n\n' +
                     'Click OK to delete or Cancel to abort.';
                 if (confirm(confirmMessage)) {
+                    $deleteBtn.data('deleting', true).prop('disabled', true);
+                    $('.popuploader').show();
                     $.ajax({
                         url: url,
                         method: 'POST',
@@ -200,7 +270,19 @@
                         success: function(response) {
                             if (response.status) {
                                 alert('✓ Success: ' + response.message);
-                                location.reload();
+                                var removed = false;
+                                try {
+                                    if (typeof window.removeVisaDocCategoryUi === 'function') {
+                                        removed = !!window.removeVisaDocCategoryUi(id);
+                                    }
+                                } catch (removeErr) {
+                                    console.warn('[DeleteVisaDocCat] UI remove failed, falling back to reload', removeErr);
+                                    removed = false;
+                                }
+                                if (!removed) {
+                                    location.reload();
+                                    return;
+                                }
                             } else {
                                 alert('✗ Error: ' + (response.message || 'Failed to delete category.'));
                             }
@@ -211,6 +293,10 @@
                                 errorMsg = xhr.responseJSON.message;
                             }
                             alert('✗ Error: ' + errorMsg);
+                        },
+                        complete: function() {
+                            $('.popuploader').hide();
+                            $deleteBtn.data('deleting', false).prop('disabled', false);
                         }
                     });
                 }
@@ -793,6 +879,409 @@
                 $content.find('[id="' + fallbackId + '-subtab2"]').addClass('active');
             }
         }
+
+        return true;
+    };
+
+    /**
+     * Append a newly created visa document category tab + empty pane without page reload.
+     */
+    window.appendVisaDocCategoryUi = function(category) {
+        var id = category && category.id;
+        var title = category && category.title;
+        if (!id || !title) {
+            return false;
+        }
+
+        var $tab = $('#visadocuments-tab');
+        var $nav = $tab.find('nav.subtabs6').first();
+        var $content = $tab.find('.subtab6-content').first();
+        if (!$tab.length || !$nav.length || !$content.length) {
+            return false;
+        }
+
+        if ($nav.find('.subtab6-button[data-subtab6="' + id + '"]').length) {
+            $nav.find('.subtab6-button').removeClass('active');
+            $content.find('.subtab6-pane').removeClass('active');
+            $nav.find('.subtab6-button[data-subtab6="' + id + '"]').addClass('active');
+            $content.find('[id="' + id + '-subtab6"]').addClass('active');
+            return true;
+        }
+
+        var safeTitle = escapePersonalDocHtml(title);
+        var canDelete = !!category.can_delete;
+        var matterId = category.client_matter_id
+            || (window.ClientDetailConfig && window.ClientDetailConfig.matterId)
+            || $('#visaclientmatterid').val()
+            || '';
+        var editIcon = personalDocIcon('fa-edit');
+        var trashIcon = personalDocIcon('fa-trash');
+        var fileIcon = personalDocIcon('fa-file-alt');
+        var plusIcon = personalDocIcon('fa-plus');
+        var plusIconMr = personalDocIcon('fa-plus', { class: 'mr-2' });
+        var uploadIcon = personalDocIcon('fa-upload');
+        var cloudIcon = personalDocIcon('fa-cloud-upload-alt', { style: 'font-size: 48px; color: #2563eb; margin-bottom: 15px;' });
+
+        var actionsHtml = '<div class="action-buttons" style="display: none; position: absolute;">' +
+            '<button type="button" class="btn btn-sm btn-warning update-visa-cat-title" data-id="' + id + '" data-title="' + safeTitle + '">' + editIcon + '</button>';
+        if (canDelete) {
+            actionsHtml += '<button type="button" class="btn btn-sm btn-danger delete-visa-cat-title" data-id="' + id + '" data-title="' + safeTitle + '">' + trashIcon + '</button>';
+        }
+        actionsHtml += '</div>';
+
+        var $btnWrap = $(
+            '<div style="display: inline-block; position: relative;" class="button-container">' +
+                '<button type="button" class="subtab6-button" data-subtab6="' + id + '">' + safeTitle + '</button>' +
+                actionsHtml +
+            '</div>'
+        );
+        $nav.append($btnWrap);
+
+        var paneHtml =
+            '<div class="subtab6-pane" id="' + id + '-subtab6">' +
+                '<div class="checklist-table-container" style="vertical-align: top; margin-top: 10px; width: 760px; overflow: visible;">' +
+                    '<div class="subtab6-header" style="margin-left: 10px;">' +
+                        '<h3>' + fileIcon + ' ' + safeTitle + ' Documents</h3>' +
+                        '<div style="display: flex; gap: 10px;">' +
+                            '<button type="button" class="btn btn-primary btn-sm form956CreateForm inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200" data-form956-folder="' + id + '">' +
+                                plusIconMr + ' Create Form 956' +
+                            '</button>' +
+                            '<button type="button" class="btn add-checklist-btn add_migration_doc" data-type="visa" data-categoryid="' + id + '">' +
+                                plusIcon + ' Add Checklist' +
+                            '</button>' +
+                            '<button type="button" class="btn btn-info bulk-upload-toggle-btn-visa" data-categoryid="' + id + '" data-categoryname="' + safeTitle + '" data-matterid="' + escapePersonalDocHtml(matterId) + '">' +
+                                uploadIcon + ' Bulk Upload' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="bulk-upload-dropzone-container-visa" id="bulk-upload-visa-' + id + '" style="display: none; margin: 15px 0; padding: 20px; border: 2px dashed #4a90e2; border-radius: 8px; background-color: #f8f9fa;">' +
+                        '<div class="bulk-upload-dropzone-visa" data-categoryid="' + id + '" data-matterid="' + escapePersonalDocHtml(matterId) + '" style="text-align: center; padding: 30px; cursor: pointer;">' +
+                            cloudIcon +
+                            '<p style="font-size: 16px; color: #374151; margin-bottom: 10px;">' +
+                                '<strong>Drag and drop files here</strong> or <strong>click to browse</strong>' +
+                            '</p>' +
+                            '<p style="font-size: 14px; color: #4b5563;">You can select multiple files at once</p>' +
+                            '<input type="file" class="bulk-upload-file-input-visa" data-categoryid="' + id + '" data-matterid="' + escapePersonalDocHtml(matterId) + '" multiple style="display: none;" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">' +
+                        '</div>' +
+                        '<div class="bulk-upload-file-list-visa" style="display: none; margin-top: 20px;">' +
+                            '<h5 style="margin-bottom: 15px;">Files Selected: <span class="file-count-visa">0</span></h5>' +
+                            '<div class="bulk-upload-files-container-visa"></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<table class="checklist-table">' +
+                        '<thead><tr><th>Checklist</th><th>File Name</th><th></th></tr></thead>' +
+                        '<tbody class="tdata migdocumnetlist1 migdocumnetlist_' + id + '"></tbody>' +
+                    '</table>' +
+                '</div>' +
+                '<div class="grid_data miggriddata" style="display:none;"><div class="clearfix"></div></div>' +
+                '<div class="preview-pane file-preview-container preview-container-migdocumnetlist" style="display: inline; margin-top: 15px !important; width: 499px;">' +
+                    '<p style="color: #374151;">Click on a file to preview it here.</p>' +
+                '</div>' +
+            '</div>';
+
+        $content.append(paneHtml);
+
+        var $newPane = $content.find('[id="' + id + '-subtab6"]');
+        $newPane.find('.grid_data').hide();
+
+        $nav.find('.subtab6-button').removeClass('active');
+        $content.find('.subtab6-pane').removeClass('active');
+        $btnWrap.find('.subtab6-button').addClass('active');
+        $newPane.addClass('active');
+
+        var $newPreview = $newPane.find('.preview-pane.file-preview-container');
+        if ($newPreview.length) {
+            $newPreview.css({
+                'display': 'flex',
+                'flex-direction': 'column',
+                'margin-top': '15px',
+                'width': '499px',
+                'min-height': '500px',
+                'height': 'calc(100vh - 200px)',
+                'border': '1px solid #dee2e6',
+                'border-radius': '4px',
+                'padding': '15px',
+                'background': '#fff',
+                'position': 'sticky',
+                'top': '20px'
+            });
+            if (typeof window.adjustPreviewContainers === 'function') {
+                window.adjustPreviewContainers();
+            }
+        }
+
+        if (typeof refreshLucideIcons === 'function') {
+            refreshLucideIcons($tab[0]);
+        }
+
+        return true;
+    };
+
+    /**
+     * Rename a visa document category tab + pane labels without page reload.
+     */
+    window.renameVisaDocCategoryUi = function(categoryId, newTitle) {
+        var id = categoryId;
+        var title = (newTitle == null ? '' : String(newTitle)).trim();
+        if (id == null || id === '' || !title) {
+            return false;
+        }
+
+        var $tab = $('#visadocuments-tab');
+        var $nav = $tab.find('nav.subtabs6').first();
+        var $content = $tab.find('.subtab6-content').first();
+        if (!$tab.length || !$nav.length || !$content.length) {
+            return false;
+        }
+
+        var $btn = $nav.find('.subtab6-button[data-subtab6="' + id + '"]');
+        var $pane = $content.find('[id="' + id + '-subtab6"]');
+        if (!$btn.length || !$pane.length) {
+            return false;
+        }
+
+        var $btnWrap = $btn.closest('.button-container');
+        $btn.text(title);
+        $btnWrap.find('.update-visa-cat-title').attr('data-title', title);
+        $btnWrap.find('.delete-visa-cat-title').attr('data-title', title);
+
+        var $h3 = $pane.find('.subtab6-header h3').first();
+        if ($h3.length) {
+            var $icon = $h3.children().first().clone();
+            $h3.empty();
+            if ($icon.length) {
+                $h3.append($icon);
+                $h3.append(document.createTextNode(' '));
+            }
+            $h3.append(document.createTextNode(title + ' Documents'));
+        }
+
+        $pane.find('.bulk-upload-toggle-btn-visa[data-categoryid="' + id + '"]').attr('data-categoryname', title);
+        $pane.find('[data-doccategory]').each(function() {
+            $(this).attr('data-doccategory', title);
+        });
+        $pane.find('input[name="doccategory"]').val(title);
+
+        return true;
+    };
+
+    /**
+     * Remove a visa document category tab + pane without page reload.
+     */
+    window.removeVisaDocCategoryUi = function(categoryId) {
+        var id = categoryId;
+        if (id == null || id === '') {
+            return false;
+        }
+
+        var $tab = $('#visadocuments-tab');
+        var $nav = $tab.find('nav.subtabs6').first();
+        var $content = $tab.find('.subtab6-content').first();
+        if (!$tab.length || !$nav.length || !$content.length) {
+            return false;
+        }
+
+        var $btn = $nav.find('.subtab6-button[data-subtab6="' + id + '"]');
+        var $pane = $content.find('[id="' + id + '-subtab6"]');
+        if (!$btn.length && !$pane.length) {
+            return true;
+        }
+
+        var wasActive = $btn.hasClass('active') || $pane.hasClass('active');
+        var $btnWrap = $btn.closest('.button-container');
+
+        if ($btnWrap.length) {
+            $btnWrap.remove();
+        } else if ($btn.length) {
+            $btn.remove();
+        }
+        if ($pane.length) {
+            $pane.remove();
+        }
+
+        if (wasActive) {
+            var $fallbackBtn = $nav.find('.subtab6-button').first();
+            if ($fallbackBtn.length) {
+                $nav.find('.subtab6-button').removeClass('active');
+                $content.find('.subtab6-pane').removeClass('active');
+                $fallbackBtn.addClass('active');
+                var fallbackId = $fallbackBtn.data('subtab6');
+                $content.find('[id="' + fallbackId + '-subtab6"]').addClass('active');
+            }
+        }
+
+        return true;
+    };
+
+    /**
+     * Append a newly created nomination document category tab + empty pane without page reload.
+     * No delete action for nomination categories.
+     */
+    window.appendNominationDocCategoryUi = function(category) {
+        var id = category && category.id;
+        var title = category && category.title;
+        if (!id || !title) {
+            return false;
+        }
+
+        var $tab = $('#nominationdocuments-tab');
+        var $nav = $tab.find('nav.subtabs6').first();
+        var $content = $tab.find('.subtab6-content').first();
+        if (!$tab.length || !$nav.length || !$content.length) {
+            return false;
+        }
+
+        if ($nav.find('.subtab6-button[data-subtab6="' + id + '"]').length) {
+            $nav.find('.subtab6-button').removeClass('active');
+            $content.find('.subtab6-pane').removeClass('active');
+            $nav.find('.subtab6-button[data-subtab6="' + id + '"]').addClass('active');
+            $content.find('[id="' + id + '-subtab6"]').addClass('active');
+            return true;
+        }
+
+        var safeTitle = escapePersonalDocHtml(title);
+        var matterId = category.client_matter_id
+            || (window.ClientDetailConfig && window.ClientDetailConfig.matterId)
+            || $('#nominationclientmatterid').val()
+            || '';
+        var editIcon = personalDocIcon('fa-edit');
+        var fileIcon = personalDocIcon('fa-file-alt');
+        var plusIcon = personalDocIcon('fa-plus');
+        var uploadIcon = personalDocIcon('fa-upload');
+        var cloudIcon = personalDocIcon('fa-cloud-upload-alt', { style: 'font-size: 48px; color: #2563eb; margin-bottom: 15px;' });
+
+        var actionsHtml = '<div class="action-buttons" style="display: none; position: absolute;">' +
+            '<button type="button" class="btn btn-sm btn-warning update-nomination-cat-title" data-id="' + id + '" data-title="' + safeTitle + '">' + editIcon + '</button>' +
+            '</div>';
+
+        var $btnWrap = $(
+            '<div style="display: inline-block; position: relative;" class="button-container">' +
+                '<button type="button" class="subtab6-button" data-subtab6="' + id + '">' + safeTitle + '</button>' +
+                actionsHtml +
+            '</div>'
+        );
+        $nav.append($btnWrap);
+
+        var paneHtml =
+            '<div class="subtab6-pane" id="' + id + '-subtab6">' +
+                '<div class="checklist-table-container" style="vertical-align: top; margin-top: 10px; width: 760px; overflow: visible;">' +
+                    '<div class="subtab6-header" style="margin-left: 10px;">' +
+                        '<h3>' + fileIcon + ' ' + safeTitle + ' Documents</h3>' +
+                        '<div style="display: flex; gap: 10px;">' +
+                            '<button type="button" class="btn add-checklist-btn add_nomination_doc" data-type="nomination" data-categoryid="' + id + '">' +
+                                plusIcon + ' Add Checklist' +
+                            '</button>' +
+                            '<button type="button" class="btn btn-info bulk-upload-toggle-btn-nomination" data-categoryid="' + id + '" data-categoryname="' + safeTitle + '" data-matterid="' + escapePersonalDocHtml(matterId) + '">' +
+                                uploadIcon + ' Bulk Upload' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="bulk-upload-dropzone-container-nomination" id="bulk-upload-nomination-' + id + '" style="display: none; margin: 15px 0; padding: 20px; border: 2px dashed #4a90e2; border-radius: 8px; background-color: #f8f9fa;">' +
+                        '<div class="bulk-upload-dropzone-nomination" data-categoryid="' + id + '" data-matterid="' + escapePersonalDocHtml(matterId) + '" style="text-align: center; padding: 30px; cursor: pointer;">' +
+                            cloudIcon +
+                            '<p style="font-size: 16px; color: #374151; margin-bottom: 10px;">' +
+                                '<strong>Drag and drop files here</strong> or <strong>click to browse</strong>' +
+                            '</p>' +
+                            '<p style="font-size: 14px; color: #4b5563;">You can select multiple files at once</p>' +
+                            '<input type="file" class="bulk-upload-file-input-nomination" data-categoryid="' + id + '" data-matterid="' + escapePersonalDocHtml(matterId) + '" multiple style="display: none;" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">' +
+                        '</div>' +
+                        '<div class="bulk-upload-file-list-nomination" style="display: none; margin-top: 20px;">' +
+                            '<h5 style="margin-bottom: 15px;">Files Selected: <span class="file-count-nomination">0</span></h5>' +
+                            '<div class="bulk-upload-files-container-nomination"></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<table class="checklist-table">' +
+                        '<thead><tr><th>Checklist</th><th>File Name</th><th></th></tr></thead>' +
+                        '<tbody class="tdata migdocumnetlist1 migdocumnetlist_' + id + '"></tbody>' +
+                    '</table>' +
+                '</div>' +
+                '<div class="grid_data nomgriddata" style="display:none;"><div class="clearfix"></div></div>' +
+                '<div class="preview-pane file-preview-container preview-container-nomdocumnetlist" style="display: inline; margin-top: 15px !important; width: 499px;">' +
+                    '<p style="color: #374151;">Click on a file to preview it here.</p>' +
+                '</div>' +
+            '</div>';
+
+        $content.append(paneHtml);
+
+        var $newPane = $content.find('[id="' + id + '-subtab6"]');
+        $newPane.find('.grid_data').hide();
+
+        $nav.find('.subtab6-button').removeClass('active');
+        $content.find('.subtab6-pane').removeClass('active');
+        $btnWrap.find('.subtab6-button').addClass('active');
+        $newPane.addClass('active');
+
+        var $newPreview = $newPane.find('.preview-pane.file-preview-container');
+        if ($newPreview.length) {
+            $newPreview.css({
+                'display': 'flex',
+                'flex-direction': 'column',
+                'margin-top': '15px',
+                'width': '499px',
+                'min-height': '500px',
+                'height': 'calc(100vh - 200px)',
+                'border': '1px solid #dee2e6',
+                'border-radius': '4px',
+                'padding': '15px',
+                'background': '#fff',
+                'position': 'sticky',
+                'top': '20px'
+            });
+            if (typeof window.adjustPreviewContainers === 'function') {
+                window.adjustPreviewContainers();
+            }
+        }
+
+        if (typeof refreshLucideIcons === 'function') {
+            refreshLucideIcons($tab[0]);
+        }
+
+        return true;
+    };
+
+    /**
+     * Rename a nomination document category tab + pane labels without page reload.
+     */
+    window.renameNominationDocCategoryUi = function(categoryId, newTitle) {
+        var id = categoryId;
+        var title = (newTitle == null ? '' : String(newTitle)).trim();
+        if (id == null || id === '' || !title) {
+            return false;
+        }
+
+        var $tab = $('#nominationdocuments-tab');
+        var $nav = $tab.find('nav.subtabs6').first();
+        var $content = $tab.find('.subtab6-content').first();
+        if (!$tab.length || !$nav.length || !$content.length) {
+            return false;
+        }
+
+        var $btn = $nav.find('.subtab6-button[data-subtab6="' + id + '"]');
+        var $pane = $content.find('[id="' + id + '-subtab6"]');
+        if (!$btn.length || !$pane.length) {
+            return false;
+        }
+
+        var $btnWrap = $btn.closest('.button-container');
+        $btn.text(title);
+        $btnWrap.find('.update-nomination-cat-title').attr('data-title', title);
+
+        var $h3 = $pane.find('.subtab6-header h3').first();
+        if ($h3.length) {
+            var $icon = $h3.children().first().clone();
+            $h3.empty();
+            if ($icon.length) {
+                $h3.append($icon);
+                $h3.append(document.createTextNode(' '));
+            }
+            $h3.append(document.createTextNode(title + ' Documents'));
+        }
+
+        $pane.find('.bulk-upload-toggle-btn-nomination[data-categoryid="' + id + '"]').attr('data-categoryname', title);
+        $pane.find('[data-doccategory]').each(function() {
+            $(this).attr('data-doccategory', title);
+        });
+        $pane.find('input[name="doccategory"]').val(title);
 
         return true;
     };
