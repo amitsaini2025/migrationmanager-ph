@@ -72,6 +72,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 
 use App\Models\Form956;
+use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\TemplateProcessor;
 use App\Models\CostAssignmentForm;
 use App\Models\PersonalDocumentType;
@@ -4802,6 +4803,7 @@ class ClientsController extends Controller
     public function generateagreement(Request $request)
     {
         try { //dd($request->all());
+            $previousPhpWordOutputEscaping = Settings::isOutputEscapingEnabled();
             $id = $request->client_id;
             $client = Admin::findOrFail($request->client_id);
             $responsiblePerson = \App\Models\Staff::findOrFail($request->agent_id); //dd($responsiblePerson);
@@ -5057,6 +5059,8 @@ class ClientsController extends Controller
                 $this->injectScheduleAFamilyPlaceholdersIfNeeded($pathToLoad);
             }
 
+            // PhpWord 1.3 disables XML escaping by default; enable so &, <, etc. in merge values stay valid DOCX XML.
+            Settings::setOutputEscapingEnabled(true);
             $templateProcessor = new TemplateProcessor($pathToLoad);
 
             try {
@@ -5454,6 +5458,7 @@ class ClientsController extends Controller
 
             $outputPath = $outputDir . '/agreement_' . $client->client_id . '.docx'; //dd($outputPath);
             $templateProcessor->saveAs($outputPath);
+            Settings::setOutputEscapingEnabled($previousPhpWordOutputEscaping);
 
             // Remove patched temp template if Option 2 was used
             if (isset($patchedTempPath) && $patchedTempPath !== null && file_exists($patchedTempPath)) {
@@ -5577,6 +5582,9 @@ class ClientsController extends Controller
             
             return response()->json($response);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            if (isset($previousPhpWordOutputEscaping)) {
+                Settings::setOutputEscapingEnabled($previousPhpWordOutputEscaping);
+            }
             Log::error('Model not found in generateagreement: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -5584,6 +5592,9 @@ class ClientsController extends Controller
                 'message' => 'Client or agent not found.'
             ], 404);
         } catch (\Exception $e) {
+            if (isset($previousPhpWordOutputEscaping)) {
+                Settings::setOutputEscapingEnabled($previousPhpWordOutputEscaping);
+            }
             Log::error('Error generating document: ' . $e->getMessage());
             Log::error($e->getTraceAsString());
             return response()->json([
