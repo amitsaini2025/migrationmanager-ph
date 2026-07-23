@@ -1,12 +1,42 @@
            <!-- Checklists Tab -->
-           <div class="tab-pane" id="checklists-tab">
+           @php
+                $checklistCurrentMatterId = null;
+                $checklistCurrentMatterRef = null;
+                $checklistCurrentMatterNeedsCostAssignment = false;
+                if (($isMatterIdInUrl ?? false) && !empty($id1) && isset($fetchedData->id)) {
+                    $checklistCurrentMatter = \App\Models\ClientMatter::where('client_id', $fetchedData->id)
+                        ->where('client_unique_matter_no', $id1)
+                        ->where('matter_status', 1)
+                        ->first();
+                    if ($checklistCurrentMatter) {
+                        $checklistCurrentMatterId = $checklistCurrentMatter->id;
+                        $checklistCurrentMatterRef = $id1;
+                        $checklistCurrentMatterNeedsCostAssignment = ! \App\Models\CostAssignmentForm::where('client_id', $fetchedData->id)
+                            ->where('client_matter_id', $checklistCurrentMatterId)
+                            ->exists();
+                    }
+                }
+           @endphp
+           <div class="tab-pane" id="checklists-tab"
+                data-current-matter-id="{{ $checklistCurrentMatterId ?? '' }}"
+                data-current-matter-ref="{{ $checklistCurrentMatterRef ?? '' }}"
+                data-needs-cost-assignment="{{ $checklistCurrentMatterNeedsCostAssignment ? '1' : '0' }}">
                 <div class="card full-width checklists-container">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h4 class="mb-0">@icon('fa-tasks', ['class' => 'mr-2'])Checklists</h4>
-                        <div class="checklist-add-wrapper position-relative">
-                            <button type="button" class="btn btn-primary btn-add-checklist" id="btn-add-checklist">
-                                @icon('fa-plus', ['class' => 'mr-2'])Create Checklist
-                            </button>
+                        <div class="checklist-add-wrapper position-relative d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+                            @if($checklistCurrentMatterNeedsCostAssignment)
+                                <button type="button" class="btn btn-primary btn-setup-cost-assignment-for-matter" id="btn-setup-cost-assignment-for-matter">
+                                    @icon('fa-plus', ['class' => 'mr-2'])Set up cost assignment
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-add-checklist" id="btn-add-checklist" title="Create a new matter with cost assignment">
+                                    @icon('fa-plus', ['class' => 'mr-2'])Add new matter
+                                </button>
+                            @else
+                                <button type="button" class="btn btn-primary btn-add-checklist" id="btn-add-checklist">
+                                    @icon('fa-plus', ['class' => 'mr-2'])Create Checklist
+                                </button>
+                            @endif
                             <div class="checklist-create-dropdown" id="checklist-create-dropdown" style="display: none;">
                                 <div class="dropdown-arrow"></div>
                                 <div class="dropdown-body">
@@ -105,6 +135,16 @@
                     <div class="card-body">
                         <div class="checklists-sent-section">
                             <h5 class="font-weight-bold mb-3">@icon('fa-list', ['class' => 'mr-2'])Your Checklists</h5>
+                            @if($checklistCurrentMatterNeedsCostAssignment)
+                                <div class="alert alert-warning mb-3" id="checklist-matter-setup-banner">
+                                    @icon('fa-exclamation-triangle', ['class' => 'mr-2'])
+                                    Matter <strong>{{ $checklistCurrentMatterRef }}</strong> does not have a cost assignment yet.
+                                    Set one up to create a cost agreement.
+                                    <button type="button" class="btn btn-sm btn-primary ml-2 btn-setup-cost-assignment-for-matter">
+                                        Set up cost assignment
+                                    </button>
+                                </div>
+                            @endif
                             <div id="checklists-list-container">
                                 <?php
                                 $checklist_forms = \App\Models\CostAssignmentForm::where('client_id', $fetchedData->id)
@@ -118,7 +158,12 @@
                                 @if($checklist_forms->isEmpty())
                                     <div class="alert alert-info" id="checklists-empty-state">
                                         @icon('fa-info-circle', ['class' => 'mr-2'])
-                                        No checklists yet. Click <strong>Create Checklist</strong> to add one. You'll select matter, assign migration agent and team, complete cost assignment, and create cost agreement.
+                                        @if($checklistCurrentMatterNeedsCostAssignment)
+                                            No checklists yet for matter <strong>{{ $checklistCurrentMatterRef }}</strong>.
+                                            Click <strong>Set up cost assignment</strong> to assign the team, complete cost assignment, and create a cost agreement.
+                                        @else
+                                            No checklists yet. Click <strong>Create Checklist</strong> to add one. You'll select matter, assign migration agent and team, complete cost assignment, and create cost agreement.
+                                        @endif
                                     </div>
                                     <div id="checklists-list" style="display: none;"></div>
                                 @else
@@ -786,9 +831,68 @@
 (function($) {
     'use strict';
     $(document).ready(function() {
+        var $checklistsTab = $('#checklists-tab');
+        var currentClientMatterId = $checklistsTab.data('current-matter-id') || null;
+        var currentMatterNeedsCostAssignment = String($checklistsTab.data('needs-cost-assignment') || '') === '1';
         var $btnAdd = $('#btn-add-checklist');
         var $dropdown = $('#checklist-create-dropdown');
         var $matterSelect = $('#checklist_matter_select');
+
+        function openExistingMatterCostAssignmentModal(clientId, clientMatterId) {
+            if (!clientId || !clientMatterId) {
+                alert('Unable to open cost assignment: missing client or matter information.');
+                return;
+            }
+            var $modal = $('#costAssignmentCreateFormModel');
+            if (!$modal.length) {
+                alert('Cost assignment form is not available. Please refresh the page.');
+                return;
+            }
+            $modal.find('#cost_assignment_client_id').val(clientId);
+            $modal.find('#cost_assignment_client_matter_id').val(clientMatterId);
+            $modal.find('#costAssignmentModalLabel').text('Create Cost Assignment');
+            var showModal = function() {
+                $modal.modal('show');
+            };
+            if (typeof window.getCostAssignmentMigrationAgentDetail === 'function') {
+                window.getCostAssignmentMigrationAgentDetail(clientId, clientMatterId, '#costAssignmentCreateFormModel', showModal);
+            } else if (typeof getCostAssignmentMigrationAgentDetail === 'function') {
+                getCostAssignmentMigrationAgentDetail(clientId, clientMatterId, '#costAssignmentCreateFormModel', showModal);
+            } else {
+                alert('Cost assignment function not available. Please refresh the page.');
+            }
+        }
+
+        function openLeadCostAssignmentModal(clientId, matterId, migrationAgent, personResponsible, personAssisting, officeId) {
+            destroyLeadCostAssignmentMmSelect();
+            $('#cost_assignment_lead_id').val(clientId);
+            $('#sel_matter_id_lead').val(matterId);
+            $('#sel_migration_agent_id_lead').val(migrationAgent);
+            $('#sel_person_responsible_id_lead').val(personResponsible);
+            $('#sel_person_assisting_id_lead').val(personAssisting);
+            $('#sel_office_id_lead').val(officeId);
+            $('#sel_migration_agent_id_lead,#sel_person_responsible_id_lead,#sel_person_assisting_id_lead,#sel_office_id_lead,#sel_matter_id_lead').mmSelect({
+                dropdownParent: $('#costAssignmentCreateFormModelLead'),
+                minimumResultsForSearch: 0,
+                width: '100%'
+            });
+            $('#sel_matter_id_lead').trigger('change');
+            $('#costAssignmentCreateFormModelLead').modal('show');
+        }
+
+        // Set up cost assignment for the matter already in the URL (does not create a new matter)
+        $(document).on('click', '.btn-setup-cost-assignment-for-matter', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var clientId = window.ClientDetailConfig ? window.ClientDetailConfig.clientId : $('.crm-container').data('client-id');
+            if (!clientId || !currentClientMatterId) {
+                alert('Matter information not found. Please refresh the page.');
+                return;
+            }
+            destroyChecklistMmSelect();
+            $dropdown.hide();
+            openExistingMatterCostAssignmentModal(clientId, currentClientMatterId);
+        });
 
         function destroyChecklistMmSelect() {
             if (typeof $.fn.mmSelect === 'undefined') {
@@ -886,20 +990,7 @@
             }
 
             // Open Lead cost assignment modal (creates ClientMatter + CostAssignmentForm)
-            destroyLeadCostAssignmentMmSelect();
-            $('#cost_assignment_lead_id').val(clientId);
-            $('#sel_matter_id_lead').val(matterId);
-            $('#sel_migration_agent_id_lead').val(migrationAgent);
-            $('#sel_person_responsible_id_lead').val(personResponsible);
-            $('#sel_person_assisting_id_lead').val(personAssisting);
-            $('#sel_office_id_lead').val(officeId);
-            $('#sel_migration_agent_id_lead,#sel_person_responsible_id_lead,#sel_person_assisting_id_lead,#sel_office_id_lead,#sel_matter_id_lead').mmSelect({
-                dropdownParent: $('#costAssignmentCreateFormModelLead'),
-                minimumResultsForSearch: 0,
-                width: '100%'
-            });
-            $('#sel_matter_id_lead').trigger('change');
-            $('#costAssignmentCreateFormModelLead').modal('show');
+            openLeadCostAssignmentModal(clientId, matterId, migrationAgent, personResponsible, personAssisting, officeId);
             destroyChecklistMmSelect();
             $dropdown.hide();
         });
