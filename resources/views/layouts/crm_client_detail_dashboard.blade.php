@@ -24,25 +24,43 @@
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #343a40; line-height: 1.6; }
-        .main-wrapper { position: relative; }
+        /* overflow-x: hidden matches crm_client_detail layout — stops page-level horizontal scroll from topbar min-width */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #343a40;
+            line-height: 1.6;
+            overflow-x: hidden;
+            max-width: 100%;
+        }
+        .main-wrapper {
+            position: relative;
+            max-width: 100%;
+        }
         .main-navbar { position: fixed; top: 0; width: 100%; z-index: 1000; background-color: #fff; height: 70px; }
         
-        /* Modern topbar layout */
+        /* Modern topbar layout — minmax(0, …) lets columns shrink so the sticky topbar cannot widen the page */
         .main-topbar { 
             display: grid !important; 
-            grid-template-columns: 1fr minmax(400px, 640px) auto !important; 
+            grid-template-columns: minmax(0, 1fr) minmax(0, 640px) auto !important; 
             align-items: center !important; 
             gap: 16px !important; 
             position: sticky !important; 
             top: 0 !important; 
             z-index: 1000 !important; 
             height: 70px !important; 
+            width: 100% !important;
+            max-width: 100% !important;
             padding: 10px 16px !important; 
             background: #ffffff !important; 
             border-bottom: 1px solid #dfe3e6 !important; 
             box-shadow: 0 2px 8px rgba(0,0,0,.06) !important;
             transition: transform .2s ease-in-out !important;
+            box-sizing: border-box !important;
+        }
+        .main-topbar .topbar-left,
+        .main-topbar .topbar-center {
+            min-width: 0 !important;
         }
         /* Hide on scroll (keep a small top gap visible) */
         .main-topbar.is-hidden {
@@ -586,7 +604,8 @@
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             overflow: hidden;
-            transform: translateX(450px);
+            /* Use 100% of self width (not a fixed 450px) so off-screen slide cannot widen the document */
+            transform: translateX(calc(100% + 40px));
             transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease;
             opacity: 0;
             border: 1px solid rgba(255, 255, 255, 0.2);

@@ -1,5 +1,12 @@
 /* Client Forms CSS - Shared styles for client create and edit pages */
 
+/* Page-level containment: only loaded on client/lead/company form pages.
+   Keep overflow on body/html only — not .main-wrapper — so topbar dropdowns are not clipped. */
+html, body {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+}
+
 /* Country Code Dropdown Styling */
 .country-code-input {
     width: 80px !important;
@@ -317,16 +324,19 @@
     padding: 0 !important;
     gap: 0 !important;
     max-width: 100% !important;
+    width: 100% !important;
     background: var(--background-color) !important;
     margin: 0 !important;
     display: flex !important;
     flex-direction: column !important;
+    overflow-x: hidden !important;
+    min-width: 0 !important;
 }
 
 /* Override layout's .main-content to create CSS Grid layout */
 .main-content {
     display: grid !important;
-    grid-template-columns: 280px 1fr !important;
+    grid-template-columns: 280px minmax(0, 1fr) !important;
     grid-template-rows: auto 1fr !important;
     gap: 0 !important;
     padding: 0 !important;
@@ -337,6 +347,9 @@
     border-radius: 0 !important;
     min-height: calc(100vh - 70px) !important;
     width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
 }
 
 .client-header {
@@ -1497,7 +1510,7 @@ input:checked + .slider:before {
 
 @media (max-width: 1024px) {
     .main-content {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: minmax(0, 1fr) !important;
         grid-template-rows: auto auto 1fr !important;
     }
     
