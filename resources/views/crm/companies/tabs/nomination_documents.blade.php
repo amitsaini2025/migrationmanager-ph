@@ -74,7 +74,45 @@
                         ", [$SelectedClientId, $client_selected_matter_id1, $SelectedClientId])
                         ->get();
 
-                    $firstNominationDocCatId = optional($nominationDocCatList->first())->id;
+                    // File Documents: if this matter has no categories, ensure a default General exists
+                    // (matter-scoped, same as existing nomination categories — does not alter other categories).
+                    if ($nominationDocCatList->isEmpty() && $SelectedClientId && $client_selected_matter_id1) {
+                        $defaultGeneral = \App\Models\NominationDocumentType::query()
+                            ->where('client_id', $SelectedClientId)
+                            ->where('client_matter_id', $client_selected_matter_id1)
+                            ->whereRaw('LOWER(TRIM(title)) = ?', ['general'])
+                            ->first();
+
+                        if ($defaultGeneral) {
+                            if ((int) $defaultGeneral->status !== 1) {
+                                $defaultGeneral->status = 1;
+                                $defaultGeneral->save();
+                            }
+                        } else {
+                            $defaultGeneral = new \App\Models\NominationDocumentType();
+                            $defaultGeneral->title = 'General';
+                            $defaultGeneral->status = 1;
+                            $defaultGeneral->client_id = $SelectedClientId;
+                            $defaultGeneral->client_matter_id = $client_selected_matter_id1;
+                            $defaultGeneral->save();
+                        }
+
+                        $nominationDocCatList = collect([$defaultGeneral]);
+                    }
+
+                    // Prefer General as the default selected tab (same UX as Company Documents).
+                    $generalNominationDocCat = $nominationDocCatList->first(function ($cat) {
+                        return strcasecmp(trim((string) ($cat->title ?? '')), 'General') === 0;
+                    });
+                    if ($generalNominationDocCat) {
+                        $nominationDocCatList = $nominationDocCatList
+                            ->reject(function ($cat) use ($generalNominationDocCat) {
+                                return (int) $cat->id === (int) $generalNominationDocCat->id;
+                            })
+                            ->prepend($generalNominationDocCat)
+                            ->values();
+                    }
+                    $firstNominationDocCatId = optional($generalNominationDocCat ?? $nominationDocCatList->first())->id;
 
                     $nominationMatterLmtRow = null;
                     $nominationMatterHasLmt = false;
