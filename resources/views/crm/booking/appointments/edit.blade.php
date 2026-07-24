@@ -115,7 +115,7 @@
                                             10 => 'Employer Sponsored Visas: 494, 482, 186, DAMA',
                                             3 => 'JRP/Skill Assessment',
                                             4 => 'Tourist Visa',
-                                            5 => 'Education/Course Change/Student Visa/Student Dependent Visa (for education selection only)',
+                                            5 => 'Education/Course Change/Student Visa/Student Dependent Visa (for education selection for Australian onshore clients only)',
                                             6 => 'Complex matters: ART, Protection visa, Federal Case',
                                             7 => 'Visa Cancellation/ NOICC/ Visa refusals',
                                             11 => 'Family Visas (Parent Visa, Partner Visa, Child Visa)',

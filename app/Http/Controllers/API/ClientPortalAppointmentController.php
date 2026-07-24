@@ -127,7 +127,7 @@ class ClientPortalAppointmentController extends BaseController
                     ],
                     [
                         'id' => 5,
-                        'name' => 'Education/Course Change/Student Visa/Student Dependent Visa (for education selection only)'
+                        'name' => 'Education/Course Change/Student Visa/Student Dependent Visa (for education selection for Australian onshore clients only)'
                     ],
                     [
                         'id' => 6,
