@@ -198,6 +198,10 @@ return [
     | Google review reminder modal (client/lead detail)
     |--------------------------------------------------------------------------
     |
+    | Master switch: when false, the auto-open reminder popup is never shown.
+    | Modal markup, routes, SMS/email actions, and “Send Google Review” stay
+    | in place. Set CRM_GOOGLE_REVIEW_REMINDER_ENABLED=true to turn it back on.
+    |
     | staff.role values (user_roles.id) that never see the reminder popup.
     | Default: 14 = Calling Team, 15 = Accountant (accounts). Override via
     | CRM_GOOGLE_REVIEW_REMINDER_EXCLUDE_ROLE_IDS e.g. "14,15,20".
@@ -211,6 +215,11 @@ return [
     | Capped at 30 minutes to avoid accidental huge values in .env.
     |
     */
+    'google_review_reminder_enabled' => filter_var(
+        env('CRM_GOOGLE_REVIEW_REMINDER_ENABLED', false),
+        FILTER_VALIDATE_BOOLEAN
+    ),
+
     'google_review_reminder_exclude_role_ids' => array_values(array_filter(array_map(
         'intval',
         explode(',', (string) env('CRM_GOOGLE_REVIEW_REMINDER_EXCLUDE_ROLE_IDS', '14,15'))

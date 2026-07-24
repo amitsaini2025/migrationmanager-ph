@@ -2584,6 +2584,11 @@ class ClientsController extends Controller
 
     protected function shouldShowGoogleReviewReminderModal(Admin $record): bool
     {
+        // Master switch: keeps modal/routes/SMS code intact; only stops auto-open.
+        if (! config('crm.google_review_reminder_enabled', false)) {
+            return false;
+        }
+
         if ($this->currentStaffIsExcludedFromGoogleReviewReminder()) {
             return false;
         }
