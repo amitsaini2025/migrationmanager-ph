@@ -348,7 +348,7 @@
                                                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Action</button>
                                                 <div class="dropdown-menu">
                                                     <a class="dropdown-item has-icon" href="javascript:;" onclick="movetoclientAction({{$list->id}}, 'admins','is_archived')">Move to clients</a>
-                                                    <a class="dropdown-item has-icon" href="javascript:;" onclick='unarchiveClientAction({{ $list->id }}, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))))'>
+                                                    <a class="dropdown-item has-icon" href="javascript:;" onclick='return unarchiveClientAction(event, {{ $list->id }}, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))))'>
                                                         @icon('fa-undo') Unarchive
                                                     </a>
                                                 </div>
@@ -428,97 +428,113 @@
     });
 </script>
 <script>
-    // Unarchive client function - similar to movetoclientAction
-    function unarchiveClientAction(id, clientName) {
-        var confirmMessage = 'Are you sure you want to unarchive the client "' + clientName + '"?\n\nThis will move the client back to the active clients list.';
-        var conf = confirm(confirmMessage);
-        
-        if(conf) {
-            if(id == '') {
-                alert('Please select a valid client ID.');
-                return false;
-            } else {
-                $('.popuploader').show();
-                $(".server-error").html(''); //remove server error.
-                $(".custom-error-msg").html(''); //remove custom error.
-                
-                $.ajax({
-                    type: 'POST',
-                    headers: { 
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    url: '{{ route("clients.unarchive", ":id") }}'.replace(':id', id),
-                    data: {},
-                    dataType: 'json',
-                    success: function(resp) {
-                        $('.popuploader').hide();
-                        var obj = resp;
-                        
-                        // Handle response - check if it's already parsed or needs parsing
-                        if (typeof resp === 'string') {
-                            try {
-                                obj = $.parseJSON(resp);
-                            } catch(e) {
-                                console.error('JSON parse error:', e);
-                                var html = errorMessage('Invalid server response. Please try again.');
-                                $(".custom-error-msg").html(html);
-                                $('html, body').animate({scrollTop:0}, 'slow');
-                                return;
-                            }
-                        }
-                        
-                        if(obj.status == 1) {
-                            // Remove the row from table
-                            $("#id_"+id).fadeOut(300, function() {
-                                $(this).remove();
-                                
-                                // Check if table is empty
-                                if($('.tdata tr').length === 0) {
-                                    $('.tdata').html('<tr><td colspan="10" style="text-align: center; padding: 20px;">No Record Found</td></tr>');
-                                }
-                            });
-                            
-                            // Show success message
-                            var html = successMessage(obj.message || 'Client has been unarchived successfully.');
-                            $(".custom-error-msg").html(html);
-                        } else {
-                            // Show error message even if status is 0
-                            var html = errorMessage(obj.message || 'Failed to unarchive client.');
-                            $(".custom-error-msg").html(html);
-                        }
-                        
-                        $('html, body').animate({scrollTop:0}, 'slow');
-                    },
-                    error: function(xhr) {
-                        $('.popuploader').hide();
-                        var errorMessage = 'An error occurred while unarchiving the client.';
-                        
-                        if(xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = xhr.responseJSON.message;
-                        } else if(xhr.responseText) {
-                            try {
-                                var response = JSON.parse(xhr.responseText);
-                                if(response.message) {
-                                    errorMessage = response.message;
-                                }
-                            } catch(e) {
-                                // Use default error message
-                            }
-                        }
-                        
-                        var html = errorMessage(errorMessage);
-                        $(".custom-error-msg").html(html);
-                        $('html, body').animate({scrollTop:0}, 'slow');
-                    },
-                    beforeSend: function() {
-                        $("#loader").show();
-                    },
-                    complete: function() {
-                        $("#loader").hide();
-                    }
-                });
-            }
+    function clearListingMessage() {
+        $('.listing-container .custom-error-msg')
+            .text('')
+            .removeClass('alert alert-success alert-danger alert-warning alert-info')
+            .hide();
+    }
+
+    function showListingMessage(type, message) {
+        var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+
+        $('.listing-container .custom-error-msg')
+            .text(message)
+            .removeClass('alert-success alert-danger alert-warning alert-info')
+            .addClass('alert ' + alertClass)
+            .show();
+    }
+
+    // Unarchive client without page reload
+    function unarchiveClientAction(event, id, clientName) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
         }
+
+        var confirmMessage = 'Are you sure you want to unarchive the client "' + clientName + '"?\n\nThis will move the client back to the active clients list.';
+
+        if (!confirm(confirmMessage)) {
+            return false;
+        }
+
+        if (id == '') {
+            alert('Please select a valid client ID.');
+            return false;
+        }
+
+        $('.popuploader').show();
+        $(".server-error").html('');
+        clearListingMessage();
+
+        $.ajax({
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept': 'application/json'
+            },
+            url: '{{ route("clients.unarchive", ":id") }}'.replace(':id', id),
+            data: {},
+            dataType: 'json',
+            success: function(resp) {
+                $('.popuploader').hide();
+                var obj = resp;
+
+                if (typeof resp === 'string') {
+                    try {
+                        obj = $.parseJSON(resp);
+                    } catch (e) {
+                        showListingMessage('error', 'Invalid server response. Please try again.');
+                        $('html, body').animate({scrollTop: 0}, 'slow');
+                        return;
+                    }
+                }
+
+                if (obj.status == 1) {
+                    $("#id_" + id).fadeOut(300, function() {
+                        $(this).remove();
+
+                        if ($('.listing-container .tdata tr').length === 0) {
+                            $('.listing-container .tdata').html('<tr><td colspan="10" style="text-align: center; padding: 20px;">No Record Found</td></tr>');
+                        }
+                    });
+
+                    showListingMessage('success', obj.message || 'Client has been unarchived successfully.');
+                } else {
+                    showListingMessage('error', obj.message || 'Failed to unarchive client.');
+                }
+
+                $('html, body').animate({scrollTop: 0}, 'slow');
+            },
+            error: function(xhr) {
+                $('.popuploader').hide();
+                var errorMsg = 'An error occurred while unarchiving the client.';
+
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMsg = response.message;
+                        }
+                    } catch (e) {
+                        // Use default error message
+                    }
+                }
+
+                showListingMessage('error', errorMsg);
+                $('html, body').animate({scrollTop: 0}, 'slow');
+            },
+            beforeSend: function() {
+                $("#loader").show();
+            },
+            complete: function() {
+                $("#loader").hide();
+            }
+        });
+
+        return false;
     }
 </script>
 @endpush

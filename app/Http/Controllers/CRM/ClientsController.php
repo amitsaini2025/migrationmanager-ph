@@ -669,7 +669,7 @@ class ClientsController extends Controller
      *
      * @param Request $request
      * @param string $id Encoded client ID
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
      */
     public function archive(Request $request, $id)
     {
@@ -678,8 +678,12 @@ class ClientsController extends Controller
             $decodedId = convert_uudecode(base64_decode($id));
             
             if (!is_numeric($decodedId)) {
+                $message = 'Invalid client ID.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 400);
+                }
                 return redirect()->route('clients.index')
-                    ->with('error', 'Invalid client ID.');
+                    ->with('error', $message);
             }
             
             // Find the client
@@ -688,19 +692,31 @@ class ClientsController extends Controller
                 ->first();
             
             if (!$client) {
+                $message = 'Client not found.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 404);
+                }
                 return redirect()->route('clients.index')
-                    ->with('error', 'Client not found.');
+                    ->with('error', $message);
             }
 
             if (! StaffClientVisibility::canAccessClientOrLead((int) $decodedId, Auth::user())) {
+                $message = config('constants.unauthorized');
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 403);
+                }
                 return redirect()->route('clients.index')
-                    ->with('error', config('constants.unauthorized'));
+                    ->with('error', $message);
             }
             
             // Check if already archived
             if ($client->is_archived == 1) {
+                $message = 'Client is already archived.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 200);
+                }
                 return redirect()->route('clients.index')
-                    ->with('info', 'Client is already archived.');
+                    ->with('info', $message);
             }
             
             // Archive the client (archived_by stores staff.id — admin guard uses staff provider)
@@ -708,14 +724,25 @@ class ClientsController extends Controller
             $client->archived_by = Auth::guard('admin')->id();
             $client->archived_on = now();
             $client->save();
+
+            $message = 'Client has been archived successfully.';
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 1, 'message' => $message], 200);
+            }
             
             return redirect()->route('clients.index')
-                ->with('success', 'Client has been archived successfully.');
+                ->with('success', $message);
                 
         } catch (\Exception $e) {
             Log::error('Error archiving client: ' . $e->getMessage());
+            $message = 'An error occurred while archiving the client. Please try again.';
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 0, 'message' => $message], 500);
+            }
+
             return redirect()->route('clients.index')
-                ->with('error', 'An error occurred while archiving the client. Please try again.');
+                ->with('error', $message);
         }
     }
 

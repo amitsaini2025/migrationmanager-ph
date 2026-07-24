@@ -508,12 +508,9 @@
                                                 <a href="{{route('clients.edit', base64_encode(convert_uuencode(@$list->id)))}}" class="btn-edit-icon" title="Edit Lead">
                                                     @icon('fa-edit')
                                                 </a>
-                                                <form action="{{ route('leads.archive', base64_encode(convert_uuencode(@$list->id))) }}" method="POST" class="archive-lead-form" style="display: inline-block;">
-                                                    @csrf
-                                                    <button type="button" class="btn-archive-icon" title="Archive Lead" onclick='confirmArchive(event, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))))'>
-                                                        @icon('fa-archive')
-                                                    </button>
-                                                </form>
+                                                <button type="button" class="btn-archive-icon" title="Archive Lead" onclick='return archiveLeadAction(event, {{ (int) @$list->id }}, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))), @json(route("leads.archive", base64_encode(convert_uuencode(@$list->id)))))'>
+                                                    @icon('fa-archive')
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -1012,42 +1009,128 @@ function exportLeadList(filteredTotal) {
     });
 </script>
 <script>
-    // Archive lead confirmation function - Global scope
-    function confirmArchive(event, leadName) {
-        // Prevent default button behavior
+    function clearListingMessage() {
+        $('.listing-container .custom-error-msg')
+            .text('')
+            .removeClass('alert alert-success alert-danger alert-warning alert-info')
+            .hide();
+    }
+
+    function showListingMessage(type, message) {
+        var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+
+        $('.listing-container .custom-error-msg')
+            .text(message)
+            .removeClass('alert-success alert-danger alert-warning alert-info')
+            .addClass('alert ' + alertClass)
+            .show();
+    }
+
+    function updateLeadListTotal(delta) {
+        var $total = $('.list-record-total');
+        if (!$total.length) {
+            return;
+        }
+
+        var match = $total.text().match(/Total:\s*([\d,]+)/);
+        if (!match) {
+            return;
+        }
+
+        var nextTotal = Math.max(0, parseInt(match[1].replace(/,/g, ''), 10) + delta);
+        $total.text('Total: ' + nextTotal.toLocaleString());
+    }
+
+    // Archive lead without page reload
+    function archiveLeadAction(event, leadId, leadName, archiveUrl) {
         if (event) {
             event.preventDefault();
             event.stopPropagation();
         }
-        
-        // Find the form - try multiple methods for compatibility
-        var form = null;
-        if (event && event.target) {
-            form = event.target.closest('form');
-            if (!form && typeof jQuery !== 'undefined') {
-                form = jQuery(event.target).closest('.archive-lead-form')[0];
-            }
+
+        if (!leadId || !archiveUrl) {
+            alert('Error: Could not archive this lead. Please refresh and try again.');
+            return false;
         }
-        
-        // If still no form found, try to find by button
-        if (!form && event && event.target) {
-            var button = event.target.closest('button') || event.target;
-            if (button) {
-                form = button.closest('form');
-            }
-        }
-        
+
         var confirmMessage = 'Are you sure you want to archive the lead "' + (leadName || 'this lead') + '"?\n\nThis will move the lead to the archived list.';
-        
-        if (confirm(confirmMessage)) {
-            if (form) {
-                form.submit();
-            } else {
-                alert('Error: Could not find the form to submit. Please try again.');
-                console.error('Archive form not found');
-            }
+
+        if (!confirm(confirmMessage)) {
+            return false;
         }
-        
+
+        $('.popuploader').show();
+        $(".server-error").html('');
+        clearListingMessage();
+
+        $.ajax({
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept': 'application/json'
+            },
+            url: archiveUrl,
+            data: {},
+            dataType: 'json',
+            success: function(resp) {
+                $('.popuploader').hide();
+                var obj = resp;
+
+                if (typeof resp === 'string') {
+                    try {
+                        obj = $.parseJSON(resp);
+                    } catch (e) {
+                        showListingMessage('error', 'Invalid server response. Please try again.');
+                        $('html, body').animate({scrollTop: 0}, 'slow');
+                        return;
+                    }
+                }
+
+                if (obj.status == 1) {
+                    $("#id_" + leadId).fadeOut(300, function() {
+                        $(this).remove();
+
+                        if ($('.listing-container .tdata tr').length === 0) {
+                            $('.listing-container .tdata').html('<tr><td colspan="6" style="text-align: center; padding: 20px;">No Record Found</td></tr>');
+                        }
+                    });
+
+                    updateLeadListTotal(-1);
+                    showListingMessage('success', obj.message || 'Lead has been archived successfully.');
+                } else {
+                    showListingMessage('error', obj.message || 'Failed to archive lead.');
+                }
+
+                $('html, body').animate({scrollTop: 0}, 'slow');
+            },
+            error: function(xhr) {
+                $('.popuploader').hide();
+                var errorMsg = 'An error occurred while archiving the lead.';
+
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMsg = response.message;
+                        }
+                    } catch (e) {
+                        // Use default error message
+                    }
+                }
+
+                showListingMessage('error', errorMsg);
+                $('html, body').animate({scrollTop: 0}, 'slow');
+            },
+            beforeSend: function() {
+                $("#loader").show();
+            },
+            complete: function() {
+                $("#loader").hide();
+            }
+        });
+
         return false;
     }
 </script>

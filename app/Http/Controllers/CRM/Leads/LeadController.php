@@ -1602,7 +1602,7 @@ class LeadController extends Controller
      *
      * @param Request $request
      * @param string $id Encoded lead ID
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
      */
     public function archive(Request $request, $id)
     {
@@ -1611,39 +1611,66 @@ class LeadController extends Controller
             $decodedId = $this->decodeString($id);
             
             if (!$decodedId) {
+                $message = config('constants.decode_string') ?? 'Invalid lead ID.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 400);
+                }
                 return redirect()->route('leads.index')
-                    ->with('error', config('constants.decode_string') ?? 'Invalid lead ID.');
+                    ->with('error', $message);
             }
 
             if (! StaffClientVisibility::canAccessClientOrLead((int) $decodedId, Auth::user())) {
+                $message = config('constants.unauthorized');
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 403);
+                }
                 return redirect()->route('leads.index')
-                    ->with('error', config('constants.unauthorized'));
+                    ->with('error', $message);
             }
             
             // Find the lead (using withArchived to include archived leads)
             $lead = Lead::withArchived()->where('id', $decodedId)->first();
             
             if (!$lead) {
+                $message = 'Lead not found.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 404);
+                }
                 return redirect()->route('leads.index')
-                    ->with('error', 'Lead not found.');
+                    ->with('error', $message);
             }
             
             // Check if already archived
             if ($lead->is_archived == 1) {
+                $message = 'Lead is already archived.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 200);
+                }
                 return redirect()->route('leads.index')
-                    ->with('info', 'Lead is already archived.');
+                    ->with('info', $message);
             }
             
             // Archive the lead
             $lead->archive();
+
+            $message = 'Lead has been archived successfully.';
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 1, 'message' => $message], 200);
+            }
             
             return redirect()->route('leads.index')
-                ->with('success', 'Lead has been archived successfully.');
+                ->with('success', $message);
                 
         } catch (\Exception $e) {
             Log::error('Error archiving lead: ' . $e->getMessage());
+            $message = 'An error occurred while archiving the lead. Please try again.';
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 0, 'message' => $message], 500);
+            }
+
             return redirect()->route('leads.index')
-                ->with('error', 'An error occurred while archiving the lead. Please try again.');
+                ->with('error', $message);
         }
     }
 }

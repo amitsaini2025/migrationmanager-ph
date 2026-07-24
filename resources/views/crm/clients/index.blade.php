@@ -548,12 +548,9 @@
                                                         <a class="dropdown-item has-icon" href="{{URL::to('/clients/export/'.base64_encode(convert_uuencode(@$list->id)))}}" title="Export Client Data">
                                                             @icon('fa-download') Export
                                                         </a>
-                                                        <form action="{{ route('clients.archive', base64_encode(convert_uuencode(@$list->id))) }}" method="POST" class="archive-client-form" style="display: inline-block;">
-                                                            @csrf
-                                                            <a class="dropdown-item has-icon" href="javascript:;" onclick='archiveClientAction(event, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))))'>
-                                                                @icon('fa-archive') Archive
-                                                            </a>
-                                                        </form>
+                                                        <a class="dropdown-item has-icon" href="javascript:;" onclick='return archiveClientAction(event, {{ (int) @$list->id }}, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))), @json(route("clients.archive", base64_encode(convert_uuencode(@$list->id)))))'>
+                                                            @icon('fa-archive') Archive
+                                                        </a>
                                                     </div>
                                                 </div>
                                             </td>
@@ -1047,32 +1044,128 @@ jQuery(document).ready(function($){
 });
 </script>
 <script>
-    // Archive client confirmation function - Global scope
-    function archiveClientAction(event, clientName) {
+    function clearListingMessage() {
+        $('.listing-container .custom-error-msg')
+            .text('')
+            .removeClass('alert alert-success alert-danger alert-warning alert-info')
+            .hide();
+    }
+
+    function showListingMessage(type, message) {
+        var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+
+        $('.listing-container .custom-error-msg')
+            .text(message)
+            .removeClass('alert-success alert-danger alert-warning alert-info')
+            .addClass('alert ' + alertClass)
+            .show();
+    }
+
+    function updateClientListTotal(delta) {
+        var $total = $('.list-record-total');
+        if (!$total.length) {
+            return;
+        }
+
+        var match = $total.text().match(/Total:\s*([\d,]+)/);
+        if (!match) {
+            return;
+        }
+
+        var nextTotal = Math.max(0, parseInt(match[1].replace(/,/g, ''), 10) + delta);
+        $total.text('Total: ' + nextTotal.toLocaleString());
+    }
+
+    // Archive client without page reload
+    function archiveClientAction(event, clientId, clientName, archiveUrl) {
         if (event) {
             event.preventDefault();
             event.stopPropagation();
         }
 
-        var form = null;
-        if (event && event.target) {
-            form = event.target.closest('.archive-client-form');
-            if (!form && typeof jQuery !== 'undefined') {
-                form = jQuery(event.target).closest('.archive-client-form')[0];
-            }
-        }
-
-        if (!form) {
-            alert('Error: Could not find the form to submit. Please try again.');
-            console.error('Archive form not found');
+        if (!clientId || !archiveUrl) {
+            alert('Error: Could not archive this client. Please refresh and try again.');
             return false;
         }
 
         var confirmMessage = 'Are you sure you want to archive the client "' + (clientName || 'this client') + '"?\n\nThis will move the client to the archived list.';
 
-        if (confirm(confirmMessage)) {
-            form.submit();
+        if (!confirm(confirmMessage)) {
+            return false;
         }
+
+        $('.popuploader').show();
+        $(".server-error").html('');
+        clearListingMessage();
+
+        $.ajax({
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept': 'application/json'
+            },
+            url: archiveUrl,
+            data: {},
+            dataType: 'json',
+            success: function(resp) {
+                $('.popuploader').hide();
+                var obj = resp;
+
+                if (typeof resp === 'string') {
+                    try {
+                        obj = $.parseJSON(resp);
+                    } catch (e) {
+                        showListingMessage('error', 'Invalid server response. Please try again.');
+                        $('html, body').animate({scrollTop: 0}, 'slow');
+                        return;
+                    }
+                }
+
+                if (obj.status == 1) {
+                    $("#id_" + clientId).fadeOut(300, function() {
+                        $(this).remove();
+
+                        if ($('.listing-container .tdata tr').length === 0) {
+                            $('.listing-container .tdata').html('<tr><td colspan="7" style="text-align: center; padding: 20px;">No Record Found</td></tr>');
+                        }
+                    });
+
+                    updateClientListTotal(-1);
+
+                    showListingMessage('success', obj.message || 'Client has been archived successfully.');
+                } else {
+                    showListingMessage('error', obj.message || 'Failed to archive client.');
+                }
+
+                $('html, body').animate({scrollTop: 0}, 'slow');
+            },
+            error: function(xhr) {
+                $('.popuploader').hide();
+                var errorMsg = 'An error occurred while archiving the client.';
+
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMsg = response.message;
+                        }
+                    } catch (e) {
+                        // Use default error message
+                    }
+                }
+
+                showListingMessage('error', errorMsg);
+                $('html, body').animate({scrollTop: 0}, 'slow');
+            },
+            beforeSend: function() {
+                $("#loader").show();
+            },
+            complete: function() {
+                $("#loader").hide();
+            }
+        });
 
         return false;
     }
