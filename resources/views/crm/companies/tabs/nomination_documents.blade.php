@@ -860,7 +860,7 @@
                                     <option value="">-- Select Destination --</option>
                                     <option value="personal">Personal Documents</option>
                                     <option value="visa">Visa Documents</option>
-                                    <option value="nomination">Nomination Documents</option>
+                                    <option value="nomination">File Documents</option>
                                 </select>
                             </div>
                             
@@ -881,7 +881,7 @@
                             </div>
 
                             <div class="form-group" id="moveNominationNominationCategoryContainer" style="display: none;">
-                                <label>Select Nomination Category:</label>
+                                <label>Select File Document Category:</label>
                                 <select id="moveNominationNominationCategoryId" class="form-control">
                                     <option value="">-- Select Category --</option>
                                 </select>

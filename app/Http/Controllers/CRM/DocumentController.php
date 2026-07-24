@@ -1322,7 +1322,7 @@ class DocumentController extends Controller
                     $encodedClientId = base64_encode(convert_uuencode($client->id));
                     $docsTab = $document->doc_type === 'nomination' ? 'nominationdocuments' : 'visadocuments';
                     $redirectUrl = url("/clients/detail/{$encodedClientId}/{$docsTab}");
-                    $docLabel = $document->doc_type === 'nomination' ? 'nomination document' : 'visa document';
+                    $docLabel = $document->doc_type === 'nomination' ? 'file document' : 'visa document';
                     $sourceKey = $document->doc_type === 'nomination' ? 'nomination_documents' : 'visa_documents';
                     ActivitiesLog::create([
                         'client_id' => $client->id,

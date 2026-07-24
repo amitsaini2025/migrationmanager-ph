@@ -356,7 +356,7 @@ use App\Http\Controllers\Controller;
                 </button>
                 <button class="client-nav-button" data-tab="nominationdocuments">
                     @icon('fa-file-contract')
-                    <span>Nomination Documents</span>
+                    <span>File Documents</span>
                 </button>
                 <button class="client-nav-button" data-tab="account">
                     @icon('fa-file-invoice-dollar')

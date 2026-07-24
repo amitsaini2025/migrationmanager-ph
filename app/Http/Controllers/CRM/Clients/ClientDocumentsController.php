@@ -1340,7 +1340,7 @@ class ClientDocumentsController extends Controller
                 $subject = !empty($matterRef)
                     ? "added Nomination Checklist - {$matterRef}"
                     : 'added Nomination Checklist';
-                $description = '<p>Added '.$checklistCount.' nomination document checklist items: '.implode(', ', array_slice($checklistArray, 0, 3)).($checklistCount > 3 ? '...' : '').'</p>';
+                $description = '<p>Added '.$checklistCount.' file document checklist items: '.implode(', ', array_slice($checklistArray, 0, 3)).($checklistCount > 3 ? '...' : '').'</p>';
 
                 $this->logClientActivity(
                     $clientid,
@@ -1698,7 +1698,7 @@ class ClientDocumentsController extends Controller
                         
                         $response['status'] = true;
                         $response['message'] = $doctype === 'nomination'
-                            ? 'You have successfully uploaded your nomination document'
+                            ? 'You have successfully uploaded your file document'
                             : 'You have successfully uploaded your visa document';
                         $response['filename'] = $name;
                         $response['filetype'] = $extension;
