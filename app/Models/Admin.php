@@ -54,8 +54,9 @@ class Admin extends Authenticatable
         'cp_status', 'cp_random_code', 'cp_code_verify', 'cp_token_generated_at',
         // EOI Qualification Fields (for immigration points calculation)
         'australian_study', 'australian_study_date', 'specialist_education', 'specialist_education_date', 'regional_study', 'regional_study_date',
-        // Verification (staff can verify documents)
+        // Verification (staff can verify documents / form details)
         'visa_expiry_verified_at', 'visa_expiry_verified_by',
+        'details_verified_at', 'details_verified_by',
         // Archive fields
         'is_archived', 'archived_by', 'archived_on',
         // Personal
@@ -86,6 +87,8 @@ class Admin extends Authenticatable
         'followup_date' => 'datetime',
         'google_review_reminder_snooze_until' => 'datetime',
         'archived_on' => 'datetime',
+        'details_verified_at' => 'datetime',
+        'visa_expiry_verified_at' => 'datetime',
     ];
 
 	public $sortable = [
@@ -230,6 +233,14 @@ class Admin extends Authenticatable
     public function visaExpiryVerifications(): HasMany
     {
         return $this->hasMany(\App\Models\Admin::class, 'visa_expiry_verified_by');
+    }
+
+    /**
+     * Staff member who last verified this client/company form details.
+     */
+    public function detailsVerifiedByStaff()
+    {
+        return $this->belongsTo(Staff::class, 'details_verified_by');
     }
 
     /**

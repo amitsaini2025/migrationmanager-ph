@@ -149,6 +149,20 @@ use App\Http\Controllers\Controller;
                 <button id="btn-add-reference" class="btn-add-reference-chip" type="button">
                     @icon('fa-plus') Add Reference
                 </button>
+
+                @php
+                    $detailsVerifiedByName = null;
+                    if (!empty($fetchedData->details_verified_by)) {
+                        $detailsVerifiedByName = optional($fetchedData->detailsVerifiedByStaff)->full_name
+                            ?: optional(\App\Models\Staff::find($fetchedData->details_verified_by))->full_name;
+                    }
+                @endphp
+                @if(!empty($fetchedData->details_verified_at))
+                <div class="sidebar-details-verified-info" id="sidebarDetailsVerifiedInfo">
+                    <div class="details-verify-line"><strong>Verified By:</strong> {{ $detailsVerifiedByName ?: '—' }}</div>
+                    <div class="details-verify-line"><strong>Verified At:</strong> {{ $fetchedData->details_verified_at->format('d/m/Y g:i A') }}</div>
+                </div>
+                @endif
             </div>
         </div>
         <nav class="client-sidebar-nav">

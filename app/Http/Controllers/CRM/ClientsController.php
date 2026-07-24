@@ -2347,6 +2347,7 @@ class ClientsController extends Controller
                     'company.sponsorships',
                     'company.financials',
                     'companyNominationsAsNominee.company',
+                    'detailsVerifiedByStaff',
                 ])->find($id); //dd($fetchedData);
                 
                 // Route to company detail page if this is a company
@@ -2624,6 +2625,69 @@ class ClientsController extends Controller
         }
 
         return true;
+    }
+
+    /**
+     * Verify client/company form details (re-verifiable).
+     * Saves details_verified_at / details_verified_by on admins and logs to activities_logs.
+     */
+    public function verifyDetails(Request $request)
+    {
+        $validated = $request->validate([
+            'client_id' => 'required|integer|min:1',
+        ]);
+
+        $client = Admin::query()
+            ->where('id', $validated['client_id'])
+            ->whereIn('type', ['client', 'lead'])
+            ->first();
+
+        if (! $client) {
+            return response()->json(['status' => 0, 'message' => 'Record not found.'], 404);
+        }
+
+        if ((int) ($client->is_archived ?? 0) === 1) {
+            return response()->json(['status' => 0, 'message' => 'Archived records cannot be verified.'], 422);
+        }
+
+        if (! StaffClientVisibility::canAccessClientOrLead((int) $client->id, Auth::user())) {
+            return response()->json(['status' => 0, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $staff = Auth::user();
+        $staffId = (int) ($staff->id ?? 0);
+        if ($staffId < 1) {
+            return response()->json(['status' => 0, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $verifiedAt = now();
+        $client->details_verified_at = $verifiedAt;
+        $client->details_verified_by = $staffId;
+        $client->save();
+
+        $staffName = trim(($staff->first_name ?? '') . ' ' . ($staff->last_name ?? ''));
+        if ($staffName === '') {
+            $staffName = $staff->email ?? 'Staff';
+        }
+
+        $label = $client->is_company ? 'company' : ($client->type === 'lead' ? 'lead' : 'client');
+        $verifiedAtDisplay = $verifiedAt->format('d/m/Y g:i A');
+
+        $this->logClientActivity(
+            (int) $client->id,
+            'verified ' . $label . ' details',
+            '<p><strong>Verified By:</strong> ' . e($staffName) . '</p>'
+                . '<p><strong>Verified At:</strong> ' . e($verifiedAtDisplay) . '</p>',
+            'activity'
+        );
+
+        return response()->json([
+            'status' => 1,
+            'message' => 'Details verified successfully.',
+            'verified_by' => $staffName,
+            'verified_at' => $verifiedAtDisplay,
+            'verified_at_iso' => $verifiedAt->toIso8601String(),
+        ]);
     }
 
     public function updateGoogleReviewReminder(Request $request)

@@ -837,6 +837,63 @@ input:checked + .slider:before {
     border-left: none;
 }
 
+/* Sidebar: Verify client/company form details */
+.sidebar-details-verify {
+    padding: 0 12px 16px;
+    border-top: 1px solid #e8eaed;
+    margin-top: 4px;
+}
+
+.sidebar-details-verify .btn-verify-details {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #198754 0%, #157347 100%);
+    color: #fff;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(25, 135, 84, 0.25);
+}
+
+.sidebar-details-verify .btn-verify-details:hover {
+    background: linear-gradient(135deg, #157347 0%, #146c43 100%);
+}
+
+.sidebar-details-verify .btn-verify-details:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.sidebar-details-verify .details-verify-meta {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    font-size: 0.82em;
+    line-height: 1.45;
+    color: #14532d;
+}
+
+.sidebar-details-verify .details-verify-line {
+    margin-bottom: 4px;
+}
+
+.sidebar-details-verify .details-verify-line:last-child {
+    margin-bottom: 0;
+}
+
+.sidebar-details-verify .details-verify-line strong {
+    font-weight: 700;
+}
+
 /* Main Content Area - Grid item with centered content */
 .main-content-area {
     grid-column: 2;

@@ -87,6 +87,26 @@
                         <span>Back</span>
                     </button>
                 </div>
+
+                @php
+                    $detailsVerifiedByName = null;
+                    if ($fetchedData->details_verified_by) {
+                        $detailsVerifiedByName = optional($fetchedData->detailsVerifiedByStaff)->full_name
+                            ?: optional(\App\Models\Staff::find($fetchedData->details_verified_by))->full_name;
+                    }
+                @endphp
+                <div class="sidebar-details-verify" id="sidebarDetailsVerify"
+                     data-client-id="{{ $fetchedData->id }}"
+                     data-verify-url="{{ route('clients.verifyDetails') }}">
+                    <button type="button" class="btn-verify-details" id="btnVerifyDetails" onclick="confirmVerifyClientDetails()">
+                        @icon('fa-check-circle')
+                        <span>Verify</span>
+                    </button>
+                    <div class="details-verify-meta" id="detailsVerifyMeta" @if(!$fetchedData->details_verified_at) style="display: none;" @endif>
+                        <div class="details-verify-line"><strong>Verified By:</strong> <span id="detailsVerifiedByText">{{ $detailsVerifiedByName ?: '—' }}</span></div>
+                        <div class="details-verify-line"><strong>Verified At:</strong> <span id="detailsVerifiedAtText">{{ $fetchedData->details_verified_at ? $fetchedData->details_verified_at->format('d/m/Y g:i A') : '—' }}</span></div>
+                    </div>
+                </div>
             </div>
             
             <!-- Configuration for external JavaScript -->
@@ -2149,6 +2169,23 @@
         @icon('fa-chevron-up')
     </button>
 
+
+    <!-- Confirm Verify Details Modal -->
+    <div id="confirmVerifyDetailsModal" class="modal" style="display: none;" aria-hidden="true">
+        <div class="modal-content otp-modal" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3>Verify Details</h3>
+                <button type="button" class="close-btn" onclick="closeVerifyDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin: 0; line-height: 1.5;">If you want to verify these details. Please click <strong>Yes</strong>, else you can choose <strong>Cancel</strong>.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeVerifyDetailsModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmVerifyDetailsYesBtn" onclick="submitVerifyClientDetails()">Yes</button>
+            </div>
+        </div>
+    </div>
 
     <!-- OTP Verification Modal -->
     <div id="otpVerificationModal" class="modal" style="display: none;">

@@ -1418,6 +1418,30 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
     opacity: 0.6;
 }
 
+/* Verified By / Verified At (below Reference on client/company detail) */
+.sidebar-details-verified-info {
+    margin-top: 10px;
+    padding: 10px 10px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: #14532d;
+}
+
+.sidebar-details-verified-info .details-verify-line {
+    margin-bottom: 4px;
+}
+
+.sidebar-details-verified-info .details-verify-line:last-child {
+    margin-bottom: 0;
+}
+
+.sidebar-details-verified-info .details-verify-line strong {
+    font-weight: 700;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .reference-chip {

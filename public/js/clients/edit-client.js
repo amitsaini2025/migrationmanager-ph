@@ -7021,3 +7021,108 @@ function validatePhoneNumber(phone) {
     };
 }
 
+/**
+ * Client/Company form details verification (sidebar Verify button)
+ */
+function confirmVerifyClientDetails() {
+    const modal = document.getElementById('confirmVerifyDetailsModal');
+    if (!modal) {
+        if (confirm('If you want to verify these details. Please click OK, else Cancel.')) {
+            submitVerifyClientDetails();
+        }
+        return;
+    }
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeVerifyDetailsModal() {
+    const modal = document.getElementById('confirmVerifyDetailsModal');
+    if (!modal) {
+        return;
+    }
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+}
+
+function submitVerifyClientDetails() {
+    const wrap = document.getElementById('sidebarDetailsVerify');
+    if (!wrap) {
+        return;
+    }
+
+    const clientId = wrap.getAttribute('data-client-id');
+    const url = wrap.getAttribute('data-verify-url');
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrf = (window.editClientConfig && window.editClientConfig.csrfToken)
+        || (csrfMeta && csrfMeta.getAttribute('content'))
+        || '';
+
+    if (!clientId || !url) {
+        alert('Unable to verify: missing client information.');
+        return;
+    }
+
+    closeVerifyDetailsModal();
+
+    if (typeof jQuery !== 'undefined') {
+        jQuery('.popuploader').show();
+    }
+
+    const yesBtn = document.getElementById('confirmVerifyDetailsYesBtn');
+    const verifyBtn = document.getElementById('btnVerifyDetails');
+    if (yesBtn) yesBtn.disabled = true;
+    if (verifyBtn) verifyBtn.disabled = true;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': csrf,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ client_id: parseInt(clientId, 10) })
+    })
+        .then(function (response) {
+            return response.json().then(function (data) {
+                return { ok: response.ok, data: data };
+            });
+        })
+        .then(function (result) {
+            if (typeof jQuery !== 'undefined') {
+                jQuery('.popuploader').hide();
+            }
+            if (yesBtn) yesBtn.disabled = false;
+            if (verifyBtn) verifyBtn.disabled = false;
+
+            if (!result.ok || !result.data || result.data.status != 1) {
+                alert((result.data && result.data.message) ? result.data.message : 'Verification failed. Please try again.');
+                return;
+            }
+
+            const meta = document.getElementById('detailsVerifyMeta');
+            const byEl = document.getElementById('detailsVerifiedByText');
+            const atEl = document.getElementById('detailsVerifiedAtText');
+            if (byEl) byEl.textContent = result.data.verified_by || '—';
+            if (atEl) atEl.textContent = result.data.verified_at || '—';
+            if (meta) meta.style.display = '';
+
+            if (typeof showNotification === 'function') {
+                showNotification(result.data.message || 'Details verified successfully.', 'success');
+            }
+        })
+        .catch(function () {
+            if (typeof jQuery !== 'undefined') {
+                jQuery('.popuploader').hide();
+            }
+            if (yesBtn) yesBtn.disabled = false;
+            if (verifyBtn) verifyBtn.disabled = false;
+            alert('Verification failed. Please try again.');
+        });
+}
+
+window.confirmVerifyClientDetails = confirmVerifyClientDetails;
+window.closeVerifyDetailsModal = closeVerifyDetailsModal;
+window.submitVerifyClientDetails = submitVerifyClientDetails;
+

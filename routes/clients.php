@@ -48,6 +48,7 @@ Route::post('/clients/edit', [ClientsController::class, 'edit'])->name('clients.
 Route::get('/clients/export/{id}', [ClientsController::class, 'export'])->name('clients.export');
 Route::post('/clients/import', [ClientsController::class, 'import'])->name('clients.import');
 Route::post('/clients/save-section', [ClientPersonalDetailsController::class, 'saveSection'])->name('clients.saveSection');
+Route::post('/clients/verify-details', [ClientsController::class, 'verifyDetails'])->name('clients.verifyDetails');
 Route::post('/edit-test-scores', [ClientsController::class, 'editTestScores'])->name('clients.editTestScores');
 Route::get('/clients/partner-eoi-data/{partnerId}', [ClientPersonalDetailsController::class, 'getPartnerEoiData'])->name('clients.partnerEoiData');
 
