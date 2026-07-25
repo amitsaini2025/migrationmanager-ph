@@ -871,11 +871,14 @@
             $('#sel_person_responsible_id_lead').val(personResponsible);
             $('#sel_person_assisting_id_lead').val(personAssisting);
             $('#sel_office_id_lead').val(officeId);
-            $('#sel_migration_agent_id_lead,#sel_person_responsible_id_lead,#sel_person_assisting_id_lead,#sel_office_id_lead,#sel_matter_id_lead').mmSelect({
-                dropdownParent: $('#costAssignmentCreateFormModelLead'),
-                minimumResultsForSearch: 0,
-                width: '100%'
-            });
+            // Same guard as initChecklistMmSelect / destroyLeadCostAssignmentMmSelect — never block modal open
+            if (typeof $.fn.mmSelect === 'function') {
+                $('#sel_migration_agent_id_lead,#sel_person_responsible_id_lead,#sel_person_assisting_id_lead,#sel_office_id_lead,#sel_matter_id_lead').mmSelect({
+                    dropdownParent: $('#costAssignmentCreateFormModelLead'),
+                    minimumResultsForSearch: 0,
+                    width: '100%'
+                });
+            }
             $('#sel_matter_id_lead').trigger('change');
             $('#costAssignmentCreateFormModelLead').modal('show');
         }

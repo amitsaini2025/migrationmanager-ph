@@ -5752,11 +5752,12 @@ success: function(response) {
 
                 $('#cost_assignment_lead_id').val(window.ClientDetailConfig.clientId);
 
-                $('#sel_migration_agent_id_lead,#sel_person_responsible_id_lead,#sel_person_assisting_id_lead,#sel_office_id_lead,#sel_matter_id_lead').mmSelect({
-
-                    dropdownParent: $('#costAssignmentCreateFormModelLead')
-
-                });
+                // Guard: native selects still work if Tom Select bridge is unavailable
+                if (typeof $.fn.mmSelect === 'function') {
+                    $('#sel_migration_agent_id_lead,#sel_person_responsible_id_lead,#sel_person_assisting_id_lead,#sel_office_id_lead,#sel_matter_id_lead').mmSelect({
+                        dropdownParent: $('#costAssignmentCreateFormModelLead')
+                    });
+                }
 
                 $('#costAssignmentCreateFormModelLead').modal('show');
 
