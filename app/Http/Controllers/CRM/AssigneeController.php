@@ -195,10 +195,15 @@ class AssigneeController extends Controller
     public function updateActionNotCompleted(Request $request)
     {
         $data = $request->all(); //dd($data['id']);
-        $note = Note::where('unique_group_id',$data['unique_group_id'])
+        $uniqueGroupId = $data['unique_group_id'] ?? '';
+        $note = Note::where('unique_group_id', $uniqueGroupId)
                     ->whereNotNull('assigned_to')
                     ->whereNotNull('unique_group_id')
                     ->update(['status'=>'0']);
+        // Fallback: when unique_group_id is null/empty, update single note by id
+        if ($note === 0 && !empty($data['id'])) {
+            $note = Note::where('id', $data['id'])->update(['status' => '0']);
+        }
         if($note){
             $response['status'] 	= 	true;
             $response['message']	=	'Action updated successfully';
@@ -209,17 +214,51 @@ class AssigneeController extends Controller
         echo json_encode($response);
     }
 
-     //All assigned by me action list which r incomplete
+     // Assigned by me — Incomplete (default) / Complete tabs
      public function assigned_by_me(Request $request)
      {
-        if(Auth::user()->role == 1){
-             $assignees_notCompleted = \App\Models\Note::with(['noteStaff','noteClient.company','assigned_staff'])->where('status','<>',1)->where('type','client')->whereNotNull('client_id')->where('is_action', 1)->orderBy('created_at', 'desc')->latest()->paginate(20);
-        } else {
-             $assignees_notCompleted = \App\Models\Note::with(['noteStaff','noteClient.company','assigned_staff'])->where('status','<>',1)->where('user_id',Auth::user()->id)->where('type','client')->where('is_action', 1)->orderBy('created_at', 'desc')->latest()->paginate(20);
-        }
-         #dd($assignees_notCompleted);
-         return view('crm.assignee.assign_by_me',compact('assignees_notCompleted'))
-          ->with('i', (request()->input('page', 1) - 1) * 20);
+         $tab = $request->get('tab', 'incomplete');
+         if (!in_array($tab, ['incomplete', 'complete'], true)) {
+             $tab = 'incomplete';
+         }
+
+         $baseQuery = \App\Models\Note::query()
+             ->where('type', 'client')
+             ->whereNotNull('client_id')
+             ->where('is_action', 1);
+
+         if (Auth::user()->role != 1) {
+             $baseQuery->where('user_id', Auth::user()->id);
+         }
+
+         $incompleteCount = (clone $baseQuery)->where('status', '<>', '1')->count();
+         $completeCount = (clone $baseQuery)->where('status', '1')->count();
+         $totalCount = $incompleteCount + $completeCount;
+
+         $listQuery = \App\Models\Note::with(['noteStaff', 'noteClient.company', 'assigned_staff'])
+             ->where('type', 'client')
+             ->whereNotNull('client_id')
+             ->where('is_action', 1);
+
+         if (Auth::user()->role != 1) {
+             $listQuery->where('user_id', Auth::user()->id);
+         }
+
+         if ($tab === 'complete') {
+             $listQuery->where('status', '1');
+         } else {
+             $listQuery->where('status', '<>', '1');
+         }
+
+         $assignees_notCompleted = $listQuery->orderBy('created_at', 'desc')->latest()->paginate(20);
+
+         return view('crm.assignee.assign_by_me', compact(
+             'assignees_notCompleted',
+             'tab',
+             'incompleteCount',
+             'completeCount',
+             'totalCount'
+         ))->with('i', (request()->input('page', 1) - 1) * 20);
      }
 
     //All assigned to me action list

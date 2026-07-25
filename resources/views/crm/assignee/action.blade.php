@@ -51,6 +51,21 @@
         margin: 0; 
         word-wrap: break-word;
     }
+
+    .client-header .action-page-title {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .client-header .action-page-subtitle {
+        font-size: 0.7rem;
+        font-weight: 500;
+        color: #0d6efd;
+        margin: 0;
+        line-height: 1.2;
+        letter-spacing: 0.01em;
+    }
     
     .client-status {
         display: flex;
@@ -97,7 +112,14 @@
         box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
         transform: translateY(-1px);
     }
-    
+
+    .action-status-btn.active {
+        background-color: #1f1655 !important;
+        border-color: #1f1655 !important;
+        box-shadow: 0 2px 6px rgba(31, 22, 85, 0.35);
+        pointer-events: none;
+    }
+
     /* Tab styles */
     .tabs { 
         display: flex; 
@@ -537,15 +559,18 @@
             <div class="custom-error-msg"></div>
 
             <div class="client-header">
-                <h1>Action</h1>
+                <div class="action-page-title">
+                    <h1>Action</h1>
+                    <p class="action-page-subtitle">( Incomplete Action Assigned To Me)</p>
+                </div>
                 <div class="client-status" style="margin-right: 50px;">
-                    <a class="btn btn-primary" style="border-radius: 0px;" id="assigned_by_me"  href="{{URL::to('/assigned_by_me')}}">Assigned by me</a>
-                    <a class="btn btn-primary" style="border-radius: 0px;" id="archived-tab"  href="{{URL::to('/action_completed')}}">Completed</a>
+                    <a class="btn btn-primary action-status-btn" style="border-radius: 0px;" id="archived-tab" href="{{ URL::to('/action_completed') }}" title="Completed Task List Assigned To Me">Completed</a>
                     @include('components.crm.add-my-task-popover-template')
                     {{-- Must NOT use class "tab-button": global handler binds $('.tab-button') and reloads the DataTable / toggles filter "active". --}}
                     <button type="button" class="btn btn-primary add_my_task" title="Add New Task">
                         @icon('fa-plus') Add My Task
                     </button>
+                    <a class="btn btn-primary" style="border-radius: 0px;" id="assigned_by_me" href="{{ URL::to('/assigned_by_me') }}">Assigned by me</a>
                 </div>
             </div>
 
@@ -1763,16 +1788,33 @@ $(function () {
                 
                 // Reload table
                 table.draw(false);
-                
-                // Show success message (optional)
-                if (response.message) {
-                    // You can add a toast notification here if you have one
-                    console.log('Success:', response.message);
+
+                var obj = response;
+                if (typeof response === 'string') {
+                    try { obj = $.parseJSON(response); } catch (e) { obj = {}; }
+                }
+                var message = (obj && obj.message) ? obj.message : 'Action completed successfully';
+                if (obj && obj.status === false) {
+                    if (typeof iziToast !== 'undefined' && typeof iziToast.error === 'function') {
+                        iziToast.error({ message: message || 'Please try again', position: 'topRight', timeout: 4000 });
+                    } else {
+                        alert(message || 'Please try again');
+                    }
+                    return;
+                }
+                if (typeof iziToast !== 'undefined' && typeof iziToast.success === 'function') {
+                    iziToast.success({ message: message, position: 'topRight', timeout: 4000 });
+                } else {
+                    alert(message);
                 }
             },
             error: function(xhr) {
                 console.error('Error completing task:', xhr.responseText);
-                alert('An error occurred while completing the task.');
+                if (typeof iziToast !== 'undefined' && typeof iziToast.error === 'function') {
+                    iziToast.error({ message: 'An error occurred while completing the task.', position: 'topRight', timeout: 4000 });
+                } else {
+                    alert('An error occurred while completing the task.');
+                }
                 
                 // Reset button
                 $button.prop('disabled', false).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-check') : '<i class="fa fa-check"></i>') + ' Complete Task');

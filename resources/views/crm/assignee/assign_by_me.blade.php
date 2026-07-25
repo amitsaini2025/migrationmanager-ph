@@ -53,6 +53,32 @@
         font-size: 0.8em;
         margin-left: 5px;
     }
+
+    .listing-container .filter-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+
+    .listing-container .filter-buttons a.group_type {
+        display: inline-block;
+        padding: 8px 14px;
+        background: #e9ecef;
+        color: #212529;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+
+    .listing-container .filter-buttons a.group_type.active {
+        background: #0d6efd;
+        color: #fff;
+    }
+
+    .listing-container .filter-buttons a.group_type.active .countAction {
+        background: rgba(255, 255, 255, 0.25);
+    }
     
     .listing-container .complete_task {
         cursor: pointer;
@@ -108,14 +134,14 @@
             @include('../Elements/flash-message')
             
             <div class="client-header">
-                <h4>Assigned by Me</h4>
+                <h4>
+                    Assigned by Me
+                    <span class="countAction assign-by-me-total-count" @if(($totalCount ?? 0) <= 0) style="display:none;" @endif>{{ $totalCount ?? 0 }}</span>
+                </h4>
                 <div class="client-status">
                     <ul class="nav nav-pills" id="client_tabs" role="tablist">
                         <li class="nav-item">
-                            <a class="status-badge nav-link active" href="{{ URL::to('/action') }}">Incomplete</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="status-badge nav-link" href="{{ URL::to('/action_completed') }}">Completed</a>
+                            <a class="status-badge nav-link active" href="{{ URL::to('/action') }}">Action</a>
                         </li>
                     </ul>
                 </div>
@@ -123,13 +149,22 @@
 
             <div class="card">
                 <div class="card-body">
-                    <form action="{{ route('assignee.assigned_by_me') }}" method="get" class="mb-4">
-                        <div class="row">
-                            <div class="col-md-12 group_type_section">
-                                <!-- Add filters if needed -->
-                            </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12 filter-buttons">
+                            <a href="{{ route('assignee.assigned_by_me', ['tab' => 'incomplete']) }}"
+                               class="group_type assign-by-me-tab-incomplete {{ ($tab ?? 'incomplete') === 'incomplete' ? 'active' : '' }}"
+                               data-count="{{ $incompleteCount ?? 0 }}">
+                                Incomplete
+                                <span class="countAction assign-by-me-incomplete-count" @if(($incompleteCount ?? 0) <= 0) style="display:none;" @endif>{{ $incompleteCount ?? 0 }}</span>
+                            </a>
+                            <a href="{{ route('assignee.assigned_by_me', ['tab' => 'complete']) }}"
+                               class="group_type assign-by-me-tab-complete {{ ($tab ?? 'incomplete') === 'complete' ? 'active' : '' }}"
+                               data-count="{{ $completeCount ?? 0 }}">
+                                Complete
+                                <span class="countAction assign-by-me-complete-count" @if(($completeCount ?? 0) <= 0) style="display:none;" @endif>{{ $completeCount ?? 0 }}</span>
+                            </a>
                         </div>
-                    </form>
+                    </div>
 
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="active_quotation" role="tabpanel">
@@ -147,7 +182,10 @@
                                             <th width="15%">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody class="assign-by-me-tbody"
+                                           data-current-tab="{{ $tab ?? 'incomplete' }}"
+                                           data-empty-incomplete="No incomplete actions assigned by me."
+                                           data-empty-complete="No completed actions assigned by me.">
                                         @if (count($assignees_notCompleted) > 0)
                                             @foreach ($assignees_notCompleted as $list)
                                                 @php
@@ -158,10 +196,14 @@
                                                         $client_name = trim($list->noteClient->first_name . ' ' . $list->noteClient->last_name) ?: 'N/P';
                                                     }
                                                 @endphp
-                                                <tr>
-                                                    <td style="text-align: center;">{{ ++$i }}</td>
+                                                <tr class="assign-by-me-row" data-note-id="{{ $list->id }}">
+                                                    <td class="assign-by-me-sno" style="text-align: center;">{{ ++$i }}</td>
                                                     <td style="text-align: center;">
-                                                        <input type="radio" class="complete_task" data-bs-toggle="tooltip" title="Mark Complete!" data-id="{{ $list->id }}" data-unique_group_id="{{ $list->unique_group_id }}">
+                                                        @if (($tab ?? 'incomplete') === 'complete' || (string) $list->status === '1')
+                                                            <input type="radio" class="not_complete_task" data-bs-toggle="tooltip" title="Mark Incomplete!" data-id="{{ $list->id }}" data-unique_group_id="{{ $list->unique_group_id }}">
+                                                        @else
+                                                            <input type="radio" class="complete_task" data-bs-toggle="tooltip" title="Mark Complete!" data-id="{{ $list->id }}" data-unique_group_id="{{ $list->unique_group_id }}">
+                                                        @endif
                                                     </td>
                                                     <td>{{ $full_name }}</td>
                                                     <td>
@@ -187,7 +229,7 @@
                                                     </td>
                                                     <td>
                                                         @if ($list->task_group != 'Personal Action')
-                                                            <button type="button" data-noteid="{{ $list->description }}" data-taskid="{{ $list->id }}" data-taskgroupid="{{ $list->task_group }}" data-actiondate="{{ $list->action_date }}" class="btn btn-primary btn-sm update_task" data-bs-toggle="tooltip" title="Update Task" data-bs-container="body" data-role="popover" data-bs-placement="bottom" data-bs-html="true" data-bs-content='
+                                                            <button type="button" data-noteid="{{ $list->description }}" data-taskid="{{ $list->id }}" data-taskgroupid="{{ $list->task_group }}" data-actiondate="{{ $list->action_date }}" class="btn btn-primary btn-sm update_task" title="Update Task" data-bs-container="body" data-role="popover" data-bs-placement="bottom" data-bs-html="true" data-bs-content='
                                                                 <div id="popover-content">
                                                                     <h4 class="text-center">Update Task</h4>
                                                                     <div class="form-group row" style="margin-bottom:12px">
@@ -245,9 +287,13 @@
                                                 </tr>
                                             @endforeach
                                         @else
-                                            <tr>
+                                            <tr class="assign-by-me-empty-row">
                                                 <td colspan="8" style="text-align: center; padding: 20px;">
-                                                    No actions assigned by me.
+                                                    @if (($tab ?? 'incomplete') === 'complete')
+                                                        No completed actions assigned by me.
+                                                    @else
+                                                        No incomplete actions assigned by me.
+                                                    @endif
                                                 </td>
                                             </tr>
                                         @endif
@@ -324,6 +370,102 @@
 <script src="{{ URL::to('/') }}/js/popover.js"></script>
 <script>
     jQuery(document).ready(function($) {
+        function parseAssignByMeResponse(response) {
+            if (typeof response === 'object' && response !== null) {
+                return response;
+            }
+            try {
+                return $.parseJSON(response);
+            } catch (e) {
+                return { status: true, message: '' };
+            }
+        }
+
+        function showAssignByMeMessage(message, type) {
+            type = type || 'success';
+            if (!message) {
+                return;
+            }
+            if (typeof iziToast !== 'undefined') {
+                if (type === 'success' && typeof iziToast.success === 'function') {
+                    iziToast.success({ message: message, position: 'topRight', timeout: 4000 });
+                    return;
+                }
+                if (type === 'error' && typeof iziToast.error === 'function') {
+                    iziToast.error({ message: message, position: 'topRight', timeout: 4000 });
+                    return;
+                }
+            }
+            var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            var html = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+                '<button type="button" class="close" data-bs-dismiss="alert" aria-label="Close">☓</button>' +
+                '<strong>' + $('<div>').text(message).html() + '</strong></div>';
+            $('.listing-container .listing-section-body').first().prepend(html);
+        }
+
+        function setCountBadge($badge, count) {
+            count = Math.max(0, parseInt(count, 10) || 0);
+            if (!$badge.length) {
+                return;
+            }
+            $badge.text(count);
+            if (count > 0) {
+                $badge.show();
+            } else {
+                $badge.hide();
+            }
+        }
+
+        function updateAssignByMeTabCounts(moveToComplete) {
+            var $incompleteTab = $('.listing-container .assign-by-me-tab-incomplete');
+            var $completeTab = $('.listing-container .assign-by-me-tab-complete');
+            var incomplete = parseInt($incompleteTab.attr('data-count'), 10) || 0;
+            var complete = parseInt($completeTab.attr('data-count'), 10) || 0;
+
+            if (moveToComplete) {
+                incomplete = Math.max(0, incomplete - 1);
+                complete = complete + 1;
+            } else {
+                complete = Math.max(0, complete - 1);
+                incomplete = incomplete + 1;
+            }
+
+            $incompleteTab.attr('data-count', incomplete);
+            $completeTab.attr('data-count', complete);
+            setCountBadge($('.listing-container .assign-by-me-incomplete-count'), incomplete);
+            setCountBadge($('.listing-container .assign-by-me-complete-count'), complete);
+            setCountBadge($('.listing-container .assign-by-me-total-count'), incomplete + complete);
+        }
+
+        function renumberAssignByMeRows() {
+            $('.listing-container .assign-by-me-tbody .assign-by-me-row').each(function(index) {
+                $(this).find('.assign-by-me-sno').text(index + 1);
+            });
+        }
+
+        function removeAssignByMeRow($row) {
+            if (!$row || !$row.length) {
+                return;
+            }
+            var $tbody = $('.listing-container .assign-by-me-tbody');
+            $row.fadeOut(200, function() {
+                $row.remove();
+                renumberAssignByMeRows();
+                if ($tbody.find('.assign-by-me-row').length === 0) {
+                    $tbody.find('.assign-by-me-empty-row').remove();
+                    var currentTab = $tbody.data('current-tab') || 'incomplete';
+                    var emptyText = currentTab === 'complete'
+                        ? ($tbody.data('empty-complete') || 'No completed actions assigned by me.')
+                        : ($tbody.data('empty-incomplete') || 'No incomplete actions assigned by me.');
+                    $tbody.append(
+                        '<tr class="assign-by-me-empty-row"><td colspan="8" style="text-align: center; padding: 20px;">' +
+                        emptyText +
+                        '</td></tr>'
+                    );
+                }
+            });
+        }
+
         // Initialize enhanced selects (mmSelect) for assignee dropdowns
         $('.listing-container .assignee-mm-select').mmSelect({
             dropdownParent: $('#openassigneview'),
@@ -359,35 +501,54 @@
             }
         });
 
-        // Mark task as not complete
+        // Mark task as not complete (Complete tab -> Incomplete) without page refresh
         $(document).on('click', '.listing-container .not_complete_task', function() {
-            var row_id = $(this).attr('data-id');
-            var row_unique_group_id = $(this).attr('data-unique_group_id');
-            if (row_id != "") {
-                $.ajax({
-                    type: 'post',
-                    url: "{{ URL::to('/') }}/update-action-not-completed",
-                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-                    data: { id: row_id, unique_group_id: row_unique_group_id },
-                    success: function(response) {
-                        location.reload();
-                    }
-                });
+            var $radio = $(this);
+            var $row = $radio.closest('tr.assign-by-me-row');
+            var row_id = $radio.attr('data-id');
+            var row_unique_group_id = $radio.attr('data-unique_group_id');
+            if (row_id == "" || $radio.data('busy')) {
+                return;
             }
+            $radio.data('busy', true).prop('disabled', true);
+            $.ajax({
+                type: 'post',
+                url: "{{ URL::to('/') }}/update-action-not-completed",
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                data: { id: row_id, unique_group_id: row_unique_group_id },
+                success: function(response) {
+                    var obj = parseAssignByMeResponse(response);
+                    if (obj.status) {
+                        updateAssignByMeTabCounts(false);
+                        removeAssignByMeRow($row);
+                        showAssignByMeMessage(obj.message || 'Action updated successfully', 'success');
+                    } else {
+                        $radio.prop('checked', false).prop('disabled', false).data('busy', false);
+                        showAssignByMeMessage(obj.message || 'Please try again', 'error');
+                    }
+                },
+                error: function() {
+                    $radio.prop('checked', false).prop('disabled', false).data('busy', false);
+                    showAssignByMeMessage('An error occurred while updating the task.', 'error');
+                }
+            });
         });
 
         // Mark task as complete - open modal
         var currentTaskId = null;
         var currentTaskGroupId = null;
+        var currentTaskRow = null;
         
         $(document).on('click', '.listing-container .complete_task', function() {
-            var row_id = $(this).attr('data-id');
-            var row_unique_group_id = $(this).attr('data-unique_group_id');
+            var $radio = $(this);
+            var row_id = $radio.attr('data-id');
+            var row_unique_group_id = $radio.attr('data-unique_group_id');
             
             if (row_id != "") {
                 // Store task IDs for later use
                 currentTaskId = row_id;
                 currentTaskGroupId = row_unique_group_id;
+                currentTaskRow = $radio.closest('tr.assign-by-me-row');
                 
                 // Clear previous notes
                 $('#completionNotes').val('');
@@ -396,8 +557,15 @@
                 $('#completionNotesModal').modal('show');
             }
         });
+
+        // If completion modal is cancelled, clear radio selection
+        $('#completionNotesModal').on('hidden.bs.modal', function() {
+            if (currentTaskId && currentTaskRow && currentTaskRow.length) {
+                currentTaskRow.find('.complete_task').prop('checked', false);
+            }
+        });
         
-        // Handle task completion with notes
+        // Handle task completion with notes (Incomplete tab -> Complete) without page refresh
         $(document).on('click', '#confirmTaskCompletion', function() {
             var completionNotes = $('#completionNotes').val().trim();
             
@@ -425,17 +593,32 @@
                     
                     // Reset button
                     $button.prop('disabled', false).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-check') : '<i class="fa fa-check"></i>') + ' Complete Task');
-                    
-                    // Clear stored IDs
+
+                    var obj = parseAssignByMeResponse(response);
+                    var $row = currentTaskRow;
+
+                    // Clear stored IDs before UI update
                     currentTaskId = null;
                     currentTaskGroupId = null;
-                    
-                    // Reload page
-                    location.reload();
+                    currentTaskRow = null;
+
+                    if (obj.status) {
+                        updateAssignByMeTabCounts(true);
+                        removeAssignByMeRow($row);
+                        showAssignByMeMessage(obj.message || 'Action completed successfully', 'success');
+                    } else {
+                        if ($row && $row.length) {
+                            $row.find('.complete_task').prop('checked', false);
+                        }
+                        showAssignByMeMessage(obj.message || 'Please try again', 'error');
+                    }
                 },
                 error: function(xhr) {
                     console.error('Error completing task:', xhr.responseText);
-                    alert('An error occurred while completing the task.');
+                    showAssignByMeMessage('An error occurred while completing the task.', 'error');
+                    if (currentTaskRow && currentTaskRow.length) {
+                        currentTaskRow.find('.complete_task').prop('checked', false);
+                    }
                     
                     // Reset button
                     $button.prop('disabled', false).html((typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-check') : '<i class="fa fa-check"></i>') + ' Complete Task');
