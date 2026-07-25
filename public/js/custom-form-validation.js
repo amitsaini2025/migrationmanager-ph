@@ -2769,8 +2769,12 @@ function customValidate(formName, savetype = '')
 									window.mmUpdateClientTagsUi(resp || {});
 								}
 								var okMsg = (resp && resp.message) ? resp.message : 'Tags saved successfully';
-								if (typeof iziToast !== 'undefined' && iziToast.success) {
-									iziToast.success({ title: 'Success', message: okMsg, position: 'topRight', timeout: 3000 });
+								// Same pattern as other AJAX saves on this page: inline alert + toast when available
+								$('.custom-error-msg').html('<span class="alert alert-success">'+okMsg+'</span>');
+								var izi = (typeof window !== 'undefined' && window.iziToast) ||
+									(typeof iziToast !== 'undefined' ? iziToast : null);
+								if (izi && typeof izi.success === 'function') {
+									izi.success({ title: 'Success', message: okMsg, position: 'topRight', timeout: 3000 });
 								}
 							},
 							error: function(xhr){
@@ -2782,8 +2786,10 @@ function customValidate(formName, savetype = '')
 									msg = (errs.client_id && errs.client_id[0]) || (errs.tag && errs.tag[0]) || msg;
 								}
 								$('.custom-error-msg').html('<span class="alert alert-danger">'+msg+'</span>');
-								if (typeof iziToast !== 'undefined' && iziToast.error) {
-									iziToast.error({ title: 'Error', message: msg, position: 'topRight', timeout: 4000 });
+								var iziErr = (typeof window !== 'undefined' && window.iziToast) ||
+									(typeof iziToast !== 'undefined' ? iziToast : null);
+								if (iziErr && typeof iziErr.error === 'function') {
+									iziErr.error({ title: 'Error', message: msg, position: 'topRight', timeout: 4000 });
 								}
 							}
 						});
