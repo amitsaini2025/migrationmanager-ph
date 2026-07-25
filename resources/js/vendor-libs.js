@@ -13,7 +13,7 @@ import 'datatables.net-buttons';
 import 'datatables.net-buttons-bs5';
 import 'datatables.net-buttons/js/buttons.html5.mjs';
 
-import iziToast from '@legacy/iziToast.min.js';
+import iziToast from 'izitoast';
 import { registerMmTomSelectBridge } from './vendor/mm-tomselect-jquery.js';
 import './vendor/crm-flatpickr.js';
 

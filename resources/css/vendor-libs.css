@@ -2,4 +2,4 @@
 @import 'tom-select/dist/css/tom-select.bootstrap5.min.css';
 @import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
 @import 'datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css';
-@import '@legacy-css/iziToast.min.css';
+@import 'izitoast/dist/css/iziToast.min.css';
