@@ -845,15 +845,11 @@ function customValidate(formName, savetype = '')
                                 console.log('[ChangeMatterAssignee] AJAX success, response=', response);
                                 var obj = (typeof response === 'string' ? (function(){ try { return JSON.parse(response); } catch(e){ return {}; } })() : response) || {};
                                 $('.popuploader').hide();
-                                var izi = (typeof window !== 'undefined' && window.iziToast) ||
-                                    (typeof iziToast !== 'undefined' ? iziToast : null);
                                 if(obj.status){
                                     $('#changeMatterAssigneeModal').modal('hide');
                                     var okMsg = obj.message || 'Matter assignee updated successfully.';
-                                    $('.custom-error-msg').html('<span class="alert alert-success">'+okMsg+'</span>');
-                                    if (izi && typeof izi.success === 'function') {
-                                        izi.success({ title: 'Success', message: okMsg, position: 'topRight', timeout: 3000 });
-                                    }
+                                    // Toast only (top .custom-error-msg requires scroll on long pages)
+                                    mmShowToastMsg('success', okMsg, 'Success');
                                     // Update Matter Assignee card in place (no page reload)
                                     if (obj.assignees) {
                                         if ($('#matter_assignee_migration_agent').length) {
@@ -878,10 +874,7 @@ function customValidate(formName, savetype = '')
                                     } catch (e) { /* ignore */ }
                                 }else{
                                     var failMsg = obj.message || 'Something went wrong. Please try again.';
-                                    $('.custom-error-msg').html('<span class="alert alert-danger">'+failMsg+'</span>');
-                                    if (izi && typeof izi.error === 'function') {
-                                        izi.error({ title: 'Error', message: failMsg, position: 'topRight', timeout: 4000 });
-                                    }
+                                    mmShowToastMsg('error', failMsg, 'Error');
                                 }
                             },
                             error: function(xhr, textStatus, errorThrown){
@@ -894,12 +887,7 @@ function customValidate(formName, savetype = '')
                                 else if (xhr.responseJSON && xhr.responseJSON.errors) errMsg = Object.values(xhr.responseJSON.errors).flat().join(' ');
                                 else if (xhr.status === 419) errMsg = 'Session expired. Please refresh the page and try again.';
                                 else if (xhr.status >= 500) errMsg = 'Server error. Please try again later.';
-                                $('.custom-error-msg').html('<span class="alert alert-danger">'+errMsg+'</span>');
-                                var iziErr = (typeof window !== 'undefined' && window.iziToast) ||
-                                    (typeof iziToast !== 'undefined' ? iziToast : null);
-                                if (iziErr && typeof iziErr.error === 'function') {
-                                    iziErr.error({ title: 'Error', message: errMsg, position: 'topRight', timeout: 4000 });
-                                }
+                                mmShowToastMsg('error', errMsg, 'Error');
                             }
                         });
                     }
@@ -2805,13 +2793,8 @@ function customValidate(formName, savetype = '')
 									window.mmUpdateClientTagsUi(resp || {});
 								}
 								var okMsg = (resp && resp.message) ? resp.message : 'Tags saved successfully';
-								// Same pattern as other AJAX saves on this page: inline alert + toast when available
-								$('.custom-error-msg').html('<span class="alert alert-success">'+okMsg+'</span>');
-								var izi = (typeof window !== 'undefined' && window.iziToast) ||
-									(typeof iziToast !== 'undefined' ? iziToast : null);
-								if (izi && typeof izi.success === 'function') {
-									izi.success({ title: 'Success', message: okMsg, position: 'topRight', timeout: 3000 });
-								}
+								// Toast only (top .custom-error-msg requires scroll on long pages)
+								mmShowToastMsg('success', okMsg, 'Success');
 							},
 							error: function(xhr){
 								$('.popuploader').hide();
@@ -2821,12 +2804,7 @@ function customValidate(formName, savetype = '')
 									var errs = xhr.responseJSON.errors;
 									msg = (errs.client_id && errs.client_id[0]) || (errs.tag && errs.tag[0]) || msg;
 								}
-								$('.custom-error-msg').html('<span class="alert alert-danger">'+msg+'</span>');
-								var iziErr = (typeof window !== 'undefined' && window.iziToast) ||
-									(typeof iziToast !== 'undefined' ? iziToast : null);
-								if (iziErr && typeof iziErr.error === 'function') {
-									iziErr.error({ title: 'Error', message: msg, position: 'topRight', timeout: 4000 });
-								}
+								mmShowToastMsg('error', msg, 'Error');
 							}
 						});
 						return true;
@@ -3245,6 +3223,68 @@ function getallactivities(client_id){
 			// Silent error handling
 		}
 	});
+}
+
+/**
+ * Viewport toast for client-detail AJAX actions (tags / change assignee).
+ * Fixed position so users do not need to scroll to the top alert area.
+ * Does not touch other forms' .custom-error-msg behavior.
+ */
+function mmShowToastMsg(type, message, title) {
+	var msg = message || '';
+	var toastTitle = title || (type === 'error' ? 'Error' : 'Success');
+	var izi = (typeof window !== 'undefined' && window.iziToast) ||
+		(typeof iziToast !== 'undefined' ? iziToast : null);
+	var opts = {
+		title: toastTitle,
+		message: msg,
+		position: 'topRight',
+		timeout: type === 'error' ? 4000 : 3000,
+		zindex: 99999,
+		closeOnClick: true
+	};
+	if (izi) {
+		if (type === 'error' && typeof izi.error === 'function') {
+			izi.error(opts);
+			return true;
+		}
+		if (type !== 'error' && typeof izi.success === 'function') {
+			izi.success(opts);
+			return true;
+		}
+		if (typeof izi.show === 'function') {
+			opts.color = type === 'error' ? 'red' : 'green';
+			izi.show(opts);
+			return true;
+		}
+	}
+	// Fallback: fixed banner in viewport (no scroll required)
+	var $existing = $('#mm-viewport-toast');
+	if ($existing.length) {
+		$existing.remove();
+	}
+	var bg = type === 'error' ? '#f8d7da' : '#d4edda';
+	var border = type === 'error' ? '#f5c6cb' : '#c3e6cb';
+	var color = type === 'error' ? '#721c24' : '#155724';
+	var $toast = $('<div id="mm-viewport-toast" role="alert"></div>').css({
+		position: 'fixed',
+		top: '16px',
+		right: '16px',
+		zIndex: 99999,
+		maxWidth: '360px',
+		padding: '12px 16px',
+		background: bg,
+		border: '1px solid ' + border,
+		color: color,
+		borderRadius: '6px',
+		boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+		fontSize: '14px'
+	}).html('<strong>' + $('<div>').text(toastTitle).html() + '</strong> ' + $('<div>').text(msg).html());
+	$('body').append($toast);
+	setTimeout(function() {
+		$toast.fadeOut(300, function() { $(this).remove(); });
+	}, type === 'error' ? 4000 : 3000);
+	return true;
 }
 
 /** Escape HTML for tag names rendered into the Tag(s) list / modal pills. */
