@@ -7623,6 +7623,7 @@ class ClientsController extends Controller
             $clientId = $request->input('client_id');
             $tags = $request->input('tag', []);
             $createNewAsRed = filter_var($request->input('create_new_as_red', false), FILTER_VALIDATE_BOOLEAN);
+            $isAjax = $request->ajax() || $request->wantsJson();
 
             // Find the client
             $client = \App\Models\Admin::where('id', $clientId)
@@ -7630,6 +7631,12 @@ class ClientsController extends Controller
                 ->first();
 
             if (!$client) {
+                if ($isAjax) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Client not found',
+                    ], 404);
+                }
                 return redirect()->back()->with('error', 'Client not found');
             }
 
@@ -7675,10 +7682,52 @@ class ClientsController extends Controller
             $client->tagname = implode(',', $tagIds);
             $client->save();
 
+            $normalTags = [];
+            $redTags = [];
+            if (!empty($tagIds)) {
+                $savedTags = \App\Models\Tag::whereIn('id', $tagIds)->get()->keyBy('id');
+                foreach ($tagIds as $tagId) {
+                    $tag = $savedTags[$tagId] ?? null;
+                    if (!$tag) {
+                        continue;
+                    }
+                    $tagPayload = [
+                        'id' => $tag->id,
+                        'name' => $tag->name,
+                        'tag_type' => $tag->tag_type,
+                    ];
+                    if ($tag->tag_type === \App\Models\Tag::TYPE_RED) {
+                        $redTags[] = $tagPayload;
+                    } else {
+                        $normalTags[] = $tagPayload;
+                    }
+                }
+            }
+
+            if ($isAjax) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Tags saved successfully',
+                    'client_id' => (int) $clientId,
+                    'tags' => [
+                        'normal' => $normalTags,
+                        'red' => $redTags,
+                    ],
+                ]);
+            }
+
             return redirect()->back()->with('success', 'Tags saved successfully');
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Error saving tags: ' . $e->getMessage());
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while saving tags',
+                ], 500);
+            }
             return redirect()->back()->with('error', 'An error occurred while saving tags');
         }
     }

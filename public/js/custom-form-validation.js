@@ -2760,11 +2760,18 @@ function customValidate(formName, savetype = '')
 							processData: false,
 							contentType: false,
 							data: fd,
+							dataType: 'json',
 							headers: { 'X-Requested-With': 'XMLHttpRequest' },
-							success: function(){
+							success: function(resp){
 								$('.popuploader').hide();
 								$('#tags_clients').modal('hide');
-								location.reload();
+								if (typeof window.mmUpdateClientTagsUi === 'function') {
+									window.mmUpdateClientTagsUi(resp || {});
+								}
+								var okMsg = (resp && resp.message) ? resp.message : 'Tags saved successfully';
+								if (typeof iziToast !== 'undefined' && iziToast.success) {
+									iziToast.success({ title: 'Success', message: okMsg, position: 'topRight', timeout: 3000 });
+								}
 							},
 							error: function(xhr){
 								$('.popuploader').hide();
@@ -2775,6 +2782,9 @@ function customValidate(formName, savetype = '')
 									msg = (errs.client_id && errs.client_id[0]) || (errs.tag && errs.tag[0]) || msg;
 								}
 								$('.custom-error-msg').html('<span class="alert alert-danger">'+msg+'</span>');
+								if (typeof iziToast !== 'undefined' && iziToast.error) {
+									iziToast.error({ title: 'Error', message: msg, position: 'topRight', timeout: 4000 });
+								}
 							}
 						});
 						return true;
@@ -3191,6 +3201,122 @@ function getallactivities(client_id){
 		},
 		error: function(xhr, status, error){
 			// Silent error handling
+		}
+	});
+}
+
+/** Escape HTML for tag names rendered into the Tag(s) list / modal pills. */
+function mmEscapeTagHtml(str) {
+	return String(str == null ? '' : str)
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
+function mmTagUiIcon(legacyClass) {
+	if (typeof window.crmI === 'function') {
+		return window.crmI(legacyClass);
+	}
+	if (typeof crmIconLegacy === 'function') {
+		return crmIconLegacy(legacyClass);
+	}
+	return '<i class="' + legacyClass + '"></i>';
+}
+
+/**
+ * Refresh Tag(s) list + modal pills after AJAX save (no page reload).
+ * Used by stags_matter save on client/company detail pages.
+ */
+window.mmUpdateClientTagsUi = function(resp) {
+	var tags = (resp && resp.tags) ? resp.tags : {};
+	var normalTags = Array.isArray(tags.normal) ? tags.normal : [];
+	var redTags = Array.isArray(tags.red) ? tags.red : [];
+	var clientId = (resp && resp.client_id) ? String(resp.client_id) : '';
+	var $list = $('.client-tags-list').first();
+	var html = '';
+	var i;
+
+	for (i = 0; i < normalTags.length; i++) {
+		html += '<span class="ui label tag-normal ag-flex ag-align-center ag-space-between" style="display: inline-flex; margin: 5px 5px 5px 0;">' +
+			'<span class="col-hr-1" style="font-size: 12px;">' + mmEscapeTagHtml(normalTags[i].name) + '</span>' +
+			'</span>';
+	}
+
+	if (redTags.length > 0) {
+		html += '<div class="red-tags-section" style="display: none; margin-top: 10px;">' +
+			'<div style="margin-bottom: 5px; font-size: 11px; color: #dc3545; font-weight: bold;">' +
+			mmTagUiIcon('fa-exclamation-triangle') + ' Red Tags:' +
+			'</div>';
+		for (i = 0; i < redTags.length; i++) {
+			html += '<span class="ui label tag-red ag-flex ag-align-center ag-space-between" style="display: inline-flex; margin: 5px 5px 5px 0; background-color: #dc3545; border: 1px solid #c82333;">' +
+				'<span class="col-hr-1" style="font-size: 12px;">' + mmEscapeTagHtml(redTags[i].name) + '</span>' +
+				'</span>';
+		}
+		html += '</div>' +
+			'<div style="margin-top: 10px;">' +
+			'<a href="javascript:;" id="toggleRedTags" class="btn btn-sm btn-outline-danger" data-client-id="' + mmEscapeTagHtml(clientId) + '" title="Show Red Tags">' +
+			mmTagUiIcon('fa-eye') +
+			'</a></div>';
+	}
+
+	if ($list.length) {
+		$list.html(html);
+		mmBindRedTagsToggle($list, clientId);
+	}
+
+	// Keep modal pills in sync so reopening Edit shows saved state without reload
+	var $pillsInner = $('#tags_modal_container .tags-pills-inner');
+	if ($pillsInner.length) {
+		var allTags = normalTags.concat(redTags);
+		var pillsHtml = '';
+		for (i = 0; i < allTags.length; i++) {
+			var name = allTags[i].name;
+			pillsHtml += '<span class="tag-pill" data-tag-name="' + mmEscapeTagHtml(name) + '">' +
+				'<span class="tag-pill-text">' + mmEscapeTagHtml(name) + '</span>' +
+				'<button type="button" class="tag-pill-remove" aria-label="Remove tag">&times;</button>' +
+				'</span>';
+		}
+		pillsHtml += '<input type="text" id="tag_input" class="tag-input-inline" placeholder="Type and press comma or Enter to add" autocomplete="off">';
+		$pillsInner.html(pillsHtml);
+		$('#tags_validation').val(allTags.length > 0 ? '1' : '');
+	}
+};
+
+function mmBindRedTagsToggle($list, clientId) {
+	var $btn = $list.find('#toggleRedTags');
+	var $section = $list.find('.red-tags-section');
+	if (!$btn.length || !$section.length) {
+		return;
+	}
+	var storageKey = 'redTagsVisible_' + (clientId || $btn.attr('data-client-id') || '');
+	var isVisible = false;
+	try {
+		isVisible = sessionStorage.getItem(storageKey) === 'true';
+	} catch (e) { /* ignore */ }
+
+	if (isVisible) {
+		$section.css('display', 'block');
+		$btn.html(mmTagUiIcon('fas fa-eye-slash'));
+		$btn.removeClass('btn-outline-danger').addClass('btn-danger');
+		$btn.attr('title', 'Hide Red Tags');
+	}
+
+	$btn.off('click.mmRedTags').on('click.mmRedTags', function() {
+		var currentlyVisible = $section.css('display') !== 'none';
+		if (currentlyVisible) {
+			$section.css('display', 'none');
+			$(this).html(mmTagUiIcon('fas fa-eye'));
+			$(this).removeClass('btn-danger').addClass('btn-outline-danger');
+			$(this).attr('title', 'Show Red Tags');
+			try { sessionStorage.setItem(storageKey, 'false'); } catch (e) { /* ignore */ }
+		} else {
+			$section.css('display', 'block');
+			$(this).html(mmTagUiIcon('fas fa-eye-slash'));
+			$(this).removeClass('btn-outline-danger').addClass('btn-danger');
+			$(this).attr('title', 'Hide Red Tags');
+			try { sessionStorage.setItem(storageKey, 'true'); } catch (e) { /* ignore */ }
 		}
 	});
 }
