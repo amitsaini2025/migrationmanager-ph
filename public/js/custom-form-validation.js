@@ -845,13 +845,44 @@ function customValidate(formName, savetype = '')
                                 console.log('[ChangeMatterAssignee] AJAX success, response=', response);
                                 var obj = (typeof response === 'string' ? (function(){ try { return JSON.parse(response); } catch(e){ return {}; } })() : response) || {};
                                 $('.popuploader').hide();
-                                $('#changeMatterAssigneeModal').modal('hide');
+                                var izi = (typeof window !== 'undefined' && window.iziToast) ||
+                                    (typeof iziToast !== 'undefined' ? iziToast : null);
                                 if(obj.status){
-                                    $('.custom-error-msg').html('<span class="alert alert-success">'+(obj.message || 'Matter assignee updated successfully.')+'</span>');
+                                    $('#changeMatterAssigneeModal').modal('hide');
+                                    var okMsg = obj.message || 'Matter assignee updated successfully.';
+                                    $('.custom-error-msg').html('<span class="alert alert-success">'+okMsg+'</span>');
+                                    if (izi && typeof izi.success === 'function') {
+                                        izi.success({ title: 'Success', message: okMsg, position: 'topRight', timeout: 3000 });
+                                    }
+                                    // Update Matter Assignee card in place (no page reload)
+                                    if (obj.assignees) {
+                                        if ($('#matter_assignee_migration_agent').length) {
+                                            $('#matter_assignee_migration_agent').text(obj.assignees.migration_agent_name || 'N/A');
+                                        }
+                                        if ($('#matter_assignee_person_responsible').length) {
+                                            $('#matter_assignee_person_responsible').text(obj.assignees.person_responsible_name || 'N/A');
+                                        }
+                                        if ($('#matter_assignee_person_assisting').length) {
+                                            $('#matter_assignee_person_assisting').text(obj.assignees.person_assisting_name || 'N/A');
+                                        }
+                                        if ($('#matter_assignee_office').length) {
+                                            $('#matter_assignee_office').text(obj.assignees.office_name || 'No Office Assigned');
+                                        }
+                                    }
+                                    // Soft-refresh activity feed if available (non-blocking)
+                                    try {
+                                        var clientId = $('#change_matter_assignee input[name="client_id"]').val();
+                                        if (clientId && typeof getallactivities === 'function') {
+                                            getallactivities(clientId);
+                                        }
+                                    } catch (e) { /* ignore */ }
                                 }else{
-                                    $('.custom-error-msg').html('<span class="alert alert-danger">'+(obj.message || 'Something went wrong. Please try again.')+'</span>');
+                                    var failMsg = obj.message || 'Something went wrong. Please try again.';
+                                    $('.custom-error-msg').html('<span class="alert alert-danger">'+failMsg+'</span>');
+                                    if (izi && typeof izi.error === 'function') {
+                                        izi.error({ title: 'Error', message: failMsg, position: 'topRight', timeout: 4000 });
+                                    }
                                 }
-                                location.reload();
                             },
                             error: function(xhr, textStatus, errorThrown){
                                 console.error('[ChangeMatterAssignee] AJAX error: status=', xhr.status, 'statusText=', xhr.statusText, 'textStatus=', textStatus, 'errorThrown=', errorThrown);
@@ -864,6 +895,11 @@ function customValidate(formName, savetype = '')
                                 else if (xhr.status === 419) errMsg = 'Session expired. Please refresh the page and try again.';
                                 else if (xhr.status >= 500) errMsg = 'Server error. Please try again later.';
                                 $('.custom-error-msg').html('<span class="alert alert-danger">'+errMsg+'</span>');
+                                var iziErr = (typeof window !== 'undefined' && window.iziToast) ||
+                                    (typeof iziToast !== 'undefined' ? iziToast : null);
+                                if (iziErr && typeof iziErr.error === 'function') {
+                                    iziErr.error({ title: 'Error', message: errMsg, position: 'topRight', timeout: 4000 });
+                                }
                             }
                         });
                     }

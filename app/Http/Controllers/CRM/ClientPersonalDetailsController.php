@@ -795,8 +795,27 @@ class ClientPersonalDetailsController extends Controller
                 $objs->pin = 0;
                 $objs->save();
 
+                $agent = \App\Models\Staff::select('first_name', 'last_name')->find($obj->sel_migration_agent);
+                $personResponsible = \App\Models\Staff::select('first_name', 'last_name')->find($obj->sel_person_responsible);
+                $personAssisting = \App\Models\Staff::select('first_name', 'last_name')->find($obj->sel_person_assisting);
+                $office = !empty($obj->office_id)
+                    ? \App\Models\Branch::select('office_name')->find($obj->office_id)
+                    : null;
+
                 $response['status'] = true;
                 $response['message'] = 'Matter assignee updated successfully.';
+                $response['assignees'] = [
+                    'migration_agent_name' => $agent
+                        ? trim($agent->first_name . ' ' . $agent->last_name)
+                        : 'N/A',
+                    'person_responsible_name' => $personResponsible
+                        ? trim($personResponsible->first_name . ' ' . $personResponsible->last_name)
+                        : 'N/A',
+                    'person_assisting_name' => $personAssisting
+                        ? trim($personAssisting->first_name . ' ' . $personAssisting->last_name)
+                        : 'N/A',
+                    'office_name' => $office ? $office->office_name : 'No Office Assigned',
+                ];
             } else {
                 $response['message'] = 'Record could not be updated. Please try again.';
             }
