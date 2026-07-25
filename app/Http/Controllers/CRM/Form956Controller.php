@@ -80,31 +80,48 @@ class Form956Controller extends Controller
 
             // When created from visa document page (folder_name provided), create only the checklist name.
             // User downloads the form, checks/updates it, then uploads to this checklist.
+            $document = null;
             if ($folderName && $form->client_matter_id) {
                 $form->load(['client', 'agent']);
                 $agentName = $form->agent ? trim(($form->agent->first_name ?? '') . ' ' . ($form->agent->last_name ?? '')) : 'Agent';
                 $agentNameDisplay = $agentName ?: 'Agent';
 
-                $doc = new Document;
-                $doc->user_id = Auth::user()->id;
-                $doc->client_id = $form->client_id;
-                $doc->client_matter_id = $form->client_matter_id;
-                $doc->form956_id = $form->id;
-                $doc->type = 'client';
-                $doc->doc_type = 'visa';
-                $doc->folder_name = $folderName;
-                $doc->checklist = '956 Form_ ' . $agentNameDisplay;
-                $doc->save();
+                $document = new Document;
+                $document->user_id = Auth::user()->id;
+                $document->client_id = $form->client_id;
+                $document->client_matter_id = $form->client_matter_id;
+                $document->form956_id = $form->id;
+                $document->type = 'client';
+                $document->doc_type = 'visa';
+                $document->folder_name = $folderName;
+                $document->checklist = '956 Form_ ' . $agentNameDisplay;
+                $document->save();
             }
 
             // Check if the request is AJAX (from the modal)
             if ($request->ajax()) {
-                return response()->json([
+                $payload = [
                     'success' => true,
                     'message' => 'Form 956 created successfully.',
                     'redirect' => route('forms.show', $form),
                     'download_url' => route('forms.pdf', $form),
-                ], 200);
+                    'preview_url' => route('forms.preview', $form),
+                    'form_id' => (int) $form->id,
+                ];
+
+                if ($document) {
+                    $payload['document'] = [
+                        'id' => (int) $document->id,
+                        'checklist' => $document->checklist,
+                        'folder_name' => $document->folder_name,
+                        'client_matter_id' => $document->client_matter_id,
+                        'client_id' => (int) $document->client_id,
+                        'form956_id' => (int) $form->id,
+                        'doc_type' => 'visa',
+                    ];
+                }
+
+                return response()->json($payload, 200);
             }
 
             // For non-AJAX requests, redirect as before

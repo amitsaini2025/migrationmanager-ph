@@ -2317,6 +2317,24 @@ class ClientDocumentsController extends Controller
                 $response['document_id'] = $documentId;
                 $response['new_type'] = $targetType;
                 $response['new_location'] = $targetName;
+                $response['target_id'] = (int) $targetId;
+                $response['old_folder_name'] = $oldFolderName;
+                $response['old_type'] = $oldType;
+                $response['document'] = [
+                    'id' => (int) $document->id,
+                    'checklist' => $document->checklist,
+                    'file_name' => $document->file_name,
+                    'filetype' => $document->filetype,
+                    'myfile' => $document->myfile,
+                    'status' => $document->status ?? 'draft',
+                    'client_matter_id' => $document->client_matter_id,
+                    'folder_name' => $document->folder_name,
+                ];
+                if ($targetType === 'visa' && ! empty($document->client_matter_id)) {
+                    $matter = ClientMatter::query()->find($document->client_matter_id);
+                    $response['target_matter_id'] = (int) $document->client_matter_id;
+                    $response['target_matter_unique_no'] = $matter->client_unique_matter_no ?? null;
+                }
             } else {
                 $response['message'] = 'Failed to save document changes';
             }

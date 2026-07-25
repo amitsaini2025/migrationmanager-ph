@@ -897,6 +897,7 @@
                     // Disable button and show loading
                     $btn.prop('disabled', true).text('Moving...');
                     $error.hide();
+                    $('.popuploader').show();
                     
                     // Make AJAX request
                     $.ajax({
@@ -912,15 +913,33 @@
                             if (response.status) {
                                 // Close modal
                                 $('#moveVisaDocumentModal').modal('hide');
+                                if (typeof hideVisaContextMenu === 'function') {
+                                    hideVisaContextMenu();
+                                }
                                 
                                 // Show success message using alert
                                 alert(response.message || 'Document moved successfully');
-                                
-                                // Reload the page to refresh document lists
-                                location.reload();
+
+                                var moved = false;
+                                try {
+                                    moved = !!applyVisaDocumentMoveUi(
+                                        currentMoveVisaDocumentId,
+                                        targetType,
+                                        targetId,
+                                        response.new_location || '',
+                                        response.document || null
+                                    );
+                                } catch (moveErr) {
+                                    console.warn('[MoveVisaDoc] UI update failed, falling back to reload', moveErr);
+                                    moved = false;
+                                }
+
+                                if (!moved) {
+                                    location.reload();
+                                    return;
+                                }
                             } else {
                                 $error.text(response.message || 'Failed to move document').show();
-                                $btn.prop('disabled', false).text('Move Document');
                             }
                         },
                         error: function(xhr) {
@@ -929,10 +948,220 @@
                                 errorMsg = xhr.responseJSON.message;
                             }
                             $error.text(errorMsg).show();
+                        },
+                        complete: function() {
+                            $('.popuploader').hide();
                             $btn.prop('disabled', false).text('Move Document');
                         }
                     });
                 });
+
+                function escapeVisaMoveJsAttr(value) {
+                    return String(value == null ? '' : value)
+                        .replace(/\\/g, '\\\\')
+                        .replace(/'/g, "\\'");
+                }
+
+                function escapeVisaMoveHtml(value) {
+                    return String(value == null ? '' : value)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+                }
+
+                /**
+                 * Update Visa Documents UI after a successful move without full page reload.
+                 * Visa → visa: relocate row (+ signature bar) into the target category.
+                 * Visa → personal: remove from visa, insert into personal category, switch tab.
+                 */
+                function applyVisaDocumentMoveUi(documentId, targetType, targetId, targetTitle, docPayload) {
+                    if (!documentId || !targetType || !targetId) {
+                        return false;
+                    }
+
+                    var $visaTab = $('#visadocuments-tab');
+                    if (!$visaTab.length) {
+                        return false;
+                    }
+
+                    var $row = $visaTab.find('#id_' + documentId);
+                    var $sigBar = $visaTab.find('.visa-sig-action-bar[data-doc-id="' + documentId + '"]');
+
+                    if (targetType === 'visa') {
+                        return moveVisaDocWithinVisaUi($row, $sigBar, documentId, targetId, targetTitle);
+                    }
+
+                    if (targetType === 'personal') {
+                        if ($row.length) {
+                            $row.remove();
+                        }
+                        if ($sigBar.length) {
+                            $sigBar.remove();
+                        }
+                        if (!appendMovedVisaDocToPersonalCategory(docPayload, targetId, targetTitle, documentId)) {
+                            return false;
+                        }
+                        activatePersonalDocumentsCategory(targetId);
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                function moveVisaDocWithinVisaUi($row, $sigBar, documentId, targetId, targetTitle) {
+                    var $visaTab = $('#visadocuments-tab');
+                    var $targetTbody = $visaTab.find('.migdocumnetlist_' + targetId);
+                    if (!$row.length || !$targetTbody.length) {
+                        return false;
+                    }
+
+                    var categoryTitle = targetTitle
+                        || $visaTab.find('.subtab6-button[data-subtab6="' + targetId + '"]').first().text().trim()
+                        || '';
+
+                    $row.attr('data-catid', targetId);
+
+                    $row.find('.doc-row').each(function() {
+                        var $docRow = $(this);
+                        var fileId = $docRow.data('id') || documentId;
+                        var fileType = 'pdf';
+                        var fileUrl = '';
+                        var fileStatus = 'draft';
+                        var onctx = $docRow.attr('oncontextmenu') || '';
+                        var parsed = onctx.match(/showVisaFileContextMenu\(\s*event\s*,\s*([^,]+)\s*,\s*'((?:\\'|[^'])*)'\s*,\s*'((?:\\'|[^'])*)'\s*,\s*'((?:\\'|[^'])*)'\s*,\s*'((?:\\'|[^'])*)'/);
+                        if (parsed) {
+                            fileType = parsed[2].replace(/\\'/g, "'") || fileType;
+                            fileUrl = parsed[3].replace(/\\'/g, "'") || fileUrl;
+                            fileStatus = parsed[5].replace(/\\'/g, "'") || fileStatus;
+                        } else if (typeof currentVisaContextData !== 'undefined' && currentVisaContextData) {
+                            fileType = currentVisaContextData.fileType || fileType;
+                            fileUrl = currentVisaContextData.fileUrl || fileUrl;
+                            fileStatus = currentVisaContextData.fileStatus || fileStatus;
+                        }
+
+                        $docRow.attr(
+                            'oncontextmenu',
+                            "showVisaFileContextMenu(event, " + fileId + ", '" + escapeVisaMoveJsAttr(fileType) + "', '" + escapeVisaMoveJsAttr(fileUrl) + "', '" + escapeVisaMoveJsAttr(targetId) + "', '" + escapeVisaMoveJsAttr(fileStatus) + "'); return false;"
+                        );
+                    });
+
+                    $row.find('.visa-doc-drag-zone, .migdocupload').attr('data-doccategory', targetId);
+                    if (categoryTitle) {
+                        $row.find('input[name="doccategory"]').val(categoryTitle);
+                        $row.find('a.notuseddoc').attr('data-doccategory', categoryTitle);
+                    }
+
+                    $targetTbody.prepend($row);
+                    if ($sigBar.length) {
+                        $row.after($sigBar);
+                    }
+
+                    $visaTab.find('.subtab6-button').removeClass('active');
+                    $visaTab.find('.subtab6-pane').removeClass('active');
+                    $visaTab.find('.subtab6-button[data-subtab6="' + targetId + '"]').addClass('active');
+                    $visaTab.find('[id="' + targetId + '-subtab6"]').addClass('active');
+
+                    if (typeof window.initVisaDocDragDrop === 'function') {
+                        window.initVisaDocDragDrop();
+                    }
+
+                    return true;
+                }
+
+                function appendMovedVisaDocToPersonalCategory(docPayload, categoryId, categoryTitle, fallbackDocId) {
+                    var docId = (docPayload && docPayload.id) ? docPayload.id : fallbackDocId;
+                    if (!docId) {
+                        return false;
+                    }
+
+                    var $tab = $('#personaldocuments-tab');
+                    var $tbody = $tab.find('.documnetlist_' + categoryId);
+                    if (!$tab.length || !$tbody.length) {
+                        return false;
+                    }
+                    if ($tbody.find('#id_' + docId).length) {
+                        return true;
+                    }
+
+                    var checklist = (docPayload && docPayload.checklist) ? docPayload.checklist : 'Document';
+                    var fileName = (docPayload && docPayload.file_name) ? docPayload.file_name : '';
+                    var fileType = (docPayload && docPayload.filetype) ? docPayload.filetype : 'pdf';
+                    var fileUrl = (docPayload && docPayload.myfile) ? docPayload.myfile : '';
+                    var status = (docPayload && docPayload.status) ? docPayload.status : 'draft';
+                    var catTitle = categoryTitle
+                        || $tab.find('.subtab2-button[data-subtab2="' + categoryId + '"]').first().text().trim()
+                        || '';
+                    var iconHtml = (typeof crmI === 'function') ? crmI('fa-file-image') : '';
+                    var displayName = fileName ? (fileName + (fileType ? ('.' + fileType) : '')) : '';
+
+                    var fileCellHtml;
+                    if (fileName && fileUrl) {
+                        fileCellHtml =
+                            '<div data-id="' + docId + '" data-name="' + escapeVisaMoveHtml(fileName) + '" class="doc-row" ' +
+                            'oncontextmenu="showFileContextMenu(event, ' + docId + ', \'' + escapeVisaMoveJsAttr(fileType) + '\', \'' + escapeVisaMoveJsAttr(fileUrl) + '\', \'' + escapeVisaMoveJsAttr(categoryId) + '\', \'' + escapeVisaMoveJsAttr(status) + '\'); return false;">' +
+                            '<a href="javascript:void(0);" onclick="previewFile(\'' + escapeVisaMoveJsAttr(fileType) + '\',\'' + escapeVisaMoveJsAttr(fileUrl) + '\',\'preview-container-' + escapeVisaMoveJsAttr(categoryId) + '\')">' +
+                            iconHtml + ' <span>' + escapeVisaMoveHtml(displayName) + '</span></a></div>';
+                    } else {
+                        fileCellHtml =
+                            '<div class="upload_document" style="display: inline-block;">' +
+                            '<form method="POST" enctype="multipart/form-data" id="upload_form_' + docId + '">' +
+                            '<input type="hidden" name="_token" value="' + ($('meta[name="csrf-token"]').attr('content') || '') + '">' +
+                            '<input type="hidden" name="clientid" value="' + escapeVisaMoveHtml((window.ClientDetailConfig && window.ClientDetailConfig.clientId) || '') + '">' +
+                            '<input type="hidden" name="fileid" value="' + docId + '">' +
+                            '<input type="hidden" name="type" value="client">' +
+                            '<input type="hidden" name="doctype" value="personal">' +
+                            '<input type="hidden" name="doccategory" value="' + escapeVisaMoveHtml(catTitle) + '">' +
+                            '<div class="document-drag-drop-zone personal-doc-drag-zone" data-fileid="' + docId + '" data-doccategory="' + escapeVisaMoveHtml(categoryId) + '" data-formid="upload_form_' + docId + '">' +
+                            '<div class="drag-zone-inner"><span class="drag-zone-text">Drag file here or <strong>click to browse</strong></span></div></div>' +
+                            '<input class="docupload d-none" data-fileid="' + docId + '" data-doccategory="' + escapeVisaMoveHtml(categoryId) + '" type="file" name="document_upload" style="display: none;"/>' +
+                            '</form></div>';
+                    }
+
+                    var rowHtml =
+                        '<tr class="drow" id="id_' + docId + '">' +
+                            '<td style="white-space: initial;">' +
+                                '<div data-id="' + docId + '" data-personalchecklistname="' + escapeVisaMoveHtml(checklist) + '" class="personalchecklist-row" ' +
+                                'style="display: flex; align-items: center; gap: 8px;" ' +
+                                'oncontextmenu="showPersonalChecklistContextMenu(event, ' + docId + '); return false;">' +
+                                '<span style="flex: 1;">' + escapeVisaMoveHtml(checklist) + '</span></div>' +
+                            '</td>' +
+                            '<td style="white-space: initial;">' + fileCellHtml + '</td>' +
+                            '<td>' +
+                                '<a class="renamechecklist" data-id="' + docId + '" href="javascript:;" style="display: none;"></a>' +
+                                (fileName
+                                    ? '<a class="renamedoc" data-id="' + docId + '" href="javascript:;" style="display: none;"></a>' +
+                                      '<a class="download-file" data-filelink="' + escapeVisaMoveHtml(fileUrl) + '" data-filename="' + escapeVisaMoveHtml(fileName) + '" data-id="' + docId + '" href="#" style="display: none;"></a>' +
+                                      '<a class="notuseddoc" data-id="' + docId + '" data-doctype="personal" data-doccategory="' + escapeVisaMoveHtml(catTitle) + '" data-href="documents/not-used" href="javascript:;" style="display: none;"></a>'
+                                    : '<a class="delete-checklist-btn" data-id="' + docId + '" data-checklist="' + escapeVisaMoveHtml(checklist) + '" href="javascript:;" style="display: none;"></a>') +
+                            '</td>' +
+                        '</tr>';
+
+                    $tbody.prepend(rowHtml);
+                    if (typeof refreshLucideIcons === 'function') {
+                        refreshLucideIcons($tbody.find('#id_' + docId)[0]);
+                    }
+                    return true;
+                }
+
+                function activatePersonalDocumentsCategory(categoryId) {
+                    if (typeof SidebarTabs !== 'undefined' && typeof SidebarTabs.activateTab === 'function') {
+                        SidebarTabs.activateTab('personaldocuments');
+                    } else {
+                        $('.client-nav-button').removeClass('active');
+                        $('.tab-pane').removeClass('active');
+                        $('.client-nav-button[data-tab="personaldocuments"]').addClass('active');
+                        $('#personaldocuments-tab').addClass('active');
+                        localStorage.setItem('activeTab', 'personaldocuments');
+                    }
+
+                    var $tab = $('#personaldocuments-tab');
+                    $tab.find('.subtab2-button').removeClass('active');
+                    $tab.find('.subtab2-pane').removeClass('active');
+                    $tab.find('.subtab2-button[data-subtab2="' + categoryId + '"]').addClass('active');
+                    $tab.find('[id="' + categoryId + '-subtab2"]').addClass('active');
+                }
 
                 // Reset button state when modal is closed
                 $('#moveVisaDocumentModal').on('hidden.bs.modal', function() {
@@ -1141,6 +1370,24 @@
                         initVisaDocDragDrop();
                     }, 500);
                 }
+
+                // Soft Personal→Visa matter switch reuses this after replacing #visadocuments-tab HTML.
+                window.initVisaDocDragDrop = initVisaDocDragDrop;
+
+                // After Personal → Visa move navigation, open the destination category.
+                (function activatePendingVisaCategoryAfterMove() {
+                    var pendingCategoryId = localStorage.getItem('pendingVisaDocCategoryId');
+                    if (!pendingCategoryId) {
+                        return;
+                    }
+                    localStorage.removeItem('pendingVisaDocCategoryId');
+                    setTimeout(function() {
+                        var $btn = $('#visadocuments-tab .subtab6-button[data-subtab6="' + pendingCategoryId + '"]');
+                        if ($btn.length) {
+                            $btn.trigger('click');
+                        }
+                    }, 400);
+                })();
                 
                 // ============================================================================
                 // VISA BULK UPLOAD FUNCTIONALITY

@@ -128,17 +128,274 @@
         return $tr;
     }
 
+    function showClientDocFeedback(type, message, title) {
+        var kind = type || 'success';
+        var msg = message || '';
+        if (!msg) {
+            return;
+        }
+        if (typeof iziToast !== 'undefined' && typeof iziToast[kind] === 'function') {
+            iziToast[kind]({
+                title: title || (kind === 'success' ? 'Success' : (kind === 'warning' ? 'Notice' : 'Error')),
+                message: msg,
+                position: 'topRight'
+            });
+            return;
+        }
+        if (typeof toastr !== 'undefined' && typeof toastr[kind] === 'function') {
+            toastr[kind](msg);
+            return;
+        }
+        alert(msg);
+    }
+
     function applyNotUsedMoveSuccess(res) {
         removeDocumentRowFromSourceTab(res);
         var $row = buildNotUsedDocumentRow(res);
         if ($row) {
             $('.notuseddocumnetlist').append($row);
         }
+        // Soft-switch to Not Used Documents (same path as the inline tab button; no reload).
+        try {
+            if (typeof SidebarTabs !== 'undefined' && typeof SidebarTabs.activateTab === 'function') {
+                SidebarTabs.activateTab('notuseddocuments');
+            } else {
+                $('.client-nav-button').removeClass('active');
+                $('.tab-pane').removeClass('active');
+                $('.client-nav-button[data-tab="notuseddocuments"]').addClass('active');
+                $('#notuseddocuments-tab').addClass('active');
+                localStorage.setItem('activeTab', 'notuseddocuments');
+            }
+            if ($row && $row.length && $row[0].scrollIntoView) {
+                $row[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        } catch (navErr) {
+            console.warn('[NotUsed] Soft tab switch failed; list was still updated', navErr);
+        }
         if (typeof getallactivities === 'function') {
             getallactivities();
         }
-        if (typeof toastr !== 'undefined') {
-            toastr.success('Document moved to Not Used tab');
+        showClientDocFeedback('success', 'Document moved to Not Used Documents successfully.');
+    }
+
+    function escapeClientDocUiAttr(value) {
+        return String(value == null ? '' : value)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'");
+    }
+
+    function escapeClientDocUiHtml(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function resolveClientDocFileUrl(doc) {
+        if (!doc) {
+            return '';
+        }
+        if (doc.myfile_key && doc.myfile_key !== '') {
+            return doc.myfile || '';
+        }
+        if (doc.myfile && String(doc.myfile).indexOf('http') === 0) {
+            return doc.myfile;
+        }
+        if (doc.myfile) {
+            var awsBucket = window.ClientDetailConfig?.aws?.bucket || '';
+            var awsRegion = window.ClientDetailConfig?.aws?.region || 'ap-southeast-2';
+            var clientId = window.ClientDetailConfig?.clientId || '';
+            return 'https://' + awsBucket + '.s3.' + awsRegion + '.amazonaws.com/' + clientId + '/' + (doc.doc_type || 'personal') + '/' + doc.myfile;
+        }
+        return '';
+    }
+
+    function activateClientDocumentsTabAndCategory(tabId, categoryId, subtabAttr) {
+        if (!tabId) {
+            return;
+        }
+        if (typeof SidebarTabs !== 'undefined' && typeof SidebarTabs.activateTab === 'function') {
+            SidebarTabs.activateTab(tabId);
+        } else {
+            $('.client-nav-button').removeClass('active');
+            $('.tab-pane').removeClass('active');
+            $('.client-nav-button[data-tab="' + tabId + '"]').addClass('active');
+            $('#' + tabId + '-tab').addClass('active');
+            localStorage.setItem('activeTab', tabId);
+        }
+        if (!categoryId || !subtabAttr) {
+            return;
+        }
+        var $tab = $('#' + tabId + '-tab');
+        $tab.find('.' + subtabAttr + '-button').removeClass('active');
+        $tab.find('.' + subtabAttr + '-pane').removeClass('active');
+        $tab.find('.' + subtabAttr + '-button[data-' + subtabAttr + '="' + categoryId + '"]').addClass('active');
+        $tab.find('[id="' + categoryId + '-' + subtabAttr + '"]').addClass('active');
+    }
+
+    function restorePersonalDocRowFromNotUsed(doc, categoryId) {
+        var $tab = $('#personaldocuments-tab');
+        var $tbody = $tab.find('.documnetlist_' + categoryId);
+        if (!$tab.length || !$tbody.length || !doc || !doc.id) {
+            return false;
+        }
+        if ($tbody.find('#id_' + doc.id).length) {
+            return true;
+        }
+
+        var checklist = doc.checklist || 'Document';
+        var fileName = doc.file_name || '';
+        var fileType = doc.filetype || 'pdf';
+        var fileUrl = resolveClientDocFileUrl(doc);
+        var status = doc.status || 'draft';
+        var catTitle = $tab.find('.subtab2-button[data-subtab2="' + categoryId + '"]').first().text().trim() || '';
+        var iconHtml = (typeof crmI === 'function') ? crmI('fa-file-image') : '';
+        var displayName = fileName ? (fileName + (fileType ? ('.' + fileType) : '')) : '';
+        var fileCellHtml;
+
+        if (fileName && fileUrl) {
+            fileCellHtml =
+                '<div data-id="' + doc.id + '" data-name="' + escapeClientDocUiHtml(fileName) + '" class="doc-row" ' +
+                'oncontextmenu="showFileContextMenu(event, ' + doc.id + ', \'' + escapeClientDocUiAttr(fileType) + '\', \'' + escapeClientDocUiAttr(fileUrl) + '\', \'' + escapeClientDocUiAttr(categoryId) + '\', \'' + escapeClientDocUiAttr(status) + '\'); return false;">' +
+                '<a href="javascript:void(0);" onclick="previewFile(\'' + escapeClientDocUiAttr(fileType) + '\',\'' + escapeClientDocUiAttr(fileUrl) + '\',\'preview-container-' + escapeClientDocUiAttr(categoryId) + '\')">' +
+                iconHtml + ' <span>' + escapeClientDocUiHtml(displayName) + '</span></a></div>';
+        } else {
+            fileCellHtml = '<span style="color:#6b7280;">N/A</span>';
+        }
+
+        var rowHtml =
+            '<tr class="drow" id="id_' + doc.id + '">' +
+                '<td style="white-space: initial;">' +
+                    '<div data-id="' + doc.id + '" data-personalchecklistname="' + escapeClientDocUiHtml(checklist) + '" class="personalchecklist-row" ' +
+                    'style="display: flex; align-items: center; gap: 8px;" ' +
+                    'oncontextmenu="showPersonalChecklistContextMenu(event, ' + doc.id + '); return false;">' +
+                    '<span style="flex: 1;">' + escapeClientDocUiHtml(checklist) + '</span></div>' +
+                '</td>' +
+                '<td style="white-space: initial;">' + fileCellHtml + '</td>' +
+                '<td>' +
+                    '<a class="renamechecklist" data-id="' + doc.id + '" href="javascript:;" style="display: none;"></a>' +
+                    (fileName
+                        ? '<a class="renamedoc" data-id="' + doc.id + '" href="javascript:;" style="display: none;"></a>' +
+                          '<a class="download-file" data-filelink="' + escapeClientDocUiHtml(fileUrl) + '" data-filename="' + escapeClientDocUiHtml(fileName) + '" data-id="' + doc.id + '" href="#" style="display: none;"></a>' +
+                          '<a class="notuseddoc" data-id="' + doc.id + '" data-doctype="personal" data-doccategory="' + escapeClientDocUiHtml(catTitle) + '" data-href="documents/not-used" href="javascript:;" style="display: none;"></a>'
+                        : '') +
+                '</td>' +
+            '</tr>';
+
+        $tbody.prepend(rowHtml);
+        if (typeof refreshLucideIcons === 'function') {
+            refreshLucideIcons($tbody.find('#id_' + doc.id)[0]);
+        }
+        return true;
+    }
+
+    function restoreVisaDocRowFromNotUsed(doc, categoryId) {
+        var $tab = $('#visadocuments-tab');
+        var $tbody = $tab.find('.migdocumnetlist_' + categoryId);
+        if (!$tbody.length) {
+            $tbody = $tab.find('[id="' + categoryId + '-subtab6"] tbody.migdocumnetlist1').first();
+        }
+        if (!$tab.length || !$tbody.length || !doc || !doc.id) {
+            return false;
+        }
+        if ($tbody.find('#id_' + doc.id).length) {
+            return true;
+        }
+
+        var checklist = doc.checklist || 'Document';
+        var fileName = doc.file_name || '';
+        var fileType = doc.filetype || 'pdf';
+        var fileUrl = resolveClientDocFileUrl(doc);
+        var status = doc.status || 'draft';
+        var matterId = doc.client_matter_id || '';
+        var catTitle = $tab.find('.subtab6-button[data-subtab6="' + categoryId + '"]').first().text().trim() || '';
+        var iconHtml = (typeof crmI === 'function') ? crmI('fa-file-image') : '';
+        var displayName = fileName ? (fileName + (fileType ? ('.' + fileType) : '')) : '';
+        var fileCellHtml;
+
+        if (fileName && fileUrl) {
+            fileCellHtml =
+                '<div data-id="' + doc.id + '" data-name="' + escapeClientDocUiHtml(fileName) + '" class="doc-row" ' +
+                'oncontextmenu="showVisaFileContextMenu(event, ' + doc.id + ', \'' + escapeClientDocUiAttr(fileType) + '\', \'' + escapeClientDocUiAttr(fileUrl) + '\', \'' + escapeClientDocUiAttr(categoryId) + '\', \'' + escapeClientDocUiAttr(status) + '\'); return false;">' +
+                '<a href="javascript:void(0);" onclick="previewFile(\'' + escapeClientDocUiAttr(fileType) + '\',\'' + escapeClientDocUiAttr(fileUrl) + '\',\'preview-container-migdocumnetlist\')">' +
+                iconHtml + ' <span>' + escapeClientDocUiHtml(displayName) + '</span></a></div>';
+        } else {
+            fileCellHtml = '<span style="color:#6b7280;">N/A</span>';
+        }
+
+        var rowHtml =
+            '<tr class="drow" data-matterid="' + escapeClientDocUiHtml(matterId) + '" data-catid="' + escapeClientDocUiHtml(categoryId) + '" id="id_' + doc.id + '">' +
+                '<td style="white-space: initial;">' +
+                    '<div data-id="' + doc.id + '" data-visachecklistname="' + escapeClientDocUiHtml(checklist) + '" class="visachecklist-row" ' +
+                    'style="display: flex; align-items: center; gap: 8px;" ' +
+                    'oncontextmenu="showVisaChecklistContextMenu(event, ' + doc.id + '); return false;">' +
+                    '<span style="flex: 1;">' + escapeClientDocUiHtml(checklist) + '</span></div>' +
+                '</td>' +
+                '<td style="white-space: initial;">' + fileCellHtml + '</td>' +
+                '<td>' +
+                    '<a class="renamechecklist" data-id="' + doc.id + '" href="javascript:;" style="display: none;"></a>' +
+                    (fileName
+                        ? '<a class="renamedoc" data-id="' + doc.id + '" href="javascript:;" style="display: none;"></a>' +
+                          '<a class="download-file" data-filelink="' + escapeClientDocUiHtml(fileUrl) + '" data-filename="' + escapeClientDocUiHtml(fileName) + '" data-id="' + doc.id + '" href="#" style="display: none;"></a>' +
+                          '<a class="notuseddoc" data-id="' + doc.id + '" data-doctype="visa" data-doccategory="' + escapeClientDocUiHtml(catTitle) + '" data-href="documents/not-used" href="javascript:;" style="display: none;"></a>'
+                        : '') +
+                '</td>' +
+            '</tr>';
+
+        $tbody.prepend(rowHtml);
+        if (typeof refreshLucideIcons === 'function') {
+            refreshLucideIcons($tbody.find('#id_' + doc.id)[0]);
+        }
+        return true;
+    }
+
+    function applyBackToDocSuccess(res) {
+        if (!res || !res.doc_id) {
+            return;
+        }
+
+        $('.notuseddocumnetlist #id_' + res.doc_id).remove();
+
+        var doc = res.docInfo || null;
+        var docType = res.doc_type || (doc && doc.doc_type) || '';
+        var categoryId = doc && doc.folder_name ? doc.folder_name : '';
+        var restored = false;
+
+        try {
+            if (docType === 'personal' && categoryId) {
+                restored = restorePersonalDocRowFromNotUsed(doc, categoryId);
+            } else if (docType === 'visa' && categoryId) {
+                restored = restoreVisaDocRowFromNotUsed(doc, categoryId);
+            }
+        } catch (restoreErr) {
+            console.warn('[BackToDoc] Soft restore failed', restoreErr);
+            restored = false;
+        }
+
+        try {
+            if (docType === 'personal') {
+                activateClientDocumentsTabAndCategory('personaldocuments', categoryId, 'subtab2');
+            } else if (docType === 'visa') {
+                activateClientDocumentsTabAndCategory('visadocuments', categoryId, 'subtab6');
+            }
+            var $restoredRow = $('#id_' + res.doc_id);
+            if ($restoredRow.length && $restoredRow[0].scrollIntoView) {
+                $restoredRow[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        } catch (navErr) {
+            console.warn('[BackToDoc] Soft tab switch failed; document was still restored on server', navErr);
+        }
+
+        if (typeof getallactivities === 'function') {
+            getallactivities();
+        }
+
+        var docTypeLabel = docType === 'personal' ? 'Personal Documents' : (docType === 'visa' ? 'Visa Documents' : 'Documents');
+        showClientDocFeedback('success', 'Document moved back to ' + docTypeLabel + ' successfully.');
+        if (!restored) {
+            showClientDocFeedback('warning', 'If the document is not visible, refresh the page.');
         }
     }
 
@@ -4294,6 +4551,114 @@ success: function(response) {
                 });
         };
 
+        /**
+         * Soft-insert Form 956 checklist row into the active Visa category (no full reload).
+         * Returns true when the row is present / inserted; false when UI update is not possible.
+         */
+        window.appendForm956ChecklistRow = function(response) {
+            var doc = response && response.document;
+            if (!doc || !doc.id || !doc.folder_name) {
+                // Created without a visa checklist folder — nothing to insert.
+                return true;
+            }
+
+            var categoryId = doc.folder_name;
+            var $visaTab = $('#visadocuments-tab');
+            var $tbody = $visaTab.find('.migdocumnetlist_' + categoryId);
+            if (!$tbody.length) {
+                $tbody = $visaTab.find('[id="' + categoryId + '-subtab6"] tbody.migdocumnetlist1').first();
+            }
+            if (!$visaTab.length || !$tbody.length) {
+                return false;
+            }
+            if ($tbody.find('#id_' + doc.id).length) {
+                return true;
+            }
+
+            var checklist = doc.checklist || '956 Form';
+            var matterId = doc.client_matter_id || '';
+            var clientId = doc.client_id || (window.ClientDetailConfig && window.ClientDetailConfig.clientId) || '';
+            var downloadUrl = response.download_url || response.preview_url || '';
+            var catTitle = $visaTab.find('.subtab6-button[data-subtab6="' + categoryId + '"]').first().text().trim() || '';
+            var csrf = $('meta[name="csrf-token"]').attr('content') || '';
+            var cloudIcon = (typeof crmI === 'function') ? crmI('fa-cloud-upload-alt') : '';
+
+            function escAttr(value) {
+                return String(value == null ? '' : value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+            }
+            function escText(value) {
+                return String(value == null ? '' : value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            var fileCellHtml =
+                '<div class="form956-download-upload" style="display: flex; flex-direction: column; gap: 10px;" ' +
+                'data-download-url="' + escAttr(downloadUrl) + '" data-doc-id="' + escAttr(doc.id) + '">' +
+                '<p class="mb-0" style="font-size: 12px; color: #374151;">The Form 956 PDF downloads when you create it. Check, update, then upload your completed form below.</p>' +
+                '<div class="migration_upload_document" style="display: inline-block;">' +
+                '<form method="POST" enctype="multipart/form-data" id="mig_upload_form_' + escAttr(doc.id) + '">' +
+                '<input type="hidden" name="_token" value="' + escAttr(csrf) + '">' +
+                '<input type="hidden" name="clientid" value="' + escAttr(clientId) + '">' +
+                '<input type="hidden" name="client_matter_id" value="' + escAttr(matterId) + '">' +
+                '<input type="hidden" name="fileid" value="' + escAttr(doc.id) + '">' +
+                '<input type="hidden" name="type" value="client">' +
+                '<input type="hidden" name="doctype" value="visa">' +
+                '<input type="hidden" name="doccategory" value="' + escAttr(catTitle) + '">' +
+                '<div class="document-drag-drop-zone visa-doc-drag-zone" data-fileid="' + escAttr(doc.id) + '" data-doccategory="' + escAttr(categoryId) + '" data-formid="mig_upload_form_' + escAttr(doc.id) + '">' +
+                '<div class="drag-zone-inner">' + cloudIcon +
+                '<span class="drag-zone-text">Drag file here or <strong>click to browse</strong></span></div></div>' +
+                '<input class="migdocupload d-none" data-fileid="' + escAttr(doc.id) + '" data-doccategory="' + escAttr(categoryId) + '" type="file" name="document_upload" style="display: none;"/>' +
+                '</form></div></div>';
+
+            var rowHtml =
+                '<tr class="drow" data-matterid="' + escAttr(matterId) + '" data-catid="' + escAttr(categoryId) + '" id="id_' + escAttr(doc.id) + '">' +
+                    '<td style="white-space: initial;">' +
+                        '<div data-id="' + escAttr(doc.id) + '" data-visachecklistname="' + escAttr(checklist) + '" class="visachecklist-row" ' +
+                        'style="display: flex; align-items: center; gap: 8px;" ' +
+                        'oncontextmenu="showVisaChecklistContextMenu(event, ' + parseInt(doc.id, 10) + '); return false;">' +
+                        '<span style="flex: 1;">' + escText(checklist) + '</span></div>' +
+                    '</td>' +
+                    '<td style="white-space: initial;">' + fileCellHtml + '</td>' +
+                    '<td>' +
+                        '<a class="renamechecklist" data-id="' + escAttr(doc.id) + '" href="javascript:;" style="display: none;"></a>' +
+                        '<a class="delete-checklist-btn" data-id="' + escAttr(doc.id) + '" data-checklist="' + escAttr(checklist) + '" href="javascript:;" style="display: none;"></a>' +
+                    '</td>' +
+                '</tr>';
+
+            $tbody.prepend(rowHtml);
+
+            // Keep destination category visible.
+            $visaTab.find('.subtab6-button').removeClass('active');
+            $visaTab.find('.subtab6-pane').removeClass('active');
+            $visaTab.find('.subtab6-button[data-subtab6="' + categoryId + '"]').addClass('active');
+            $visaTab.find('[id="' + categoryId + '-subtab6"]').addClass('active');
+
+            if (typeof refreshLucideIcons === 'function') {
+                refreshLucideIcons($tbody.find('#id_' + doc.id)[0]);
+            }
+            if (typeof window.initVisaDocDragDrop === 'function') {
+                window.initVisaDocDragDrop();
+            }
+
+            var $row = $tbody.find('#id_' + doc.id);
+            if ($row.length && $row[0].scrollIntoView) {
+                try {
+                    $row[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                } catch (e) {}
+            }
+
+            return true;
+        };
+
         // Handle form submission via AJAX
 
         $('#createForm956').on('submit', function(e) {
@@ -4322,9 +4687,37 @@ success: function(response) {
 
                         $('#form956CreateFormModel').modal('hide');
 
-                        // Download PDF once, then reload so the new checklist row appears
+                        // Download PDF once, then soft-insert checklist row (reload only if UI update fails).
                         window.downloadForm956PdfOnce(response.download_url, function() {
-                            location.reload();
+                            var inserted = false;
+                            try {
+                                inserted = !!window.appendForm956ChecklistRow(response);
+                            } catch (uiErr) {
+                                console.warn('[Form956] Soft checklist insert failed, falling back to reload', uiErr);
+                                inserted = false;
+                            }
+
+                            if (!inserted && response.document) {
+                                location.reload();
+                                return;
+                            }
+
+                            $btn.prop('disabled', false);
+
+                            if (typeof getallactivities === 'function') {
+                                getallactivities();
+                            }
+                            if (typeof showClientDocFeedback === 'function') {
+                                showClientDocFeedback('success', response.message || 'Form 956 created successfully.');
+                            } else if (typeof iziToast !== 'undefined' && iziToast.success) {
+                                iziToast.success({
+                                    title: 'Success',
+                                    message: response.message || 'Form 956 created successfully.',
+                                    position: 'topRight'
+                                });
+                            } else {
+                                alert(response.message || 'Form 956 created successfully.');
+                            }
                         });
 
                     }
@@ -6522,9 +6915,7 @@ success: function(response) {
 
                     var res = safeParseJsonResponse(response);
                     if (!res) {
-                        if (typeof toastr !== 'undefined') {
-                            toastr.error('Invalid response while moving document. Please refresh the page.');
-                        }
+                        showClientDocFeedback('error', 'Invalid response while moving document. Please refresh the page.');
                         return;
                     }
 
@@ -6535,23 +6926,17 @@ success: function(response) {
                             applyNotUsedMoveSuccess(res);
                         } catch (err) {
                             console.error('Error updating UI after moving document to Not Used tab', err);
-                            if (typeof toastr !== 'undefined') {
-                                toastr.warning('Document moved, but the page needs a refresh to show the latest list.');
-                            }
+                            showClientDocFeedback('warning', 'Document moved, but the page needs a refresh to show the latest list.');
                         }
                     } else {
                         console.error('Failed to move document to Not Used tab', res);
-                        if (typeof toastr !== 'undefined') {
-                            toastr.error(res.message || 'Failed to move document');
-                        }
+                        showClientDocFeedback('error', res.message || 'Failed to move document');
                     }
                 },
                 error: function(xhr, status, error) {
                     $('.popuploader').hide();
                     console.error('AJAX error moving document to Not Used tab', {status: status, error: error});
-                    if (typeof toastr !== 'undefined') {
-                        toastr.error('Error moving document. Please try again.');
-                    }
+                    showClientDocFeedback('error', 'Error moving document. Please try again.');
                 }
             });
         });
@@ -6566,80 +6951,72 @@ success: function(response) {
 
         var backto_doc_type = '';
 
-        $('.backtodoc').off('click').on('click', function(e) { 
-
+        // Delegated binding so dynamically added Not Used rows (soft move) also work.
+        $(document).off('click.backtodoc', '.backtodoc').on('click.backtodoc', '.backtodoc', function(e) {
             e.preventDefault();
-
             e.stopPropagation();
 
-            $('#confirmBackToDocModal').modal('show');
+            if ($('#confirmBackToDocModal').length === 0) {
+                console.error('Modal #confirmBackToDocModal not found!');
+                return;
+            }
 
             backto_doc_id = $(this).attr('data-id');
-
             backto_doc_href = $(this).attr('data-href');
-
             backto_doc_type = $(this).attr('data-doctype');
-
+            $('#confirmBackToDocModal').modal('show');
         });
 
-
-
-        $(document).delegate('#confirmBackToDocModal .accept', 'click', function(){
+        $(document).off('click.backtodocconfirm', '#confirmBackToDocModal .accept').on('click.backtodocconfirm', '#confirmBackToDocModal .accept', function() {
+            if (!backto_doc_id) {
+                return;
+            }
 
             $('.popuploader').show();
 
             $.ajax({
-
                 url: window.ClientDetailConfig.urls.admin + '/documents/back-to-doc',
-
-                type:'POST',
-
-                dataType:'json',
-
-                data:{doc_id:backto_doc_id, doc_type:backto_doc_type },
-
-                success:function(response){
-
+                type: 'POST',
+                dataType: 'json',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                data: {
+                    doc_id: backto_doc_id,
+                    doc_type: backto_doc_type,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
                     $('.popuploader').hide();
 
                     var res = safeParseJsonResponse(response);
-                    if (!res) return;
+                    if (!res) {
+                        showClientDocFeedback('error', 'Invalid response while restoring document. Please refresh the page.');
+                        return;
+                    }
                     $('#confirmBackToDocModal').modal('hide');
 
-                    if(res.status){
-
-                        // Remove document from "Not Used" tab
-                        $('.notuseddocumnetlist #id_'+res.doc_id).remove();
-
-                        // Update activity log without page reload
-                        getallactivities();
-                        
-                        // Show success message with info
-                        var docTypeLabel = res.doc_type === 'personal' ? 'Personal Documents' : 'Visa Documents';
-                        if(typeof toastr !== 'undefined') {
-                            toastr.success('Document moved back to ' + docTypeLabel + ' tab');
+                    if (res.status) {
+                        try {
+                            applyBackToDocSuccess(res);
+                        } catch (err) {
+                            console.error('Error updating UI after restoring document from Not Used', err);
+                            $('.notuseddocumnetlist #id_' + (res.doc_id || backto_doc_id)).remove();
+                            showClientDocFeedback('warning', 'Document restored, but the page needs a refresh to show the latest list.');
                         }
-                        
-
+                        backto_doc_id = '';
+                        backto_doc_type = '';
                     } else {
-                        console.error('✗ Failed to move document back', res);
-                        if(typeof toastr !== 'undefined') {
-                            toastr.error(res.message || 'Failed to move document back');
-                        }
+                        console.error('Failed to move document back', res);
+                        showClientDocFeedback('error', res.message || 'Failed to move document back');
                     }
-
                 },
-
                 error: function(xhr, status, error) {
                     $('.popuploader').hide();
-                    console.error('✗ AJAX error moving document back', {status: status, error: error});
-                    if(typeof toastr !== 'undefined') {
-                        toastr.error('Error moving document back. Please try again.');
-                    }
+                    console.error('AJAX error moving document back', {status: status, error: error});
+                    showClientDocFeedback('error', 'Error moving document back. Please try again.');
                 }
-
             });
-
         });
 
 
