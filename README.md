@@ -9,7 +9,7 @@ A comprehensive Laravel-based Customer Relationship Management (CRM) system spec
 - Automate appointment scheduling and reminders
 - Track visa applications, progress, and important deadlines
 - Manage invoices, payments, and financial transactions
-- Provide secure client portal access for document submission and status tracking
+- Provide a secure Client Portal API for document submission, messaging, billing, and status tracking
 - Offer comprehensive reporting for business insights and compliance
 
 ## Features
@@ -21,8 +21,7 @@ A comprehensive Laravel-based Customer Relationship Management (CRM) system spec
 - **Document Management**: Secure storage, electronic signatures, and organisation of client documents and checklists
 - **Lead Management**: Track potential clients from inquiry to conversion with analytics
 - **Office Visit Tracking**: Manage walk-in clients and office visit queues
-- **Email Integration**: Built-in email management with client correspondence tracking
-- **Quotation System**: Create and send professional service quotations
+- **Email Integration**: Built-in email management with client correspondence tracking (SendGrid)
 - **Team & Staff Management**: Role-based access control; dedicated `staff` table / `Staff` model with login analytics (CRM login no longer uses `admins` for staff)
 - **Reporting & Analytics**: Comprehensive reports on clients, matters, and revenue
 - **Client Portal API**: Mobile/API portal (Laravel Sanctum) for clients to view status, upload documents, message staff, and pay invoices/appointments
@@ -263,22 +262,18 @@ Add to `C:\Windows\System32\drivers\etc\hosts`:
 - Organize by categories and checklists; track expiry; request and review uploads
 - Electronic signing via public `/sign/{id}/{token}` links
 
-### 7) Quotations
-- Navigate to `Quotations` to create service quotes (where enabled in your build)
-- Customize line items and pricing; send to potential clients; track status through acceptance
-
-### 8) Reports & Analytics
+### 7) Reports & Analytics
 - Access report screens such as visa expiry (`/reports/visaexpires`), lead analytics, staff login analytics, and client insights
 - Export where available (PDF, Excel, CSV depending on the report)
 
 ## Business Workflows
 
-- **Lead to Client Process**: Capture lead inquiry → Follow up and qualify → Send quotation → Convert to client → Create client profile
-- **Client Onboarding**: Create client account → Collect personal information → Upload documents → Assign case manager → Set up client portal access
-- **Application Process**: Receive client documents → Review checklist → Prepare application → Submit to immigration → Track progress → Receive decision
-- **Invoice & Payment**: Generate invoice → Send to client → Process payment → Issue receipt → Update payment records
-- **Appointment Management**: Client requests appointment → Schedule consultation → Send reminders → Conduct meeting → Update client notes
-- **Document Processing**: Client uploads document → Staff reviews → Convert DOCX to PDF → Store securely → Track expiry dates
+- **Lead to Client Process**: Capture lead inquiry → Follow up and qualify → Convert to client (`convert-single` / `bulk-convert`) → Open client profile
+- **Client Onboarding**: Collect personal/company information → Upload documents → Assign case manager / matter → Enable client portal (`cp_status`)
+- **Application Process**: Receive client documents → Review checklist → Prepare application → Submit to immigration → Track workflow stages → Receive decision
+- **Invoice & Payment**: Generate invoice on client Account tab → Send to client → Process payment (CRM or portal/Stripe) → Issue receipt → Update ledger
+- **Appointment Management**: Book via CRM calendar or public/API → Reminders → Conduct meeting → Sync/status updates (incl. Bansal where configured)
+- **Document Processing**: Client uploads document → Staff reviews → Convert DOCX to PDF → Store securely → Optional e-sign
 - **Reporting**: Generate reports → Filter by criteria → Export data → Analyze trends → Make business decisions
 
 ## Key Modules
@@ -527,6 +522,15 @@ MAIL_FROM_NAME="Your Company Name"
 SENDGRID_API_KEY=SG.your_api_key_here
 SENDGRID_FROM_EMAIL=your_sender@yourdomain.com
 SENDGRID_BASE_URL=https://api.sendgrid.com
+SENDGRID_WEBHOOK_TOKEN=      # Required in production for event webhook auth
+
+# Optional realtime (Laravel Reverb) — see docs/REVERB_PRODUCTION_NGINX.md
+# REVERB_APP_ID=
+# REVERB_APP_KEY=
+# REVERB_APP_SECRET=
+# REVERB_HOST=
+# REVERB_PORT=8080
+# REVERB_SCHEME=http
 
 # Payment Gateways
 STRIPE_KEY=your_stripe_key
@@ -597,35 +601,46 @@ This project is open-sourced software licensed under the [MIT license](https://o
 
 ## Recent Changes
 
+- **Dedicated Staff table**: CRM login uses `Staff` (`staff` table); `admins` holds clients/leads for the portal API. See `docs/PLAN_DEDICATED_STAFF_TABLE.md`.
 - **PostgreSQL**: Primary database is now PostgreSQL (default in config); MySQL supported for legacy migration.
 - **Laravel 13**: Upgraded from Laravel 12; requires PHP 8.3+.
+- **Vite 8**: Frontend build on Vite 8.x; Lucide icons in CRM layouts; FullCalendar, Flatpickr, Signature Pad, Alpine.js, Tailwind via npm/Vite and/or `public/` copy scripts.
 - **Matter-based tracking**: Legacy `applications` table removed; visa tracking is via `client_matters` (Matter model).
-- **Flatpickr**: All date/datetime pickers use Flatpickr; Bootstrap Datepicker and daterangepicker-style plugins are gone. Display formats vary by field (e.g. `Y-m-d` vs `d/m/Y` per screen). README documents class hooks, layouts, and troubleshooting.
+- **Flatpickr**: All date/datetime pickers use Flatpickr; Bootstrap Datepicker and daterangepicker-style plugins are gone. Display formats vary by field (e.g. `Y-m-d` vs `d/m/Y` per screen).
 - **Company Employer Sponsorship**: Full implementation including Trust entities, trading names, directors (with client/lead linking), nominations, sponsorship tracking, and per-section AJAX save.
 - **EOI workflows**: Client confirmation sheets (`eoi-client-confirmation`, `eoi-confirmation-success`, `eoi-roi`) for Expression of Interest visa flows.
 - **Assignee action view**: Dedicated action page for assigned tasks.
-- **CRM layouts**: Updated `crm_client_detail` and `crm_client_detail_dashboard` with Flatpickr components.
-- **Vite build**: Frontend built with Vite; includes FullCalendar, Flatpickr, Signature Pad, Alpine.js, Tailwind.
 - **Cross-access & allocated visibility**: `StaffClientVisibility`, `CrmAccessService`, `client_access_grants`, header search locked rows + modal, approver bell mini-queue, grants dashboard and CSV, booking/email/document gates when strict allocation is enabled; scheduled `access:expire-grants`.
+- **Realtime**: Laravel Reverb / Echo for matter messaging and broadcasts (see `docs/REVERB_PRODUCTION_NGINX.md` for production).
 
 For detailed Company Employer Sponsorship implementation notes, see `docs/COMPANY_EMPLOYER_SPONSORSHIP_IMPLEMENTATION_PLAN.md`.
 
 For cross-access product rules, routes, and rollout status, see **`docs/CROSS_ACCESS_IMPLEMENTATION_PLAN.md`**.
 
+For staff-vs-client identity migration status, see **`docs/PLAN_DEDICATED_STAFF_TABLE.md`**.
+
+## Known issues (bug audit)
+
+A full area-by-area CRM bug audit (auth, merge, e-sign, payments, EOI, portal API, Form 956, etc.) is maintained in **`crmbugs.md`** (documentation only; findings are not auto-fixed). Use that file for severity counts, reproduce steps, and suggested fix priority. Highlights that affect everyday CRM usage:
+
+- Prefer **section AJAX Save** on client/company edit; do not rely on native `POST /clients/edit`
+- Lead conversion should use the UI / `convert-single` or `bulk-convert` — avoid hitting legacy mass-convert GET routes as Super Admin
+- Client Portal is the **`/api/*`** Sanctum API, not `/portal/*` Blade pages
+
 ## Important Notes
 
 - The application is optimized to work with XAMPP (Apache) on Windows; PostgreSQL must be installed separately
-- Run `npm run copy:flatpickr` after `npm install` so date pickers work correctly
+- After `npm install`, run `npm run copy:flatpickr`, `copy:tom-select`, `copy:datatables`, and `copy:inputmask` so vendor assets exist under `public/`
 - Python API service (`python_services/`) handles DOCX to PDF conversion; optional if not using DOCX uploads
 - PostgreSQL is the primary database; ensure `pdo_pgsql` PHP extension is enabled
-- The application uses Laravel's built-in authentication with multi-role support
+- CRM auth is Staff-only (session); Client Portal uses Sanctum tokens on the `Admin` (client) model
 - Document storage is handled locally by default, with optional S3 integration
 - Comprehensive logging is available in `storage/logs/laravel.log`
-- Email integration supports both SMTP and IMAP protocols
+- Email integration uses SendGrid primarily; SMTP/IMAP also supported where configured
 - Payment gateways (Stripe, PayU) need to be configured for online payments
 - SMS providers (Twilio, Cellcast) need to be configured for SMS notifications
-- Client portal provides secure access for clients to track their applications
 - **CRM cross-access**: ensure `php artisan schedule:run` (or cron) runs in production so `access:expire-grants` executes; set `CRM_ACCESS_STRICT_ALLOCATION=true` only after UAT (see implementation plan)
+- Set `SENDGRID_WEBHOOK_TOKEN` in production so SendGrid event webhooks are not open when the token env is empty
 
 ## Troubleshooting
 
@@ -657,13 +672,15 @@ For cross-access product rules, routes, and rollout status, see **`docs/CROSS_AC
 ## Security Best Practices
 
 - **Never commit `.env` file** - Contains sensitive credentials
-- **Use strong passwords** - Enforce password policies for users
+- **Use strong passwords** - Enforce password policies for staff and portal clients
 - **Enable HTTPS** - Use SSL certificates in production
 - **Regular backups** - Automated daily database backups recommended
 - **Update dependencies** - Run `composer update` and `npm update` regularly
-- **Role-based access** - Limit admin access to trusted staff only
-- **Two-factor authentication** - Consider implementing 2FA for admin accounts
+- **Role-based access** - Limit Super Admin / exempt CRM-access roles to trusted staff only
+- **Webhook secrets** - Always set `SENDGRID_WEBHOOK_TOKEN` and validate SMS provider webhook signatures in production
+- **Two-factor authentication** - Consider implementing 2FA for staff CRM accounts
 - **Data encryption** - Sensitive client data should be encrypted at rest
+- **Known gaps** - Review and triage **`crmbugs.md`** before production hardening (payment trust, e-sign tokens, remember-me cookie, etc.)
 
 ## Backup & Data Management
 
@@ -704,9 +721,9 @@ robocopy storage\app\public "backup_storage_$date" /E
 - Check `storage/logs/laravel.log` for conversion errors
 
 **Q: Client portal not accessible**
-- Ensure client has portal access enabled in their profile
-- Client must use the email address registered in the system
-- Check that routes are properly configured in `routes/web.php`
+- Ensure the client row in `admins` has portal access (`cp_status` active as required by your flow)
+- Clients authenticate via `POST /api/login` (Sanctum), not the CRM `/login` page
+- Check `routes/api.php` and Sanctum/`refresh_tokens` configuration; see `crmbugs.md` for known portal auth edge cases
 
 **Q: Payment gateway errors**
 - Verify Stripe/PayU credentials in `.env`
