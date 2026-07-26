@@ -23,31 +23,35 @@ A comprehensive Laravel-based Customer Relationship Management (CRM) system spec
 - **Office Visit Tracking**: Manage walk-in clients and office visit queues
 - **Email Integration**: Built-in email management with client correspondence tracking
 - **Quotation System**: Create and send professional service quotations
-- **Team & Staff Management**: Role-based access control; dedicated Staff model with login analytics
+- **Team & Staff Management**: Role-based access control; dedicated `staff` table / `Staff` model with login analytics (CRM login no longer uses `admins` for staff)
 - **Reporting & Analytics**: Comprehensive reports on clients, matters, and revenue
-- **Client Portal**: Secure portal for clients to view status and submit documents
+- **Client Portal API**: Mobile/API portal (Laravel Sanctum) for clients to view status, upload documents, message staff, and pay invoices/appointments
+- **Admin Console**: Separate ops console for system settings, offices/branches, and client/staff administration (`routes/adminconsole.php`)
 - **SMS Notifications**: Integrated SMS via Twilio and Cellcast providers
-- **Broadcast Notifications**: In-app broadcasts to staff/agents with history
+- **Broadcast Notifications**: In-app broadcasts to staff/agents with history; realtime via Laravel Reverb / Echo where configured
 - **Cross-access & row-level visibility**: Staff see clients/leads they are allocated to (or hold a time-bound grant); exempt roles are fully audited; quick (15 min) and supervisor-approved (24 h) access from search; approver queue, grants dashboard, and CSV export (`/crm/access/*`)
-- **Electronic Signatures**: Full signature workflow with templates and dashboard
+- **Electronic Signatures**: Full signature workflow with templates and dashboard (`/signatures/*`, public `/sign/{id}/{token}`)
+- **Form 956**: Agreement / Form 956 generation and PDF preview under `/forms/*`
 - **Task Management**: Assignee/action system for tasks related to cases and clients
 - **Company & Employer Sponsorship**: Full employer sponsorship management with company profiles, directors, trading names, Trust entities, nominations, and sponsorship tracking
-- **EOI (Expression of Interest) Workflows**: Client confirmation sheets, ROI forms, and amendment request flows for visa applications
+- **CRM Sheets**: EOI/ROI confirmation & amendment flows, ART sheets, visa-type sheets
+- **Appointment sync**: Booking calendar plus Bansal website appointment sync jobs
 - **Windows Friendly**: Optimized for XAMPP on Windows environments
 
 ## Technology Stack
 
 - **Backend**: Laravel 13.x (PHP 8.3+)
-- **Frontend**: Bootstrap 4/5, jQuery, DataTables, Tom Select (`mmSelect` bridge), Flatpickr, FullCalendar, Alpine.js, Tailwind CSS
+- **Frontend**: Bootstrap (via `app.min.css`), jQuery, DataTables, Tom Select (`mmSelect` bridge), Flatpickr, FullCalendar v6, Alpine.js, Tailwind CSS, Lucide icons (`IconHelper` / `@icon`)
 - **Charts**: Chart.js **4.4.0** (jsDelivr CDN, `chart.umd.min.js`) for leads analytics, e-signature dashboards, client insights, staff login analytics, and financial analytics — one version across these pages
-- **Build**: Vite 7.x
+- **Build**: Vite 8.x (`laravel-vite-plugin` 3.x)
+- **Realtime**: Laravel Reverb + Laravel Echo / Pusher JS (matter messages, broadcasts)
 - **Database**: PostgreSQL (Primary), MySQL (optional for migration), SQLite (Development)
 - **PDF Generation**: DomPDF for invoices and reports
 - **Document Processing**: Python API service (`python_services/`) for DOCX to PDF conversion
-- **Email System**: Laravel Mail with SMTP/IMAP integration
+- **Email System**: Laravel Mail with SendGrid (primary), SMTP/IMAP integration
 - **Payment Integration**: Stripe, PayU payment gateways
 - **File Storage**: Local storage with S3 support for attachments
-- **Authentication**: Multi-role authentication (Admin, Staff, Agent, Client)
+- **Authentication**: CRM session guard `admin` → `Staff` provider; Client Portal API → Sanctum on `Admin` (clients/leads)
 - **Development Environment**: XAMPP on Windows
 
 ## Prerequisites
@@ -125,7 +129,10 @@ A comprehensive Laravel-based Customer Relationship Management (CRM) system spec
 
 8. **Build frontend assets**
    ```bash
-   npm run copy:flatpickr   # Copies Flatpickr assets to public/ (required for date pickers)
+   npm run copy:flatpickr    # Flatpickr → public/ (required for date pickers)
+   npm run copy:tom-select   # Tom Select → public/
+   npm run copy:datatables   # DataTables → public/
+   npm run copy:inputmask    # Inputmask → public/
    npm run build
    # Or for development:
    npm run dev
@@ -187,11 +194,13 @@ php artisan queue:work
 
 ### Default Login Credentials
 
-After running migrations with seed, use these credentials:
+After running migrations with seed, use CRM **staff** credentials (session guard `admin` → `staff` table):
 
-**Admin:**
-- Email: admin@admin.com
-- Password: (check `database/seeders/AdminUserSeeder.php`)
+**Staff (CRM):**
+- Email: admin@admin.com (or as seeded)
+- Password: (check `database/seeders/AdminUserSeeder.php` / staff seeders)
+
+Clients and leads live in the `admins` table and authenticate via the **Client Portal API** (`POST /api/login`), not the CRM `/login` form.
 
 ### Virtual Host Setup (XAMPP)
 
@@ -218,63 +227,49 @@ Add to `C:\Windows\System32\drivers\etc\hosts`:
 - Navigate to `Leads` to view all potential clients
 - Create new leads with inquiry details, source, and interested services (including company/trading names for employer leads)
 - Track lead status: New, Follow-up, Converted, Lost
-- Convert leads to clients when ready to proceed
-- View lead history, notes, and assignee actions
+- Convert a single lead via `POST /leads/convert-single` or bulk via `POST /leads/bulk-convert` (UI on the leads list)
+- View lead history, notes, assignee actions, and lead analytics (`/leads/analytics`)
 
 ### 2) Client Management
 - **Search & access**: Global header search may show records as **locked** if you are not allocated and have no active grant; use **Request access** to open the cross-access modal (quick or supervisor path per role). See `docs/CROSS_ACCESS_IMPLEMENTATION_PLAN.md` for product rules.
-- Go to `Clients` to view all active clients
-- Create detailed client profiles with personal information (individual or company)
+- Go to `Clients` to view all active clients (list is allocation/grant-aware when strict access is on)
+- Clients are primarily created by converting leads; profiles support individual or company types
+- Prefer **per-section AJAX Save** on personal/company edit (native full-form `POST /clients/edit` does not persist — see Known issues)
 - For company clients: use Company Edit for employer sponsorship details (trading names, directors, Trust, nominations)
-- Upload client documents and visa history
+- Upload client documents and visa history; manage EOI/ROI, ART, and visa-type sheets from the client profile
 - Track client relationships (spouse, children, dependents)
-- View client summary with all applications, invoices, and documents
-- Access client portal credentials
+- View client summary with matters, invoices, and documents
+- Manage client portal credentials / `cp_status` from the CRM
 
 ### 3) Matter & Application Tracking
-- Visa applications are tracked via **Matters** (client matters) on each client profile
-- Create matters linked to clients; select visa type and upload required documents
-- Track workflow stages, important dates (submission, interview, decision)
-- Add notes and updates for each matter
+- Visa applications are tracked via **Matters** (`client_matters`) on each client profile
+- Create matters linked to clients; select visa type / workflow and upload required documents
+- Advance workflow stages with checklist gates; track important dates (submission, interview, decision)
+- Add notes, assignees, and Form 956 / cost agreements as needed
 
 ### 4) Appointment Scheduling
-- Go to `Appointments` to manage client consultations
-- Use calendar view to see all scheduled appointments
-- Create appointments with date, time, and service type
-- Send automated appointment reminders to clients
-- Track appointment status: Scheduled, Completed, Cancelled
-- Handle walk-in appointments
+- Go to **Booking → Appointments** (`/booking/appointments` or `/appointments`) for the calendar
+- Create/edit appointments, send reminders, update status/consultant/meeting type
+- Handle walk-ins via **Office Visits** (`/office-visits/*`)
+- Website bookings can sync via Bansal appointment sync jobs
 
-### 5) Invoice Management
-- Navigate to `Invoices` to create and manage invoices
-- Generate professional invoices for services
-- Track payment status: Paid, Unpaid, Partially Paid
-- Send invoices via email to clients
-- View invoice history and reports
+### 5) Invoice & Accounts
+- Invoices, office receipts, and client-fund ledgers are managed from the **client Account** tab (not a standalone `/invoices` app section)
+- Generate invoices, void invoices, send to client / Hubdoc, track payments
+- Client Portal can list billing and record payments via `/api/billing/*` (Stripe)
 
 ### 6) Document Management
-- Go to `Documents` to manage client documents
-- Organize documents by categories and checklists
-- Upload and download client documents securely
-- Track document expiry dates
-- Generate document requests for clients
-- Sign documents electronically
+- Client personal/visa/nomination documents live on the client detail tabs; global document/signature tools under `/documents/*` and `/signatures/*`
+- Organize by categories and checklists; track expiry; request and review uploads
+- Electronic signing via public `/sign/{id}/{token}` links
 
 ### 7) Quotations
-- Navigate to `Quotations` to create service quotes
-- Use templates for standard services
-- Customize quotations with line items and pricing
-- Send quotations to potential clients
-- Track quotation status: Draft, Sent, Accepted, Rejected
-- Convert accepted quotations to invoices
+- Navigate to `Quotations` to create service quotes (where enabled in your build)
+- Customize line items and pricing; send to potential clients; track status through acceptance
 
 ### 8) Reports & Analytics
-- Access `Reports` for business insights
-- View client reports by country, visa type, and status
-- Generate revenue reports and forecasts
-- Track application success rates
-- Monitor staff performance
-- Export reports to PDF or Excel
+- Access report screens such as visa expiry (`/reports/visaexpires`), lead analytics, staff login analytics, and client insights
+- Export where available (PDF, Excel, CSV depending on the report)
 
 ## Business Workflows
 
@@ -288,32 +283,37 @@ Add to `C:\Windows\System32\drivers\etc\hosts`:
 
 ## Key Modules
 
-### Admin Module
+### CRM (Staff UI)
 - Dashboard with key metrics
-- Complete client management
-- Matter/case tracking (visa applications)
-- Invoice and payment management
-- Staff and team management
-- System settings and configuration
+- Complete client and lead management
+- Matter/case tracking (visa applications / workflows)
+- Invoice, receipt, and client-fund ledger management
+- Booking appointments, office visits, documents, signatures
+- Cross-access grants, broadcasts, assignee tasks
+- Staff login analytics and reporting
 
-### Client Portal
-- View application status
-- Upload documents
-- Download receipts and invoices
-- Book appointments
-- Track visa expiry dates
-- Communication with case manager
+### Admin Console
+- System administration under the adminconsole route group
+- Offices/branches, roles, and selected client/staff ops tools
+- Distinct from day-to-day CRM client-detail workflows
+
+### Client Portal (API)
+- Sanctum-authenticated JSON API under `/api/*` (no Blade `/portal/*` app)
+- Dashboard, matters, personal details, documents/checklists, workflow uploads
+- Billing list / invoice payment updates
+- Appointments (book, pay, status) and matter messaging
+- Staff can also use `/api/admin-login` for portal-adjacent staff API access
 
 ### Migration Agent (Staff Role)
-Staff can be designated as Migration Agents (`is_migration_agent`) with role-based permissions (e.g. verifying workflow stages in the client portal). They use the main Admin/CRM interface. A separate Agent portal is not implemented.
+Staff can be designated as Migration Agents (`is_migration_agent`) with role-based permissions (e.g. verifying workflow stages in the client portal). They use the main CRM interface. A separate Agent portal is not implemented.
 
 ## Project Structure
 
 ### Key Components
 
 - **Models**: 
-  - `Admin` - Multi-role CRM users (Staff, Agent roles); handles authentication for the CRM
-  - `Staff` - Dedicated staff model (separate from Admin)
+  - `Staff` - CRM users; authenticates via guard `admin` / provider `staff` (`staff` table)
+  - `Admin` - Clients and leads (and related portal identities) in the `admins` table; Sanctum API auth for the Client Portal — **not** used for CRM staff login
   - `Lead` - Lead tracking and conversion management
   - `ClientMatter` - Matter/case tracking with visa workflow stages
   - `Matter` - Case/matter categories and types
@@ -328,20 +328,23 @@ Staff can be designated as Migration Agents (`is_migration_agent`) with role-bas
   - `Note` - Client/lead notes and assignee tasks
   - `EmailLog` - Email correspondence tracking
   - `ClientAccessGrant` - Cross-access audit trail (quick, supervisor-approved, exempt rows)
+  - `Form956` / related form models - Form 956 agreements
   
 - **Controllers**: 
-  - `ClientsController` - Client CRUD operations and relationship management
+  - `Auth\AdminLoginController` - CRM `/login` (Staff session)
+  - `ClientsController` - Client list/detail/merge and related CRM actions
   - `ClientPersonalDetailsController` - Per-section AJAX save for client/company details
-  - `ClientPortalController` - Client portal operations including workflow management and portal user management
-  - `ClientAccountsController` - Invoice, receipt, and payment management
+  - `API\ClientPortalController` - Portal login/refresh/profile and many CRM-side portal/workflow helpers
+  - `ClientAccountsController` - Invoice, receipt, ledger, Hubdoc
   - `BookingAppointmentsController` - Appointment scheduling and calendar
-  - `DocumentController` / `ClientDocumentsController` - Document upload, download, and signature handling
+  - `DocumentController` / `ClientDocumentsController` / `PublicDocumentController` - Documents and public signing
   - `OfficeVisitController` - Walk-in client management
-  - `DashboardController` - Admin dashboard and metrics
+  - `DashboardController` - CRM dashboard and metrics
   - `LeadController` / `LeadConversionController` / `LeadAnalyticsController` - Lead management
   - `AssigneeController` - Task/action assignment management
   - `ReportController` - Reports and data export
-  - `ClientEoiRoiController` / `EoiRoiSheetController` - EOI/ROI workflows
+  - `Form956Controller` - Form 956 CRUD/PDF
+  - `ClientEoiRoiController` / `EoiRoiSheetController` - EOI/ROI workflows (staff + public confirm links)
   - `BroadcastController` / `BroadcastNotificationAjaxController` - Broadcast notifications
   - `AccessGrantController` - Cross-access meta, quick/supervisor requests, approver queue, mini-queue API, grants dashboard, CSV export
   
@@ -356,6 +359,7 @@ Staff can be designated as Migration Agents (`is_migration_agent`) with role-bas
   - `DashboardService` / `FinancialStatsService` - Dashboard and financial metrics
   - `S3AttachmentStorageService` / `S3EmailStorageService` - S3 file storage
   - `CrmAccess\CrmAccessService` - Grant lifecycle (request, approve, reject, revoke, expiry), approver notifications
+  - `BansalAppointmentSync\AppointmentSyncService` - Sync appointments from the Bansal website
   
 - **Support / visibility** (`app/Support/`):
   - `StaffClientVisibility` - `canAccessClientOrLead`, list/query restrictions (clients, leads, documents, bookings), search enrichment for locked rows, exempt daily logging
@@ -365,15 +369,12 @@ Staff can be designated as Migration Agents (`is_migration_agent`) with role-bas
   - `PythonConverterService` (PHP) calls the Python API at `PYTHON_CONVERTER_URL` (default: `http://localhost:5000`)
   
 - **Database Migrations**: 
-  - User roles and permissions
-  - Client and matter management tables
-  - Financial transactions
-  - Document storage
-  - Appointment scheduling (booking system)
+  - Dedicated `staff` table (staff extracted from `admins`)
+  - Clients/leads remain in `admins`; matters, finance, documents, booking, access grants
   
 - **Policies**: 
-  - Role-based access control for Admin, Staff, Agent, and Client
-  - Client data privacy and access restrictions
+  - Role-based access for Staff (CRM) and Admin (client/lead records)
+  - Client data privacy via `StaffClientVisibility` and related policies
 
 ### Storage Structure
 
@@ -437,38 +438,45 @@ The system includes Python-based document conversion via `python_services/`:
 
 ### Public Routes
 - `GET /` - Welcome/Landing page
-- `GET /login` - Login page
-- `POST /login` - Authenticate user
-- `GET /register` - Registration page (if enabled)
+- `GET /login` - CRM staff login
+- `POST /login` - Authenticate staff (`AdminLoginController`, guard `admin` → `Staff`)
+- `POST /logout` - Staff logout
+- Public signing / document helpers under `/sign/*`, `/documents/{id}/page/*` (see `routes/documents.php`)
+- Public EOI confirm/amend sheet links (tokenised) via `EoiRoiSheetController`
 
-### CRM Routes (Protected - Staff Access)
+### CRM Routes (Protected — Staff, `auth:admin`)
 - `GET /dashboard` - CRM dashboard with key metrics
-- **Clients:**
-  - `GET /clients` - List all clients
-  - `GET /clients/{id}` - View client details
-  - `GET /clients/{id}/edit` - Edit client
-  - `DELETE /clients/{id}` - Delete client
-  - Note: Clients are created by converting leads (see Lead Conversion below)
+- **Clients** (`routes/clients.php`):
+  - `GET /clients` - List clients
+  - `GET /clients/{id}` - Client detail (matters, docs, accounts, sheets, portal)
+  - `GET /clients/{id}/edit` - Edit client (section AJAX saves)
+  - `POST /clients/edit` (`clients.update`) - Legacy form post; does **not** reliably persist (use section Save)
+  - Clients are normally created by converting leads
   
 - **Matters** (visa/case tracking on client detail):
-  - Matters are managed within the client detail view; no standalone applications routes
+  - Managed within the client detail / portal workflow APIs; no legacy standalone `applications` routes
   
-- **Invoices:**
-  - `GET /invoices` - List invoices
-  - `GET /invoices/create` - Create invoice
-  - `GET /invoices/{id}` - View invoice
-  - `POST /invoices/{id}/send` - Email invoice
-  - `POST /invoices/{id}/payment` - Record payment
+- **Accounts** (on client):
+  - Invoice list, create/void, receipts, client-fund ledger — e.g. `/clients/invoicelist`, account tab POSTs
   
-- **Appointments** (Booking system):
-  - Uses `BookingAppointmentsController`; see `routes/client_portal.php` for booking routes
+- **Appointments & office visits** (`routes/client_portal.php`):
+  - `/appointments`, `/booking/appointments/*` — `BookingAppointmentsController`
+  - `/office-visits/*` — waiting / attending / completed queues
   
-- **Leads:**
+- **Leads** (`routes/web.php` prefix `leads`):
   - `GET /leads` - List leads
-  - `POST /leads` - Create lead
-  - `PUT /leads/{id}/convert` - Convert to client
+  - `GET /leads/create` | `POST /leads/store` - Create
+  - `GET /leads/{id}/edit` | `PUT /leads/{id}` - Update
+  - `POST /leads/convert-single` | `POST /leads/bulk-convert` - Convert to client
+  - `GET /leads/analytics` - Lead analytics
 
-- **Cross-access (staff)** — prefix `/crm/access/` (see `routes/clients.php`, `auth:admin`):
+- **Documents & signatures** (`routes/documents.php`):
+  - `/documents/*`, `/signatures/*` (staff); public sign/download helpers as registered
+
+- **Form 956**:
+  - `POST /forms`, `GET /forms/{form}`, edit/update/destroy/preview/pdf
+
+- **Cross-access (staff)** — prefix `/crm/access/` (see `routes/clients.php`):
   - `GET /crm/access/meta` — branches, teams, quick reasons, UI flags for the request modal
   - `POST /crm/access/quick` — 15-minute quick grant (throttled)
   - `POST /crm/access/supervisor` — supervisor approval request (throttled)
@@ -479,19 +487,18 @@ The system includes Python-based document conversion via `python_services/`:
   - `GET /crm/access/dashboard` — grants dashboard (filters, pending section, table, CSV export link)
   - `GET /crm/access/dashboard/data` | `dashboard/export` — JSON and CSV for audits
   
-- **Reports:**
-  - `GET /reports/clients` - Client reports
-  - `GET /reports/applications` - Application reports
-  - `GET /reports/revenue` - Financial reports
-  - `GET /reports/export` - Export data
+- **Reports** (examples):
+  - `GET /reports/visaexpires` - Visa expiry report
+  - Lead analytics under `/leads/analytics`
 
-### Client Portal Routes (Protected)
-- `GET /portal/dashboard` - Client dashboard
-- `GET /portal/applications` - View my applications
-- `GET /portal/documents` - View and upload documents
-- `GET /portal/invoices` - View invoices and payments
-- `GET /portal/appointments` - Book appointments
-- `POST /portal/documents/upload` - Upload document
+### Client Portal API (`routes/api.php`, Sanctum)
+- Auth: `POST /api/login`, `/api/refresh`, `/api/forgot-password`, `/api/reset-password`; staff API login `POST /api/admin-login`
+- `GET /api/dashboard`, `/api/matters`, `/api/profile`, personal-detail update endpoints
+- Documents: `/api/documents/*`, workflow checklist uploads
+- Billing: `GET /api/billing/list`, `POST /api/billing/invoice-update`
+- Appointments: `/api/appointments/*` (including public without-login book/pay helpers)
+- Messages: `/api/messages/*`
+- Broadcasting auth: `POST /api/broadcasting/auth`
 
 ## Configuration
 
