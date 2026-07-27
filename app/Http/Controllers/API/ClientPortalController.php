@@ -44,7 +44,7 @@ class ClientPortalController extends Controller
         $email = strtolower(trim($request->email));
         $admin = Admin::whereRaw('LOWER(email) = ?', [$email])
                      ->whereIn('type', ['client', 'lead'])
-                     ->whereIn('cp_status', [1, 2])
+                     ->whereIn('cp_status', $this->allowedClientPortalStatuses())
                      ->first();
 
         if (!$admin || !Hash::check($request->password, $admin->password)) {
@@ -349,8 +349,8 @@ class ClientPortalController extends Controller
             ], 200);
         }
         
-        // Check if client portal status is active
-        if ($admin->cp_status != 1) {
+        // Same portal statuses as login (approved + approval pending)
+        if (! $this->hasAllowedClientPortalStatus($admin)) {
             return response()->json([
                 'success' => false,
                 'message' => 'You are not authorized to access this mobile app because your client portal is not active from website. Please contact Administrator.'
@@ -416,7 +416,7 @@ class ClientPortalController extends Controller
         $admin = Admin::whereRaw('LOWER(email) = ?', [$email])
                      ->where('cp_random_code', $request->code)
                      ->whereIn('type', ['client', 'lead'])
-                     ->where('cp_status', 1)
+                     ->whereIn('cp_status', $this->allowedClientPortalStatuses())
                      ->first();
 
         if (!$admin) {
@@ -567,9 +567,9 @@ class ClientPortalController extends Controller
         // Get client (Admin model; refresh tokens for clients only)
         $admin = Admin::find($refreshTokenData->user_id);
 
-        // Check if client is still active (type=client or lead)
+        // Same portal statuses as login (approved + approval pending)
         $isClient = $admin && in_array($admin->type ?? '', ['client', 'lead']);
-        if (!$isClient || ($admin?->cp_status ?? 0) != 1) {
+        if (! $isClient || ! $this->hasAllowedClientPortalStatus($admin)) {
             // Revoke the token
             DB::table('refresh_tokens')
                 ->where('id', $refreshTokenData->id)
@@ -741,6 +741,21 @@ class ClientPortalController extends Controller
                 'device_token' => substr($deviceToken, 0, 20) . '...'
             ]);
         }
+    }
+
+    /**
+     * Portal statuses allowed for login, refresh, and password reset.
+     * 1 = approved, 2 = approval_pending. Excludes 0 (inactive/default).
+     */
+    private function allowedClientPortalStatuses(): array
+    {
+        return [1, 2];
+    }
+
+    private function hasAllowedClientPortalStatus(?Admin $admin): bool
+    {
+        return $admin !== null
+            && in_array((int) ($admin->cp_status ?? 0), $this->allowedClientPortalStatuses(), true);
     }
 
     /**

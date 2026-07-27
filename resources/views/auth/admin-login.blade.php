@@ -37,7 +37,7 @@
 											<!-- <a href="#" class="text-small">Forgot Password?</a> -->
 										</div>
 									</div>
-									<input id="password" type="password" class="form-control" name="password" tabindex="2" placeholder="Password" value="{{ (Cookie::get('password') !='' && !old('password')) ? Cookie::get('password') : old('password')  }}" required>
+									<input id="password" type="password" class="form-control" name="password" tabindex="2" placeholder="Password" required>
 									<div class="invalid-feedback">
 									  please fill in your password
 									</div>
@@ -54,7 +54,7 @@
 
                                 <div class="form-group">
 									<div class="custom-control custom-checkbox">
-										<input type="checkbox" name="remember" class="custom-control-input" tabindex="3" id="remember-me" @if(Cookie::get('email') != '' && Cookie::get('password') != '') checked  @endif>
+										<input type="checkbox" name="remember" class="custom-control-input" tabindex="3" id="remember-me" @if(old('remember', Cookie::get('email') != '')) checked @endif>
 										<label class="custom-control-label" for="remember-me">Remember Me</label>
 									</div>
 								</div>

@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Symfony\Component\HttpFoundation\IpUtils;
-use Cookie;
 
 class AdminLoginController extends Controller
 {
@@ -59,16 +58,31 @@ class AdminLoginController extends Controller
 
     protected function attemptLogin(Request $request): bool
     {
-        return $this->guard()->attempt(
+        if (! $this->guard()->attempt(
             $request->only($this->username(), 'password'),
             $request->boolean('remember')
-        );
+        )) {
+            return false;
+        }
+
+        // A4: block explicitly inactive staff; allow status=1 and legacy NULL
+        $user = $this->guard()->user();
+        if ($user && $user->status !== null && (int) $user->status === 0) {
+            $this->guard()->logout();
+
+            return false;
+        }
+
+        return true;
     }
 
     // ── Overridden / custom methods ───────────────────────────────────────
 
     public function showLoginForm()
     {
+        // Purge any legacy insecure password cookie from older "Remember Me" behaviour
+        \Cookie::queue(\Cookie::forget('password'));
+
         return view('auth.admin-login');
     }
 
@@ -117,12 +131,13 @@ class AdminLoginController extends Controller
             }
         }
 
+        // Remember Me uses Laravel's remember_token (via attempt above).
+        // Only optionally persist email for form convenience — never the password.
+        \Cookie::queue(\Cookie::forget('password'));
         if (! empty($request->remember)) {
             \Cookie::queue(\Cookie::make('email', $request->email, 3600));
-            \Cookie::queue(\Cookie::make('password', $request->password, 3600));
         } else {
             \Cookie::queue(\Cookie::forget('email'));
-            \Cookie::queue(\Cookie::forget('password'));
         }
 
         $log = new \App\Models\StaffLoginLog;
