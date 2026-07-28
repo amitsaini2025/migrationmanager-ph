@@ -244,8 +244,7 @@ Route::middleware(['auth:admin'])->group(function() {
         Route::post('/bulk-assign', [LeadAssignmentController::class, 'bulkAssign'])->name('bulk_assign');
         Route::get('/assignable-staff', [LeadAssignmentController::class, 'getAssignableStaff'])->name('assignable_staff');
         
-        // Conversion operations
-        Route::get('/convert', [LeadConversionController::class, 'convertToClient'])->name('convert');
+        // Conversion operations (no GET mass-convert — that endpoint converted up to 500 leads)
         Route::post('/convert-single', [LeadConversionController::class, 'convertSingleLead'])->name('convert_single');
         Route::post('/bulk-convert', [LeadConversionController::class, 'bulkConvertToClient'])->name('bulk_convert');
         Route::get('/conversion-stats', [LeadConversionController::class, 'getConversionStats'])->name('conversion_stats');

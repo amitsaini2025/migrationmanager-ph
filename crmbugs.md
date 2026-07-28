@@ -112,10 +112,11 @@
 ## D. Leads
 
 ### D1. Critical — `GET /leads/convert` mass-converts up to 500 leads
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** `convertToClient` ignores request body/IDs, loads `Lead::withArchived()->paginate(500)`, and converts every row. Route is `GET` under `auth:admin`; controller also requires `role == 1`. A single browser hit (or CSRF-unsafe GET) is a destructive mass conversion.  
 **Evidence:** `app/Http/Controllers/CRM/Leads/LeadConversionController.php` ~32–54; `routes/web.php` ~248.  
-**Reproduce:** As role 1, visit `/leads/convert`.
+**Reproduce:** As role 1, visit `/leads/convert`.  
+**Fix:** Removed unused `GET /leads/convert` route and the mass `convertToClient` controller action. Single (`POST /leads/convert-single`) and bulk (`POST /leads/bulk-convert` with `lead_ids`) remain.
 
 ---
 

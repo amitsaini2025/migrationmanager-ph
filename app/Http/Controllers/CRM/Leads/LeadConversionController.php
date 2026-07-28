@@ -26,35 +26,6 @@ class LeadConversionController extends Controller
     }
 
     /**
-     * Convert lead to client
-     * Only super admin can perform bulk conversions
-     */
-    public function convertToClient(Request $request)
-    {
-        // Check if user is super admin (role = 1)
-        if (Auth::user()->role != 1) {
-            return redirect()->back()->with('error', 'Only super admin can perform bulk conversions');
-        }
-        
-        $requestData = $request->all();
-        
-        // Get all leads (including archived) for conversion
-        $enqdatas = Lead::withArchived()->paginate(500);
-        
-        $convertedCount = 0;
-        foreach($enqdatas as $lead){
-            try {
-                $lead->convertToClient();
-                $convertedCount++;
-            } catch (\Exception $e) {
-                // Skip failed conversions
-            }
-        }
-        
-        return redirect()->back()->with('success', "Converted {$convertedCount} leads successfully");
-    }
-
-    /**
      * Convert single lead to client with matter creation
      * Anyone can convert a single lead
      */
