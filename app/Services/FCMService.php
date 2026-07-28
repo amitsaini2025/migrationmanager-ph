@@ -124,10 +124,11 @@ class FCMService
     /**
      * Send notification to a specific user
      */
-    public function sendToUser($userId, $title, $body, $data = [])
+    public function sendToUser($userId, $title, $body, $data = [], string $userType = DeviceToken::USER_TYPE_ADMIN)
     {
         $deviceTokens = DeviceToken::active()
             ->forUser($userId)
+            ->forUserType($userType)
             ->pluck('device_token')
             ->toArray();
 

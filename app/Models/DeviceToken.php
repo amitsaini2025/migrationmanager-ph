@@ -10,8 +10,12 @@ class DeviceToken extends Model
 {
     use HasFactory;
 
+    public const USER_TYPE_ADMIN = 'admin';
+    public const USER_TYPE_STAFF = 'staff';
+
     protected $fillable = [
         'user_id',
+        'user_type',
         'device_token',
         'device_name',
         'device_type',
@@ -27,7 +31,7 @@ class DeviceToken extends Model
     ];
 
     /**
-     * Get the user that owns the device token.
+     * Get the admin (client portal) user that owns the device token.
      */
     public function user(): BelongsTo
     {
@@ -48,5 +52,10 @@ class DeviceToken extends Model
     public function scopeForUser($query, $userId)
     {
         return $query->where('user_id', $userId);
+    }
+
+    public function scopeForUserType($query, string $userType)
+    {
+        return $query->where('user_type', $userType);
     }
 }

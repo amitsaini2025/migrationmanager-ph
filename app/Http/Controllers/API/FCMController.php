@@ -79,6 +79,7 @@ class FCMController extends Controller
                 // Update existing token
                 $existingToken->update([
                     'user_id' => $targetUserId,
+                    'user_type' => DeviceToken::USER_TYPE_ADMIN,
                     'device_name' => $deviceName,
                     'device_type' => $deviceType,
                     'app_version' => $appVersion,
@@ -106,6 +107,7 @@ class FCMController extends Controller
                 // Create new device token
                 $newToken = DeviceToken::create([
                     'user_id' => $targetUserId,
+                    'user_type' => DeviceToken::USER_TYPE_ADMIN,
                     'device_token' => $deviceToken,
                     'device_name' => $deviceName,
                     'device_type' => $deviceType,
@@ -296,6 +298,7 @@ class FCMController extends Controller
             // Check if user has device tokens
             $deviceTokens = \App\Models\DeviceToken::active()
                 ->forUser($targetUserId)
+                ->forUserType(\App\Models\DeviceToken::USER_TYPE_ADMIN)
                 ->pluck('device_token')
                 ->toArray();
 

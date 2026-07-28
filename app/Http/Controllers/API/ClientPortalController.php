@@ -7,6 +7,7 @@ use App\Models\Admin;
 use App\Models\ClientEmail;
 use App\Models\Staff;
 use App\Models\DeviceToken;
+use App\Models\RefreshToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -60,7 +61,7 @@ class ClientPortalController extends Controller
 
         // Handle device token for push notifications
         if ($request->device_token) {
-            $this->handleDeviceToken($admin->id, $request->device_token, $deviceName);
+            $this->handleDeviceToken($admin->id, $request->device_token, $deviceName, DeviceToken::USER_TYPE_ADMIN);
         }
 
         // Generate refresh token using DB query
@@ -71,6 +72,7 @@ class ClientPortalController extends Controller
             // Prepare insert data
             $insertData = [
                 'user_id' => $admin->id,
+                'user_type' => RefreshToken::USER_TYPE_ADMIN,
                 'token' => $refreshTokenValue,
                 'device_name' => $deviceName,
                 'expires_at' => $expiresAt->format('Y-m-d H:i:s'),
@@ -82,6 +84,7 @@ class ClientPortalController extends Controller
             // Log the data being inserted for debugging
             Log::info('Attempting to insert refresh token', [
                 'user_id' => $admin->id,
+                'user_type' => RefreshToken::USER_TYPE_ADMIN,
                 'data' => array_merge($insertData, ['token' => substr($refreshTokenValue, 0, 10) . '...'])
             ]);
             
@@ -177,7 +180,7 @@ class ClientPortalController extends Controller
 
         // Handle device token for push notifications
         if ($request->device_token) {
-            $this->handleDeviceToken($staff->id, $request->device_token, $deviceName);
+            $this->handleDeviceToken($staff->id, $request->device_token, $deviceName, DeviceToken::USER_TYPE_STAFF);
         }
 
         // Generate refresh token using DB query
@@ -185,9 +188,10 @@ class ClientPortalController extends Controller
             $refreshTokenValue = Str::random(64);
             $expiresAt = Carbon::now()->addDays(30);
             
-            // Prepare insert data
+            // Prepare insert data (staff.id — not an admins FK)
             $insertData = [
                 'user_id' => $staff->id,
+                'user_type' => RefreshToken::USER_TYPE_STAFF,
                 'token' => $refreshTokenValue,
                 'device_name' => $deviceName,
                 'expires_at' => $expiresAt->format('Y-m-d H:i:s'),
@@ -253,6 +257,7 @@ class ClientPortalController extends Controller
     {
         try {
             $user = $request->user();
+            $userType = $this->tokenUserTypeFor($user);
             
             // Delete current access token
             $user->currentAccessToken()->delete();
@@ -260,6 +265,7 @@ class ClientPortalController extends Controller
             // Revoke all refresh tokens for this user using DB query
             DB::table('refresh_tokens')
                 ->where('user_id', $user->id)
+                ->where('user_type', $userType)
                 ->update(['is_revoked' => 1, 'updated_at' => Carbon::now()->format('Y-m-d H:i:s')]);
 
             // Optionally deactivate device token (but keep it for potential re-login)
@@ -286,6 +292,7 @@ class ClientPortalController extends Controller
     {
         try {
             $user = $request->user();
+            $userType = $this->tokenUserTypeFor($user);
             
             // Delete all access tokens for the user
             $user->tokens()->delete();
@@ -293,10 +300,13 @@ class ClientPortalController extends Controller
             // Revoke all refresh tokens for the user using DB query
             DB::table('refresh_tokens')
                 ->where('user_id', $user->id)
+                ->where('user_type', $userType)
                 ->update(['is_revoked' => 1, 'updated_at' => Carbon::now()->format('Y-m-d H:i:s')]);
 
             // Deactivate all device tokens for the user
-            DeviceToken::where('user_id', $user->id)->update(['is_active' => false]);
+            DeviceToken::where('user_id', $user->id)
+                ->where('user_type', $userType)
+                ->update(['is_active' => false]);
 
             return response()->json([
                 'success' => true,
@@ -564,40 +574,45 @@ class ClientPortalController extends Controller
             ], 401);
         }
 
-        // Get client (Admin model; refresh tokens for clients only)
+        $userType = $refreshTokenData->user_type ?? RefreshToken::USER_TYPE_ADMIN;
+
+        if ($userType === RefreshToken::USER_TYPE_STAFF) {
+            return $this->refreshStaffToken($refreshTokenData);
+        }
+
+        return $this->refreshClientToken($refreshTokenData);
+    }
+
+    /**
+     * Refresh a client-portal (Admin) access token.
+     */
+    private function refreshClientToken(object $refreshTokenData)
+    {
         $admin = Admin::find($refreshTokenData->user_id);
 
         // Same portal statuses as login (approved + approval pending)
         $isClient = $admin && in_array($admin->type ?? '', ['client', 'lead']);
         if (! $isClient || ! $this->hasAllowedClientPortalStatus($admin)) {
-            // Revoke the token
-            DB::table('refresh_tokens')
-                ->where('id', $refreshTokenData->id)
-                ->update(['is_revoked' => 1, 'updated_at' => Carbon::now()->format('Y-m-d H:i:s')]);
-            
+            $this->revokeRefreshTokenRow($refreshTokenData->id);
+
             return response()->json([
                 'success' => false,
                 'message' => 'User account is no longer active'
             ], 401);
         }
 
-        // Revoke old refresh token
-        DB::table('refresh_tokens')
-            ->where('id', $refreshTokenData->id)
-            ->update(['is_revoked' => 1, 'updated_at' => Carbon::now()->format('Y-m-d H:i:s')]);
+        $this->revokeRefreshTokenRow($refreshTokenData->id);
 
-        // Create new access token
         $deviceName = $refreshTokenData->device_name ?? 'client-portal-app';
         $newAccessToken = $admin->createToken($deviceName)->plainTextToken;
 
-        // Generate new refresh token using DB query
         try {
             $newRefreshTokenValue = Str::random(64);
             $expiresAt = Carbon::now()->addDays(30);
-            
-            // Prepare insert data
+
             $insertData = [
                 'user_id' => $admin->id,
+                'user_type' => RefreshToken::USER_TYPE_ADMIN,
                 'token' => $newRefreshTokenValue,
                 'device_name' => $deviceName,
                 'expires_at' => $expiresAt->format('Y-m-d H:i:s'),
@@ -605,12 +620,11 @@ class ClientPortalController extends Controller
                 'created_at' => Carbon::now()->format('Y-m-d H:i:s'),
                 'updated_at' => Carbon::now()->format('Y-m-d H:i:s'),
             ];
-            
-            $newRefreshTokenId = DB::table('refresh_tokens')->insertGetId($insertData);
-            
+
+            DB::table('refresh_tokens')->insertGetId($insertData);
         } catch (\Illuminate\Database\QueryException $e) {
             $errorDetails = $this->handleRefreshTokenError($e, $admin->id, $insertData ?? [], $newRefreshTokenValue ?? '');
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to refresh token. Please login again.',
@@ -618,17 +632,17 @@ class ClientPortalController extends Controller
                 'problematic_field' => $errorDetails['field'],
                 'error_details' => config('app.debug') ? $errorDetails : null
             ], 500);
-            
         } catch (\Exception $e) {
             Log::error('Failed to generate refresh token during token refresh (non-database error)', [
                 'user_id' => $admin->id,
+                'user_type' => RefreshToken::USER_TYPE_ADMIN,
                 'error' => $e->getMessage(),
                 'error_code' => $e->getCode(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to refresh token. Please login again.',
@@ -652,6 +666,94 @@ class ClientPortalController extends Controller
                 ]
             ]
         ], 200);
+    }
+
+    /**
+     * Refresh a staff (admin-login) access token.
+     */
+    private function refreshStaffToken(object $refreshTokenData)
+    {
+        $staff = Staff::find($refreshTokenData->user_id);
+
+        if (! $staff || (int) ($staff->status ?? 0) !== 1 || ! in_array((int) $staff->role, [1, 12, 13, 16], true)) {
+            $this->revokeRefreshTokenRow($refreshTokenData->id);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'User account is no longer active'
+            ], 401);
+        }
+
+        $this->revokeRefreshTokenRow($refreshTokenData->id);
+
+        $deviceName = $refreshTokenData->device_name ?? 'admin-portal-app';
+        $newAccessToken = $staff->createToken($deviceName)->plainTextToken;
+
+        try {
+            $newRefreshTokenValue = Str::random(64);
+            $expiresAt = Carbon::now()->addDays(30);
+
+            $insertData = [
+                'user_id' => $staff->id,
+                'user_type' => RefreshToken::USER_TYPE_STAFF,
+                'token' => $newRefreshTokenValue,
+                'device_name' => $deviceName,
+                'expires_at' => $expiresAt->format('Y-m-d H:i:s'),
+                'is_revoked' => 0,
+                'created_at' => Carbon::now()->format('Y-m-d H:i:s'),
+                'updated_at' => Carbon::now()->format('Y-m-d H:i:s'),
+            ];
+
+            DB::table('refresh_tokens')->insertGetId($insertData);
+        } catch (\Illuminate\Database\QueryException $e) {
+            $errorDetails = $this->handleRefreshTokenError($e, $staff->id, $insertData ?? [], $newRefreshTokenValue ?? '');
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to refresh token. Please login again.',
+                'error' => 'Token generation failed',
+                'problematic_field' => $errorDetails['field'],
+                'error_details' => config('app.debug') ? $errorDetails : null
+            ], 500);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate refresh token during staff token refresh (non-database error)', [
+                'user_id' => $staff->id,
+                'user_type' => RefreshToken::USER_TYPE_STAFF,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to refresh token. Please login again.',
+                'error' => 'Token generation failed',
+                'error_details' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'token' => $newAccessToken,
+                'refresh_token' => $newRefreshTokenValue,
+                'user' => [
+                    'id' => $staff->id,
+                    'name' => $staff->first_name . ' ' . $staff->last_name,
+                    'email' => $staff->email,
+                    'role' => $staff->role,
+                ]
+            ]
+        ], 200);
+    }
+
+    private function revokeRefreshTokenRow(int $id): void
+    {
+        DB::table('refresh_tokens')
+            ->where('id', $id)
+            ->update(['is_revoked' => 1, 'updated_at' => Carbon::now()->format('Y-m-d H:i:s')]);
     }
 
     /**
@@ -710,7 +812,7 @@ class ClientPortalController extends Controller
     /**
      * Handle device token registration/update
      */
-    private function handleDeviceToken($userId, $deviceToken, $deviceName = null)
+    private function handleDeviceToken($userId, $deviceToken, $deviceName = null, string $userType = DeviceToken::USER_TYPE_ADMIN)
     {
         try {
             // Check if device token already exists
@@ -720,6 +822,7 @@ class ClientPortalController extends Controller
                 // Update existing token
                 $existingToken->update([
                     'user_id' => $userId,
+                    'user_type' => $userType,
                     'device_name' => $deviceName,
                     'is_active' => true,
                     'last_used_at' => now(),
@@ -728,6 +831,7 @@ class ClientPortalController extends Controller
                 // Create new device token
                 DeviceToken::create([
                     'user_id' => $userId,
+                    'user_type' => $userType,
                     'device_token' => $deviceToken,
                     'device_name' => $deviceName,
                     'is_active' => true,
@@ -738,9 +842,20 @@ class ClientPortalController extends Controller
             // Log error but don't fail the login
             Log::error('Failed to handle device token: ' . $e->getMessage(), [
                 'user_id' => $userId,
+                'user_type' => $userType,
                 'device_token' => substr($deviceToken, 0, 20) . '...'
             ]);
         }
+    }
+
+    /**
+     * Map an authenticated Sanctum user to refresh/device token user_type.
+     */
+    private function tokenUserTypeFor($user): string
+    {
+        return $user instanceof Staff
+            ? RefreshToken::USER_TYPE_STAFF
+            : RefreshToken::USER_TYPE_ADMIN;
     }
 
     /**
