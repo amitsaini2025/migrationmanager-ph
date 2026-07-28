@@ -1959,8 +1959,19 @@ class ClientsController extends Controller
         return $pdf->stream('codeplaners.pdf');
     }
 
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
+        // Persistence is via POST /clients/save-section (per-section AJAX).
+        // Native form POST must not attempt a full update (would race section saves).
+        if ($request->isMethod('post')) {
+            if (isset($id) && $id !== '') {
+                return redirect()->route('clients.edit', $id)
+                    ->with('info', 'Please use the Save button on each section to save changes.');
+            }
+
+            return Redirect::to('/clients')->with('error', config('constants.unauthorized'));
+        }
+
         // Check authorization (assumed to be handled elsewhere)
         if (isset($id) && !empty($id)) {
             $id = $this->decodeString($id);

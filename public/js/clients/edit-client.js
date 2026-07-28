@@ -296,8 +296,11 @@ function initializeTabs() {
 
 // Define validateForm function IMMEDIATELY to prevent "not defined" errors
 window.validateForm = function() {
-    const form = document.getElementById('editClientForm');
+    const form = getClientEditForm();
     const errors = [];
+    if (!form) {
+        return false;
+    }
     
     // Check all required fields
     const requiredFields = form.querySelectorAll('[required]');
@@ -366,6 +369,22 @@ window.validateForm = function() {
 
 // ADDITIONAL FALLBACK: Set up event listeners as backup
 document.addEventListener('DOMContentLoaded', function() {
+    // C3: block native full-form POST on personal/company edit.
+    // Do NOT include editLeadForm — leads still submit to leads.update.
+    // Real saves use type="button" section Save → /clients/save-section.
+    var clientOrCompanyForm = document.getElementById('editCompanyForm')
+        || document.getElementById('editClientForm');
+    if (clientOrCompanyForm) {
+        clientOrCompanyForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (typeof showNotification === 'function') {
+                showNotification('Please use the Save button on each section to save changes.', 'info');
+            } else {
+                alert('Please use the Save button on each section to save changes.');
+            }
+        });
+    }
+
     var tabButtons = document.querySelectorAll('.tab-button');
     tabButtons.forEach(function(button) {
         var onclickAttr = button.getAttribute('onclick');
@@ -641,10 +660,7 @@ function removePartnerRow(button, type, relationshipId = null) {
             hiddenInput.type = 'hidden';
             hiddenInput.name = `delete_${type}_ids[]`;
             hiddenInput.value = relationshipId;
-            const form =
-                document.getElementById('editCompanyForm') ||
-                document.getElementById('editClientForm') ||
-                document.getElementById('editLeadForm');
+            const form = getClientEditForm();
             if (form) {
                 form.appendChild(hiddenInput);
             } else {
@@ -2138,13 +2154,23 @@ window.cancelEdit = function(sectionType) {
 };
 
 /**
+ * Resolve the active client/company/lead edit form.
+ * Personal edit uses #editClientForm; company edit uses #editCompanyForm.
+ */
+function getClientEditForm() {
+    return document.getElementById('editCompanyForm')
+        || document.getElementById('editClientForm')
+        || document.getElementById('editLeadForm');
+}
+
+/**
  * Save basic information and update summary
  */
 /**
  * Generic function to save section data via AJAX
  */
 window.saveSectionData = function(sectionName, formData, successCallback) {
-    const form = document.getElementById('editCompanyForm') || document.getElementById('editClientForm') || document.getElementById('editLeadForm');
+    const form = getClientEditForm();
     if (!form) {
         showNotification('Form not found. Please refresh the page and try again.', 'error');
         return;
@@ -2541,7 +2567,10 @@ window.removePhoneNumber = function(id, index) {
             hiddenInput.type = 'hidden';
             hiddenInput.name = 'delete_contact_ids[]';
             hiddenInput.value = id;
-            document.getElementById('editClientForm').appendChild(hiddenInput);
+            const form = getClientEditForm();
+            if (form) {
+                form.appendChild(hiddenInput);
+            }
         }
         
         // Remove from DOM
@@ -2567,7 +2596,10 @@ window.removeEmailAddress = function(id, index) {
             hiddenInput.type = 'hidden';
             hiddenInput.name = 'delete_email_ids[]';
             hiddenInput.value = id;
-            document.getElementById('editClientForm').appendChild(hiddenInput);
+            const form = getClientEditForm();
+            if (form) {
+                form.appendChild(hiddenInput);
+            }
         }
         
         // Remove from DOM
@@ -4207,7 +4239,7 @@ window.removePassportField = function(button) {
             hiddenInput.name = 'delete_passport_ids[]';
             hiddenInput.value = passportIdInput.value;
             
-            const form = document.getElementById('editClientForm');
+            const form = getClientEditForm();
             if (form) {
                 form.appendChild(hiddenInput);
             }
@@ -4578,9 +4610,9 @@ $(document).ready(function() {
         });
 
         // Validate on form submission
-        const editClientForm = document.getElementById('editClientForm');
-        if (editClientForm) {
-            editClientForm.addEventListener('submit', function(e) {
+        const editForm = getClientEditForm();
+        if (editForm) {
+            editForm.addEventListener('submit', function(e) {
                 validatePersonalPhoneNumbers();
             });
         }
@@ -5059,12 +5091,15 @@ $(document).ready(function() {
         });
 
         // Validate on form submission
-        document.getElementById('editClientForm').addEventListener('submit', function(e) {
-            if (!validatePersonalEmailTypes()) {
-                e.preventDefault();
-                alert('Only one email address can be of type Personal. Please correct the entries.');
-            }
-        });
+        const editForm = getClientEditForm();
+        if (editForm) {
+            editForm.addEventListener('submit', function(e) {
+                if (!validatePersonalEmailTypes()) {
+                    e.preventDefault();
+                    alert('Only one email address can be of type Personal. Please correct the entries.');
+                }
+            });
+        }
 
         // Initial validation on page load
         validatePersonalEmailTypes();
@@ -5086,7 +5121,10 @@ $(document).ready(function() {
                         hiddenInput.type = 'hidden';
                         hiddenInput.name = 'delete_eoi_ids[]';
                         hiddenInput.value = eoiId;
-                        document.getElementById('editClientForm').appendChild(hiddenInput);
+                        const form = getClientEditForm();
+                        if (form) {
+                            form.appendChild(hiddenInput);
+                        }
                     }
                     section.remove();
                 }
@@ -5110,7 +5148,10 @@ $(document).ready(function() {
                         hiddenInput.type = 'hidden';
                         hiddenInput.name = 'delete_qualification_ids[]';
                         hiddenInput.value = qualificationId;
-                        document.getElementById('editClientForm').appendChild(hiddenInput);
+                        const form = getClientEditForm();
+                        if (form) {
+                            form.appendChild(hiddenInput);
+                        }
                     }
                     section.remove();
                 }
@@ -5134,7 +5175,10 @@ $(document).ready(function() {
                         hiddenInput.type = 'hidden';
                         hiddenInput.name = 'delete_experience_ids[]';
                         hiddenInput.value = experienceId;
-                        document.getElementById('editClientForm').appendChild(hiddenInput);
+                        const form = getClientEditForm();
+                        if (form) {
+                            form.appendChild(hiddenInput);
+                        }
                     }
                     section.remove();
                 }
@@ -5158,7 +5202,10 @@ $(document).ready(function() {
                         hiddenInput.type = 'hidden';
                         hiddenInput.name = 'delete_occupation_ids[]';
                         hiddenInput.value = occupationId;
-                        document.getElementById('editClientForm').appendChild(hiddenInput);
+                        const form = getClientEditForm();
+                        if (form) {
+                            form.appendChild(hiddenInput);
+                        }
                     }
                     section.remove();
                 }
@@ -5182,7 +5229,10 @@ $(document).ready(function() {
                         hiddenInput.type = 'hidden';
                         hiddenInput.name = 'delete_test_score_ids[]';
                         hiddenInput.value = testScoreId;
-                        document.getElementById('editClientForm').appendChild(hiddenInput);
+                        const form = getClientEditForm();
+                        if (form) {
+                            form.appendChild(hiddenInput);
+                        }
                     }
                     section.remove();
                 }
@@ -5713,7 +5763,7 @@ function removeOccupationField(button) {
 }
 
 async function saveOccupationInfo() {
-    const form = document.getElementById('editClientForm');
+    const form = getClientEditForm();
     if (!form) {
         showNotification('Form not found', 'error');
         return;
@@ -5885,7 +5935,7 @@ function removeTestScoreField(button) {
 }
 
 async function saveTestScoreInfo() {
-    const form = document.getElementById('editClientForm');
+    const form = getClientEditForm();
     if (!form) {
         showNotification('Form not found', 'error');
         return;

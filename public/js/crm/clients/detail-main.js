@@ -787,8 +787,9 @@
             const files = e.target.files;
 
             const hintElement = document.querySelector('.file-selection-hint');
-
-
+            if (!hintElement) {
+                return;
+            }
 
             if (files.length > 0) {
 

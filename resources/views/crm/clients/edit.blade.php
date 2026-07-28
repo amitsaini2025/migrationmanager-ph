@@ -127,7 +127,7 @@
 
             <!-- Main Content Area -->
             <div class="main-content-area">
-                <form id="editClientForm" action="{{ route('clients.update') }}" method="POST">
+                <form id="editClientForm" action="{{ route('clients.update', base64_encode(convert_uuencode($fetchedData->id))) }}" method="POST">
                     @csrf
                     <input type="hidden" name="id" value="{{ $fetchedData->id }}">
                     <input type="hidden" name="type" value="{{ $fetchedData->type }}">

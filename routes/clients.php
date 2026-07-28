@@ -44,7 +44,9 @@ Route::get('/clientsclosedmatterslist', [ClientsController::class, 'closedmatter
 Route::get('/clientsemaillist', [ClientsController::class, 'clientsemaillist'])->name('clients.clientsemaillist');
 Route::post('/clients/store', [ClientsController::class, 'store'])->name('clients.store');
 Route::get('/clients/edit/{id}', [ClientsController::class, 'edit'])->name('clients.edit');
-Route::post('/clients/edit', [ClientsController::class, 'edit'])->name('clients.update');
+// Native form POST is not the persistence path (section Save uses /clients/save-section).
+// Route keeps {id} so accidental submits do not hit edit(null) → unauthorized.
+Route::post('/clients/edit/{id}', [ClientsController::class, 'edit'])->name('clients.update');
 Route::get('/clients/export/{id}', [ClientsController::class, 'export'])->name('clients.export');
 Route::post('/clients/import', [ClientsController::class, 'import'])->name('clients.import');
 Route::post('/clients/save-section', [ClientPersonalDetailsController::class, 'saveSection'])->name('clients.saveSection');
