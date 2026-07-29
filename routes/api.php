@@ -70,7 +70,10 @@ Route::post('/appointments/record-payment-without-login-wallet', [ClientPortalAp
 // Create Payment Intent (public - works with or without auth; used by both logged-in users and guests)
 Route::post('/payments/create-payment-intent', function (Request $request) {
     $validated = $request->validate([
-        'amount' => ['required', 'integer', 'min:50'],
+        // Optional: when supplied the intent is bound to the appointment and the amount
+        // is taken from the appointment instead of the request.
+        'appointment_id' => ['sometimes', 'integer', 'exists:booking_appointments,id'],
+        'amount' => ['required_without:appointment_id', 'integer', 'min:50'],
         'currency' => ['sometimes', 'string', 'size:3'],
         'customer' => ['sometimes', 'string'],
         'description' => ['sometimes', 'string', 'max:255'],
@@ -88,15 +91,94 @@ Route::post('/payments/create-payment-intent', function (Request $request) {
             ], 500);
         }
 
+        // An appointment may be named either by the dedicated field or by metadata that
+        // older clients already send. Either way the appointment row, not the request,
+        // decides the amount and the binding written onto the intent.
+        $requestedAppointmentId = $validated['appointment_id'] ?? data_get($validated, 'metadata.appointment_id');
+        $appointment = null;
+
+        if (is_scalar($requestedAppointmentId) && ctype_digit((string) $requestedAppointmentId)) {
+            $appointment = \App\Models\BookingAppointment::find((int) $requestedAppointmentId);
+
+            if ($appointment && $appointment->is_paid && $appointment->payment_status === 'completed') {
+                return response()->json([
+                    'message' => 'This appointment has already been paid.',
+                ], 422);
+            }
+        }
+
         $stripe = new \Stripe\StripeClient($stripeSecret);
 
         $payload = [
-            'amount' => $validated['amount'],
+            'amount' => $validated['amount'] ?? null,
             'currency' => strtolower($validated['currency'] ?? 'usd'),
             'automatic_payment_methods' => [
                 'enabled' => data_get($validated, 'automatic_payment_methods.enabled', true),
             ],
         ];
+
+        if ($appointment) {
+            $appointmentAmount = (float) ($appointment->final_amount ?? $appointment->amount);
+            $appointmentCents = (int) round($appointmentAmount * 100);
+
+            if ($appointmentCents < 50) {
+                return response()->json([
+                    'message' => 'Invalid appointment amount.',
+                ], 422);
+            }
+
+            $payload['amount'] = $appointmentCents;
+            $payload['currency'] = 'aud';
+        }
+
+        if ($payload['amount'] === null) {
+            return response()->json([
+                'message' => 'Payment amount could not be determined.',
+            ], 422);
+        }
+
+        // Caller-controlled amount and currency only reach Stripe for unbound intents,
+        // so they are kept inside configured limits and logged.
+        if (!$appointment) {
+            $allowedCurrencies = array_filter(array_map(
+                'trim',
+                explode(',', strtolower((string) config('services.stripe.public_intent_currencies', 'aud,usd')))
+            ));
+
+            if ($allowedCurrencies && !in_array($payload['currency'], $allowedCurrencies, true)) {
+                return response()->json([
+                    'message' => 'Unsupported currency for this payment.',
+                ], 422);
+            }
+
+            $maxAmount = (int) config('services.stripe.public_intent_max_amount', 2000000);
+
+            if ($maxAmount > 0 && $payload['amount'] > $maxAmount) {
+                return response()->json([
+                    'message' => 'Payment amount exceeds the allowed limit.',
+                ], 422);
+            }
+
+            $enforceBinding = (bool) config('services.stripe.enforce_appointment_intent_binding', true);
+
+            if ($enforceBinding) {
+                Log::error('PaymentIntent creation rejected: no appointment binding', [
+                    'ip' => $request->ip(),
+                    'amount' => $payload['amount'],
+                    'currency' => $payload['currency'],
+                ]);
+
+                return response()->json([
+                    'message' => 'appointment_id is required to start a payment.',
+                ], 422);
+            }
+
+            Log::warning('Public PaymentIntent created without appointment binding', [
+                'ip' => $request->ip(),
+                'amount' => $payload['amount'],
+                'currency' => $payload['currency'],
+            ]);
+        }
 
         if (isset($validated['customer'])) {
             $payload['customer'] = $validated['customer'];
@@ -106,8 +188,18 @@ Route::post('/payments/create-payment-intent', function (Request $request) {
             $payload['description'] = $validated['description'];
         }
 
-        if (isset($validated['metadata'])) {
-            $payload['metadata'] = $validated['metadata'];
+        // appointment_id and payment_token are the binding the recording endpoints trust,
+        // so only a resolved appointment may set them.
+        $metadata = $validated['metadata'] ?? [];
+        unset($metadata['appointment_id'], $metadata['payment_token']);
+
+        if ($appointment) {
+            $metadata['appointment_id'] = (string) $appointment->id;
+            $metadata['payment_token'] = (string) ($appointment->payment_token ?? '');
+        }
+
+        if ($metadata) {
+            $payload['metadata'] = $metadata;
         }
 
         if (isset($validated['receipt_email'])) {
@@ -141,7 +233,7 @@ Route::post('/payments/create-payment-intent', function (Request $request) {
             'message' => 'An unexpected error occurred.',
         ], 500);
     }
-});
+})->middleware('throttle:12,1');
 
 // Blog routes (list is public; detail requires authentication — see auth:sanctum group)
 Route::get('/blogs/list', [OthersController::class, 'getBlogList']);

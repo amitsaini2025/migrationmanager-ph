@@ -2492,6 +2492,124 @@ class ClientPortalAppointmentController extends BaseController
     }
 
     /**
+     * Record a wallet (GPay/ApplePay) payment for an appointment.
+     *
+     * The PaymentIntent id is verified against Stripe through the same service the card
+     * paths use, so status, amount and appointment binding are all checked. A token that
+     * is not a PaymentIntent id cannot be verified and is rejected, unless
+     * services.stripe.enforce_wallet_payment_verification is turned off to roll back to
+     * the unverified behaviour for an older app.
+     *
+     * @param BookingAppointment $appointment
+     * @param string $paymentIntentId
+     * @param string $paymentType gpay | applepay
+     * @param Request $request
+     * @return array{success: bool, message: string, payment: AppointmentPayment|null}
+     */
+    private function recordWalletPayment(BookingAppointment $appointment, string $paymentIntentId, string $paymentType, Request $request): array
+    {
+        $metadata = [
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ];
+
+        if (preg_match('/^pi_[A-Za-z0-9_]+$/', $paymentIntentId)) {
+            $result = app(StripePaymentService::class)->recordPaymentByIntent($appointment, $paymentIntentId, $metadata);
+
+            if (!$result['success']) {
+                return [
+                    'success' => false,
+                    'message' => $result['message'],
+                    'payment' => null,
+                ];
+            }
+
+            $payment = AppointmentPayment::find($result['data']['payment_id'] ?? null)
+                ?? AppointmentPayment::where('appointment_id', $appointment->id)->orderByDesc('id')->first();
+
+            // Keep the wallet type in the audit trail without dropping the Stripe payload.
+            if ($payment) {
+                $transactionData = $payment->transaction_data ?? [];
+                $transactionData['payment_type'] = $paymentType;
+                $payment->update(['transaction_data' => $transactionData]);
+            }
+
+            return [
+                'success' => true,
+                'message' => $result['message'],
+                'payment' => $payment,
+            ];
+        }
+
+        if (config('services.stripe.enforce_wallet_payment_verification', true)) {
+            Log::error('Wallet payment rejected: token is not a Stripe PaymentIntent id', [
+                'appointment_id' => $appointment->id,
+                'payment_type' => $paymentType,
+                'token_prefix' => substr($paymentIntentId, 0, 8),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Payment could not be verified with Stripe. A confirmed PaymentIntent id is required.',
+                'payment' => null,
+            ];
+        }
+
+        Log::warning('Wallet payment recorded without Stripe verification', [
+            'appointment_id' => $appointment->id,
+            'payment_type' => $paymentType,
+        ]);
+
+        $appointmentAmount = (float) ($appointment->final_amount ?? $appointment->amount);
+
+        DB::beginTransaction();
+        try {
+            $payment = AppointmentPayment::updateOrCreate(
+                ['appointment_id' => $appointment->id],
+                [
+                    'payment_gateway' => 'stripe',
+                    'transaction_id' => $paymentIntentId,
+                    'charge_id' => null,
+                    'customer_id' => null,
+                    'payment_method_id' => null,
+                    'amount' => $appointmentAmount,
+                    'currency' => 'AUD',
+                    'status' => 'succeeded',
+                    'error_message' => null,
+                    'transaction_data' => [
+                        'payment_type' => $paymentType,
+                        'payment_intent_id' => $paymentIntentId,
+                        'stripe_verified' => false,
+                    ],
+                    'receipt_url' => null,
+                    'client_ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'processed_at' => now(),
+                ]
+            );
+
+            $appointment->update([
+                'status' => 'paid',
+                'is_paid' => true,
+                'payment_status' => 'completed',
+                'payment_method' => 'stripe',
+                'paid_at' => now(),
+            ]);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Payment recorded successfully',
+            'payment' => $payment,
+        ];
+    }
+
+    /**
      * Record payment with login for wallet methods (GPay/ApplePay).
      *
      * Same as recordAppointmentPayment plus:
@@ -2544,46 +2662,19 @@ class ClientPortalAppointmentController extends BaseController
             }
 
             $paymentType = strtolower((string) $request->payment_type);
-            $appointmentAmount = (float) ($appointment->final_amount ?? $appointment->amount);
 
-            DB::beginTransaction();
-            try {
-                $payment = AppointmentPayment::updateOrCreate(
-                    ['appointment_id' => $appointment->id],
-                    [
-                        'payment_gateway' => 'stripe',
-                        'transaction_id' => $request->payment_intent_id,
-                        'charge_id' => null,
-                        'customer_id' => null,
-                        'payment_method_id' => null,
-                        'amount' => $appointmentAmount,
-                        'currency' => 'AUD',
-                        'status' => 'succeeded',
-                        'error_message' => null,
-                        'transaction_data' => [
-                            'payment_type' => $paymentType,
-                            'payment_intent_id' => $request->payment_intent_id,
-                        ],
-                        'receipt_url' => null,
-                        'client_ip' => $request->ip(),
-                        'user_agent' => $request->userAgent(),
-                        'processed_at' => now(),
-                    ]
-                );
+            $walletResult = $this->recordWalletPayment(
+                $appointment,
+                (string) $request->payment_intent_id,
+                $paymentType,
+                $request
+            );
 
-                $appointment->update([
-                    'status' => 'paid',
-                    'is_paid' => true,
-                    'payment_status' => 'completed',
-                    'payment_method' => 'stripe',
-                    'paid_at' => now(),
-                ]);
-
-                DB::commit();
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
+            if (!$walletResult['success']) {
+                return $this->sendError($walletResult['message'], [], 422);
             }
+
+            $payment = $walletResult['payment'];
 
             $syncError = null;
             if ($appointment->bansal_appointment_id) {
@@ -2646,14 +2737,14 @@ class ClientPortalAppointmentController extends BaseController
                 'message' => $message,
                 'data' => [
                     'appointment_id' => $appointment->id,
-                    'payment_id' => $payment->id,
-                    'transaction_id' => $payment->transaction_id,
-                    'charge_id' => $payment->charge_id,
-                    'amount' => $payment->amount,
-                    'currency' => $payment->currency,
+                    'payment_id' => $payment?->id,
+                    'transaction_id' => $payment?->transaction_id,
+                    'charge_id' => $payment?->charge_id,
+                    'amount' => $payment?->amount,
+                    'currency' => $payment?->currency,
                     'status' => 'paid',
                     'payment_type' => $paymentType,
-                    'receipt_url' => $payment->receipt_url,
+                    'receipt_url' => $payment?->receipt_url,
                     'paid_at' => $appointment->paid_at ? $appointment->paid_at->toIso8601String() : null,
                     'appointment' => $this->formatAppointmentData($appointment),
                 ],
@@ -2858,46 +2949,19 @@ class ClientPortalAppointmentController extends BaseController
             }
 
             $paymentType = strtolower((string) $request->payment_type);
-            $appointmentAmount = (float) ($appointment->final_amount ?? $appointment->amount);
 
-            DB::beginTransaction();
-            try {
-                $payment = AppointmentPayment::updateOrCreate(
-                    ['appointment_id' => $appointment->id],
-                    [
-                        'payment_gateway' => 'stripe',
-                        'transaction_id' => $request->payment_intent_id,
-                        'charge_id' => null,
-                        'customer_id' => null,
-                        'payment_method_id' => null,
-                        'amount' => $appointmentAmount,
-                        'currency' => 'AUD',
-                        'status' => 'succeeded',
-                        'error_message' => null,
-                        'transaction_data' => [
-                            'payment_type' => $paymentType,
-                            'payment_intent_id' => $request->payment_intent_id,
-                        ],
-                        'receipt_url' => null,
-                        'client_ip' => $request->ip(),
-                        'user_agent' => $request->userAgent(),
-                        'processed_at' => now(),
-                    ]
-                );
+            $walletResult = $this->recordWalletPayment(
+                $appointment,
+                (string) $request->payment_intent_id,
+                $paymentType,
+                $request
+            );
 
-                $appointment->update([
-                    'status' => 'paid',
-                    'is_paid' => true,
-                    'payment_status' => 'completed',
-                    'payment_method' => 'stripe',
-                    'paid_at' => now(),
-                ]);
-
-                DB::commit();
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
+            if (!$walletResult['success']) {
+                return $this->sendError($walletResult['message'], [], 422);
             }
+
+            $payment = $walletResult['payment'];
 
             $syncError = null;
             if ($appointment->bansal_appointment_id) {
@@ -2960,14 +3024,14 @@ class ClientPortalAppointmentController extends BaseController
                 'message' => $message,
                 'data' => [
                     'appointment_id' => $appointment->id,
-                    'payment_id' => $payment->id,
-                    'transaction_id' => $payment->transaction_id,
-                    'charge_id' => $payment->charge_id,
-                    'amount' => $payment->amount,
-                    'currency' => $payment->currency,
+                    'payment_id' => $payment?->id,
+                    'transaction_id' => $payment?->transaction_id,
+                    'charge_id' => $payment?->charge_id,
+                    'amount' => $payment?->amount,
+                    'currency' => $payment?->currency,
                     'status' => 'paid',
                     'payment_type' => $paymentType,
-                    'receipt_url' => $payment->receipt_url,
+                    'receipt_url' => $payment?->receipt_url,
                     'paid_at' => $appointment->paid_at ? $appointment->paid_at->toIso8601String() : null,
                     'appointment' => $this->formatAppointmentData($appointment),
                 ],

@@ -170,6 +170,47 @@ return [
          *        sends real PaymentIntent ids.
          */
         'enforce_portal_payment_verification' => env('STRIPE_ENFORCE_PORTAL_PAYMENT_VERIFICATION', false),
+
+        /*
+         * Appointment payments are always verified against Stripe (succeeded status and
+         * matching amount) and a PaymentIntent whose metadata names a different
+         * appointment is always rejected.
+         * false: an intent carrying no appointment binding is logged, claimed for the
+         *        appointment so it cannot be reused, and still accepted (apps may create
+         *        intents through /api/payments/create-payment-intent without binding).
+         * true:  unbound intents are rejected, both when created through
+         *        /api/payments/create-payment-intent and when recorded against an
+         *        appointment, so a payment can only ever settle the appointment it was
+         *        created for. Turn off only to roll back for an older client.
+         */
+        'enforce_appointment_intent_binding' => env('STRIPE_ENFORCE_APPOINTMENT_INTENT_BINDING', true),
+
+        /*
+         * Safety window for payments that were already in flight when binding
+         * enforcement was switched on: an unbound intent created before this moment is
+         * still recorded, anything created after it is rejected. Stripe timestamps cannot
+         * be backdated, so this cannot be abused. Leave empty for no window.
+         * Example: STRIPE_INTENT_BINDING_CUTOVER="2026-07-29 18:30:00"
+         */
+        'intent_binding_cutover' => env('STRIPE_INTENT_BINDING_CUTOVER'),
+
+        /*
+         * Wallet (Google Pay / Apple Pay) appointment payments must be verified against
+         * Stripe, which requires the client to send the PaymentIntent id it confirmed.
+         * true:  a token that is not a PaymentIntent id is rejected, so an appointment
+         *        can never be marked paid on the client's word alone.
+         * false: such tokens are logged and recorded unverified. Only for rolling back
+         *        if an older app is found that sends its own reference instead of pi_...
+         */
+        'enforce_wallet_payment_verification' => env('STRIPE_ENFORCE_WALLET_PAYMENT_VERIFICATION', true),
+
+        /*
+         * Guard rails for the public /api/payments/create-payment-intent route when the
+         * caller does not pass appointment_id. Requests that name an appointment take
+         * their amount and currency from that appointment and ignore these limits.
+         */
+        'public_intent_max_amount' => (int) env('STRIPE_PUBLIC_INTENT_MAX_AMOUNT', 2000000),
+        'public_intent_currencies' => env('STRIPE_PUBLIC_INTENT_CURRENCIES', 'aud,usd'),
     ],
 
     /*

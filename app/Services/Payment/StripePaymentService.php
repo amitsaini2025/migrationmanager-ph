@@ -144,13 +144,13 @@ class StripePaymentService
             $error = $e->getError();
             $errorMessage = $error->message ?? 'Card was declined';
             
-            if (isset($payment)) {
-                $payment->update([
-                    'status' => 'failed',
-                    'error_message' => $errorMessage,
-                    'processed_at' => now(),
-                ]);
-            }
+            $failedPaymentId = $this->recordFailedPayment(
+                $appointment,
+                $paymentMethodId,
+                $errorMessage,
+                $metadata,
+                $payment ?? null
+            );
             
             Log::warning('Stripe card declined', [
                 'appointment_id' => $appointment->id,
@@ -160,7 +160,7 @@ class StripePaymentService
 
             return [
                 'success' => false,
-                'data' => ['payment_id' => $payment->id ?? null],
+                'data' => ['payment_id' => $failedPaymentId],
                 'message' => $errorMessage,
             ];
 
@@ -183,13 +183,13 @@ class StripePaymentService
             
             $errorMessage = $e->getMessage();
             
-            if (isset($payment)) {
-                $payment->update([
-                    'status' => 'failed',
-                    'error_message' => $errorMessage,
-                    'processed_at' => now(),
-                ]);
-            }
+            $failedPaymentId = $this->recordFailedPayment(
+                $appointment,
+                $paymentMethodId,
+                $errorMessage,
+                $metadata,
+                $payment ?? null
+            );
             
             Log::error('Stripe invalid request', [
                 'appointment_id' => $appointment->id,
@@ -198,7 +198,7 @@ class StripePaymentService
 
             return [
                 'success' => false,
-                'data' => ['payment_id' => $payment->id ?? null],
+                'data' => ['payment_id' => $failedPaymentId],
                 'message' => $errorMessage,
             ];
 
@@ -234,13 +234,13 @@ class StripePaymentService
             
             $errorMessage = $e->getMessage();
             
-            if (isset($payment)) {
-                $payment->update([
-                    'status' => 'failed',
-                    'error_message' => $errorMessage,
-                    'processed_at' => now(),
-                ]);
-            }
+            $failedPaymentId = $this->recordFailedPayment(
+                $appointment,
+                $paymentMethodId,
+                $errorMessage,
+                $metadata,
+                $payment ?? null
+            );
             
             Log::error('Stripe API error', [
                 'appointment_id' => $appointment->id,
@@ -249,20 +249,20 @@ class StripePaymentService
 
             return [
                 'success' => false,
-                'data' => ['payment_id' => $payment->id ?? null],
+                'data' => ['payment_id' => $failedPaymentId],
                 'message' => $errorMessage,
             ];
 
         } catch (Exception $e) {
             DB::rollBack();
             
-            if (isset($payment)) {
-                $payment->update([
-                    'status' => 'failed',
-                    'error_message' => $e->getMessage(),
-                    'processed_at' => now(),
-                ]);
-            }
+            $failedPaymentId = $this->recordFailedPayment(
+                $appointment,
+                $paymentMethodId,
+                $e->getMessage(),
+                $metadata,
+                $payment ?? null
+            );
             
             Log::error('Unexpected payment error', [
                 'appointment_id' => $appointment->id,
@@ -272,9 +272,59 @@ class StripePaymentService
 
             return [
                 'success' => false,
-                'data' => ['payment_id' => $payment->id ?? null],
+                'data' => ['payment_id' => $failedPaymentId],
                 'message' => 'An unexpected error occurred. Please try again.',
             ];
+        }
+    }
+
+    /**
+     * Persist a failed payment attempt after the processing transaction was rolled back.
+     *
+     * The pending row created inside the transaction no longer exists once rollBack()
+     * runs, so the failure has to be inserted as its own statement to keep the audit
+     * trail. Never throws: a bookkeeping failure must not replace the Stripe error.
+     *
+     * @param BookingAppointment $appointment
+     * @param string $paymentMethodId
+     * @param string $errorMessage
+     * @param array $metadata
+     * @param AppointmentPayment|null $rolledBackPayment Discarded pending row, used for Stripe ids already obtained
+     * @return int|null Id of the stored failed payment record
+     */
+    private function recordFailedPayment(
+        BookingAppointment $appointment,
+        string $paymentMethodId,
+        string $errorMessage,
+        array $metadata = [],
+        ?AppointmentPayment $rolledBackPayment = null
+    ): ?int {
+        try {
+            $failedPayment = AppointmentPayment::create([
+                'appointment_id' => $appointment->id,
+                'payment_gateway' => 'stripe',
+                'transaction_id' => $rolledBackPayment->transaction_id ?? null,
+                'charge_id' => $rolledBackPayment->charge_id ?? null,
+                'customer_id' => $rolledBackPayment->customer_id ?? null,
+                'payment_method_id' => $paymentMethodId,
+                'amount' => $rolledBackPayment->amount ?? ($appointment->final_amount ?? $appointment->amount),
+                'currency' => $rolledBackPayment->currency ?? 'AUD',
+                'status' => 'failed',
+                'error_message' => $errorMessage,
+                'client_ip' => $metadata['ip'] ?? null,
+                'user_agent' => $metadata['user_agent'] ?? null,
+                'processed_at' => now(),
+            ]);
+
+            return $failedPayment->id;
+        } catch (Exception $e) {
+            Log::error('Could not store failed payment record', [
+                'appointment_id' => $appointment->id,
+                'payment_error' => $errorMessage,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
         }
     }
 
@@ -332,8 +382,10 @@ class StripePaymentService
     ): PaymentIntent {
         $amount = $appointment->final_amount ?? $appointment->amount;
         
-        // Convert amount to cents (Stripe requires amount in smallest currency unit)
-        $amountInCents = (int) ($amount * 100);
+        // Convert amount to cents (Stripe requires amount in smallest currency unit).
+        // Round instead of truncating so float representation (e.g. 19.99 * 100) cannot
+        // undercharge by a cent and fail the amount checks used by the recording paths.
+        $amountInCents = (int) round($amount * 100);
 
         return PaymentIntent::create([
             'amount' => $amountInCents,
@@ -517,8 +569,19 @@ class StripePaymentService
                 ];
             }
 
-            // Optional: verify metadata appointment_id if frontend set it
-            if (!empty($paymentIntent->metadata->appointment_id) && (string) $paymentIntent->metadata->appointment_id !== (string) $appointment->id) {
+            // Bind the intent to this appointment. Intents created by the CRM carry
+            // appointment_id, and pay-by-link intents also carry payment_token, so any
+            // metadata naming a different appointment is rejected outright.
+            $intentAppointmentId = $paymentIntent->metadata->appointment_id ?? null;
+            $intentPaymentToken = $paymentIntent->metadata->payment_token ?? null;
+
+            if (!empty($intentAppointmentId) && (string) $intentAppointmentId !== (string) $appointment->id) {
+                Log::warning('Record payment: intent bound to another appointment', [
+                    'appointment_id' => $appointment->id,
+                    'intent_appointment_id' => (string) $intentAppointmentId,
+                    'payment_intent_id' => $paymentIntent->id,
+                ]);
+
                 return [
                     'success' => false,
                     'data' => [],
@@ -526,8 +589,68 @@ class StripePaymentService
                 ];
             }
 
-            // Avoid duplicate record for same PaymentIntent
-            $existing = AppointmentPayment::where('transaction_id', $paymentIntent->id)->first();
+            if (!empty($intentPaymentToken) && !empty($appointment->payment_token)
+                && (string) $intentPaymentToken !== (string) $appointment->payment_token) {
+                Log::warning('Record payment: intent payment token mismatch', [
+                    'appointment_id' => $appointment->id,
+                    'payment_intent_id' => $paymentIntent->id,
+                ]);
+
+                return [
+                    'success' => false,
+                    'data' => [],
+                    'message' => 'PaymentIntent does not belong to this appointment.',
+                ];
+            }
+
+            $appointmentCurrency = 'aud';
+            $intentCurrency = strtolower((string) ($paymentIntent->currency ?? ''));
+            $currencyMismatch = $intentCurrency !== '' && $intentCurrency !== $appointmentCurrency;
+            $unbound = empty($intentAppointmentId) && empty($intentPaymentToken);
+            $enforceBinding = (bool) config('services.stripe.enforce_appointment_intent_binding', true);
+
+            // A payment that was already in flight when enforcement was switched on is
+            // still recorded rather than lost.
+            if ($enforceBinding && $this->intentPredatesBindingCutover($paymentIntent)) {
+                $enforceBinding = false;
+            }
+
+            if ($unbound || $currencyMismatch) {
+                Log::warning('Record payment: weakly bound PaymentIntent', [
+                    'appointment_id' => $appointment->id,
+                    'payment_intent_id' => $paymentIntent->id,
+                    'unbound' => $unbound,
+                    'intent_currency' => $intentCurrency,
+                    'enforced' => $enforceBinding,
+                ]);
+
+                if ($enforceBinding) {
+                    Log::error('Record payment rejected: PaymentIntent is not bound to this appointment', [
+                        'appointment_id' => $appointment->id,
+                        'payment_intent_id' => $paymentIntent->id,
+                        'intent_currency' => $intentCurrency,
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'data' => [],
+                        'message' => 'Payment could not be matched to this appointment. Please contact the office.',
+                    ];
+                }
+            }
+
+            // Stamp the appointment onto an unbound intent so the same payment cannot be
+            // presented later for a different appointment. The retrieved intent stays the
+            // source of truth for the fields recorded below.
+            if ($unbound) {
+                $this->claimPaymentIntentForAppointment($paymentIntent, $appointment);
+            }
+
+            // Avoid duplicate record for same PaymentIntent. Failed attempts are skipped so a
+            // stored failure for this intent still allows the successful payment to be recorded.
+            $existing = AppointmentPayment::where('transaction_id', $paymentIntent->id)
+                ->where('status', '!=', 'failed')
+                ->first();
             if ($existing) {
                 if ($existing->appointment_id !== (int) $appointment->id) {
                     return [
@@ -625,6 +748,61 @@ class StripePaymentService
                 'data' => [],
                 'message' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Whether an intent was created before binding enforcement was switched on.
+     *
+     * @param PaymentIntent $paymentIntent
+     * @return bool
+     */
+    private function intentPredatesBindingCutover(PaymentIntent $paymentIntent): bool
+    {
+        $cutover = config('services.stripe.intent_binding_cutover');
+
+        if (empty($cutover) || empty($paymentIntent->created)) {
+            return false;
+        }
+
+        $cutoverTimestamp = strtotime((string) $cutover);
+
+        if ($cutoverTimestamp === false) {
+            Log::warning('Ignoring unreadable stripe.intent_binding_cutover value', [
+                'value' => (string) $cutover,
+            ]);
+
+            return false;
+        }
+
+        return (int) $paymentIntent->created < $cutoverTimestamp;
+    }
+
+    /**
+     * Write the appointment binding onto a PaymentIntent that was created without one.
+     *
+     * Never throws: failing to stamp Stripe metadata must not stop a verified payment
+     * from being recorded.
+     *
+     * @param PaymentIntent $paymentIntent
+     * @param BookingAppointment $appointment
+     * @return void
+     */
+    private function claimPaymentIntentForAppointment(PaymentIntent $paymentIntent, BookingAppointment $appointment): void
+    {
+        try {
+            PaymentIntent::update($paymentIntent->id, [
+                'metadata' => [
+                    'appointment_id' => (string) $appointment->id,
+                    'claimed_at' => now()->toIso8601String(),
+                ],
+            ]);
+        } catch (Exception $e) {
+            Log::warning('Could not claim PaymentIntent for appointment', [
+                'appointment_id' => $appointment->id,
+                'payment_intent_id' => $paymentIntent->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
