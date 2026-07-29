@@ -60,26 +60,10 @@ class PublicDocumentController extends Controller
 
         try {
             $document = Document::findOrFail($documentId);
-            
-            // Handle agreement type documents specially
-            if (isset($document->doc_type) && $document->doc_type == 'agreement') {
-                $signer = $document->signers()->where('document_id', '=', $documentId)->first();
-                if ($signer) {
-                    // Only update token/status when still pending - never overwrite 'signed' or 'cancelled'
-                    if ($signer->status === 'pending') {
-                        $signer->update(['token' => $token, 'status' => 'pending']);
-                        $signer = $document->signers()->where('token', '=', $token)->first();
-                    }
-                    // If signed or cancelled, $signer stays as-is; status check below will redirect
-                } else {
-                    $signer = $document->signers()->create([
-                        'token' => $token,
-                        'status' => 'pending'
-                    ]);
-                }
-            } else {
-                $signer = $document->signers()->where('token', '=', $token)->first();
-            }
+
+            // All doc types (including agreements): require URL token to match a stored signer token.
+            // sendSigningLink / SignatureService persist the emailed token before the link is used.
+            $signer = $document->signers()->where('token', '=', $token)->first();
 
             if (!$signer || $signer->status === 'signed' || $signer->status === 'cancelled') {
                 Log::warning('Invalid signer, already signed, or cancelled', [
@@ -798,11 +782,24 @@ class PublicDocumentController extends Controller
      * @param int $page Page number
      * @return \Illuminate\Http\Response
      */
-    public function getPage($id, $page)
+    public function getPage(Request $request, $id, $page)
     {
         // Clear any existing output buffers
         while (ob_get_level()) {
             ob_end_clean();
+        }
+
+        // Allow logged-in admins (signature placement UI) or a valid signer token (public signing UI).
+        $isAdmin = auth('admin')->check();
+        if (!$isAdmin) {
+            $token = $request->query('token');
+            if (!$token || !is_string($token) || strlen($token) < 32 || !preg_match('/^[a-zA-Z0-9_-]+$/', $token)) {
+                abort(403, 'Invalid or missing document access token.');
+            }
+            $signer = Signer::where('document_id', (int) $id)->where('token', $token)->first();
+            if (!$signer || !in_array($signer->status, ['pending', 'signed'], true)) {
+                abort(403, 'Invalid or expired document access token.');
+            }
         }
         
         $tmpPdfPath = null;

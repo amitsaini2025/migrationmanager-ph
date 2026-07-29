@@ -445,7 +445,7 @@ class SignatureService
     /**
      * Associate a document with category-specific storage and matter
      */
-    public function associateWithCategory(Document $document, string $entityType, int $entityId, ?int $matterId, string $docCategory, string $note = null): bool
+    public function associateWithCategory(Document $document, string $entityType, int $entityId, ?int $matterId, string $docCategory, string $note = null, ?string $folderName = null): bool
     {
         try {
             $documentableType = match($entityType) {
@@ -454,17 +454,23 @@ class SignatureService
                 default => throw new \InvalidArgumentException("Invalid entity type: {$entityType}")
             };
 
-            // Determine document type based on category
+            // Client document tabs query doc_type = 'visa'|'personal' (not *_documents).
             $docType = match($docCategory) {
-                'visa' => 'visa_documents',
-                'personal' => 'personal_documents',
+                'visa' => 'visa',
+                'personal' => 'personal',
                 default => 'general'
             };
 
             $updates = [
                 'client_matter_id' => $matterId,
                 'doc_type' => $docType,
+                // Client Personal/Visa tabs also filter type = 'client'
+                'type' => 'client',
             ];
+            // Optional category folder id (PersonalDocumentType / VisaDocumentType id as string)
+            if ($folderName !== null && $folderName !== '') {
+                $updates['folder_name'] = (string) $folderName;
+            }
             if ($entityType === 'client') {
                 $updates['client_id'] = $entityId;
                 $updates['lead_id'] = null;
@@ -486,6 +492,7 @@ class SignatureService
                     'matter_id' => $matterId,
                     'doc_category' => $docCategory,
                     'doc_type' => $docType,
+                    'folder_name' => $folderName,
                 ]
             ]);
 

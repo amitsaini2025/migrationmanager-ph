@@ -781,6 +781,68 @@ class SignatureDashboardController extends Controller
     }
 
     /**
+     * Document category folders for attach modal (PersonalDocumentType / VisaDocumentType ids).
+     */
+    public function getDocumentCategories(Request $request)
+    {
+        $request->validate([
+            'entity_id' => 'required|integer',
+            'doc_category' => 'required|string|in:visa,personal',
+            'matter_id' => 'nullable|integer',
+        ]);
+
+        $entityId = (int) $request->entity_id;
+        $docCategory = $request->doc_category;
+        $matterId = $request->filled('matter_id') ? (int) $request->matter_id : null;
+
+        try {
+            if ($docCategory === 'personal') {
+                $categories = \App\Models\PersonalDocumentType::query()
+                    ->select('id', 'title')
+                    ->where('status', 1)
+                    ->where(function ($query) use ($entityId) {
+                        $query->whereNull('client_id')->orWhere('client_id', $entityId);
+                    })
+                    ->whereIn('type', ['personal', 'both'])
+                    ->orderBy('title')
+                    ->get()
+                    ->map(fn ($c) => ['id' => (string) $c->id, 'title' => $c->title]);
+            } else {
+                $categoriesQuery = \App\Models\VisaDocumentType::query()
+                    ->select('id', 'title')
+                    ->where('status', 1)
+                    ->where(function ($query) use ($entityId, $matterId) {
+                        $query->where(function ($q) {
+                            $q->whereNull('client_id')->whereNull('client_matter_id');
+                        })
+                            ->orWhere(function ($q) use ($entityId) {
+                                $q->where('client_id', $entityId)->whereNull('client_matter_id');
+                            });
+                        if ($matterId) {
+                            $query->orWhere(function ($q) use ($entityId, $matterId) {
+                                $q->where('client_id', $entityId)->where('client_matter_id', $matterId);
+                            });
+                        }
+                    })
+                    ->orderBy('title');
+
+                $categories = $categoriesQuery->get()
+                    ->map(fn ($c) => ['id' => (string) $c->id, 'title' => $c->title]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'categories' => $categories,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading categories',
+            ], 500);
+        }
+    }
+
+    /**
      * Associate a document with a client or lead (post-signing)
      */
     public function associate(Request $request, $id)
@@ -795,6 +857,7 @@ class SignatureDashboardController extends Controller
             'entity_id' => 'required|integer',
             'matter_id' => 'nullable|integer|exists:client_matters,id',
             'doc_category' => 'required|string|in:visa,personal',
+            'folder_name' => 'required|string|max:64',
             'note' => 'nullable|string|max:500'
         ]);
 
@@ -804,7 +867,8 @@ class SignatureDashboardController extends Controller
             $request->entity_id,
             $request->matter_id,
             $request->doc_category,
-            $request->note
+            $request->note,
+            $request->folder_name
         );
 
         if ($success) {

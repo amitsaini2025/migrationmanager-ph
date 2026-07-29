@@ -811,9 +811,17 @@
                                 <label>Document Category <span style="color: #dc3545;">*</span></label>
                                 <select class="form-control" id="docCategory" name="doc_category" required>
                                     <option value="">-- Select Category --</option>
-                                    <option value="visa" data-for="client">Visa Documents (Client)</option>
-                                    <option value="personal" data-for="lead">Personal Documents (Lead)</option>
+                                    <option value="visa" data-for="client">Visa Documents</option>
+                                    <option value="personal" data-for="client,lead">Personal Documents</option>
                                 </select>
+                            </div>
+
+                            <div class="form-group" id="folderSelection" style="display: none;">
+                                <label>Document Folder <span style="color: #dc3545;">*</span></label>
+                                <select class="form-control" id="folderName" name="folder_name" required>
+                                    <option value="">-- Select Folder --</option>
+                                </select>
+                                <small class="form-text text-muted">Required so the document appears under the correct client tab folder.</small>
                             </div>
                             
                             <div class="form-group">
@@ -1475,6 +1483,7 @@ function showMatch(match, type) {
     document.getElementById('lookupResults').style.display = 'block';
     document.getElementById('entityType').value = type.toLowerCase();
     document.getElementById('attachBtn').disabled = false;
+    document.getElementById('entityType').dispatchEvent(new Event('change'));
     
     // Load matters if client
     if (type === 'Client') {
@@ -1512,23 +1521,83 @@ function loadClientMatters(clientId) {
 document.addEventListener('DOMContentLoaded', function() {
     const entityType = document.getElementById('entityType');
     const docCategory = document.getElementById('docCategory');
+    const folderName = document.getElementById('folderName');
+    const folderSelection = document.getElementById('folderSelection');
+    const matterId = document.getElementById('matterId');
+    
+    function filterDocCategoryOptions() {
+        if (!entityType || !docCategory) return;
+        const type = entityType.value;
+        const options = docCategory.querySelectorAll('option');
+        
+        options.forEach(option => {
+            if (option.value === '') return;
+            const forType = (option.getAttribute('data-for') || '');
+            const allowed = forType.split(',').map(s => s.trim());
+            option.style.display = (!type || allowed.includes(type)) ? 'block' : 'none';
+        });
+        
+        docCategory.value = '';
+        resetFolderSelect();
+    }
+
+    function resetFolderSelect() {
+        if (!folderName || !folderSelection) return;
+        folderName.innerHTML = '<option value="">-- Select Folder --</option>';
+        folderSelection.style.display = 'none';
+    }
+
+    function loadDocumentFolders() {
+        if (!docCategory || !folderName || !folderSelection || !currentMatch) {
+            resetFolderSelect();
+            return;
+        }
+        const category = docCategory.value;
+        if (!category) {
+            resetFolderSelect();
+            return;
+        }
+
+        const params = new URLSearchParams({
+            entity_id: currentMatch.data.id,
+            doc_category: category,
+        });
+        if (matterId && matterId.value) {
+            params.set('matter_id', matterId.value);
+        }
+
+        folderName.innerHTML = '<option value="">Loading...</option>';
+        folderSelection.style.display = 'block';
+
+        fetch(`{{ route('signatures.document-categories') }}?` + params.toString())
+            .then(response => response.json())
+            .then(data => {
+                folderName.innerHTML = '<option value="">-- Select Folder --</option>';
+                if (data.success && data.categories && data.categories.length > 0) {
+                    data.categories.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = cat.title;
+                        folderName.appendChild(option);
+                    });
+                } else {
+                    folderName.innerHTML = '<option value="">No folders found — create one in client documents first</option>';
+                }
+            })
+            .catch(() => {
+                folderName.innerHTML = '<option value="">Error loading folders</option>';
+            });
+    }
     
     if (entityType && docCategory) {
-        entityType.addEventListener('change', function() {
-            const type = this.value;
-            const options = docCategory.querySelectorAll('option');
-            
-            options.forEach(option => {
-                if (option.value === '') return;
-                const forType = option.getAttribute('data-for');
-                if (forType === type) {
-                    option.style.display = 'block';
-                } else {
-                    option.style.display = 'none';
-                }
-            });
-            
-            docCategory.value = '';
+        entityType.addEventListener('change', filterDocCategoryOptions);
+        docCategory.addEventListener('change', loadDocumentFolders);
+    }
+    if (matterId) {
+        matterId.addEventListener('change', function() {
+            if (docCategory && docCategory.value === 'visa') {
+                loadDocumentFolders();
+            }
         });
     }
     
@@ -1539,6 +1608,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!currentMatch) {
                 e.preventDefault();
                 alert('Please lookup a signer first');
+                return;
+            }
+
+            if (!folderName || !folderName.value) {
+                e.preventDefault();
+                alert('Please select a document folder so the file appears in the client documents tab.');
                 return;
             }
             
