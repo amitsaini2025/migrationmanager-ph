@@ -704,29 +704,48 @@ class PublicDocumentController extends Controller
                         // Advance workflow stage to next in sequence (when next stage doesn't require manual input)
                         $clientMatter = ClientMatter::find($document->client_matter_id, ['*']);
                         if ($clientMatter && $clientMatter->workflow_stage_id) {
-                            $currentStage = WorkflowStage::find($clientMatter->workflow_stage_id, ['*']);
-                            if ($currentStage) {
-                                $currentOrder = $currentStage->sort_order ?? $currentStage->id;
-                                $stageQuery = WorkflowStage::whereRaw('COALESCE(sort_order, id) > ?', [$currentOrder], 'and');
-                                $workflowId = $clientMatter->workflow_id ?? $currentStage->workflow_id;
-                                if ($workflowId) {
-                                    $stageQuery->where('workflow_id', '=', $workflowId);
-                                }
-                                $nextStage = $stageQuery->orderByRaw('COALESCE(sort_order, id) ASC')->first();
+                            // Do not auto-advance discontinued matters (same policy as staff stage transitions)
+                            if ((int) $clientMatter->matter_status === 0) {
+                                Log::info('Skipped workflow advance on sign: matter discontinued', [
+                                    'document_id' => $document->id,
+                                    'client_matter_id' => $document->client_matter_id,
+                                ]);
+                            } else {
+                                $currentStage = WorkflowStage::find($clientMatter->workflow_stage_id, ['*']);
+                                if ($currentStage) {
+                                    // Match staff next-stage: block advance while required checklist items remain
+                                    $outstandingRequired = \App\Support\WorkflowV2Display::outstandingRequiredForCurrentStage($clientMatter);
+                                    if ($outstandingRequired > 0) {
+                                        Log::info('Skipped workflow advance on sign: outstanding required checklist items', [
+                                            'document_id' => $document->id,
+                                            'client_matter_id' => $document->client_matter_id,
+                                            'outstanding_required' => $outstandingRequired,
+                                            'current_stage' => $currentStage->name,
+                                        ]);
+                                    } else {
+                                        $currentOrder = $currentStage->sort_order ?? $currentStage->id;
+                                        $stageQuery = WorkflowStage::whereRaw('COALESCE(sort_order, id) > ?', [$currentOrder], 'and');
+                                        $workflowId = $clientMatter->workflow_id ?? $currentStage->workflow_id;
+                                        if ($workflowId) {
+                                            $stageQuery->where('workflow_id', '=', $workflowId);
+                                        }
+                                        $nextStage = $stageQuery->orderByRaw('COALESCE(sort_order, id) ASC')->first();
 
-                                // Only auto-advance if next stage is NOT "Decision Received" (requires outcome/note)
-                                if ($nextStage && strtolower(trim($nextStage->name ?? '')) !== 'decision received') {
-                                    $clientMatter->workflow_stage_id = $nextStage->id;
-                                    $clientMatter->save();
+                                        // Only auto-advance if next stage is NOT "Decision Received" (requires outcome/note)
+                                        if ($nextStage && strtolower(trim($nextStage->name ?? '')) !== 'decision received') {
+                                            $clientMatter->workflow_stage_id = $nextStage->id;
+                                            $clientMatter->save();
 
-                                    // applications table removed - workflow tracked via client_matters
+                                            // applications table removed - workflow tracked via client_matters
 
-                                    Log::info('Workflow advanced on document sign', [
-                                        'document_id' => $document->id,
-                                        'client_matter_id' => $document->client_matter_id,
-                                        'from_stage' => $currentStage->name,
-                                        'to_stage' => $nextStage->name,
-                                    ]);
+                                            Log::info('Workflow advanced on document sign', [
+                                                'document_id' => $document->id,
+                                                'client_matter_id' => $document->client_matter_id,
+                                                'from_stage' => $currentStage->name,
+                                                'to_stage' => $nextStage->name,
+                                            ]);
+                                        }
+                                    }
                                 }
                             }
                         }
