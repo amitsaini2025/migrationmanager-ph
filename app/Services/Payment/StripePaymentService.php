@@ -629,6 +629,127 @@ class StripePaymentService
     }
 
     /**
+     * Verify a PaymentIntent settled an invoice, without touching appointment tables.
+     *
+     * Returns ['verified' => bool, 'reason' => string|null, 'data' => array].
+     * `verified` is false whenever Stripe cannot confirm the payment — the caller
+     * decides whether that is fatal (see services.stripe.enforce_portal_payment_verification).
+     *
+     * @param string $paymentIntentId Stripe PaymentIntent ID (pi_...)
+     * @param float  $expectedAmount  Amount the invoice expects, in dollars
+     * @param array  $expectedMetadata Key/value pairs that must match intent metadata when present
+     */
+    public function verifyPaymentIntentForInvoice(string $paymentIntentId, float $expectedAmount, array $expectedMetadata = []): array
+    {
+        if (! preg_match('/^pi_[A-Za-z0-9_]+$/', $paymentIntentId)) {
+            return [
+                'verified' => false,
+                'reason' => 'Payment token is not a Stripe PaymentIntent id.',
+                'data' => [],
+            ];
+        }
+
+        try {
+            $paymentIntent = PaymentIntent::retrieve($paymentIntentId);
+        } catch (ApiErrorException $e) {
+            Log::warning('Invoice payment verification: Stripe lookup failed', [
+                'payment_intent_id' => $paymentIntentId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'verified' => false,
+                'reason' => 'PaymentIntent could not be retrieved from Stripe.',
+                'data' => [],
+            ];
+        }
+
+        if ($paymentIntent->status !== 'succeeded') {
+            return [
+                'verified' => false,
+                'reason' => 'Payment has not succeeded. Current status: ' . $paymentIntent->status,
+                'data' => ['status' => $paymentIntent->status],
+            ];
+        }
+
+        // Stripe amounts are in cents; allow a 1 cent tolerance for rounding.
+        $expectedCents = (int) round($expectedAmount * 100);
+        if ((int) $paymentIntent->amount + 1 < $expectedCents) {
+            return [
+                'verified' => false,
+                'reason' => 'Payment amount is less than the invoice amount.',
+                'data' => [
+                    'expected_cents' => $expectedCents,
+                    'stripe_cents' => (int) $paymentIntent->amount,
+                ],
+            ];
+        }
+
+        foreach ($expectedMetadata as $key => $value) {
+            $actual = $paymentIntent->metadata->{$key} ?? null;
+            if ($actual !== null && (string) $actual !== (string) $value) {
+                return [
+                    'verified' => false,
+                    'reason' => 'PaymentIntent does not belong to this invoice.',
+                    'data' => ['metadata_key' => $key],
+                ];
+            }
+        }
+
+        return [
+            'verified' => true,
+            'reason' => null,
+            'data' => [
+                'payment_intent_id' => $paymentIntent->id,
+                'amount_cents' => (int) $paymentIntent->amount,
+                'currency' => strtoupper($paymentIntent->currency ?? 'AUD'),
+                'charge_id' => $paymentIntent->latest_charge ?? null,
+            ],
+        ];
+    }
+
+    /**
+     * Create a PaymentIntent for a client portal invoice. The amount is supplied by
+     * the server from invoice data, never by the caller.
+     *
+     * @param array $metadata Stamped onto the intent so it can be bound back to the invoice
+     */
+    public function createInvoicePaymentIntent(float $amount, array $metadata = [], string $currency = 'aud'): array
+    {
+        try {
+            $paymentIntent = PaymentIntent::create([
+                'amount' => (int) round($amount * 100),
+                'currency' => strtolower($currency),
+                'automatic_payment_methods' => ['enabled' => true],
+                'metadata' => $metadata,
+            ]);
+
+            return [
+                'success' => true,
+                'data' => [
+                    'id' => $paymentIntent->id,
+                    'client_secret' => $paymentIntent->client_secret,
+                    'amount' => $paymentIntent->amount,
+                    'currency' => $paymentIntent->currency,
+                    'status' => $paymentIntent->status,
+                ],
+                'message' => 'PaymentIntent created.',
+            ];
+        } catch (ApiErrorException $e) {
+            Log::error('Invoice PaymentIntent creation failed', [
+                'metadata' => $metadata,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'data' => [],
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * Get payment history for an appointment
      * 
      * @param int $appointmentId

@@ -161,6 +161,15 @@ return [
     'stripe' => [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
+
+        /*
+         * Client portal invoice payments are verified against Stripe either way.
+         * false: unverifiable payments are logged and still accepted (current
+         *        portal apps send non-PaymentIntent tokens).
+         * true:  unverifiable payments are rejected. Enable once the portal
+         *        sends real PaymentIntent ids.
+         */
+        'enforce_portal_payment_verification' => env('STRIPE_ENFORCE_PORTAL_PAYMENT_VERIFICATION', false),
     ],
 
     /*

@@ -201,13 +201,13 @@
 ## H. Billing / accounts
 
 ### H1. Critical — Client portal invoice update marks invoices fully paid without payment verification
-**Status:** Verified  
+**Status:** Fixed (verification runs; enforcement behind `STRIPE_ENFORCE_PORTAL_PAYMENT_VERIFICATION`)  
 **What breaks:** `ClientPortalBillingController::updateInvoice` (sanctum-authenticated) trusts client-supplied `payment_status: "completed"` and an opaque `payment_token`, then calls `markFullyPaidFromClientPortal` (zeros balances / sets invoice paid) with no Stripe (or other gateway) verification. Authenticated clients can zero their own portal invoices.  
 **Evidence:** `app/Http/Controllers/API/ClientPortalBillingController.php` ~144–206; `app/Services/InvoicePaymentSyncService.php` ~249–304; route `POST /api/billing/invoice-update` under `auth:sanctum`.  
 **Reproduce:** Auth as portal client → POST `payment_status: completed` + any token for a sent unpaid invoice they own.
 
 ### H2. High — Void invoice can reverse the wrong fee transfers
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** If Method 1 (by `invoice_no`) finds nothing, Method 2 matches fee transfers by `withdraw_amount = $invoiceAmount` and allows loose `invoice_no` matching (including null/empty paths). `$invoiceAmount` is overwritten per line as `max(partial_paid, withdraw)` and ends as the **last processed line’s** amount — not the invoice sum and not a global max — so multi-line invoices often miss the real transfer and/or match unrelated same-amount transfers.  
 **Evidence:** `ClientAccountsController::void_invoice` ~4120–4214.  
 **Reproduce:** Void a multi-line invoice whose fee transfer is linked poorly / by amount fallback → wrong or no transfer reversed.

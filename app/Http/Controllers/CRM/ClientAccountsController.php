@@ -4081,6 +4081,8 @@ class ClientAccountsController extends Controller
           
           $totalReversalsCreated = 0; // Track total reversals created
           $totalOfficeReceiptsReleased = 0; // Track office receipts freed for reallocation
+          $totalFeeTransfersAlreadyVoided = 0; // Already reversed by an earlier void
+          $totalAmbiguousFeeTransfers = 0; // Unlinked candidates too ambiguous to auto-reverse
           
           if ($affectedRows > 0) {
 
@@ -4124,23 +4126,23 @@ class ClientAccountsController extends Controller
                ->where('void_invoice', 1)
                ->get();
                
-               $invoiceAmount = 0; // Track the invoice amount
+               // Accumulate across every line so multi-line invoices get the real totals,
+               // not just the last line's amount.
+               $invoiceWithdrawTotal = 0;
+               $invoicePaidTotal = 0;
                
                if(!empty($record_info)){
                    foreach($record_info as $infoVal){
-                       // Get the invoice amount (withdraw_amount is the invoice total)
-                       // Use partial_paid_amount if available, otherwise use withdraw_amount
-                       $paidAmount = floatval($infoVal->partial_paid_amount ?? 0);
-                       $invoiceTotal = floatval($infoVal->withdraw_amount ?? 0);
-                       
-                       // Use whichever is greater (the actual invoice amount)
-                       $invoiceAmount = max($paidAmount, $invoiceTotal);
+                       $invoicePaidTotal += floatval($infoVal->partial_paid_amount ?? 0);
+                       $invoiceWithdrawTotal += floatval($infoVal->withdraw_amount ?? 0);
                        
                        DB::table('account_client_receipts')
                        ->where('id',$infoVal->id)
                        ->update(['withdraw_amount_before_void' => $infoVal->balance_amount,'withdraw_amount'=>'0.00','balance_amount'=>'0.00','partial_paid_amount'=>'0.00']);
                    }
                }
+               
+               $invoiceAmount = max($invoicePaidTotal, $invoiceWithdrawTotal);
 
                //update account_all_invoice_receipts entries also
                $record_info1 = AccountAllInvoiceReceipt::select('id','withdraw_amount','receipt_id')
@@ -4153,9 +4155,18 @@ class ClientAccountsController extends Controller
                    }
                }
 
+               // Invoice keys used to match linked rows: invoice_no, falling back to trans_no
+               // (same resolution InvoicePaymentSyncService uses). Exact matches only.
+               $voidedInvoiceKeys = [];
+               foreach ([$invoice_info->invoice_no ?? null, $invoice_info->trans_no ?? null] as $possibleKey) {
+                   $possibleKey = trim((string) $possibleKey);
+                   if ($possibleKey !== '' && !in_array($possibleKey, $voidedInvoiceKeys, true)) {
+                       $voidedInvoiceKeys[] = $possibleKey;
+                   }
+               }
+
                // **NEW: REVERSE FEE TRANSFERS - Return money to client funds ledger**
                // Find all fee transfers linked to this invoice
-               // Try multiple methods to find related fee transfers
                
                Log::info('Starting fee transfer search', [
                    'invoice_info' => [
@@ -4167,69 +4178,90 @@ class ClientAccountsController extends Controller
                    'calculated_amount' => $invoiceAmount
                ]);
                
-               // Method 1: By invoice number (if stored)
-               $feeTransfersQuery = DB::table('account_client_receipts')
-                   ->where('receipt_type', 1)
-                   ->where('client_fund_ledger_type', 'Fee Transfer')
-                   ->where('client_id', $invoice_info->client_id);
+               // Method 1: exact invoice key match — the canonical link, same rule
+               // InvoicePaymentSyncService::sumTotalPaidForInvoice uses to count a transfer as paid.
+               $ambiguousFeeTransfers = 0;
+               $alreadyVoidedFeeTransfers = 0;
                
-               if(!empty($invoice_info->client_matter_id)){
-                   $feeTransfersQuery->where('client_matter_id', $invoice_info->client_matter_id);
-               }
+               $feeTransfers = collect();
                
-               // Try with invoice_no first
-               $feeTransfers = $feeTransfersQuery->where('invoice_no', $invoice_info->invoice_no)->get();
-               
-               // TEMPORARY DEBUG: Dump what we're searching for
-               if(count($feeTransfers) == 0){
-                   // Let's see what's in the database
-                   $debugCheck = DB::table('account_client_receipts')
-                       ->select('id','trans_no','invoice_no','client_id','client_matter_id')
+               if(!empty($voidedInvoiceKeys)){
+                   $feeTransfersQuery = DB::table('account_client_receipts')
                        ->where('receipt_type', 1)
                        ->where('client_fund_ledger_type', 'Fee Transfer')
                        ->where('client_id', $invoice_info->client_id)
-                       ->get();
+                       ->whereIn('invoice_no', $voidedInvoiceKeys);
                    
-                   Log::error('Fee transfer NOT found - Debug Info', [
-                       'searching_for' => [
-                           'invoice_no' => $invoice_info->invoice_no,
-                           'client_id' => $invoice_info->client_id,
-                           'client_matter_id' => $invoice_info->client_matter_id,
-                       ],
-                       'all_fee_transfers_for_client' => $debugCheck->toArray()
-                   ]);
+                   if(!empty($invoice_info->client_matter_id)){
+                       $feeTransfersQuery->where('client_matter_id', $invoice_info->client_matter_id);
+                   }
+                   
+                   $linkedFeeTransfers = $feeTransfersQuery->get();
+                   
+                   // Skip transfers already reversed by an earlier void so counts and
+                   // activity log entries are not duplicated.
+                   $feeTransfers = $linkedFeeTransfers->filter(function($ft) {
+                       return empty($ft->void_fee_transfer);
+                   })->values();
+                   
+                   $alreadyVoidedFeeTransfers = $linkedFeeTransfers->count() - $feeTransfers->count();
                }
                
-               // Method 2: If no results, search by invoice amount and NOT already voided
-               if(count($feeTransfers) == 0){
-                   Log::info('No fee transfers found by invoice_no, trying by amount and date', [
+               // Method 2 (legacy data only): unlinked transfers matched by amount.
+               // Requires a single unambiguous candidate — never guesses between several,
+               // and never matches transfers already tagged to another invoice.
+               if($feeTransfers->isEmpty() && $alreadyVoidedFeeTransfers == 0 && $invoiceAmount > 0){
+                   Log::info('No fee transfers linked by invoice_no, checking unlinked transfers by amount', [
                        'invoice_amount' => $invoiceAmount
                    ]);
                    
-                   if($invoiceAmount > 0){
-                       $feeTransfersQuery2 = DB::table('account_client_receipts')
-                           ->where('receipt_type', 1)
-                           ->where('client_fund_ledger_type', 'Fee Transfer')
-                           ->where('client_id', $invoice_info->client_id)
-                           ->where('withdraw_amount', $invoiceAmount)
+                   $fallbackQuery = DB::table('account_client_receipts')
+                       ->where('receipt_type', 1)
+                       ->where('client_fund_ledger_type', 'Fee Transfer')
+                       ->where('client_id', $invoice_info->client_id)
+                       ->where('withdraw_amount', $invoiceAmount)
                        ->where(function($q) {
                            $q->whereNull('void_fee_transfer')
                              ->orWhere('void_fee_transfer', 0);
                        })
-                       ->where(function($q) use ($invoice_info) {
-                           $q->where('invoice_no', $invoice_info->invoice_no)
-                             ->orWhere('invoice_no', 'LIKE', '%'.$invoice_info->trans_no.'%')
-                             ->orWhereNull('invoice_no')
+                       ->where(function($q) {
+                           $q->whereNull('invoice_no')
                              ->orWhere('invoice_no', '');
                        });
+                   
+                   if(!empty($invoice_info->client_matter_id)){
+                       $fallbackQuery->where('client_matter_id', $invoice_info->client_matter_id);
+                   }
+                   
+                   $fallbackCandidates = $fallbackQuery->get();
+                   
+                   if($fallbackCandidates->count() == 1){
+                       $feeTransfers = $fallbackCandidates;
+                   } elseif($fallbackCandidates->count() > 1){
+                       $ambiguousFeeTransfers = $fallbackCandidates->count();
                        
-                       if(!empty($invoice_info->client_matter_id)){
-                           $feeTransfersQuery2->where('client_matter_id', $invoice_info->client_matter_id);
-                       }
-                       
-                       $feeTransfers = $feeTransfersQuery2->get();
+                       Log::warning('Ambiguous unlinked fee transfers - skipping automatic reversal', [
+                           'client_id' => $invoice_info->client_id,
+                           'client_matter_id' => $invoice_info->client_matter_id,
+                           'invoice_no' => $invoice_info->invoice_no,
+                           'invoice_amount' => $invoiceAmount,
+                           'candidates' => $fallbackCandidates->pluck('id')->toArray()
+                       ]);
                    }
                }
+               
+               if($feeTransfers->isEmpty() && $alreadyVoidedFeeTransfers == 0 && $ambiguousFeeTransfers == 0){
+                   Log::warning('No fee transfers found to reverse for voided invoice', [
+                       'invoice_no' => $invoice_info->invoice_no,
+                       'trans_no' => $invoice_info->trans_no,
+                       'client_id' => $invoice_info->client_id,
+                       'client_matter_id' => $invoice_info->client_matter_id,
+                       'invoice_amount' => $invoiceAmount
+                   ]);
+               }
+               
+               $totalFeeTransfersAlreadyVoided += $alreadyVoidedFeeTransfers;
+               $totalAmbiguousFeeTransfers += $ambiguousFeeTransfers;
 
                // Debug: Log what we found
                Log::info('Void Invoice - Fee Transfer Search Results', [
@@ -4302,14 +4334,6 @@ class ClientAccountsController extends Controller
                // Office receipts are money already banked, so the receipt row stays untouched.
                // Only its invoice link is cleared (invoice_no = null is this app's "unallocated"
                // state) so staff can reallocate the payment to another invoice manually.
-               $voidedInvoiceKeys = [];
-               foreach ([$invoice_info->invoice_no ?? null, $invoice_info->trans_no ?? null] as $possibleKey) {
-                   $possibleKey = trim((string) $possibleKey);
-                   if ($possibleKey !== '' && !in_array($possibleKey, $voidedInvoiceKeys, true)) {
-                       $voidedInvoiceKeys[] = $possibleKey;
-                   }
-               }
-
                if (!empty($voidedInvoiceKeys)) {
                    $officeReceiptsQuery = DB::table('account_client_receipts')
                        ->where('receipt_type', 2)
@@ -4371,6 +4395,10 @@ class ClientAccountsController extends Controller
            
            if($totalReversalsCreated > 0){
                $response['message'] = 'Invoice voided successfully. ' . $totalReversalsCreated . ' fee transfer(s) voided and balances recalculated.';
+           } elseif($totalFeeTransfersAlreadyVoided > 0){
+               $response['message'] = 'Invoice voided successfully. ' . $totalFeeTransfersAlreadyVoided . ' fee transfer(s) were already reversed by an earlier void.';
+           } elseif($totalAmbiguousFeeTransfers > 0){
+               $response['message'] = 'Invoice voided successfully. (Action needed: ' . $totalAmbiguousFeeTransfers . ' unlinked fee transfer(s) match this amount, so none were reversed automatically - please reverse the correct one manually)';
            } else {
                $response['message'] = 'Invoice voided successfully. (Note: No fee transfers found to reverse - invoice may not have been paid from client funds)';
            }
@@ -4383,6 +4411,8 @@ class ClientAccountsController extends Controller
            $response['debug_info'] = [
                'total_reversals' => $totalReversalsCreated,
                'office_receipts_released' => $totalOfficeReceiptsReleased,
+               'fee_transfers_already_voided' => $totalFeeTransfersAlreadyVoided,
+               'ambiguous_fee_transfers' => $totalAmbiguousFeeTransfers,
                'voided_receipts' => count($request->clickedReceiptIds)
            ];
           } else {
