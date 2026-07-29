@@ -3698,6 +3698,10 @@ class ClientPortalController extends Controller
 				], 404);
 			}
 
+			if ($discontinued = $this->rejectIfClientMatterDiscontinued($clientMatter)) {
+				return $discontinued;
+			}
+
 			// Get current stage
 			$currentStageId = $clientMatter->workflow_stage_id;
 			
@@ -3931,6 +3935,10 @@ class ClientPortalController extends Controller
 				], 404);
 			}
 
+			if ($discontinued = $this->rejectIfClientMatterDiscontinued($clientMatter)) {
+				return $discontinued;
+			}
+
 			$currentStageId = $clientMatter->workflow_stage_id;
 
 			if (!$currentStageId) {
@@ -3972,11 +3980,21 @@ class ClientPortalController extends Controller
 			if ($saved) {
 				// applications table removed - workflow tracked via client_matters
 
-				$totalStages = WorkflowStage::count();
+				// Calculate progress percentage (by sort_order) - scope to same workflow (match next-stage)
+				$progressQuery = WorkflowStage::query();
+				if ($clientMatter->workflow_id) {
+					$progressQuery->where('workflow_id', $clientMatter->workflow_id);
+				}
+				$totalStages = (clone $progressQuery)->count();
 				$prevOrder = $prevStage->sort_order ?? $prevStage->id;
-				$currentStageIndex = WorkflowStage::whereRaw('COALESCE(sort_order, id) <= ?', [$prevOrder])->count();
+				$currentStageIndex = (clone $progressQuery)->whereRaw('COALESCE(sort_order, id) <= ?', [$prevOrder])->count();
 				$progressPercentage = $totalStages > 0 ? round(($currentStageIndex / $totalStages) * 100) : 0;
-				$isFirstStage = !WorkflowStage::whereRaw('COALESCE(sort_order, id) < ?', [$prevOrder])->exists();
+
+				$isFirstStageQuery = WorkflowStage::whereRaw('COALESCE(sort_order, id) < ?', [$prevOrder]);
+				if ($clientMatter->workflow_id) {
+					$isFirstStageQuery->where('workflow_id', $clientMatter->workflow_id);
+				}
+				$isFirstStage = !$isFirstStageQuery->exists();
 
 				$matterNo = $clientMatter->client_unique_matter_no ?? 'ID: ' . $matterId;
 
@@ -4054,6 +4072,22 @@ class ClientPortalController extends Controller
 	 * for stage, matter, document, and staff message flows. Detail approve/reject endpoints do not
 	 * insert activities_logs rows.
 	 */
+	/**
+	 * Block workflow mutations on discontinued matters (matter_status = 0).
+	 * Reopen remains available via reopenClientMatter / reopen UI.
+	 */
+	private function rejectIfClientMatterDiscontinued(ClientMatter $clientMatter)
+	{
+		if ((int) $clientMatter->matter_status === 0) {
+			return response()->json([
+				'status' => false,
+				'message' => 'This matter is discontinued. Reopen it before changing stage or checklist.',
+			], 422);
+		}
+
+		return null;
+	}
+
 	private function shouldOmitActivitiesLogForClientPortalWebContext(Request $request): bool
 	{
 		if ($request->input('source') === 'client_portal') {
@@ -4104,6 +4138,10 @@ class ClientPortalController extends Controller
 			$clientMatter = ClientMatter::find($matterId);
 			if (!$clientMatter) {
 				return response()->json(['status' => false, 'message' => 'Client matter not found'], 404);
+			}
+
+			if ($discontinued = $this->rejectIfClientMatterDiscontinued($clientMatter)) {
+				return $discontinued;
 			}
 
 			$workflow = \App\Models\Workflow::find($workflowId);
@@ -5096,6 +5134,10 @@ class ClientPortalController extends Controller
 				'status' => false,
 				'message' => 'Client matter not found',
 			], 404);
+		}
+
+		if ($discontinued = $this->rejectIfClientMatterDiscontinued($clientMatter)) {
+			return $discontinued;
 		}
 
 		$checklistItem = DB::table('cp_doc_checklists')

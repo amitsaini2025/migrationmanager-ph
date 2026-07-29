@@ -764,63 +764,67 @@ class ClientPersonalDetailsController extends Controller
         $response = ['status' => false, 'message' => 'Invalid request. Please try again.'];
         $requstData = $request->all();
 
-        if (!empty($requstData['client_id'])) {
-            $this->ensureCrmRecordAccess((int) $requstData['client_id']);
+        if (empty($requstData['client_id'])) {
+            $response['message'] = 'Invalid request. Please try again.';
+            return response()->json($response);
         }
+
+        $this->ensureCrmRecordAccess((int) $requstData['client_id']);
 
         if (empty($requstData['selectedMatterLM'])) {
             $response['message'] = 'Please select a matter first.';
             return response()->json($response);
         }
 
-        if (ClientMatter::where('id', '=', $requstData['selectedMatterLM'])->exists()) {
-            $obj = ClientMatter::find($requstData['selectedMatterLM']);
-            $obj->sel_migration_agent = $requstData['migration_agent'];
-            $obj->sel_person_responsible = $requstData['person_responsible'];
-            $obj->sel_person_assisting = $requstData['person_assisting'];
-            $obj->user_id = $requstData['user_id'];
-
-            if (isset($requstData['office_id']) && $requstData['office_id'] !== '') {
-                $obj->office_id = $requstData['office_id'];
-            }
-
-            $saved = $obj->save();
-            if ($saved) {
-                $objs = new \App\Models\ActivitiesLog;
-                $objs->client_id = $requstData['client_id'];
-                $objs->created_by = Auth::user()->id;
-                $objs->description = '';
-                $objs->subject = 'updated client matter assignee';
-                $objs->task_status = 0;
-                $objs->pin = 0;
-                $objs->save();
-
-                $agent = \App\Models\Staff::select('first_name', 'last_name')->find($obj->sel_migration_agent);
-                $personResponsible = \App\Models\Staff::select('first_name', 'last_name')->find($obj->sel_person_responsible);
-                $personAssisting = \App\Models\Staff::select('first_name', 'last_name')->find($obj->sel_person_assisting);
-                $office = !empty($obj->office_id)
-                    ? \App\Models\Branch::select('office_name')->find($obj->office_id)
-                    : null;
-
-                $response['status'] = true;
-                $response['message'] = 'Matter assignee updated successfully.';
-                $response['assignees'] = [
-                    'migration_agent_name' => $agent
-                        ? trim($agent->first_name . ' ' . $agent->last_name)
-                        : 'N/A',
-                    'person_responsible_name' => $personResponsible
-                        ? trim($personResponsible->first_name . ' ' . $personResponsible->last_name)
-                        : 'N/A',
-                    'person_assisting_name' => $personAssisting
-                        ? trim($personAssisting->first_name . ' ' . $personAssisting->last_name)
-                        : 'N/A',
-                    'office_name' => $office ? $office->office_name : 'No Office Assigned',
-                ];
-            } else {
-                $response['message'] = 'Record could not be updated. Please try again.';
-            }
-        } else {
+        $obj = ClientMatter::find($requstData['selectedMatterLM']);
+        if (!$obj || (int) $obj->client_id !== (int) $requstData['client_id']) {
             $response['message'] = 'Matter not found. Please try again.';
+            return response()->json($response);
+        }
+
+        $obj->sel_migration_agent = $requstData['migration_agent'];
+        $obj->sel_person_responsible = $requstData['person_responsible'];
+        $obj->sel_person_assisting = $requstData['person_assisting'];
+        $obj->user_id = $requstData['user_id'];
+
+        if (isset($requstData['office_id']) && $requstData['office_id'] !== '') {
+            $obj->office_id = $requstData['office_id'];
+        }
+
+        $saved = $obj->save();
+        if ($saved) {
+            $objs = new \App\Models\ActivitiesLog;
+            $objs->client_id = (int) $obj->client_id;
+            $objs->created_by = Auth::user()->id;
+            $objs->description = '';
+            $objs->subject = 'updated client matter assignee';
+            $objs->task_status = 0;
+            $objs->pin = 0;
+            $objs->save();
+
+            $agent = \App\Models\Staff::select('first_name', 'last_name')->find($obj->sel_migration_agent);
+            $personResponsible = \App\Models\Staff::select('first_name', 'last_name')->find($obj->sel_person_responsible);
+            $personAssisting = \App\Models\Staff::select('first_name', 'last_name')->find($obj->sel_person_assisting);
+            $office = !empty($obj->office_id)
+                ? \App\Models\Branch::select('office_name')->find($obj->office_id)
+                : null;
+
+            $response['status'] = true;
+            $response['message'] = 'Matter assignee updated successfully.';
+            $response['assignees'] = [
+                'migration_agent_name' => $agent
+                    ? trim($agent->first_name . ' ' . $agent->last_name)
+                    : 'N/A',
+                'person_responsible_name' => $personResponsible
+                    ? trim($personResponsible->first_name . ' ' . $personResponsible->last_name)
+                    : 'N/A',
+                'person_assisting_name' => $personAssisting
+                    ? trim($personAssisting->first_name . ' ' . $personAssisting->last_name)
+                    : 'N/A',
+                'office_name' => $office ? $office->office_name : 'No Office Assigned',
+            ];
+        } else {
+            $response['message'] = 'Record could not be updated. Please try again.';
         }
 
         return response()->json($response);
