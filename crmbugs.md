@@ -213,12 +213,12 @@
 **Reproduce:** Void a multi-line invoice whose fee transfer is linked poorly / by amount fallback → wrong or no transfer reversed.
 
 ### H3. High — Void invoice does not reverse office receipts; payments become orphaned
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Void zeros invoice lines and may void fee transfers, but office receipts (`receipt_type = 2`) for that `invoice_no` stay. After void, invoice lines are excluded from payment sync (`void_invoice` filter), so office money remains allocated to a voided invoice with no automatic reversal or reallocation.  
 **Evidence:** `void_invoice` ~4077–4313; `InvoicePaymentSyncService::invoiceLinesBaseQuery` ~387–390.
 
 ### H4. High — Delete receipt does not recalculate client-fund balances
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** After deleting a receipt, balance adjustment is an empty placeholder comment. Running balances on remaining ledger rows stay wrong.  
 **Evidence:** `ClientAccountsController::delete_receipt` ~4757–4767.
 

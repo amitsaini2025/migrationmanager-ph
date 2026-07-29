@@ -4080,6 +4080,7 @@ class ClientAccountsController extends Controller
           ->update(['void_invoice' => 1,'voided_or_validated_by' => Auth::user()->id,'invoice_status' => 3]); //invoice_status =3 voided
           
           $totalReversalsCreated = 0; // Track total reversals created
+          $totalOfficeReceiptsReleased = 0; // Track office receipts freed for reallocation
           
           if ($affectedRows > 0) {
 
@@ -4285,37 +4286,73 @@ class ClientAccountsController extends Controller
                    }
                    
                    // **RECALCULATE ALL BALANCES FOR THIS CLIENT'S LEDGER**
-                   // Get all non-voided entries ordered by ID
-                   $allEntriesQuery = DB::table('account_client_receipts')
-                       ->where('client_id', $invoice_info->client_id)
-                       ->where('receipt_type', 1)
-                       ->where(function($query) {
-                           $query->whereNull('void_fee_transfer')
-                                 ->orWhere('void_fee_transfer', 0);
-                       })
-                       ->orderBy('id', 'asc');
-                   
-                   if(!empty($invoice_info->client_matter_id)){
-                       $allEntriesQuery->where('client_matter_id', $invoice_info->client_matter_id);
-                   }
-                   
-                   $allEntries = $allEntriesQuery->get();
-                   
-                   // Recalculate running balance
-                   $runningBalance = 0;
-                   foreach($allEntries as $entry){
-                       $runningBalance += floatval($entry->deposit_amount) - floatval($entry->withdraw_amount);
-                       
-                       DB::table('account_client_receipts')
-                           ->where('id', $entry->id)
-                           ->update(['balance_amount' => $runningBalance]);
-                   }
+                   $recalculated = $this->recalculateClientFundBalances(
+                       $invoice_info->client_id,
+                       $invoice_info->client_matter_id ?? null
+                   );
                    
                    Log::info('Client Funds Ledger balances recalculated', [
                        'client_id' => $invoice_info->client_id,
-                       'final_balance' => $runningBalance,
-                       'entries_processed' => count($allEntries)
+                       'final_balance' => $recalculated['final_balance'],
+                       'entries_processed' => $recalculated['entries_processed']
                    ]);
+               }
+
+               // **RELEASE OFFICE RECEIPT ALLOCATIONS**
+               // Office receipts are money already banked, so the receipt row stays untouched.
+               // Only its invoice link is cleared (invoice_no = null is this app's "unallocated"
+               // state) so staff can reallocate the payment to another invoice manually.
+               $voidedInvoiceKeys = [];
+               foreach ([$invoice_info->invoice_no ?? null, $invoice_info->trans_no ?? null] as $possibleKey) {
+                   $possibleKey = trim((string) $possibleKey);
+                   if ($possibleKey !== '' && !in_array($possibleKey, $voidedInvoiceKeys, true)) {
+                       $voidedInvoiceKeys[] = $possibleKey;
+                   }
+               }
+
+               if (!empty($voidedInvoiceKeys)) {
+                   $officeReceiptsQuery = DB::table('account_client_receipts')
+                       ->where('receipt_type', 2)
+                       ->where('client_id', $invoice_info->client_id)
+                       ->whereIn('invoice_no', $voidedInvoiceKeys);
+
+                   if (!empty($invoice_info->client_matter_id)) {
+                       $officeReceiptsQuery->where('client_matter_id', $invoice_info->client_matter_id);
+                   }
+
+                   foreach ($officeReceiptsQuery->get() as $officeReceipt) {
+                       $releasedFromInvoiceNo = $officeReceipt->invoice_no;
+                       $releaseNote = 'Unallocated from voided invoice ' . $releasedFromInvoiceNo;
+                       $existingDescription = trim((string) ($officeReceipt->description ?? ''));
+
+                       DB::table('account_client_receipts')
+                           ->where('id', $officeReceipt->id)
+                           ->update([
+                               'invoice_no' => null,
+                               'description' => $existingDescription === '' ? $releaseNote : $existingDescription . ' - ' . $releaseNote,
+                               'updated_at' => now(),
+                           ]);
+
+                       $totalOfficeReceiptsReleased++;
+
+                       $release_subject = 'Unallocated office receipt ' . $officeReceipt->trans_no . ' from voided invoice ' . $releasedFromInvoiceNo . ' - $' . number_format(floatval($officeReceipt->deposit_amount ?? 0), 2) . ' available to reallocate';
+                       $release_activity = new ActivitiesLog;
+                       $release_activity->client_id = $invoice_info->client_id;
+                       $release_activity->created_by = Auth::user()->id;
+                       $release_activity->description = 'Payment remains on file and is now unallocated';
+                       $release_activity->subject = $release_subject;
+                       $release_activity->activity_type = 'financial';
+                       $release_activity->task_status = 0;
+                       $release_activity->pin = 0;
+                       $release_activity->save();
+
+                       Log::info('Office receipt unallocated from voided invoice', [
+                           'office_receipt_id' => $officeReceipt->id,
+                           'trans_no' => $officeReceipt->trans_no,
+                           'invoice_no' => $releasedFromInvoiceNo,
+                           'deposit_amount' => $officeReceipt->deposit_amount ?? 0
+                       ]);
+                   }
                }
            }
 
@@ -4330,6 +4367,7 @@ class ClientAccountsController extends Controller
            $response['record_data'] =     $record_data;
            $response['status']     =     true;
            $response['reversals_created'] = $totalReversalsCreated;
+           $response['office_receipts_released'] = $totalOfficeReceiptsReleased;
            
            if($totalReversalsCreated > 0){
                $response['message'] = 'Invoice voided successfully. ' . $totalReversalsCreated . ' fee transfer(s) voided and balances recalculated.';
@@ -4337,9 +4375,14 @@ class ClientAccountsController extends Controller
                $response['message'] = 'Invoice voided successfully. (Note: No fee transfers found to reverse - invoice may not have been paid from client funds)';
            }
            
+           if($totalOfficeReceiptsReleased > 0){
+               $response['message'] .= ' ' . $totalOfficeReceiptsReleased . ' office receipt(s) are now unallocated and can be reallocated to another invoice.';
+           }
+           
            // Add debug info
            $response['debug_info'] = [
                'total_reversals' => $totalReversalsCreated,
+               'office_receipts_released' => $totalOfficeReceiptsReleased,
                'voided_receipts' => count($request->clickedReceiptIds)
            ];
           } else {
@@ -4713,6 +4756,44 @@ class ClientAccountsController extends Controller
       }
   }
 
+  /**
+   * Rewrite stored running balances for a client's fund ledger (receipt_type 1).
+   * Matter scoping matches the insert path: filter by matter only when one is given.
+   *
+   * @return array{final_balance: float, entries_processed: int}
+   */
+  private function recalculateClientFundBalances($clientId, $clientMatterId = null): array
+  {
+      $entriesQuery = DB::table('account_client_receipts')
+          ->where('client_id', $clientId)
+          ->where('receipt_type', 1)
+          ->where(function($query) {
+              $query->whereNull('void_fee_transfer')
+                    ->orWhere('void_fee_transfer', 0);
+          })
+          ->orderBy('id', 'asc');
+
+      if (!empty($clientMatterId)) {
+          $entriesQuery->where('client_matter_id', $clientMatterId);
+      }
+
+      $entries = $entriesQuery->get();
+
+      $runningBalance = 0;
+      foreach ($entries as $entry) {
+          $runningBalance += floatval($entry->deposit_amount) - floatval($entry->withdraw_amount);
+
+          DB::table('account_client_receipts')
+              ->where('id', $entry->id)
+              ->update(['balance_amount' => $runningBalance]);
+      }
+
+      return [
+          'final_balance' => $runningBalance,
+          'entries_processed' => count($entries),
+      ];
+  }
+
   //Delete Receipt by Super admin
   public function delete_receipt(Request $request)
   {
@@ -4751,27 +4832,31 @@ class ClientAccountsController extends Controller
 
           // Store receipt details for balance adjustment and logging
           $client_id = $receipt->client_id;
-          $deposit_amount = $receipt->deposit_amount ?? 0;
-          $withdraw_amount = $receipt->withdraw_amount ?? 0;
+          $client_matter_id = $receipt->client_matter_id ?? null;
           $receipt_id = $receipt->id;
+          $receipt_type = (int) $request->receipt_type;
 
-          // Delete the receipt
-          $affectedRows = AccountClientReceipt::where('id', $request->receiptId)
-           ->where('receipt_type', $request->receipt_type)
-           ->delete();
+          // Delete the receipt and repair the ledger in one unit of work
+          $affectedRows = DB::transaction(function () use ($request, $client_id, $client_matter_id, $receipt_type) {
+              $deleted = AccountClientReceipt::where('id', $request->receiptId)
+                  ->where('receipt_type', $request->receipt_type)
+                  ->delete();
+
+              if ($deleted > 0 && $receipt_type === 1) {
+                  $recalculated = $this->recalculateClientFundBalances($client_id, $client_matter_id);
+
+                  Log::info('Client Funds Ledger balances recalculated after receipt delete', [
+                      'client_id' => $client_id,
+                      'client_matter_id' => $client_matter_id,
+                      'final_balance' => $recalculated['final_balance'],
+                      'entries_processed' => $recalculated['entries_processed'],
+                  ]);
+              }
+
+              return $deleted;
+          });
 
           if ($affectedRows > 0) {
-           // Adjust balance (assuming a balance table or logic exists)
-           // Example: Update client balance by reversing the transaction
-           $client_info = \App\Models\Admin::select('id')->where('id', $client_id)->first();
-           if ($client_info) {
-               // This is a placeholder for balance adjustment logic
-               // You may need to adjust this based on your actual balance management system
-               // For example, if you have a ClientBalance model:
-               // ClientBalance::where('client_id', $client_id)
-               //     ->decrement('balance', $deposit_amount - $withdraw_amount);
-           }
-
            // Log the activity
            $client_info = \App\Models\Admin::select('client_id')->where('id', $client_id)->first();
            $subject = 'Deleted client receipt no -' . $receipt_id . ' of client-' . ($client_info->client_id ?? 'N/A');
