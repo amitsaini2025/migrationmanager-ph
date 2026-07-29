@@ -26,6 +26,7 @@ use App\Services\SystemEmailLogService;
 use App\Services\CrmSentEmailS3Service;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Carbon\Carbon;
 
@@ -40,6 +41,9 @@ use Carbon\Carbon;
 class ClientAccountsController extends Controller
 {
     use EnsuresCrmRecordAccess;
+
+    /** Cached per process so receipt allocation does not re-check the schema each call. */
+    private static ?bool $receiptSequencesTableExists = null;
 
     /**
      * Create a new controller instance.
@@ -320,8 +324,7 @@ class ClientAccountsController extends Controller
             };
 
             // Generate unique receipt id
-            $is_record_exist = DB::table('account_client_receipts')->select('receipt_id')->where('receipt_type', 1)->orderBy('receipt_id', 'desc')->first();
-            $receipt_id = !$is_record_exist ? 1 : $is_record_exist->receipt_id + 1;
+            $receipt_id = $this->getNextReceiptId(1);
    
 			$finalArr = [];
 			$ledgerBalanceQuery = DB::table('account_client_receipts')
@@ -881,12 +884,7 @@ class ClientAccountsController extends Controller
                 $invoice_no = $this->createInvoiceNumber('INV');
 
                 //Generate unique receipt id
-                $is_record_exist = DB::table('account_client_receipts')->select('receipt_id')->where('receipt_type',3)->orderBy('receipt_id', 'desc')->first();
-                if(!$is_record_exist){
-                    $receipt_id = 1;
-                } else {
-                    $receipt_id = $is_record_exist->receipt_id +1;
-                }
+                $receipt_id = $this->getNextReceiptId(3);
                 $finalArr = array();
                 $totalWithdrawAmount = 0;
                 $invoice_status = 0;
@@ -1314,12 +1312,7 @@ class ClientAccountsController extends Controller
                 }
 
                 //Generate unique receipt id
-                $is_record_exist = DB::table('account_client_receipts')->select('receipt_id')->where('receipt_type',3)->orderBy('receipt_id', 'desc')->first();
-                if(!$is_record_exist){
-                    $receipt_id = 1;
-                } else {
-                    $receipt_id = $is_record_exist->receipt_id +1;
-                }
+                $receipt_id = $this->getNextReceiptId(3);
                 $finalArr = array();
                 $totalWithdrawAmount = 0;
                 $invoiceType = 'INV';
@@ -1885,8 +1878,7 @@ class ClientAccountsController extends Controller
       }
 
       // Handle office receipt processing (receipt_type=2 only)
-      $is_record_exist = DB::table('account_client_receipts')->select('receipt_id')->where('receipt_type', 2)->orderBy('receipt_id', 'desc')->first();
-      $receipt_id = !$is_record_exist ? 1 : $is_record_exist->receipt_id + 1;
+      $receipt_id = $this->getNextReceiptId(2);
 
       // Process each transaction individually (no invoice grouping)
       $savedIds = []; // Track all saved receipt IDs
@@ -2719,10 +2711,74 @@ class ClientAccountsController extends Controller
       }
   }
 
+  /**
+   * Next receipt_id for a receipt type, allocated atomically.
+   *
+   * The counter row in receipt_sequences is taken with lockForUpdate, so concurrent saves
+   * queue instead of reading the same MAX(receipt_id) and colliding. The counter can never
+   * fall behind rows written outside this path because it is raised to the table's current
+   * maximum on every allocation.
+   */
   private function getNextReceiptId($receipt_type)
   {
-      $is_record_exist = DB::table('account_client_receipts')->select('receipt_id')->where('receipt_type', $receipt_type)->orderBy('receipt_id', 'desc')->first();
+      $receiptType = (int) $receipt_type;
+
+      if (! $this->receiptSequencesTableExists()) {
+          // Counter table not migrated yet — keep the legacy behaviour so saves still work.
+          return $this->legacyNextReceiptId($receiptType);
+      }
+
+      try {
+          return DB::transaction(function () use ($receiptType) {
+              $counter = DB::table('receipt_sequences')
+                  ->where('receipt_type', $receiptType)
+                  ->lockForUpdate()
+                  ->first();
+
+              $existingMax = (int) DB::table('account_client_receipts')
+                  ->where('receipt_type', $receiptType)
+                  ->max('receipt_id');
+
+              $next = max((int) ($counter->last_receipt_id ?? 0), $existingMax) + 1;
+
+              if ($counter) {
+                  DB::table('receipt_sequences')
+                      ->where('receipt_type', $receiptType)
+                      ->update(['last_receipt_id' => $next, 'updated_at' => now()]);
+              } else {
+                  DB::table('receipt_sequences')->insert([
+                      'receipt_type' => $receiptType,
+                      'last_receipt_id' => $next,
+                      'created_at' => now(),
+                      'updated_at' => now(),
+                  ]);
+              }
+
+              return $next;
+          });
+      } catch (\Exception $e) {
+          Log::error('Receipt id allocation failed, falling back to max+1', [
+              'receipt_type' => $receiptType,
+              'error' => $e->getMessage(),
+          ]);
+
+          return $this->legacyNextReceiptId($receiptType);
+      }
+  }
+
+  private function legacyNextReceiptId(int $receiptType)
+  {
+      $is_record_exist = DB::table('account_client_receipts')->select('receipt_id')->where('receipt_type', $receiptType)->orderBy('receipt_id', 'desc')->first();
       return !$is_record_exist ? 1 : $is_record_exist->receipt_id + 1;
+  }
+
+  private function receiptSequencesTableExists(): bool
+  {
+      if (self::$receiptSequencesTableExists === null) {
+          self::$receiptSequencesTableExists = Schema::hasTable('receipt_sequences');
+      }
+
+      return self::$receiptSequencesTableExists;
   }
 
   //Save Journal reports
@@ -2804,12 +2860,7 @@ class ClientAccountsController extends Controller
       }
 
       if(isset($requestData['trans_date'])){
-          $is_record_exist = DB::table('account_client_receipts')->select('receipt_id')->where('receipt_type',4)->orderBy('receipt_id', 'desc')->first();
-          if(!$is_record_exist){
-           $receipt_id = 1;
-          } else {
-           $receipt_id = $is_record_exist->receipt_id +1;
-          }
+          $receipt_id = $this->getNextReceiptId(4);
 
           $finalArr = array();
           for($i=0; $i<count($requestData['trans_date']); $i++){

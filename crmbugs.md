@@ -223,7 +223,7 @@
 **Evidence:** `ClientAccountsController::delete_receipt` ~4757–4767.
 
 ### H5. High — Receipt ID allocation race (max+1 without lock)
-**Status:** Verified  
+**Status:** Fixed (allocation serialised via `receipt_sequences` counter row)  
 **What breaks:** Client-fund, office, and other receipt paths do `orderBy receipt_id desc → +1` with no advisory lock (unlike invoice numbers which use `GET_LOCK` — itself MySQL-oriented on a pgsql app). Concurrent saves can collide on `receipt_id`.  
 **Evidence:** `ClientAccountsController.php` ~323–324, ~1888–1889, ~2722–2725 (contrast locked `createInvoiceNumber` ~1007–1034).
 
