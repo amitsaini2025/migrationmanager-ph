@@ -4097,9 +4097,15 @@ class ClientAccountsController extends Controller
                    'clicked_receipt_id' => $clickedVal,
                    'invoice_info' => $invoice_info ? $invoice_info->toArray() : 'NULL'
                ]);
+
+               // Skip stale/missing IDs so a partial selection does not abort the rest of the void
+               if (!$invoice_info) {
+                   Log::warning('VOID INVOICE - receipt not found, skipping', ['receipt_id' => $clickedVal]);
+                   continue;
+               }
                
                $client_info = \App\Models\Admin::select('client_id')->where('id', $invoice_info->client_id)->first();
-               $subject = 'voided invoice Sno -'.$clickedVal.' of client-'.$client_info->client_id;
+               $subject = 'voided invoice Sno -'.$clickedVal.' of client-'.($client_info->client_id ?? $invoice_info->client_id);
                $objs = new ActivitiesLog;
                $objs->client_id = $invoice_info->client_id;
                $objs->created_by = Auth::user()->id;
@@ -4793,17 +4799,20 @@ class ClientAccountsController extends Controller
   }
 
   public function printPreview(Request $request, $id){
+      // Keep as Collection — printpreview.blade.php uses $record_get[0]
       $record_get = DB::table('account_client_receipts')->where('receipt_type',1)->where('id',$id)->get();
-      if ($record_get->isNotEmpty()) {
-          $this->ensureCrmRecordAccess((int) $record_get[0]->client_id);
+      if ($record_get->isEmpty()) {
+          abort(404, 'Receipt not found');
       }
-      if($record_get){
-          $clientname = DB::table('admins')->select('first_name','last_name','address','state','city','zip','country')->where('id',$record_get[0]->client_id)->first();
-          $agentname = $record_get[0]->agent_id
-              ? DB::table('agent_details')->where('id', $record_get[0]->agent_id)->first()
-              : null;
-          $admin = DB::table('staff')->select('company_name','business_address as address','state','city','zip','email','business_phone as phone')->where('id',$record_get[0]->user_id)->first();
-      }
+
+      $this->ensureCrmRecordAccess((int) $record_get[0]->client_id);
+
+      $clientname = DB::table('admins')->select('first_name','last_name','address','state','city','zip','country')->where('id',$record_get[0]->client_id)->first();
+      $agentname = $record_get[0]->agent_id
+          ? DB::table('agent_details')->where('id', $record_get[0]->agent_id)->first()
+          : null;
+      $admin = DB::table('staff')->select('company_name','business_address as address','state','city','zip','email','business_phone as phone')->where('id',$record_get[0]->user_id)->first();
+
       $pdf = PDF::setOptions([
           'isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true,
           'logOutputFile' => storage_path('logs/log.htm'),
@@ -5679,12 +5688,15 @@ public function getInvoiceAmount(Request $request)
          // Check if invoice exists
          $record_get = AccountAllInvoiceReceipt::where('receipt_type',3)->where('receipt_id',$id)->get();
          
-         if(empty($record_get) || count($record_get) == 0) {
+         if($record_get->isEmpty()) {
              return response()->json([
                  'status' => false,
                  'message' => 'Invoice not found'
              ]);
          }
+
+         // Same visibility gate as genInvoice — prevent Hubdoc send for clients outside staff access
+         $this->ensureCrmRecordAccess((int) $record_get[0]->client_id);
 
          // Get client info
          $clientname = DB::table('admins')->where('id',$record_get[0]->client_id)->first();

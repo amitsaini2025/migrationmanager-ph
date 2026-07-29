@@ -228,17 +228,17 @@
 **Evidence:** `ClientAccountsController.php` ~323–324, ~1888–1889, ~2722–2725 (contrast locked `createInvoiceNumber` ~1007–1034).
 
 ### H6. Medium — `void_invoice` null-dereferences when a clicked ID has no row
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** After a partial `whereIn` update (`affectedRows > 0`), the loop still processes every clicked ID. Missing `invoice_info` → `$invoice_info->client_id` fatal error mid-void.  
 **Evidence:** `ClientAccountsController.php` ~4087–4102.
 
 ### H7. Medium — `printPreview` crashes on missing receipt
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Uses `if ($record_get)` on an Eloquent/Query Collection (always true as object), then accesses `$record_get[0]` even when empty → error / undefined vars into PDF.  
 **Evidence:** `ClientAccountsController.php` ~4795–4812.
 
 ### H8. Medium — `sendToHubdoc` skips CRM record access check
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Loads invoice by `receipt_id` and emails PDF to Hubdoc without `ensureCrmRecordAccess`, unlike `genInvoice`. Staff outside visibility rules can send another client’s invoice.  
 **Evidence:** `ClientAccountsController::sendToHubdoc` ~5673–5690.
 
