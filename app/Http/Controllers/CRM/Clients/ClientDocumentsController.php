@@ -2221,10 +2221,16 @@ class ClientDocumentsController extends Controller
             
             // Update document based on target type
             $targetName = '';
+            $docClientId = (int) $document->client_id;
             if ($targetType === 'personal') {
-                // Moving to Personal Documents
-                // Verify target category exists
-                $category = \App\Models\PersonalDocumentType::query()->find($targetId);
+                // Moving to Personal Documents — allow shared (null client_id) or this client's categories only
+                $category = \App\Models\PersonalDocumentType::query()
+                    ->where('id', $targetId)
+                    ->where(function ($query) use ($docClientId) {
+                        $query->whereNull('client_id')
+                            ->orWhere('client_id', $docClientId);
+                    })
+                    ->first();
                 if (!$category) {
                     $response['message'] = 'Target category not found';
                     return response()->json($response);
@@ -2240,8 +2246,49 @@ class ClientDocumentsController extends Controller
                 
             } elseif ($targetType === 'visa') {
                 // Moving to Visa Documents - targetId is the CATEGORY ID
-                // Get the category to find its matter
-                $category = \App\Models\VisaDocumentType::query()->find($targetId);
+                // When the UI sends target_matter_id (e.g. Personal → Visa), validate matter then scope category like getVisaCategories.
+                // Otherwise allow shared / this-client categories (same client-only gate as listing without a matter filter).
+                $requestedMatterRaw = $request->input('target_matter_id');
+                $requestedMatterId = null;
+                if ($requestedMatterRaw !== null && $requestedMatterRaw !== '') {
+                    $requestedMatterId = (int) $requestedMatterRaw;
+                    $clientMatter = ClientMatter::query()->where('id', $requestedMatterId)
+                        ->where('client_id', $docClientId)
+                        ->first();
+                    if (! $clientMatter) {
+                        $response['message'] = 'The selected matter does not belong to this client.';
+                        return response()->json($response);
+                    }
+                }
+
+                $categoryQuery = \App\Models\VisaDocumentType::query()->where('id', $targetId);
+                if ($requestedMatterId !== null) {
+                    $categoryQuery->where(function ($query) use ($docClientId, $requestedMatterId) {
+                        $query->where(function ($q) {
+                            $q->whereNull('client_id')
+                                ->whereNull('client_matter_id');
+                        })
+                            ->orWhere(function ($q) use ($docClientId) {
+                                $q->where('client_id', $docClientId)
+                                    ->whereNull('client_matter_id');
+                            })
+                            ->orWhere(function ($q) use ($docClientId, $requestedMatterId) {
+                                $q->where('client_id', $docClientId)
+                                    ->where('client_matter_id', $requestedMatterId);
+                            });
+                    });
+                } else {
+                    $categoryQuery->where(function ($query) use ($docClientId) {
+                        $query->where(function ($q) {
+                            $q->whereNull('client_id')
+                                ->whereNull('client_matter_id');
+                        })
+                            ->orWhere(function ($q) use ($docClientId) {
+                                $q->where('client_id', $docClientId);
+                            });
+                    });
+                }
+                $category = $categoryQuery->first();
                 if (!$category) {
                     $response['message'] = 'Target visa category not found';
                     return response()->json($response);
@@ -2250,18 +2297,7 @@ class ClientDocumentsController extends Controller
                 $document->type       = 'client';
                 $document->doc_type   = 'visa';
                 $document->folder_name = $targetId; // Category ID
-                // When the UI sends target_matter_id (e.g. Personal → Visa), scope the document to that matter.
-                // Otherwise keep previous behaviour: category row matter, else existing document matter.
-                $requestedMatterRaw = $request->input('target_matter_id');
-                if ($requestedMatterRaw !== null && $requestedMatterRaw !== '') {
-                    $requestedMatterId = (int) $requestedMatterRaw;
-                    $clientMatter = ClientMatter::query()->where('id', $requestedMatterId)
-                        ->where('client_id', $document->client_id)
-                        ->first();
-                    if (! $clientMatter) {
-                        $response['message'] = 'The selected matter does not belong to this client.';
-                        return response()->json($response);
-                    }
+                if ($requestedMatterId !== null) {
                     $document->client_matter_id = $requestedMatterId;
                 } else {
                     $document->client_matter_id = $category->client_matter_id ?? $document->client_matter_id;
@@ -2270,7 +2306,19 @@ class ClientDocumentsController extends Controller
                 
                 $targetName = $category->title;
             } elseif ($targetType === 'nomination') {
-                $category = NominationDocumentType::query()->find($targetId);
+                // Shared (null client/matter) or this client's nomination categories only
+                $category = NominationDocumentType::query()
+                    ->where('id', $targetId)
+                    ->where(function ($query) use ($docClientId) {
+                        $query->where(function ($q) {
+                            $q->whereNull('client_id')
+                                ->whereNull('client_matter_id');
+                        })
+                            ->orWhere(function ($q) use ($docClientId) {
+                                $q->where('client_id', $docClientId);
+                            });
+                    })
+                    ->first();
                 if (!$category) {
                     $response['message'] = 'Target nomination category not found';
                     return response()->json($response);
