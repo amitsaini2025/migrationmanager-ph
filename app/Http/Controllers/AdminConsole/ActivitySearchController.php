@@ -7,6 +7,7 @@ use App\Models\Admin;
 use App\Models\Note;
 use App\Models\Staff;
 use App\Services\CrmAccess\CrmAccessService;
+use App\Support\ActionTaskGroup;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -173,7 +174,8 @@ class ActivitySearchController extends Controller
             'Urgent' => 'Urgent',
             'Personal Action' => 'Personal Action',
             'Client Portal' => 'Client Portal',
-            'EOI/ROI Amendment' => 'EOI/ROI Amendment',
+            'EOI/ROI Amendment' => 'Amendment',
+            'EOI/ROI Confirmation' => 'Confirmation',
             'Follow Up' => 'Follow Up',
         ];
 
@@ -227,7 +229,7 @@ class ActivitySearchController extends Controller
                 'id' => $activity->id,
                 'subject' => $activity->title ?: 'Action',
                 'description' => strip_tags((string) ($activity->description ?? '')),
-                'activity_type' => $activity->task_group ?: 'N/A',
+                'activity_type' => ActionTaskGroup::displayLabel($activity->task_group),
                 'created_at' => $activity->created_at?->toAtomString(),
             ],
         ]);
@@ -304,7 +306,7 @@ class ActivitySearchController extends Controller
                     $activity->assignee_email ?? '',
                     $clientName,
                     $activity->client_email ?? '',
-                    $activity->task_group ?? 'N/A',
+                    ActionTaskGroup::displayLabel($activity->task_group ?? null),
                     $status,
                     $activity->subject ?? '',
                     strip_tags($activity->description ?? ''),

@@ -7849,7 +7849,7 @@ class ClientsController extends Controller
             'note_id' => 'required|integer|exists:notes,id',
             'description' => 'required|string',
             'rem_cat' => 'required|integer|exists:staff,id',
-            'task_group' => 'required|string|in:Call,Checklist,Review,Query,Urgent,Personal Action,Client Portal,EOI/ROI Amendment,Follow Up',
+            'task_group' => 'required|string|in:Call,Checklist,Review,Query,Urgent,Personal Action,Client Portal,EOI/ROI Amendment,EOI/ROI Confirmation,Follow Up',
             'followup_datetime' => 'nullable|date',
             'client_id' => 'nullable|string',
         ]);

@@ -86,7 +86,10 @@ class EoiClientConfirmationNotificationService
             }
 
             // Assigned action: Person Assisting on the matter only.
-            $taskGroup = $eventType === 'amendment' ? 'EOI/ROI Amendment' : 'Client Portal';
+            // Both land under the Action page EOI/ROI filter; Type shows Amendment vs Confirmation.
+            $taskGroup = $eventType === 'amendment'
+                ? \App\Support\ActionTaskGroup::EOI_AMENDMENT
+                : \App\Support\ActionTaskGroup::EOI_CONFIRMATION;
             try {
                 self::createPersonAssistingAction(
                     $clientId,
@@ -163,7 +166,7 @@ class EoiClientConfirmationNotificationService
                     (int) $matter->id,
                     $message,
                     $matter,
-                    'EOI/ROI Amendment'
+                    \App\Support\ActionTaskGroup::EOI_AMENDMENT
                 );
                 $result['action'] = $created ? 'created' : 'skipped';
             }
@@ -262,7 +265,7 @@ class EoiClientConfirmationNotificationService
             ->where('is_action', 1)
             ->where('type', 'client')
             ->where('status', '<>', '1')
-            ->where('task_group', 'EOI/ROI Amendment')
+            ->where('task_group', \App\Support\ActionTaskGroup::EOI_AMENDMENT)
             ->where('description', 'like', '%EOI #' . $eoiNumber . '%')
             ->exists();
     }

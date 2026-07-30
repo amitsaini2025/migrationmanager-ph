@@ -25,6 +25,7 @@ use App\Services\FCMService;
 use App\Events\NotificationCountUpdated;
 use Yajra\DataTables\Facades\DataTables;
 use App\Helpers\Utf8Helper;
+use App\Support\ActionTaskGroup;
 use Illuminate\Support\Facades\URL;
 
 class AssigneeController extends Controller
@@ -300,6 +301,10 @@ class AssigneeController extends Controller
                 return $query->where('assigned_to', $staff->id);
             })
             ->when($task_group !== 'All', function ($query) use ($task_group) {
+                if ($task_group === ActionTaskGroup::EOI_AMENDMENT) {
+                    return $query->whereIn('task_group', ActionTaskGroup::eoiRoiGroups());
+                }
+
                 return $query->where('task_group', 'like', $task_group);
             });
 
@@ -357,7 +362,8 @@ class AssigneeController extends Controller
             'Urgent' => $groupedCounts['Urgent'] ?? 0,
             'Personal Action' => $groupedCounts['Personal Action'] ?? 0,
             'Client Portal' => $groupedCounts['Client Portal'] ?? 0,
-            'EOI/ROI Amendment' => $groupedCounts['EOI/ROI Amendment'] ?? 0,
+            'EOI/ROI Amendment' => ($groupedCounts[ActionTaskGroup::EOI_AMENDMENT] ?? 0)
+                + ($groupedCounts[ActionTaskGroup::EOI_CONFIRMATION] ?? 0),
             'Follow Up' => $groupedCounts['Follow Up'] ?? 0,
         ];
 
@@ -413,11 +419,14 @@ class AssigneeController extends Controller
                         } elseif ($actionGroup == 'follow_up') {
                             $actionGroup = 'Follow Up';
                         } elseif ($actionGroup == 'eoi_roi_amendment') {
-                            $actionGroup = 'EOI/ROI Amendment';
+                            $actionGroup = null;
+                            $query->whereIn('notes.task_group', ActionTaskGroup::eoiRoiGroups());
                         } else {
                             $actionGroup = ucfirst($actionGroup);
                         }
-                        $query->where('notes.task_group', $actionGroup);
+                        if ($actionGroup !== null) {
+                            $query->where('notes.task_group', $actionGroup);
+                        }
 
                         // Super Admin Client Portal tab should show one row per grouped action.
                         if (
@@ -524,7 +533,7 @@ class AssigneeController extends Controller
                     })
                     ->addColumn('task_group', function($data) {
                         try {
-                            return $data->task_group ? Utf8Helper::safeSanitize($data->task_group) : 'N/P';
+                            return ActionTaskGroup::displayLabel($data->task_group ?? null);
                         } catch (\Exception $e) {
                             return 'N/P';
                         }
@@ -586,7 +595,7 @@ class AssigneeController extends Controller
                                   ->orWhereRaw("LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE ?", ['%' . $keywordLower . '%']);
                             })->orWhere(function ($clientAssignerQuery) use ($keywordLower) {
                                 $clientAssignerQuery
-                                    ->whereIn('task_group', ['Client Portal', 'EOI/ROI Amendment'])
+                                    ->whereIn('task_group', ActionTaskGroup::clientInitiatedAssignerGroups())
                                     ->whereColumn('user_id', 'client_id')
                                     ->whereHas('noteClient', function ($q) use ($keywordLower) {
                                         $q->whereRaw('LOWER(first_name) LIKE ?', ['%' . $keywordLower . '%'])
@@ -597,6 +606,21 @@ class AssigneeController extends Controller
                                           });
                                     });
                             });
+                        });
+                    })
+                    ->filterColumn('task_group', function ($query, $keyword) {
+                        $keywordLower = strtolower(trim($keyword));
+                        if ($keywordLower === '') {
+                            return;
+                        }
+                        $query->where(function ($groupQuery) use ($keywordLower) {
+                            $groupQuery->whereRaw('LOWER(notes.task_group) LIKE ?', ['%' . $keywordLower . '%']);
+                            if (str_contains($keywordLower, 'amend')) {
+                                $groupQuery->orWhere('notes.task_group', ActionTaskGroup::EOI_AMENDMENT);
+                            }
+                            if (str_contains($keywordLower, 'confirm')) {
+                                $groupQuery->orWhere('notes.task_group', ActionTaskGroup::EOI_CONFIRMATION);
+                            }
                         });
                     })
                     ->filterColumn('client_reference', function($query, $keyword) {
@@ -674,7 +698,7 @@ class AssigneeController extends Controller
                 ->distinct(DB::raw("COALESCE(NULLIF(unique_group_id, ''), CONCAT('note_', id))"))
                 ->count(DB::raw("COALESCE(NULLIF(unique_group_id, ''), CONCAT('note_', id))"))
             : (clone $query)->where('task_group', 'Client Portal')->count();
-        $counts['eoi_roi_amendment'] = (clone $query)->where('task_group', 'EOI/ROI Amendment')->count();
+        $counts['eoi_roi_amendment'] = (clone $query)->whereIn('task_group', ActionTaskGroup::eoiRoiGroups())->count();
         $counts['follow_up'] = (clone $query)->where('task_group', 'Follow Up')->count();
 
         return response()->json($counts);
@@ -859,7 +883,7 @@ class AssigneeController extends Controller
             'client_id' => 'nullable|string', // Client ID is optional for Personal Actions
             'assigned_to' => 'required|exists:staff,id',
             'description' => 'required|string',
-            'task_group' => 'required|string|in:Call,Checklist,Review,Query,Urgent,Personal Action,Client Portal,EOI/ROI Amendment',
+            'task_group' => 'required|string|in:Call,Checklist,Review,Query,Urgent,Personal Action,Client Portal,EOI/ROI Amendment,EOI/ROI Confirmation,Follow Up',
         ]);
 
         try {
@@ -967,7 +991,7 @@ class AssigneeController extends Controller
             if (
                 $data->noteClient
                 && (int) $data->user_id === (int) $data->client_id
-                && in_array($taskGroup, ['Client Portal', 'EOI/ROI Amendment'], true)
+                && in_array($taskGroup, ActionTaskGroup::clientInitiatedAssignerGroups(), true)
             ) {
                 $label = Utf8Helper::safeSanitize(trim($data->noteClient->company_name_or_personal_name ?? ''));
                 if ($label === '') {

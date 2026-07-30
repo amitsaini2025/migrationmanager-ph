@@ -181,7 +181,21 @@ class EoiClientConfirmationNotificationTest extends TestCase
             Note::where('client_id', $this->client->id)
                 ->where('assigned_to', $this->personAssisting->id)
                 ->where('is_action', 1)
+                ->where('task_group', 'EOI/ROI Confirmation')
+                ->exists()
+        );
+
+        $this->assertFalse(
+            Note::where('client_id', $this->client->id)
+                ->whereIn('assigned_to', [$this->verifier->id, $this->personResponsible->id])
+                ->where('is_action', 1)
+                ->exists()
+        );
+
+        $this->assertFalse(
+            Note::where('client_id', $this->client->id)
                 ->where('task_group', 'Client Portal')
+                ->where('is_action', 1)
                 ->exists()
         );
     }

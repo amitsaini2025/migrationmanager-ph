@@ -215,7 +215,7 @@
                                                             </td>
                                                             <td>
                                                                 @php
-                                                                    $typeLabel = $activity->task_group ?: 'N/A';
+                                                                    $typeLabel = \App\Support\ActionTaskGroup::displayLabel($activity->task_group ?? null);
                                                                 @endphp
                                                                 <span class="badge badge-primary">{{ $typeLabel }}</span>
                                                             </td>

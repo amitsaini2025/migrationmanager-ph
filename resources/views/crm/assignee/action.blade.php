@@ -584,7 +584,7 @@
                 <button class="tab-button" data-filter="urgent">Urgent <span class="badge" id="urgent-count">0</span></button>
                 <button class="tab-button" data-filter="personal_action">Personal Action <span class="badge" id="personal-task-count">0</span></button>
                 <button class="tab-button" data-filter="client_portal">Client Portal <span class="badge" id="client-portal-count">0</span></button>
-                <button class="tab-button" data-filter="eoi_roi_amendment">EOI/ROI Amendment <span class="badge" id="eoi-roi-amendment-count">0</span></button>
+                <button class="tab-button" data-filter="eoi_roi_amendment">EOI/ROI <span class="badge" id="eoi-roi-amendment-count">0</span></button>
                 <button class="tab-button" data-filter="follow_up">Follow up <span class="badge" id="follow-up-count">0</span></button>
             </div>
 
@@ -1266,7 +1266,8 @@ $(function () {
             { value: 'Urgent', label: '🔥 Urgent' },
             { value: 'Personal Action', label: '👤 Personal Action' },
             { value: 'Client Portal', label: '🌐 Client Portal' },
-            { value: 'EOI/ROI Amendment', label: '📝 EOI/ROI Amendment' },
+            { value: 'EOI/ROI Amendment', label: '📝 Amendment' },
+            { value: 'EOI/ROI Confirmation', label: '✅ Confirmation' },
             { value: 'Follow Up', label: '📅 Follow Up' }
         ];
         var selected = String(selectedGroup || '');

@@ -313,7 +313,7 @@
                                     </button>
                                     <button type="button">
                                         <a href="{{URL::to('/action_completed?group_type=Client Portal')}}" id="Client Portal" class="group_type {{ $task_group == 'Client Portal' ? 'active' : '' }}">@icon('fa-globe', ['aria-hidden' => 'true']) Client Portal <span class="countAction">{{ $taskGroupCounts['Client Portal'] }}</span></a>
-                                        <a href="{{ URL::to('/action_completed?group_type=' . urlencode('EOI/ROI Amendment')) }}" id="EOI/ROI Amendment" class="group_type {{ $task_group == 'EOI/ROI Amendment' ? 'active' : '' }}">@icon('fa-edit', ['aria-hidden' => 'true']) EOI/ROI Amendment <span class="countAction">{{ $taskGroupCounts['EOI/ROI Amendment'] ?? 0 }}</span></a>
+                                        <a href="{{ URL::to('/action_completed?group_type=' . urlencode('EOI/ROI Amendment')) }}" id="EOI/ROI Amendment" class="group_type {{ $task_group == 'EOI/ROI Amendment' ? 'active' : '' }}">@icon('fa-edit', ['aria-hidden' => 'true']) EOI/ROI <span class="countAction">{{ $taskGroupCounts['EOI/ROI Amendment'] ?? 0 }}</span></a>
                                         <a href="{{URL::to('/action_completed?group_type=Follow Up')}}" id="Follow Up" class="group_type {{ $task_group == 'Follow Up' ? 'active' : '' }}">@icon('fa-calendar-check-o', ['aria-hidden' => 'true']) Follow up <span class="countAction">{{ $taskGroupCounts['Follow Up'] ?? 0 }}</span></a>
                                     </button>
                                 </div>
@@ -344,7 +344,7 @@
                                                     if (
                                                         $list->noteClient
                                                         && (int) $list->user_id === (int) $list->client_id
-                                                        && in_array((string) ($list->task_group ?? ''), ['Client Portal', 'EOI/ROI Amendment'], true)
+                                                        && in_array((string) ($list->task_group ?? ''), \App\Support\ActionTaskGroup::clientInitiatedAssignerGroups(), true)
                                                     ) {
                                                         $full_name = trim($list->noteClient->company_name_or_personal_name ?? '');
                                                         if ($full_name === '') {
@@ -372,7 +372,7 @@
                                                         @endif
                                                     </td>
                                                     <td>{{ date('d/m/Y', strtotime($list->action_date)) ?? 'N/P' }}</td>
-                                                    <td>{{ $list->task_group ?? 'N/P' }}</td>
+                                                    <td>{{ \App\Support\ActionTaskGroup::displayLabel($list->task_group ?? null) }}</td>
                                                     <td>
                                                         @if(isset($list->description) && $list->description != "")
                                                             @if(strlen($list->description) > 190)
