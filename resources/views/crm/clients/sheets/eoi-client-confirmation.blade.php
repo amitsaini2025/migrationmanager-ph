@@ -159,11 +159,11 @@
 
             @if($eoi->client_confirmation_status === 'confirmed')
                 <div class="alert alert-success">
-                    @icon('fa-check-circle') <strong>Already Confirmed!</strong> You have already confirmed these details on {{ $eoi->client_last_confirmation->format('d/m/Y H:i') }}.
+                    @icon('fa-check-circle') <strong>Already Confirmed!</strong> You have already confirmed these details{{ $eoi->client_last_confirmation ? ' on ' . $eoi->client_last_confirmation->format('d/m/Y H:i') : '' }}.
                 </div>
             @elseif($eoi->client_confirmation_status === 'amendment_requested')
                 <div class="alert alert-warning">
-                    @icon('fa-exclamation-triangle') <strong>Amendment Requested!</strong> You have already requested an amendment on {{ $eoi->client_last_confirmation->format('d/m/Y H:i') }}.
+                    @icon('fa-exclamation-triangle') <strong>Amendment Requested!</strong> You have already requested an amendment{{ $eoi->client_last_confirmation ? ' on ' . $eoi->client_last_confirmation->format('d/m/Y H:i') : '' }}.
                 </div>
             @endif
 
@@ -171,11 +171,11 @@
                 <h3>Client Information</h3>
                 <div class="detail-row">
                     <div class="detail-label">Name:</div>
-                    <div class="detail-value">{{ $eoi->client->first_name }} {{ $eoi->client->last_name }}</div>
+                    <div class="detail-value">{{ trim(($eoi->client?->first_name ?? '') . ' ' . ($eoi->client?->last_name ?? '')) ?: 'N/A' }}</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Client ID:</div>
-                    <div class="detail-value">{{ $eoi->client->client_id }}</div>
+                    <div class="detail-value">{{ $eoi->client?->client_id ?? 'N/A' }}</div>
                 </div>
             </div>
 

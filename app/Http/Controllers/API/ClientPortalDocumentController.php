@@ -381,6 +381,22 @@ class ClientPortalDocumentController extends Controller
                 $clientMatterId = null;
             }
 
+            // The document row is written under the caller's client_id, so the matter it is
+            // linked to has to belong to the same client.
+            if ($docType === 'visa') {
+                $ownsClientMatter = DB::table('client_matters')
+                    ->where('id', $clientMatterId)
+                    ->where('client_id', $clientId)
+                    ->exists();
+
+                if (!$ownsClientMatter) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid client_matter_id for the authenticated client'
+                    ], 422);
+                }
+            }
+
             // Get checklist name from portal_document_checklists table based on doc_type
             $docTypeId = ($docType === 'personal') ? 1 : 2;
             $checklistRecord = DB::table('portal_document_checklists')

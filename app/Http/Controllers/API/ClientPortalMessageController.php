@@ -371,6 +371,15 @@ class ClientPortalMessageController extends Controller
                 ->where('id', $clientMatterId)
                 ->first();
 
+            // A client may only post into a matter they own. Staff senders are left to the
+            // assignee/superadmin fan-out below, so their existing usage is unaffected.
+            if ($admin instanceof Admin && (!$clientMatter || (int) $clientMatter->client_id !== (int) $clientId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Client matter not found'
+                ], 404);
+            }
+
             // Determine target recipients - always broadcast to all matter users and superadmins
             $targetRecipients = [];
             

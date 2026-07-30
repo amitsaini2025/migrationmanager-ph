@@ -442,17 +442,26 @@ Route::post('/broadcasting/auth', function (Request $request) {
         } elseif (str_starts_with($channelName, 'private-matter.')) {
             $matterId = (int) substr($channelName, 15); // Remove 'private-matter.'
             
+            // Clients are matched on ownership and staff on assignment. The two id spaces
+            // are separate tables, so the columns must not be compared interchangeably.
+            $isClient = $user instanceof \App\Models\Admin;
+
             // Check if user is associated with this matter or is superadmin
             $isAssociated = DB::table('client_matters')
                 ->where('id', $matterId)
-                ->where(function($query) use ($user) {
+                ->where(function($query) use ($user, $isClient) {
+                    if ($isClient) {
+                        $query->where('client_id', $user->id);
+                        return;
+                    }
+
                     $query->where('sel_migration_agent', $user->id)
                           ->orWhere('sel_person_responsible', $user->id)
                           ->orWhere('sel_person_assisting', $user->id);
                 })
                 ->exists();
-            
-            $isSuperAdmin = $user->role == 1;
+
+            $isSuperAdmin = !$isClient && $user->role == 1;
             
             if (!$isAssociated && !$isSuperAdmin) {
                 Log::warning('User cannot access matter channel', [
