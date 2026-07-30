@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\AdminConsole;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
+use App\Models\Note;
 use App\Models\Staff;
 use App\Services\CrmAccess\CrmAccessService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
-use App\Models\ActivitiesLog;
-use App\Models\Admin;
 
 class ActivitySearchController extends Controller
 {
@@ -58,36 +58,86 @@ class ActivitySearchController extends Controller
         return null;
     }
 
-    /**
-     * activities_logs.use_for is VARCHAR (staff id as text or labels like "matter").
-     * PostgreSQL rejects varchar = bigint in JOIN; compare as text on pgsql.
-     */
-    private function applyActivitySearchJoins(\Illuminate\Database\Eloquent\Builder $query): void
+    private function applyActivitySearchJoins(Builder $query): void
     {
-        $query->leftJoin('staff as creator', 'activities_logs.created_by', '=', 'creator.id');
-
-        $driver = DB::connection()->getDriverName();
-        $query->leftJoin('staff as assignee', function ($join) use ($driver) {
-            if ($driver === 'pgsql') {
-                $join->whereRaw('assignee.id::text = activities_logs.use_for');
-            } else {
-                $join->on('activities_logs.use_for', '=', 'assignee.id');
-            }
-        });
-
-        $query->leftJoin('admins as client', 'activities_logs.client_id', '=', 'client.id');
+        $query->leftJoin('staff as creator', 'notes.user_id', '=', 'creator.id')
+            ->leftJoin('staff as assignee', 'notes.assigned_to', '=', 'assignee.id')
+            ->leftJoin('admins as client', 'notes.client_id', '=', 'client.id');
     }
 
     /**
-     * Case-insensitive substring match for subject/description (works on MySQL & PostgreSQL).
+     * Case-insensitive substring match for action title/description.
      */
-    private function applyKeywordFilter(\Illuminate\Database\Eloquent\Builder $query, string $keyword): void
+    private function applyKeywordFilter(Builder $query, string $keyword): void
     {
         $pattern = '%' . mb_strtolower($keyword, 'UTF-8') . '%';
         $query->where(function ($q) use ($pattern) {
-            $q->whereRaw('LOWER(activities_logs.subject) LIKE ?', [$pattern])
-                ->orWhereRaw('LOWER(activities_logs.description) LIKE ?', [$pattern]);
+            $q->whereRaw('LOWER(notes.title) LIKE ?', [$pattern])
+                ->orWhereRaw('LOWER(notes.description) LIKE ?', [$pattern]);
         });
+    }
+
+    /**
+     * Build the Action Search query from notes, using the same source of truth as /action.
+     * Aliases preserve the existing Activity Search table/export column contract.
+     */
+    private function buildActionSearchQuery(Request $request): Builder
+    {
+        $query = Note::query()
+            ->select(
+                'notes.id',
+                'notes.client_id',
+                'notes.user_id as created_by',
+                'notes.assigned_to as use_for',
+                'notes.title as subject',
+                'notes.description',
+                'notes.action_date as followup_date',
+                'notes.task_group',
+                'notes.status as task_status',
+                'notes.created_at',
+                'notes.updated_at',
+                'creator.first_name as creator_first_name',
+                'creator.last_name as creator_last_name',
+                'creator.email as creator_email',
+                'assignee.first_name as assignee_first_name',
+                'assignee.last_name as assignee_last_name',
+                'assignee.email as assignee_email',
+                'client.first_name as client_first_name',
+                'client.last_name as client_last_name',
+                'client.email as client_email'
+            )
+            ->selectRaw("'action' as activity_type")
+            ->where('notes.type', 'client')
+            ->where('notes.is_action', 1);
+
+        $this->applyActivitySearchJoins($query);
+
+        if ($request->filled('assigner_id')) {
+            $query->where('notes.user_id', $request->assigner_id);
+        }
+        if ($request->filled('assignee_id')) {
+            $query->where('notes.assigned_to', $request->assignee_id);
+        }
+        if ($request->filled('client_id')) {
+            $query->where('notes.client_id', $request->client_id);
+        }
+        if ($request->filled('task_status')) {
+            $query->where('notes.status', $request->task_status);
+        }
+        if ($request->filled('task_group')) {
+            $query->where('notes.task_group', $request->task_group);
+        }
+        if ($request->filled('date_from')) {
+            $query->where('notes.created_at', '>=', Carbon::parse($request->date_from)->startOfDay());
+        }
+        if ($request->filled('date_to')) {
+            $query->where('notes.created_at', '<=', Carbon::parse($request->date_to)->endOfDay());
+        }
+        if ($request->filled('keyword')) {
+            $this->applyKeywordFilter($query, $request->keyword);
+        }
+
+        return $query;
     }
 
     /**
@@ -98,11 +148,12 @@ class ActivitySearchController extends Controller
     public function index(Request $request)
     {
         if (! $this->userCanAccessActivitySearch()) {
-            return Redirect::to('/dashboard')->with('error', 'Unauthorized: Only authorized administrators can access Activity Search.');
+            return Redirect::to('/dashboard')->with('error', 'Unauthorized: Only authorized administrators can access Action Search.');
         }
 
         // Get all active staff
-        $staffList = \App\Models\Staff::where('status', 1)
+        $staffList = Staff::query()
+            ->where('status', 1)
             ->orderBy('first_name', 'ASC')
             ->get()
             ->map(function($staff) {
@@ -113,21 +164,6 @@ class ActivitySearchController extends Controller
                 ];
             });
 
-        // Get activity types for filter
-        $activityTypes = [
-            'activity' => 'General Activity',
-            'sms' => 'SMS',
-            'email' => 'Email',
-            'document' => 'Document',
-            'note' => 'Note',
-            'financial' => 'Financial',
-            'lead_converted' => 'Lead Converted',
-            'followup_scheduled' => 'Action Scheduled',
-            'followup_completed' => 'Action Completed',
-            'followup_rescheduled' => 'Action Rescheduled',
-            'followup_cancelled' => 'Action Cancelled',
-        ];
-
         // Get task groups (action categories)
         $taskGroups = [
             'Call' => 'Call',
@@ -136,6 +172,9 @@ class ActivitySearchController extends Controller
             'Query' => 'Query',
             'Urgent' => 'Urgent',
             'Personal Action' => 'Personal Action',
+            'Client Portal' => 'Client Portal',
+            'EOI/ROI Amendment' => 'EOI/ROI Amendment',
+            'Follow Up' => 'Follow Up',
         ];
 
         $activities = collect();
@@ -150,78 +189,15 @@ class ActivitySearchController extends Controller
                     ->with('error', $message);
             }
 
-            $query = ActivitiesLog::query()
-                ->select(
-                    'activities_logs.*',
-                    'creator.first_name as creator_first_name',
-                    'creator.last_name as creator_last_name',
-                    'creator.email as creator_email',
-                    'assignee.first_name as assignee_first_name',
-                    'assignee.last_name as assignee_last_name',
-                    'assignee.email as assignee_email',
-                    'client.first_name as client_first_name',
-                    'client.last_name as client_last_name',
-                    'client.email as client_email'
-                );
-            $this->applyActivitySearchJoins($query);
-
-            // Filter by Assigner (created_by)
-            if ($request->filled('assigner_id')) {
-                $query->where('activities_logs.created_by', $request->assigner_id);
-            }
-
-            // Filter by Assignee (use_for)
-            if ($request->filled('assignee_id')) {
-                $query->where('activities_logs.use_for', $request->assignee_id);
-            }
-
-            // Filter by Client
-            if ($request->filled('client_id')) {
-                $query->where('activities_logs.client_id', $request->client_id);
-            }
-
-            // Filter by Activity Type
-            if ($request->filled('activity_type')) {
-                $query->where('activities_logs.activity_type', $request->activity_type);
-            }
-
-            // Filter by Task Status (Action Status)
-            if ($request->filled('task_status')) {
-                $query->where('activities_logs.task_status', $request->task_status);
-            }
-
-            // Filter by Task Group (Action Category)
-            if ($request->filled('task_group')) {
-                $query->where('activities_logs.task_group', $request->task_group);
-            }
-
-            // Filter by Date Range
-            if ($request->filled('date_from')) {
-                $dateFrom = Carbon::parse($request->date_from)->startOfDay();
-                $query->where('activities_logs.created_at', '>=', $dateFrom);
-            }
-
-            if ($request->filled('date_to')) {
-                $dateTo = Carbon::parse($request->date_to)->endOfDay();
-                $query->where('activities_logs.created_at', '<=', $dateTo);
-            }
-
-            // Filter by Keyword (search in subject and description)
-            if ($request->filled('keyword')) {
-                $this->applyKeywordFilter($query, $request->keyword);
-            }
-
-            // Order by most recent first
-            $query->orderBy('activities_logs.created_at', 'DESC');
-
-            // Paginate results (paginator runs its own COUNT internally)
-            $activities = $query->paginate(50)->appends($request->except('page'));
+            $activities = $this->buildActionSearchQuery($request)
+                ->orderBy('notes.created_at', 'DESC')
+                ->paginate(50)
+                ->appends($request->except('page'));
             $totalActivities = $activities->total();
         }
 
         return view('AdminConsole.system.activity-search.index', compact(
             'staffList',
-            'activityTypes',
             'taskGroups',
             'activities',
             'totalActivities'
@@ -229,7 +205,7 @@ class ActivitySearchController extends Controller
     }
 
     /**
-     * Single activity row for the Activity Search modal (JSON).
+     * Single action row for the Action Search modal (JSON).
      */
     public function activityJson(int $id): JsonResponse
     {
@@ -237,18 +213,21 @@ class ActivitySearchController extends Controller
             return response()->json(['status' => false, 'message' => 'Unauthorized'], 403);
         }
 
-        $activity = ActivitiesLog::query()->find($id);
+        $activity = Note::query()
+            ->where('type', 'client')
+            ->where('is_action', 1)
+            ->find($id);
         if (! $activity) {
-            return response()->json(['status' => false, 'message' => 'Activity not found'], 404);
+            return response()->json(['status' => false, 'message' => 'Action not found'], 404);
         }
 
         return response()->json([
             'status' => true,
             'data' => [
                 'id' => $activity->id,
-                'subject' => $activity->subject,
+                'subject' => $activity->title ?: 'Action',
                 'description' => strip_tags((string) ($activity->description ?? '')),
-                'activity_type' => $activity->activity_type,
+                'activity_type' => $activity->task_group ?: 'N/A',
                 'created_at' => $activity->created_at?->toAtomString(),
             ],
         ]);
@@ -262,7 +241,7 @@ class ActivitySearchController extends Controller
     public function export(Request $request)
     {
         if (! $this->userCanAccessActivitySearch()) {
-            return Redirect::to('/dashboard')->with('error', 'Unauthorized: Only authorized administrators can export activities.');
+            return Redirect::to('/dashboard')->with('error', 'Unauthorized: Only authorized administrators can export actions.');
         }
 
         if ($message = $this->validateActivitySearchDates($request)) {
@@ -272,62 +251,11 @@ class ActivitySearchController extends Controller
                 ->with('error', $message);
         }
 
-        $query = ActivitiesLog::query()
-            ->select(
-                'activities_logs.*',
-                'creator.first_name as creator_first_name',
-                'creator.last_name as creator_last_name',
-                'creator.email as creator_email',
-                'assignee.first_name as assignee_first_name',
-                'assignee.last_name as assignee_last_name',
-                'assignee.email as assignee_email',
-                'client.first_name as client_first_name',
-                'client.last_name as client_last_name',
-                'client.email as client_email'
-            );
-        $this->applyActivitySearchJoins($query);
-
-        // Apply same filters as index
-        if ($request->filled('assigner_id')) {
-            $query->where('activities_logs.created_by', $request->assigner_id);
-        }
-
-        if ($request->filled('assignee_id')) {
-            $query->where('activities_logs.use_for', $request->assignee_id);
-        }
-
-        if ($request->filled('client_id')) {
-            $query->where('activities_logs.client_id', $request->client_id);
-        }
-
-        if ($request->filled('activity_type')) {
-            $query->where('activities_logs.activity_type', $request->activity_type);
-        }
-
-        if ($request->filled('task_status')) {
-            $query->where('activities_logs.task_status', $request->task_status);
-        }
-
-        if ($request->filled('task_group')) {
-            $query->where('activities_logs.task_group', $request->task_group);
-        }
-
-        if ($request->filled('date_from')) {
-            $dateFrom = Carbon::parse($request->date_from)->startOfDay();
-            $query->where('activities_logs.created_at', '>=', $dateFrom);
-        }
-
-        if ($request->filled('date_to')) {
-            $dateTo = Carbon::parse($request->date_to)->endOfDay();
-            $query->where('activities_logs.created_at', '<=', $dateTo);
-        }
-
-        if ($request->filled('keyword')) {
-            $this->applyKeywordFilter($query, $request->keyword);
-        }
-
         // Limit export to 5000 records
-        $activities = $query->orderBy('activities_logs.created_at', 'DESC')->limit(5000)->get();
+        $activities = $this->buildActionSearchQuery($request)
+            ->orderBy('notes.created_at', 'DESC')
+            ->limit(5000)
+            ->get();
 
         // Generate CSV
         $filename = 'activity_search_' . date('Y-m-d_His') . '.csv';
@@ -342,20 +270,19 @@ class ActivitySearchController extends Controller
             
             // Add CSV headers
             fputcsv($file, [
-                'Activity ID',
-                'Date & Time',
+                'Action ID',
+                'Assign Date',
                 'Assigner Name',
                 'Assigner Email',
                 'Assignee Name',
                 'Assignee Email',
                 'Client Name',
                 'Client Email',
-                'Activity Type',
-                'Action Category',
+                'Type',
                 'Status',
-                'Subject',
+                'Note',
                 'Description',
-                'Follow-up Date'
+                'Created At'
             ]);
 
             // Add data rows
@@ -363,27 +290,25 @@ class ActivitySearchController extends Controller
                 $assignerName = $activity->creator_first_name . ' ' . $activity->creator_last_name;
                 $assigneeName = $activity->assignee_first_name ? ($activity->assignee_first_name . ' ' . $activity->assignee_last_name) : 'N/A';
                 $clientName = $activity->client_first_name . ' ' . $activity->client_last_name;
-                
-                $status = 'N/A';
-                if ($activity->task_group) {
-                    $status = $activity->task_status == 1 ? 'Completed' : 'Incomplete';
-                }
+                $status = $activity->task_status == 1 ? 'Completed' : 'Incomplete';
+                $followupDate = $activity->followup_date
+                    ? Carbon::parse($activity->followup_date)->format('Y-m-d H:i:s')
+                    : '';
 
                 fputcsv($file, [
                     $activity->id,
-                    $activity->created_at ? $activity->created_at->format('Y-m-d H:i:s') : '',
+                    $followupDate,
                     $assignerName,
                     $activity->creator_email ?? '',
                     $assigneeName,
                     $activity->assignee_email ?? '',
                     $clientName,
                     $activity->client_email ?? '',
-                    $activity->activity_type ?? 'N/A',
                     $activity->task_group ?? 'N/A',
                     $status,
                     $activity->subject ?? '',
                     strip_tags($activity->description ?? ''),
-                    $activity->followup_date ? $activity->followup_date->format('Y-m-d H:i:s') : ''
+                    $activity->created_at ? $activity->created_at->format('Y-m-d H:i:s') : ''
                 ]);
             }
 
@@ -410,7 +335,8 @@ class ActivitySearchController extends Controller
             return response()->json([]);
         }
 
-        $clients = Admin::whereIn('type', ['client', 'lead'])
+        $clients = Admin::query()
+            ->whereIn('type', ['client', 'lead'], 'and', false)
             ->where(function($q) use ($query) {
                 $searchLower = strtolower($query);
                 $q->whereRaw('LOWER(first_name) LIKE ?', ['%' . $searchLower . '%'])

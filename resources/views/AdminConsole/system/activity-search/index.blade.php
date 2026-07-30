@@ -1,5 +1,5 @@
 @extends('layouts.crm_client_detail')
-@section('title', 'Activity Search')
+@section('title', 'Action Search')
 
 @section('content')
 
@@ -20,7 +20,7 @@
                 <div class="col-9 col-md-9 col-lg-9">
                     <div class="card">
                         <div class="card-header">
-                            <h4>@icon('fa-search') Activity Search</h4>
+                            <h4>@icon('fa-search') Action Search</h4>
                             <div class="card-header-action">
                                 @if(isset($totalActivities) && $totalActivities > 0)
                                     <button type="button" class="btn btn-success" onclick="exportActivities()">
@@ -34,7 +34,7 @@
                             <!-- Search Form -->
                             <form action="{{ route('adminconsole.system.activity-search.index') }}" method="GET" id="searchForm">
                                 <input type="hidden" name="search" value="1">
-                                
+
                                 <div class="row">
                                     <!-- Assigner Filter -->
                                     <div class="col-md-6 mb-3">
@@ -85,31 +85,13 @@
                                         </select>
                                     </div>
                                     
-                                    <!-- Activity Type Filter -->
+                                    <!-- Type Filter -->
                                     <div class="col-md-6 mb-3">
-                                        <label for="activity_type" class="form-label">
-                                            @icon('fa-list') Activity Type
-                                        </label>
-                                        <select name="activity_type" id="activity_type" class="form-control mm-select">
-                                            <option value="">All Types</option>
-                                            @foreach($activityTypes as $key => $label)
-                                                <option value="{{ $key }}" 
-                                                    {{ request('activity_type') == $key ? 'selected' : '' }}>
-                                                    {{ $label }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <!-- Action Category Filter -->
-                                    <div class="col-md-4 mb-3">
                                         <label for="task_group" class="form-label">
-                                            @icon('fa-tasks') Action Category
+                                            @icon('fa-tasks') Type
                                         </label>
                                         <select name="task_group" id="task_group" class="form-control mm-select">
-                                            <option value="">All Categories</option>
+                                            <option value="">All Types</option>
                                             @foreach($taskGroups as $key => $label)
                                                 <option value="{{ $key }}" 
                                                     {{ request('task_group') == $key ? 'selected' : '' }}>
@@ -118,9 +100,11 @@
                                             @endforeach
                                         </select>
                                     </div>
-                                    
+                                </div>
+                                
+                                <div class="row">
                                     <!-- Action Status Filter -->
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-6 mb-3">
                                         <label for="task_status" class="form-label">
                                             @icon('fa-check-circle') Action Status
                                         </label>
@@ -132,12 +116,12 @@
                                     </div>
                                     
                                     <!-- Keyword Filter -->
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-6 mb-3">
                                         <label for="keyword" class="form-label">
                                             @icon('fa-search') Keyword
                                         </label>
                                         <input type="text" name="keyword" id="keyword" class="form-control" 
-                                               placeholder="Search in subject/description" 
+                                               placeholder="Search in note/description"
                                                value="{{ request('keyword') }}">
                                     </div>
                                 </div>
@@ -168,7 +152,7 @@
                                             @icon('fa-redo') Reset
                                         </button>
                                         <button type="submit" class="btn btn-primary">
-                                            @icon('fa-search') Search Activities
+                                            @icon('fa-search') Search Actions
                                         </button>
                                     </div>
                                 </div>
@@ -181,7 +165,7 @@
                                 <div class="mt-4">
                                     <h5 class="mb-3">
                                         @icon('fa-list-alt') Search Results 
-                                        <span class="badge badge-primary">{{ $totalActivities }} activities found</span>
+                                        <span class="badge badge-primary">{{ $totalActivities }} actions found</span>
                                     </h5>
                                     
                                     @if($activities->count() > 0)
@@ -189,12 +173,12 @@
                                             <table class="table table-striped table-hover">
                                                 <thead>
                                                     <tr>
-                                                        <th>Date & Time</th>
+                                                        <th>Assign Date</th>
                                                         <th>Assigner</th>
                                                         <th>Assignee</th>
                                                         <th>Client</th>
                                                         <th>Type</th>
-                                                        <th>Subject</th>
+                                                        <th>Note</th>
                                                         <th>Status</th>
                                                         <th>Action</th>
                                                     </tr>
@@ -203,8 +187,7 @@
                                                     @foreach($activities as $activity)
                                                         <tr>
                                                             <td>
-                                                                <small>{{ $activity->created_at ? $activity->created_at->format('Y-m-d') : 'N/A' }}</small><br>
-                                                                <small class="text-muted">{{ $activity->created_at ? $activity->created_at->format('h:i A') : '' }}</small>
+                                                                <small>{{ $activity->followup_date ? \Carbon\Carbon::parse($activity->followup_date)->format('d/m/Y') : 'N/P' }}</small>
                                                             </td>
                                                             <td>
                                                                 <strong>{{ $activity->creator_first_name }} {{ $activity->creator_last_name }}</strong><br>
@@ -232,41 +215,21 @@
                                                             </td>
                                                             <td>
                                                                 @php
-                                                                    $typeLabels = [
-                                                                        'activity' => ['label' => 'Activity', 'class' => 'primary'],
-                                                                        'sms' => ['label' => 'SMS', 'class' => 'info'],
-                                                                        'email' => ['label' => 'Email', 'class' => 'primary'],
-                                                                        'document' => ['label' => 'Document', 'class' => 'info'],
-                                                                        'note' => ['label' => 'Note', 'class' => 'warning'],
-                                                                        'financial' => ['label' => 'Financial', 'class' => 'success'],
-                                                                        'lead_converted' => ['label' => 'Lead converted', 'class' => 'success'],
-                                                                        'followup_scheduled' => ['label' => 'Action scheduled', 'class' => 'info'],
-                                                                        'followup_completed' => ['label' => 'Action completed', 'class' => 'success'],
-                                                                        'followup_rescheduled' => ['label' => 'Action rescheduled', 'class' => 'warning'],
-                                                                        'followup_cancelled' => ['label' => 'Action cancelled', 'class' => 'danger'],
-                                                                    ];
-                                                                    $typeInfo = $typeLabels[$activity->activity_type] ?? ['label' => ucfirst($activity->activity_type ?? 'N/A'), 'class' => 'secondary'];
+                                                                    $typeLabel = $activity->task_group ?: 'N/A';
                                                                 @endphp
-                                                                <span class="badge badge-{{ $typeInfo['class'] }}">{{ $typeInfo['label'] }}</span>
-                                                                @if($activity->task_group)
-                                                                    <br><small class="text-muted">{{ $activity->task_group }}</small>
-                                                                @endif
+                                                                <span class="badge badge-primary">{{ $typeLabel }}</span>
                                                             </td>
                                                             <td>
-                                                                <strong>{{ \Illuminate\Support\Str::limit($activity->subject, 50) }}</strong>
+                                                                <strong>{{ \Illuminate\Support\Str::limit($activity->subject ?: 'Action', 50) }}</strong>
                                                                 @if($activity->description)
                                                                     <br><small class="text-muted">{!! \Illuminate\Support\Str::limit(strip_tags($activity->description), 80) !!}</small>
                                                                 @endif
                                                             </td>
                                                             <td>
-                                                                @if($activity->task_group)
-                                                                    @if($activity->task_status == 1)
-                                                                        <span class="badge badge-success">@icon('fa-check') Complete</span>
-                                                                    @else
-                                                                        <span class="badge badge-warning">@icon('fa-clock') Pending</span>
-                                                                    @endif
+                                                                @if($activity->task_status == 1)
+                                                                    <span class="badge badge-success">@icon('fa-check') Complete</span>
                                                                 @else
-                                                                    <span class="text-muted">-</span>
+                                                                    <span class="badge badge-warning">@icon('fa-clock') Incomplete</span>
                                                                 @endif
                                                             </td>
                                                             <td>
@@ -296,15 +259,15 @@
                                         </div>
                                     @else
                                         <div class="alert alert-info">
-                                            @icon('fa-info-circle') No activities found matching your search criteria. Try adjusting your filters.
+                                            @icon('fa-info-circle') No actions found matching your search criteria. Try adjusting your filters.
                                         </div>
                                     @endif
                                 </div>
                             @else
                                 <div class="alert alert-light text-center">
                                     @icon('fa-search', ['style' => 'font-size: 3rem; opacity: 0.3;'])
-                                    <h5 class="mt-3">Search Staff Activities</h5>
-                                    <p class="text-muted">Use the filters above to search for activities by assigner, assignee, date range, and more.</p>
+                                    <h5 class="mt-3">Search Staff Actions</h5>
+                                    <p class="text-muted">Use the filters above to search for actions by assigner, assignee, status, date range, and more.</p>
                                 </div>
                             @endif
                         </div>
@@ -320,7 +283,7 @@
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Activity Details</h5>
+                <h5 class="modal-title">Action Details</h5>
                 <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -423,21 +386,21 @@ function viewActivityDetails(activityId) {
                 var created = d.created_at ? (typeof formatDisplayDateTime === 'function' ? (formatDisplayDateTime(d.created_at) || d.created_at) : String(d.created_at)) : 'N/A';
                 var html = '<div class="activity-details">';
                 html += '<table class="table table-borderless">';
-                html += '<tr><th width="30%">Activity ID:</th><td>#' + escapeHtml(activityId) + '</td></tr>';
-                html += '<tr><th>Subject:</th><td>' + escapeHtml(d.subject || 'N/A') + '</td></tr>';
+                html += '<tr><th width="30%">Action ID:</th><td>#' + escapeHtml(activityId) + '</td></tr>';
+                html += '<tr><th>Note:</th><td>' + escapeHtml(d.subject || 'N/A') + '</td></tr>';
                 html += '<tr><th>Description:</th><td>' + escapeHtml(d.description || 'N/A') + '</td></tr>';
-                html += '<tr><th>Activity Type:</th><td>' + escapeHtml(d.activity_type || 'N/A') + '</td></tr>';
+                html += '<tr><th>Type:</th><td>' + escapeHtml(d.activity_type || 'N/A') + '</td></tr>';
                 html += '<tr><th>Created At:</th><td>' + escapeHtml(created) + '</td></tr>';
                 html += '</table>';
                 html += '</div>';
                 
                 $('#activityDetailsContent').html(html);
             } else {
-                $('#activityDetailsContent').html('<div class="alert alert-danger">Failed to load activity details.</div>');
+                $('#activityDetailsContent').html('<div class="alert alert-danger">Failed to load action details.</div>');
             }
         },
         error: function() {
-            $('#activityDetailsContent').html('<div class="alert alert-danger">Error loading activity details.</div>');
+            $('#activityDetailsContent').html('<div class="alert alert-danger">Error loading action details.</div>');
         }
     });
 }

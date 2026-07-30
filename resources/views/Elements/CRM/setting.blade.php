@@ -124,7 +124,7 @@
 					$activitySearchclasstype = 'active';
 				}
 			?>
-			<li class="{{$activitySearchclasstype}}"><a class="nav-link" href="{{route('adminconsole.system.activity-search.index')}}">Activity Search</a></li>
+			<li class="{{$activitySearchclasstype}}"><a class="nav-link" href="{{route('adminconsole.system.activity-search.index')}}">Action Search</a></li>
 			<?php
 			}
 			?>
