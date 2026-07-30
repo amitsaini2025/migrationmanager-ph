@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 
 class SignatureDashboardController extends Controller
 {
@@ -843,6 +844,30 @@ class SignatureDashboardController extends Controller
     }
 
     /**
+     * Active document checklists for the selected attach category.
+     */
+    public function getDocumentChecklists(Request $request)
+    {
+        $request->validate([
+            'doc_category' => 'required|string|in:visa,personal',
+        ]);
+
+        $docType = $request->doc_category === 'personal' ? 1 : 2;
+
+        $checklists = \App\Models\DocumentChecklist::query()
+            ->select('id', 'name')
+            ->where('status', 1)
+            ->where('doc_type', $docType)
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'checklists' => $checklists,
+        ]);
+    }
+
+    /**
      * Associate a document with a client or lead (post-signing)
      */
     public function associate(Request $request, $id)
@@ -858,7 +883,15 @@ class SignatureDashboardController extends Controller
             'matter_id' => 'nullable|integer|exists:client_matters,id',
             'doc_category' => 'required|string|in:visa,personal',
             'folder_name' => 'required|string|max:64',
-            'note' => 'nullable|string|max:500'
+            'checklist' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::exists('portal_document_checklists', 'name')
+                    ->where('status', 1)
+                    ->where('doc_type', $request->doc_category === 'personal' ? 1 : 2),
+            ],
+            'note' => 'nullable|string|max:500',
         ]);
 
         $success = $this->signatureService->associateWithCategory(
@@ -868,7 +901,8 @@ class SignatureDashboardController extends Controller
             $request->matter_id,
             $request->doc_category,
             $request->note,
-            $request->folder_name
+            $request->folder_name,
+            $request->checklist
         );
 
         if ($success) {

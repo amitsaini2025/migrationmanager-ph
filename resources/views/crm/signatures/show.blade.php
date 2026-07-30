@@ -304,6 +304,29 @@
         opacity: 0.5;
         cursor: not-allowed;
     }
+
+    /* The global "theme-white" theme paints .btn-outline-primary white with a yellow
+       border, and the .btn rule above strips the border, so these buttons stay
+       invisible until hovered. Keep them filled in every state instead. */
+    .document-detail-container .btn-outline-primary,
+    .modal .btn-outline-primary,
+    .document-detail-container .btn-outline-primary:disabled,
+    .modal .btn-outline-primary:disabled {
+        background: #4a5bd6;
+        color: #ffffff;
+        border: 1px solid #4a5bd6;
+    }
+
+    .document-detail-container .btn-outline-primary:hover,
+    .document-detail-container .btn-outline-primary:focus,
+    .document-detail-container .btn-outline-primary:active,
+    .modal .btn-outline-primary:hover,
+    .modal .btn-outline-primary:focus,
+    .modal .btn-outline-primary:active {
+        background: #3f4ec0 !important;
+        color: #ffffff !important;
+        border-color: #3f4ec0;
+    }
     
     .association-info {
         background: #e7f3ff;
@@ -823,11 +846,12 @@
                                 </select>
                                 <small class="form-text text-muted">Required so the document appears under the correct client tab folder.</small>
                             </div>
-                            
-                            <div class="form-group">
-                                <label>Note (Optional)</label>
-                                <textarea class="form-control" name="note" rows="3" placeholder="Add a note about this attachment..."></textarea>
-                                <small class="form-text text-muted">This note will appear in the audit trail</small>
+
+                            <div class="form-group" id="checklistSelection" style="display: none;">
+                                <label>Document Checklist <span style="color: #dc3545;">*</span></label>
+                                <select class="form-control" id="checklistName" name="checklist" required>
+                                    <option value="">-- Select Checklist --</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -1523,6 +1547,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const docCategory = document.getElementById('docCategory');
     const folderName = document.getElementById('folderName');
     const folderSelection = document.getElementById('folderSelection');
+    const checklistName = document.getElementById('checklistName');
+    const checklistSelection = document.getElementById('checklistSelection');
     const matterId = document.getElementById('matterId');
     
     function filterDocCategoryOptions() {
@@ -1539,12 +1565,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         docCategory.value = '';
         resetFolderSelect();
+        resetChecklistSelect();
     }
 
     function resetFolderSelect() {
         if (!folderName || !folderSelection) return;
         folderName.innerHTML = '<option value="">-- Select Folder --</option>';
         folderSelection.style.display = 'none';
+    }
+
+    function resetChecklistSelect() {
+        if (!checklistName || !checklistSelection) return;
+        checklistName.innerHTML = '<option value="">-- Select Checklist --</option>';
+        checklistSelection.style.display = 'none';
     }
 
     function loadDocumentFolders() {
@@ -1588,10 +1621,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 folderName.innerHTML = '<option value="">Error loading folders</option>';
             });
     }
+
+    function loadDocumentChecklists() {
+        if (!docCategory || !checklistName || !checklistSelection) {
+            resetChecklistSelect();
+            return;
+        }
+
+        const category = docCategory.value;
+        if (!category) {
+            resetChecklistSelect();
+            return;
+        }
+
+        checklistName.innerHTML = '<option value="">Loading...</option>';
+        checklistSelection.style.display = 'block';
+
+        const params = new URLSearchParams({ doc_category: category });
+        fetch(`{{ route('signatures.document-checklists') }}?` + params.toString())
+            .then(response => response.json())
+            .then(data => {
+                checklistName.innerHTML = '<option value="">-- Select Checklist --</option>';
+                if (data.success && data.checklists && data.checklists.length > 0) {
+                    data.checklists.forEach(checklist => {
+                        const option = document.createElement('option');
+                        option.value = checklist.name;
+                        option.textContent = checklist.name;
+                        checklistName.appendChild(option);
+                    });
+                } else {
+                    checklistName.innerHTML = '<option value="">No checklists found for this category</option>';
+                }
+            })
+            .catch(() => {
+                checklistName.innerHTML = '<option value="">Error loading checklists</option>';
+            });
+    }
     
     if (entityType && docCategory) {
         entityType.addEventListener('change', filterDocCategoryOptions);
-        docCategory.addEventListener('change', loadDocumentFolders);
+        docCategory.addEventListener('change', function() {
+            loadDocumentFolders();
+            loadDocumentChecklists();
+        });
     }
     if (matterId) {
         matterId.addEventListener('change', function() {
@@ -1617,6 +1689,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            if (!checklistName || !checklistName.value) {
+                e.preventDefault();
+                alert('Please select a document checklist.');
+                return;
+            }
+
             // Set the form action and add hidden fields
             this.action = '{{ route("signatures.associate", $document->id) }}';
             

@@ -445,7 +445,7 @@ class SignatureService
     /**
      * Associate a document with category-specific storage and matter
      */
-    public function associateWithCategory(Document $document, string $entityType, int $entityId, ?int $matterId, string $docCategory, string $note = null, ?string $folderName = null): bool
+    public function associateWithCategory(Document $document, string $entityType, int $entityId, ?int $matterId, string $docCategory, string $note = null, ?string $folderName = null, ?string $checklist = null): bool
     {
         try {
             $documentableType = match($entityType) {
@@ -471,6 +471,9 @@ class SignatureService
             if ($folderName !== null && $folderName !== '') {
                 $updates['folder_name'] = (string) $folderName;
             }
+            if ($checklist !== null && $checklist !== '') {
+                $updates['checklist'] = $checklist;
+            }
             if ($entityType === 'client') {
                 $updates['client_id'] = $entityId;
                 $updates['lead_id'] = null;
@@ -493,6 +496,7 @@ class SignatureService
                     'doc_category' => $docCategory,
                     'doc_type' => $docType,
                     'folder_name' => $folderName,
+                    'checklist' => $checklist,
                 ]
             ]);
 
@@ -518,6 +522,7 @@ class SignatureService
                 'matter_id' => $matterId,
                 'doc_category' => $docCategory,
                 'doc_type' => $docType,
+                'checklist' => $checklist,
                 'note' => $note
             ]);
 

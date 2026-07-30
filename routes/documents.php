@@ -217,6 +217,7 @@ Route::prefix('signatures')->group(function () {
     Route::post('/{id}/associate', [SignatureDashboardController::class, 'associate'])->name('signatures.associate');
     Route::get('/api/client-matters/{clientId}', [SignatureDashboardController::class, 'getClientMatters'])->name('signatures.client-matters');
     Route::get('/api/document-categories', [SignatureDashboardController::class, 'getDocumentCategories'])->name('signatures.document-categories');
+    Route::get('/api/document-checklists', [SignatureDashboardController::class, 'getDocumentChecklists'])->name('signatures.document-checklists');
     Route::post('/{id}/detach', [SignatureDashboardController::class, 'detach'])->name('signatures.detach');
 });
 
