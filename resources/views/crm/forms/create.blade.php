@@ -54,8 +54,8 @@
                 <label for="client_id" class="block text-sm font-medium text-gray-700">Select Client</label>
                 <select name="client_id" id="client_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 @error('client_id') border-red-300 @enderror">
                     <option value="">Select a client</option>
-                    @foreach ($clients as $client)
-                        <option value="{{ $client->id }}" {{ $client->id == ($client ? $client->id : old('client_id')) ? 'selected' : '' }}>{{ $client->full_name }}</option>
+                    @foreach ($clients as $optionClient)
+                        <option value="{{ $optionClient->id }}" {{ (string) $optionClient->id === (string) old('client_id', $client->id ?? '') ? 'selected' : '' }}>{{ trim(($optionClient->first_name ?? '') . ' ' . ($optionClient->last_name ?? '')) }}</option>
                     @endforeach
                 </select>
                 @error('client_id')
@@ -69,11 +69,11 @@
                 <div class="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Agent Name</label>
-                        <input type="text" value="{{ $agent->agent_name }}" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100">
+                        <input type="text" value="{{ trim(($agent->first_name ?? '') . ' ' . ($agent->last_name ?? '')) ?: ($agent->agent_name ?? '') }}" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Business Name</label>
-                        <input type="text" value="{{ $agent->business_name }}" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100">
+                        <input type="text" value="{{ $agent->business_name ?? '' }}" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100">
                     </div>
                 </div>
             </div>

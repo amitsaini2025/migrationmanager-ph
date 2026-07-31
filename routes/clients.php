@@ -377,6 +377,8 @@ Route::post('/clients/getCostAssignmentMigrationAgentDetailLead', [ClientsContro
 Route::post('/clients/{admin}/upload-agreement', [ClientsController::class, 'uploadAgreement'])->name('clients.uploadAgreement');
 
 // Form 956
+Route::get('/forms', [Form956Controller::class, 'index'])->name('forms.index');
+Route::get('/forms/create', [Form956Controller::class, 'create'])->name('forms.create');
 Route::post('/forms', [Form956Controller::class, 'store'])->name('forms.store');
 Route::get('/forms/{form}', [Form956Controller::class, 'show'])->name('forms.show');
 Route::get('/forms/{form}/edit', [Form956Controller::class, 'edit'])->name('forms.edit');

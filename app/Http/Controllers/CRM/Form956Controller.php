@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\CRM;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreForm956Request;
-//use App\Models\AgentDetails;
 use App\Models\Admin;
 use App\Models\ClientMatter;
 use App\Models\ClientVisaCountry;
 use App\Models\Document;
 use App\Models\Form956;
 use App\Models\Matter;
+use App\Support\StaffClientVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -28,13 +28,32 @@ class Form956Controller extends Controller
     }
 
     /**
+     * Ensure the current staff member may access the Form 956's client/lead.
+     * Matches CRM sheet / client detail visibility rules.
+     */
+    protected function assertCanAccessForm956(Form956 $form): void
+    {
+        $this->assertCanAccessClientId((int) ($form->client_id ?? 0));
+    }
+
+    /**
+     * Ensure the current staff member may access the given client/lead admin id.
+     */
+    protected function assertCanAccessClientId(int $clientId): void
+    {
+        if ($clientId <= 0 || ! StaffClientVisibility::canAccessClientOrLead($clientId, Auth::user())) {
+            abort(403, 'Unauthorized');
+        }
+    }
+
+    /**
      * Display a listing of the forms.
      */
     public function index(): View
     {
         $forms = Form956::with(['client', 'agent'])->latest()->paginate(10);
 
-        return view('forms.index', compact('forms'));
+        return view('crm.forms.index', compact('forms'));
     }
 
     /**
@@ -42,8 +61,11 @@ class Form956Controller extends Controller
      */
     public function create(Request $request): View
     {
-        // Get default agent
-        $agent = AgentDetails::first();
+        // Default agent = logged-in staff (matches modal/store: agent_id → staff.id)
+        $agent = Auth::user();
+        if (! $agent) {
+            abort(403, 'Unauthorized');
+        }
 
         // Get client if client_id is provided
         $client = null;
@@ -57,6 +79,7 @@ class Form956Controller extends Controller
             if (!$client) {
                 abort(404, 'Client not found.');
             }
+            $this->assertCanAccessClientId((int) $client->id);
         }
 
         // Get all clients (admins with type = 'client') for dropdown
@@ -65,13 +88,15 @@ class Form956Controller extends Controller
             ->orderBy('last_name')
             ->get();
 
-        return view('forms.create', compact('agent', 'client', 'clients'));
+        return view('crm.forms.create', compact('agent', 'client', 'clients'));
     }
 
     public function store(StoreForm956Request $request): JsonResponse|RedirectResponse
     {
+        $validated = $request->validated();
+        $this->assertCanAccessClientId((int) ($validated['client_id'] ?? 0));
+
         try {
-            $validated = $request->validated();
             $folderName = $validated['form956_folder_name'] ?? null;
             unset($validated['form956_folder_name']);
 
@@ -145,9 +170,10 @@ class Form956Controller extends Controller
      */
     public function show(Form956 $form): View
     {
+        $this->assertCanAccessForm956($form);
         $form->load(['client', 'agent']); //dd($form);
 
-        return view('forms.show', compact('form'));
+        return view('crm.forms.show', compact('form'));
     }
 
     /**
@@ -183,6 +209,7 @@ class Form956Controller extends Controller
      */
     public function generatePdf(Form956 $form)
     {
+        $this->assertCanAccessForm956($form);
         $form->load(['client', 'agent']);
         $templatePath = storage_path('app/public/form956_template.pdf');
 
@@ -886,6 +913,7 @@ class Form956Controller extends Controller
     */
     public function previewPdf(Form956 $form)
     {
+        $this->assertCanAccessForm956($form);
         $form->load(['client', 'agent']);  //dd($form->client);
         $templatePath = storage_path('app/public/form956_template.pdf');
 
@@ -1077,6 +1105,7 @@ class Form956Controller extends Controller
      */
     public function edit(Form956 $form): View
     {
+        $this->assertCanAccessForm956($form);
         $form->load(['client', 'agent']);
         $clients = Admin::whereIn('type', ['client', 'lead'])->orderBy('last_name')->get();
 
@@ -1088,7 +1117,14 @@ class Form956Controller extends Controller
      */
     public function update(StoreForm956Request $request, Form956 $form): RedirectResponse
     {
-        $form->update($request->validated());
+        $this->assertCanAccessForm956($form);
+        $validated = $request->validated();
+        // If reassignment is attempted, require access to the target client as well.
+        $newClientId = (int) ($validated['client_id'] ?? 0);
+        if ($newClientId > 0 && $newClientId !== (int) $form->client_id) {
+            $this->assertCanAccessClientId($newClientId);
+        }
+        $form->update($validated);
 
         return redirect()->route('forms.show', $form)
             ->with('success', 'Form 956 updated successfully.');
@@ -1099,6 +1135,7 @@ class Form956Controller extends Controller
      */
     public function destroy(Form956 $form): RedirectResponse
     {
+        $this->assertCanAccessForm956($form);
         $form->delete();
 
         return redirect()->route('forms.index')

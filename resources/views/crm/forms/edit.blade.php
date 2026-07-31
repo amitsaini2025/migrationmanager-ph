@@ -70,11 +70,11 @@
                 <div class="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Agent Name</label>
-                        <input type="text" value="{{ $form->agent->agent_name }}" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100">
+                        <input type="text" value="{{ $form->agent ? (trim(($form->agent->first_name ?? '') . ' ' . ($form->agent->last_name ?? '')) ?: ($form->agent->agent_name ?? '')) : '' }}" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Business Name</label>
-                        <input type="text" value="{{ $form->agent->business_name }}" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100">
+                        <input type="text" value="{{ $form->agent->business_name ?? '' }}" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100">
                     </div>
                 </div>
             </div>
