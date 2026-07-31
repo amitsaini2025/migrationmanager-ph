@@ -114,6 +114,21 @@ class VisaAgreementTemplateResolverTest extends TestCase
         $this->assertSame('Service_Agreement_Job_Ready.docx', $r['candidates'][0]);
     }
 
+    public function test_job_ready_matter_wins_over_vetassess_occupation(): void
+    {
+        $r = $this->resolver->determineCandidates(false, 'jrp', 'Job Ready Program', true);
+        $this->assertSame('job_ready', $r['rule']);
+        $this->assertSame('Service_Agreement_Job_Ready.docx', $r['candidates'][0]);
+        $this->assertSame(
+            [
+                'Service_Agreement_Job_Ready.docx',
+                'agreement_template-JRP.docx',
+                'Service_Agreement_general.docx',
+            ],
+            $r['candidates']
+        );
+    }
+
     public function test_partner_subclass_triggers_conflict_chain_starting_with_general(): void
     {
         $r = $this->resolver->determineCandidates(false, 'pv', 'Partner visa subclass 820', false);

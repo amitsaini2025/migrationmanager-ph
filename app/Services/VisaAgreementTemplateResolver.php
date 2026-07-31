@@ -141,6 +141,21 @@ class VisaAgreementTemplateResolver
             ];
         }
 
+        // Job Ready must win over client-wide VETASSESS occupation so JRP matters
+        // always use Service_Agreement_Job_Ready.docx regardless of occupation data.
+        if ($this->matchesJobReadyMatter($nick, $titleLower)) {
+            return [
+                'candidates' => $this->uniqueFilenames(array_merge(
+                    [
+                        $cfg['job_ready'] ?? '',
+                        $cfg['legacy_jrp'] ?? '',
+                    ],
+                    $this->standardNonCompanyTail($cfg)
+                )),
+                'rule' => 'job_ready',
+            ];
+        }
+
         if ($this->matchesSkillAssessmentOnly($nick, $titleLower, $hasVetassessOccupation)) {
             return [
                 'candidates' => $this->uniqueFilenames(array_merge(
@@ -153,19 +168,6 @@ class VisaAgreementTemplateResolver
                     $this->standardNonCompanyTail($cfg)
                 )),
                 'rule' => 'skill_assessment',
-            ];
-        }
-
-        if ($this->matchesJobReadyMatter($nick, $titleLower)) {
-            return [
-                'candidates' => $this->uniqueFilenames(array_merge(
-                    [
-                        $cfg['job_ready'] ?? '',
-                        $cfg['legacy_jrp'] ?? '',
-                    ],
-                    $this->standardNonCompanyTail($cfg)
-                )),
-                'rule' => 'job_ready',
             ];
         }
 
