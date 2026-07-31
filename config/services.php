@@ -124,6 +124,10 @@ return [
         'base_url' => env('CELLCAST_BASE_URL', 'https://api.cellcast.com.au/v1'),
         'sender_id' => env('CELLCAST_SENDER_ID', ''),
         'timeout' => env('CELLCAST_TIMEOUT', 30),
+        // Optional Basic Auth for inbound webhooks (configure same values in Cellcast dashboard).
+        // When unset, webhooks are accepted without auth (backward compatible).
+        'webhook_username' => env('CELLCAST_WEBHOOK_USERNAME'),
+        'webhook_password' => env('CELLCAST_WEBHOOK_PASSWORD'),
     ],
 
     'twilio' => [
