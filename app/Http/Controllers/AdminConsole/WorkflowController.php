@@ -23,7 +23,7 @@ class WorkflowController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Workflow::with(['matter', 'stages']);
+        $query = Workflow::with(['matter', 'stages'])->where('status', 1);
         $lists = $query->orderBy('name')->paginate(config('constants.limit', 20));
         return view('AdminConsole.features.workflow.workflows-index', compact('lists'));
     }

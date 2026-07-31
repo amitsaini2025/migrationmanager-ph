@@ -130,10 +130,11 @@
 ## E. Matters & workflows
 
 ### E1. High — “Australian Education” workflow has no stages on `workflow_id`
-**Status:** Verified (live DB)  
+**Status:** Fixed  
 **What breaks:** Live DB has workflows id=2 (Australian Education) and id=3 (General). **All 13 stages** have `workflow_id=3` and stale `w_id=2`. Modern stage code filters by `workflow_id`; matters on workflow 2 get no next/prev stage. Legacy `w_id` paths still see stages under the wrong key. Migrations alone only seed General; Australian Education stage linkage is data state, confirmed present.  
 **Evidence:** Live query of `workflows` / `workflow_stages`; `ClientPortalController` modern queries ~3724–3728; legacy `w_id` usage ~3599–3601, ~3639–3641, ~4572–4574.  
-**Reproduce:** Matter with `workflow_id=2` → Next Stage → “Already at the last stage” / no stages.
+**Reproduce:** Matter with `workflow_id=2` → Next Stage → “Already at the last stage” / no stages.  
+**Fix:** Australian Education workflow set inactive (`status=0`); production has 0 matters on `workflow_id=2`. Admin Workflows list filters `status=1` so AE is hidden. Re-enable only after stages are linked to AE.
 
 ### E2. High — Signing auto-advances workflow without checklist gates
 **Status:** Fixed  
@@ -469,14 +470,14 @@
 
 | Result | Items |
 |--------|-------|
-| Still open (`Verified`) | B1, B2, C1, E1, J1, J2, J3, K1, P1, Q1 |
-| Fixed in code | A1–A4, C2–C4, D1, E2–E5, F1, G1–G5, H1–H8, I1–I5, K2, L1, M1–M3, N1–N3, O1–O3 |
+| Still open (`Verified`) | B1, B2, C1, J1, J2, J3, K1, P1, Q1 |
+| Fixed in code | A1–A4, C2–C4, D1, E1–E5, F1, G1–G5, H1–H8, I1–I5, K2, L1, M1–M3, N1–N3, O1–O3 |
 | Description corrected | A1, I3, H2, B1, E1, D1, I1, C3, N2 |
 | Severity changed | Q1 Medium → Low |
 | Removed as false positive | None |
 | Still excluded (already fixed / not bugs) | LeadAnalytics Admin query, `documents.thankyou` live path, bulk SMS stubs |
 
-**Counts:** Fixed **40** · Open **11** (of 51)
+**Counts:** Fixed **42** · Open **9** (of 51)
 
 ---
 
