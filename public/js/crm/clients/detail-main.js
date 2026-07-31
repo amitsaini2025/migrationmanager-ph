@@ -155,23 +155,7 @@
         if ($row) {
             $('.notuseddocumnetlist').append($row);
         }
-        // Soft-switch to Not Used Documents (same path as the inline tab button; no reload).
-        try {
-            if (typeof SidebarTabs !== 'undefined' && typeof SidebarTabs.activateTab === 'function') {
-                SidebarTabs.activateTab('notuseddocuments');
-            } else {
-                $('.client-nav-button').removeClass('active');
-                $('.tab-pane').removeClass('active');
-                $('.client-nav-button[data-tab="notuseddocuments"]').addClass('active');
-                $('#notuseddocuments-tab').addClass('active');
-                localStorage.setItem('activeTab', 'notuseddocuments');
-            }
-            if ($row && $row.length && $row[0].scrollIntoView) {
-                $row[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-            }
-        } catch (navErr) {
-            console.warn('[NotUsed] Soft tab switch failed; list was still updated', navErr);
-        }
+        // Stay on the current Personal/Visa documents tab; Not Used list is updated in the background.
         if (typeof getallactivities === 'function') {
             getallactivities();
         }
