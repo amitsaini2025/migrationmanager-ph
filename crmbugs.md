@@ -329,9 +329,10 @@
 **Note:** Impact is delivery-status forgery when env is unset; ensure prod always sets the token.
 
 ### K2. Medium — Checklist “sent” activity logged before the email is actually sent
-**Status:** Verified  
+**Status:** Fixed (activity + visa-sheet side effects run once after first successful send)  
 **What breaks:** Activity logs and checklist-sent side effects run after `EmailLog` save but before `emailService->sendEmail`. On send failure, CRM history claims checklist was sent while `delivery_status` becomes `send_failed`.  
-**Evidence:** `CRMUtilityController::sendmail` ~1399–1442 vs send ~1584–1611.
+**Evidence:** `CRMUtilityController::sendmail` ~1399–1442 vs send ~1584–1611.  
+**Fix:** Moved checklist activity logs and `recordChecklistSent` / `recordLeadChecklistSent` to run once on first successful `sendEmail`; failed sends no longer claim checklist was sent.
 
 ---
 
@@ -468,8 +469,8 @@
 
 | Result | Items |
 |--------|-------|
-| Still open (`Verified`) | B1, B2, C1, E1, J1, J2, J3, K1, K2, P1, Q1 |
-| Fixed in code | A1–A4, C2–C4, D1, E2–E5, F1, G1–G5, H1–H8, I1–I5, L1, M1–M3, N1–N3, O1–O3 |
+| Still open (`Verified`) | B1, B2, C1, E1, J1, J2, J3, K1, P1, Q1 |
+| Fixed in code | A1–A4, C2–C4, D1, E2–E5, F1, G1–G5, H1–H8, I1–I5, K2, L1, M1–M3, N1–N3, O1–O3 |
 | Description corrected | A1, I3, H2, B1, E1, D1, I1, C3, N2 |
 | Severity changed | Q1 Medium → Low |
 | Removed as false positive | None |

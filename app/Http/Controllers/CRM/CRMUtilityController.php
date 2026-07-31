@@ -1397,49 +1397,17 @@ public function getChapters(Request $request)
         }
 
         $saved	=	$obj->save();
+        // Checklist activity / visa-sheet side effects run only after a successful send (see below).
         $activityClientId = $requestData['client_id'] ?? $requestData['lead_id'] ?? null;
         if ($activityClientId === null && ! empty($emailToList) && ($requestData['type'] ?? '') !== 'agent') {
             $activityClientId = (int) reset($emailToList);
         }
-        if (isset($requestData['checklistfile'])) {
-            if (! empty($requestData['checklistfile']) && $activityClientId) {
-                $objs = new \App\Models\ActivitiesLog;
-                $objs->client_id = $activityClientId;
-                $objs->created_by = Auth::user()->id;
-                $objs->subject = 'Checklist sent to client';
-                $objs->task_status = 0;
-                $objs->pin = 0;
-                $objs->save();
-            }
-        }
-
-        if (isset($requestData['checklistfile_document'])) {
-            if (! empty($requestData['checklistfile_document']) && $activityClientId) {
-                $objs = new \App\Models\ActivitiesLog;
-                $objs->client_id = $activityClientId;
-                $objs->created_by = Auth::user()->id;
-                $objs->subject = 'Document Checklist sent to client';
-                $objs->task_status = 0;
-                $objs->pin = 0;
-                $objs->save();
-            }
-        }
-
-        // Visa sheet integration: when checklist sent, update the correct reference table per subclass (TR, Visitor, Student, PR, Employer Sponsored)
         $checklistWasSent = (!empty($requestData['checklistfile']) || !empty($requestData['checklistfile_document']));
         $clientMatterId = $requestData['compose_client_matter_id'] ?? null;
         $isLead = (($requestData['type'] ?? '') === 'lead');
         $leadId = $requestData['lead_id'] ?? ($requestData['client_id'] ?? null);
         $composeMatterId = $requestData['compose_matter_id'] ?? null;
-
-        if ($checklistWasSent && $clientMatterId) {
-            $clientMatter = ClientMatter::with('matter')->find($clientMatterId);
-            if ($clientMatter) {
-                $clientMatter->recordChecklistSent(Auth::user()->id);
-            }
-        } elseif ($checklistWasSent && $isLead && $leadId && $composeMatterId) {
-            \App\Services\VisaSheetService::recordLeadChecklistSent((int) $leadId, (int) $composeMatterId, Auth::user()->id);
-        }
+        $checklistSideEffectsDone = false;
 
 		$subject = $requestData['subject'];
 		$message = $requestData['message'];
@@ -1594,6 +1562,39 @@ public function getChapters(Request $request)
 				$anySendSuccess = true;
 				$lastSendSubject = $subject;
 				$lastSendMessage = $message;
+
+				// Run once on first successful send so multi-recipient partial success
+				// still records activity even if a later recipient fails and returns early.
+				if (! $checklistSideEffectsDone && $checklistWasSent) {
+					if (! empty($requestData['checklistfile']) && $activityClientId) {
+						$objs = new \App\Models\ActivitiesLog;
+						$objs->client_id = $activityClientId;
+						$objs->created_by = Auth::user()->id;
+						$objs->subject = 'Checklist sent to client';
+						$objs->task_status = 0;
+						$objs->pin = 0;
+						$objs->save();
+					}
+					if (! empty($requestData['checklistfile_document']) && $activityClientId) {
+						$objs = new \App\Models\ActivitiesLog;
+						$objs->client_id = $activityClientId;
+						$objs->created_by = Auth::user()->id;
+						$objs->subject = 'Document Checklist sent to client';
+						$objs->task_status = 0;
+						$objs->pin = 0;
+						$objs->save();
+					}
+					// Visa sheet: update the correct reference table per subclass
+					if ($clientMatterId) {
+						$clientMatter = ClientMatter::with('matter')->find($clientMatterId);
+						if ($clientMatter) {
+							$clientMatter->recordChecklistSent(Auth::user()->id);
+						}
+					} elseif ($isLead && $leadId && $composeMatterId) {
+						\App\Services\VisaSheetService::recordLeadChecklistSent((int) $leadId, (int) $composeMatterId, Auth::user()->id);
+					}
+					$checklistSideEffectsDone = true;
+				}
 
 				Log::info('Compose email sent successfully', [
 					'staff_id' => Auth::guard('admin')->id(),
