@@ -8,6 +8,7 @@ use App\Models\Admin;
 use App\Models\Lead;
 use App\Models\SignatureActivity;
 use App\Models\ActivitiesLog;
+use App\Support\DocumentStoredFilename;
 use Illuminate\Support\Str;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\Mail;
@@ -481,6 +482,17 @@ class SignatureService
                 $updates['lead_id'] = $entityId;
                 $updates['client_id'] = null;
             }
+
+            // Match CRM client-tab naming: {clientPrefix}_{checklist}_{timestamp} + bare extension.
+            // Leave myfile / signed_doc_link unchanged so signature download & preview keep working.
+            if ($checklist !== null && $checklist !== '') {
+                $storedName = $this->buildClientDocumentStoredName($entityType, $entityId, $checklist, $document);
+                if ($storedName !== null) {
+                    $updates['file_name'] = $storedName['file_name'];
+                    $updates['filetype'] = $storedName['filetype'];
+                }
+            }
+
             $document->update($updates);
 
             // Create audit trail entry in signature_activities
@@ -534,6 +546,44 @@ class SignatureService
             ]);
             return false;
         }
+    }
+
+    /**
+     * Build the CRM client-documents stored filename (no extension) + bare filetype.
+     *
+     * @return array{file_name: string, filetype: string}|null
+     */
+    protected function buildClientDocumentStoredName(
+        string $entityType,
+        int $entityId,
+        string $checklist,
+        Document $document
+    ): ?array {
+        $checklist = trim($checklist);
+        if ($checklist === '') {
+            return null;
+        }
+
+        $namePrefix = 'client';
+        if ($entityType === 'client') {
+            $admin = Admin::query()
+                ->select(['id', 'client_id', 'first_name', 'is_company'])
+                ->find($entityId);
+            $sanitizedFirstName = $admin
+                ? preg_replace('/[^a-zA-Z0-9_\-]/', '_', (string) ($admin->first_name ?? ''))
+                : 'client';
+            $namePrefix = DocumentStoredFilename::storedNamePrefix($admin, $sanitizedFirstName ?: 'client');
+        } else {
+            $lead = Lead::query()->select(['id', 'first_name'])->find($entityId);
+            $namePrefix = $lead
+                ? (preg_replace('/[^a-zA-Z0-9_\-]/', '_', (string) ($lead->first_name ?? '')) ?: 'client')
+                : 'client';
+        }
+
+        return [
+            'file_name' => $namePrefix . '_' . $checklist . '_' . time(),
+            'filetype' => $document->getPreviewFileExtension(),
+        ];
     }
 
     /**

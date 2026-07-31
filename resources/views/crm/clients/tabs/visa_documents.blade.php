@@ -211,12 +211,13 @@
                                                         <td style="white-space: initial;">
                                                             <?php if ($fetch->file_name): ?>
                                                                 <?php
-                                                                $displayFileName = $fetch->file_name . '.' . ($fetch->filetype ?? '');
+                                                                $displayFileName = $fetch->getFilenameWithExtensionForDisplay();
+                                                                $previewExtension = $fetch->getPreviewFileExtension();
                                                                 $fileUrlJs = addslashes($fileUrl);
                                                                 $downloadUrlJs = addslashes($downloadUrl ?? $fileUrl);
                                                                 ?>
-                                                                <div data-id="<?= $fetch->id ?>" data-name="<?= htmlspecialchars($fetch->file_name) ?>" class="doc-row" title="Uploaded by: <?= htmlspecialchars($admin->first_name ?? 'NA') ?> on <?= date('d/m/Y H:i', strtotime($fetch->created_at)) ?>" oncontextmenu="showVisaFileContextMenu(event, <?= $fetch->id ?>, '<?= htmlspecialchars($fetch->filetype ?? 'pdf') ?>', '<?= $fileUrlJs ?>', '<?= $id ?>', '<?= $fetch->status ?? 'draft' ?>'); return false;">
-                                                                    <a href="javascript:void(0);" onclick="previewFile('<?= $fetch->filetype ?? 'pdf' ?>','<?= $fileUrlJs ?>','preview-container-migdocumnetlist')">
+                                                                <div data-id="<?= $fetch->id ?>" data-name="<?= htmlspecialchars($fetch->file_name) ?>" class="doc-row" title="Uploaded by: <?= htmlspecialchars($admin->first_name ?? 'NA') ?> on <?= date('d/m/Y H:i', strtotime($fetch->created_at)) ?>" oncontextmenu="showVisaFileContextMenu(event, <?= $fetch->id ?>, '<?= htmlspecialchars($previewExtension) ?>', '<?= $fileUrlJs ?>', '<?= $id ?>', '<?= $fetch->status ?? 'draft' ?>'); return false;">
+                                                                    <a href="javascript:void(0);" onclick="previewFile('<?= $previewExtension ?>','<?= $fileUrlJs ?>','preview-container-migdocumnetlist')">
                                                                         @icon('fa-file-image') <span><?= htmlspecialchars($displayFileName) ?></span>
                                                                     </a>
                                                                 </div>
@@ -324,7 +325,10 @@
                                                             $signedFileUrl = url()->route('documents.preview.signed', $signedDoc->id);
                                                             $signedDownloadUrl = $signedDoc->signed_doc_link ?? $signedDoc->myfile;
                                                         }
-                                                        $signedDisplayName = ($signedDoc->file_name ?? 'signed') . '.' . ($signedDoc->filetype ?? 'pdf');
+                                                        $signedPreviewExtension = $signedDoc->getPreviewFileExtension();
+                                                        $signedDisplayName = $signedDoc->file_name
+                                                            ? $signedDoc->getFilenameWithExtensionForDisplay()
+                                                            : 'signed.' . $signedPreviewExtension;
                                                     ?>
                                                     <tr class="drow visa-signed-row" data-matterid="<?= $signedDoc->client_matter_id ?>" data-catid="<?= $signedDoc->folder_name ?>" id="id_<?= $signedDoc->id ?>">
                                                         <td style="white-space: initial;">
@@ -336,8 +340,8 @@
                                                             <?php
                                                             $signedFileUrlJs = addslashes($signedFileUrl);
                                                             ?>
-                                                            <div data-id="<?= $signedDoc->id ?>" data-name="<?= htmlspecialchars($signedDoc->file_name ?? '') ?>" class="doc-row" title="Signed document" oncontextmenu="showVisaFileContextMenu(event, <?= $signedDoc->id ?>, '<?= htmlspecialchars($signedDoc->filetype ?? 'pdf') ?>', '<?= $signedFileUrlJs ?>', '<?= $id ?>', '<?= $signedDoc->status ?? 'signed' ?>'); return false;">
-                                                                <a href="javascript:void(0);" onclick="previewFile('<?= $signedDoc->filetype ?? 'pdf' ?>','<?= $signedFileUrlJs ?>','preview-container-migdocumnetlist')">
+                                                            <div data-id="<?= $signedDoc->id ?>" data-name="<?= htmlspecialchars($signedDoc->file_name ?? '') ?>" class="doc-row" title="Signed document" oncontextmenu="showVisaFileContextMenu(event, <?= $signedDoc->id ?>, '<?= htmlspecialchars($signedPreviewExtension) ?>', '<?= $signedFileUrlJs ?>', '<?= $id ?>', '<?= $signedDoc->status ?? 'signed' ?>'); return false;">
+                                                                <a href="javascript:void(0);" onclick="previewFile('<?= $signedPreviewExtension ?>','<?= $signedFileUrlJs ?>','preview-container-migdocumnetlist')">
                                                                     @icon('fa-file-image') <span><?= htmlspecialchars($signedDisplayName) ?></span>
                                                                 </a>
                                                             </div>
@@ -368,7 +372,10 @@
                                                             $signedFileUrl = url()->route('documents.preview.signed', $signedDoc->id);
                                                             $signedDownloadUrl = $signedDoc->signed_doc_link ?? $signedDoc->myfile;
                                                         }
-                                                        $signedDisplayName = ($signedDoc->file_name ?? 'signed') . '.' . ($signedDoc->filetype ?? 'pdf');
+                                                        $signedPreviewExtension = $signedDoc->getPreviewFileExtension();
+                                                        $signedDisplayName = $signedDoc->file_name
+                                                            ? $signedDoc->getFilenameWithExtensionForDisplay()
+                                                            : 'signed.' . $signedPreviewExtension;
                                                         $signedFileUrlJs = addslashes($signedFileUrl);
                                                 ?>
                                                     <tr class="drow visa-signed-row" data-matterid="<?= $signedDoc->client_matter_id ?>" data-catid="<?= $signedDoc->folder_name ?>" id="id_<?= $signedDoc->id ?>">
@@ -378,8 +385,8 @@
                                                             </div>
                                                         </td>
                                                         <td style="white-space: initial;">
-                                                            <div data-id="<?= $signedDoc->id ?>" data-name="<?= htmlspecialchars($signedDoc->file_name ?? '') ?>" class="doc-row" title="Signed document" oncontextmenu="showVisaFileContextMenu(event, <?= $signedDoc->id ?>, '<?= htmlspecialchars($signedDoc->filetype ?? 'pdf') ?>', '<?= $signedFileUrlJs ?>', '<?= $id ?>', '<?= $signedDoc->status ?? 'signed' ?>'); return false;">
-                                                                <a href="javascript:void(0);" onclick="previewFile('<?= $signedDoc->filetype ?? 'pdf' ?>','<?= $signedFileUrlJs ?>','preview-container-migdocumnetlist')">
+                                                            <div data-id="<?= $signedDoc->id ?>" data-name="<?= htmlspecialchars($signedDoc->file_name ?? '') ?>" class="doc-row" title="Signed document" oncontextmenu="showVisaFileContextMenu(event, <?= $signedDoc->id ?>, '<?= htmlspecialchars($signedPreviewExtension) ?>', '<?= $signedFileUrlJs ?>', '<?= $id ?>', '<?= $signedDoc->status ?? 'signed' ?>'); return false;">
+                                                                <a href="javascript:void(0);" onclick="previewFile('<?= $signedPreviewExtension ?>','<?= $signedFileUrlJs ?>','preview-container-migdocumnetlist')">
                                                                     @icon('fa-file-image') <span><?= htmlspecialchars($signedDisplayName) ?></span>
                                                                 </a>
                                                             </div>

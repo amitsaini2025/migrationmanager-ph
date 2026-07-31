@@ -419,9 +419,9 @@ class ClientDocumentsController extends Controller
                             <td style="white-space: initial;">
                                 <?php
                                 if( isset($fetch->file_name) && $fetch->file_name !=""){ ?>
-                                    <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->filetype); ?>', '<?php echo $fileUrl; ?>', '<?php echo $request->folder_name; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
-                                        <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype;?>','<?php echo $fileUrl; ?>','preview-container-<?php echo $request->folder_name;?>')">
-                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->file_name . '.' . $fetch->filetype); ?></span>
+                                    <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->getPreviewFileExtension()); ?>', '<?php echo $fileUrl; ?>', '<?php echo $request->folder_name; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
+                                        <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->getPreviewFileExtension();?>','<?php echo $fileUrl; ?>','preview-container-<?php echo $request->folder_name;?>')">
+                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->getFilenameWithExtensionForDisplay()); ?></span>
                                         </a>
                                     </div>
                                 <?php
@@ -876,9 +876,9 @@ class ClientDocumentsController extends Controller
                             <td style="white-space: initial;">
                                 <?php
                                 if( isset($fetch->file_name) && $fetch->file_name !=""){ ?>
-                                    <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showVisaFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->filetype); ?>', '<?php echo $fileUrl; ?>', '<?php echo $fetch->folder_name; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
-                                        <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype;?>','<?php echo $fetch->myfile; ?>','preview-container-migdocumnetlist')">
-                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->file_name . '.' . $fetch->filetype); ?></span>
+                                    <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showVisaFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->getPreviewFileExtension()); ?>', '<?php echo $fileUrl; ?>', '<?php echo $fetch->folder_name; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
+                                        <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->getPreviewFileExtension();?>','<?php echo $fetch->myfile; ?>','preview-container-migdocumnetlist')">
+                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->getFilenameWithExtensionForDisplay()); ?></span>
                                         </a>
                                     </div>
                                 <?php
@@ -1100,9 +1100,9 @@ class ClientDocumentsController extends Controller
                 </td>
                 <td style="white-space: initial;">
                     <?php if (isset($fetch->file_name) && $fetch->file_name != '') { ?>
-                        <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->filetype); ?>', '<?php echo $fileUrl; ?>', '<?php echo $folderName; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
-                            <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype;?>','<?php echo $fileUrl; ?>','preview-container-<?php echo $folderName;?>')">
-                                <?php echo IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->file_name . '.' . $fetch->filetype); ?></span>
+                        <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->getPreviewFileExtension()); ?>', '<?php echo $fileUrl; ?>', '<?php echo $folderName; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
+                            <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->getPreviewFileExtension();?>','<?php echo $fileUrl; ?>','preview-container-<?php echo $folderName;?>')">
+                                <?php echo IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->getFilenameWithExtensionForDisplay()); ?></span>
                             </a>
                         </div>
                     <?php } else { ?>
@@ -1212,9 +1212,9 @@ class ClientDocumentsController extends Controller
                 </td>
                 <td style="white-space: initial;">
                     <?php if (isset($fetch->file_name) && $fetch->file_name != '') { ?>
-                        <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showVisaFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->filetype); ?>', '<?php echo $fileUrl; ?>', '<?php echo $fetch->folder_name; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
-                            <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype;?>','<?php echo $fetch->myfile; ?>','preview-container-migdocumnetlist')">
-                                <?php echo IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->file_name . '.' . $fetch->filetype); ?></span>
+                        <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showVisaFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->getPreviewFileExtension()); ?>', '<?php echo $fileUrl; ?>', '<?php echo $fetch->folder_name; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
+                            <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->getPreviewFileExtension();?>','<?php echo $fetch->myfile; ?>','preview-container-migdocumnetlist')">
+                                <?php echo IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->getFilenameWithExtensionForDisplay()); ?></span>
                             </a>
                         </div>
                     <?php } else { ?>
@@ -1402,9 +1402,9 @@ class ClientDocumentsController extends Controller
                             </td>
                             <td style="white-space: initial;">
                                 <?php if (isset($fetch->file_name) && $fetch->file_name != '') { ?>
-                                    <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showNominationFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->filetype); ?>', '<?php echo $fileUrl; ?>', '<?php echo $fetch->folder_name; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
-                                        <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype; ?>','<?php echo $fetch->myfile; ?>','preview-container-nomdocumnetlist')">
-                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->file_name.'.'.$fetch->filetype); ?></span>
+                                    <div data-id="<?php echo $fetch->id; ?>" data-name="<?php echo htmlspecialchars($fetch->file_name); ?>" class="doc-row" title="Uploaded by: <?php echo htmlspecialchars($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showNominationFileContextMenu(event, <?php echo $fetch->id; ?>, '<?php echo htmlspecialchars($fetch->getPreviewFileExtension()); ?>', '<?php echo $fileUrl; ?>', '<?php echo $fetch->folder_name; ?>', '<?php echo $fetch->status ?? 'draft'; ?>'); return false;">
+                                        <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->getPreviewFileExtension(); ?>','<?php echo $fetch->myfile; ?>','preview-container-nomdocumnetlist')">
+                                            <?php echo \App\Helpers\IconHelper::fromLegacy('fas fa-file-image'); ?> <span><?php echo htmlspecialchars($fetch->getFilenameWithExtensionForDisplay()); ?></span>
                                         </a>
                                     </div>
                                 <?php } else { ?>

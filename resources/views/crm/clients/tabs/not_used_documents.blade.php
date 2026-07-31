@@ -119,16 +119,16 @@
                                                     if( isset($fetch->file_name) && $fetch->file_name !=""){ 
                                                         $fileUrl = isset($fetch->myfile_key) && $fetch->myfile_key != "" ? $fetch->myfile : 'https://'.env('AWS_BUCKET').'.s3.'. env('AWS_DEFAULT_REGION') . '.amazonaws.com/'.$fetchedData->client_id.'/'.$fetch->doc_type.'/'.$fetch->myfile;
                                                     ?>
-                                                        <div data-id="{{$fetch->id}}" data-name="<?php echo $fetch->file_name; ?>" class="doc-row" title="Uploaded by: <?php echo ($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showNotUsedFileContextMenu(event, <?= $fetch->id ?>, '<?= htmlspecialchars($fetch->filetype) ?>', '<?= $fileUrl ?>', '<?= $fetch->doc_type ?>', '<?= $fetch->status ?? 'draft' ?>'); return false;">
+                                                        <div data-id="{{$fetch->id}}" data-name="<?php echo $fetch->file_name; ?>" class="doc-row" title="Uploaded by: <?php echo ($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showNotUsedFileContextMenu(event, <?= $fetch->id ?>, '<?= htmlspecialchars($fetch->getPreviewFileExtension()) ?>', '<?= $fileUrl ?>', '<?= $fetch->doc_type ?>', '<?= $fetch->status ?? 'draft' ?>'); return false;">
                                                             <?php if( isset($fetch->myfile_key) && $fetch->myfile_key != ""){ //For new file upload ?>
-                                                                <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype;?>','<?php echo $fetch->myfile; ?>','preview-container-notuseddocumnetlist')">
-                                                                    {!! \App\Helpers\IconHelper::fromLegacy('fas fa-file-image') !!} <span><?php echo $fetch->file_name . '.' . $fetch->filetype; ?></span>
+                                                                <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->getPreviewFileExtension();?>','<?php echo $fetch->myfile; ?>','preview-container-notuseddocumnetlist')">
+                                                                    {!! \App\Helpers\IconHelper::fromLegacy('fas fa-file-image') !!} <span><?php echo $fetch->getFilenameWithExtensionForDisplay(); ?></span>
                                                                 </a>
                                                             <?php } else {  //For old file upload
                                                                 $url = 'https://'.env('AWS_BUCKET').'.s3.'. env('AWS_DEFAULT_REGION') . '.amazonaws.com/';
                                                                 ?>
-                                                                <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->filetype;?>','<?php echo $myawsfile; ?>','preview-container-notuseddocumnetlist')">
-                                                                    {!! \App\Helpers\IconHelper::fromLegacy('fas fa-file-image') !!} <span><?php echo $fetch->file_name . '.' . $fetch->filetype; ?></span>
+                                                                <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->getPreviewFileExtension();?>','<?php echo $myawsfile; ?>','preview-container-notuseddocumnetlist')">
+                                                                    {!! \App\Helpers\IconHelper::fromLegacy('fas fa-file-image') !!} <span><?php echo $fetch->getFilenameWithExtensionForDisplay(); ?></span>
                                                                 </a>
                                                             <?php } ?>
                                                         </div>

@@ -478,6 +478,14 @@ class Document extends Model
     }
 
     /**
+     * Bare extension for UI preview handlers, which only understand real extensions.
+     */
+    public function getPreviewFileExtension(): string
+    {
+        return $this->resolveStoredFileExtension();
+    }
+
+    /**
      * @internal Prefer getFilenameWithExtensionForDisplay() for UI strings.
      */
     private function resolveStoredFileExtension(): string
