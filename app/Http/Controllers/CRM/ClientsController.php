@@ -3774,7 +3774,14 @@ class ClientsController extends Controller
     }*/
 
     public function merge_records(Request $request){
+        // C1: Merge soft-deletes the wrong record and corrupts related data.
+        // Feature hidden in UI; endpoint disabled until a correct merge is implemented.
         $response = array();
+        $response['status'] 	= 	false;
+        $response['message']	=	'Merge is temporarily disabled.';
+        echo json_encode($response);
+        return;
+
         if(
             ( isset($request->merge_from) && $request->merge_from != "" )
             && ( isset($request->merge_into) && $request->merge_into != "" )

@@ -88,10 +88,11 @@
 ## C. Clients (core CRM)
 
 ### C1. Critical — Client/lead merge soft-deletes the target and leaves the source
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** UI says merge A **into** B (`merge_from=A`, `merge_into=B`). Code soft-deletes **B**, copies A’s related rows **onto B**, and never deletes A. Survivor B is deleted; A remains; B’s original related data is not moved to A; A’s related data is duplicated onto a deleted record. Data corruption for anyone using Merge. No visibility/auth check beyond being logged in.  
 **Evidence:** `resources/views/crm/clients/index.blade.php` ~803–809; `app/Http/Controllers/CRM/ClientsController.php` ~3771–3780.  
-**Reproduce:** Clients list → check A then B → Merge → confirm. B is `is_deleted=1`; A still active; related rows copied onto deleted B.
+**Reproduce:** Clients list → check A then B → Merge → confirm. B is `is_deleted=1`; A still active; related rows copied onto deleted B.  
+**Fix:** Merge hidden on Clients/Leads lists; `merge_records` returns disabled until a correct merge is implemented.
 
 ### C2. High — Company edit page JS throws on `editClientForm` null
 **Status:** Fixed  
@@ -470,14 +471,14 @@
 
 | Result | Items |
 |--------|-------|
-| Still open (`Verified`) | B1, B2, C1, J1, J2, J3, K1, P1, Q1 |
-| Fixed in code | A1–A4, C2–C4, D1, E1–E5, F1, G1–G5, H1–H8, I1–I5, K2, L1, M1–M3, N1–N3, O1–O3 |
+| Still open (`Verified`) | B1, B2, J1, J2, J3, K1, P1, Q1 |
+| Fixed in code | A1–A4, C1–C4, D1, E1–E5, F1, G1–G5, H1–H8, I1–I5, K2, L1, M1–M3, N1–N3, O1–O3 |
 | Description corrected | A1, I3, H2, B1, E1, D1, I1, C3, N2 |
 | Severity changed | Q1 Medium → Low |
 | Removed as false positive | None |
 | Still excluded (already fixed / not bugs) | LeadAnalytics Admin query, `documents.thankyou` live path, bulk SMS stubs |
 
-**Counts:** Fixed **42** · Open **9** (of 51)
+**Counts:** Fixed **43** · Open **8** (of 51)
 
 ---
 

@@ -319,9 +319,10 @@
                             <a class="btn btn-primary" href="javascript:;">Change Assignee</a>
                         </li>
 
-                        <li class="nav-item is_checked_client_merge" style="display:none;">
+                        {{-- Merge hidden (C1): inverted soft-delete / data corruption — re-enable only after fix --}}
+                        {{-- <li class="nav-item is_checked_client_merge" style="display:none;">
                             <a class="btn btn-primary" href="javascript:;">Merge</a>
-                        </li>
+                        </li> --}}
 
                         <li class="nav-item is_checked_clientn">
                             <a class="nav-link active" id="clients-tab"  href="{{URL::to('/clients')}}" >Clients</a>
@@ -765,11 +766,12 @@ jQuery(document).ready(function($){
                 }
             }
             //alert(checked_length);
-            if(checked_length == 2){
-                $('.listing-container .is_checked_client_merge').show();
-            } else {
-                $('.listing-container .is_checked_client_merge').hide();
-            }
+            // Merge UI hidden (C1) — do not show until merge_records is fixed
+            // if(checked_length == 2){
+            //     $('.listing-container .is_checked_client_merge').show();
+            // } else {
+            //     $('.listing-container .is_checked_client_merge').hide();
+            // }
         });
     });
 
@@ -796,27 +798,8 @@ jQuery(document).ready(function($){
         }
     });
 
-    //merge task
-    $(document).delegate('.listing-container .is_checked_client_merge', 'click', function(){
-        if ( clickedOrder.length > 0 && clickedOrder.length == 2 )
-        {
-            var mergeStr = "Are you sure want to merge "+clickedOrder[0]+" record into this "+clickedOrder[1]+" record?";
-            if (confirm(mergeStr)) {
-                $.ajax({
-                    type:'post',
-                    url:"{{URL::to('/')}}/merge_records",
-                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
-                    data: {merge_from:clickedIds[0],merge_into:clickedIds[1]},
-                    success: function(response){
-                        var obj = $.parseJSON(response);
-                        //console.log(obj.message);
-                        location.reload(true);
-                    }
-                });
-                //return false;
-            }
-        }
-    });
+    // Merge click handler disabled (C1) — endpoint also disabled server-side
+    // $(document).delegate('.listing-container .is_checked_client_merge', 'click', function(){ ... });
 
 
     $('.listing-container .cb-element').change(function () {
