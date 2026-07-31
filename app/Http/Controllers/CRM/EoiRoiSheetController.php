@@ -854,6 +854,13 @@ class EoiRoiSheetController extends Controller
     {
         try {
             $eoi = ClientEoiReference::with('client')->where('client_confirmation_token', $token)->firstOrFail();
+
+            // Reject replay / status flip; keep token so success page and staff
+            // resolve-amendment → pending (same link) continue to work.
+            if (in_array($eoi->client_confirmation_status, ['confirmed', 'amendment_requested'], true)) {
+                return redirect()->route('client.eoi.success', ['token' => $token])
+                    ->with('success', 'This confirmation link has already been used.');
+            }
             
             $action = $request->input('action');
             

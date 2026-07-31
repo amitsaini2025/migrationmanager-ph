@@ -83,13 +83,9 @@ class ClientEoiRoiController extends Controller
             // Allow any authenticated admin (auth:admin middleware); no policy.
             // $this->authorize('view', $client);
 
-            // Re-enable to enforce client–EOI association (prevent cross-client access).
-            // if ($eoiReference->client_id !== $client->id) {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'EOI record not found for this client',
-            //     ], 404);
-            // }
+            if ($response = $this->ensureEoiBelongsToClient($client, $eoiReference)) {
+                return $response;
+            }
 
             // Load relationships for workflow display and occupation data
             $eoiReference->load(['creator', 'updater', 'verifier', 'client', 'anzscoOccupation']);
@@ -142,14 +138,10 @@ class ClientEoiRoiController extends Controller
             
             if ($eoiId) {
                 $eoi = ClientEoiReference::findOrFail($eoiId);
-                
-                // Re-enable to enforce client–EOI association (prevent cross-client access).
-                // if ($eoi->client_id !== $client->id) {
-                //     return response()->json([
-                //         'success' => false,
-                //         'message' => 'EOI record not found',
-                //     ], 404);
-                // }
+
+                if ($response = $this->ensureEoiBelongsToClient($client, $eoi)) {
+                    return $response;
+                }
             } else {
                 $eoi = new ClientEoiReference();
                 $eoi->client_id = $client->id;
@@ -224,13 +216,9 @@ class ClientEoiRoiController extends Controller
             // Allow any authenticated admin (auth:admin middleware); no policy.
             // $this->authorize('update', $client);
 
-            // Re-enable to enforce client–EOI association (prevent cross-client access).
-            // if ($eoiReference->client_id !== $client->id) {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'EOI record not found for this client',
-            //     ], 404);
-            // }
+            if ($response = $this->ensureEoiBelongsToClient($client, $eoiReference)) {
+                return $response;
+            }
 
             DB::beginTransaction();
 
@@ -320,13 +308,9 @@ class ClientEoiRoiController extends Controller
             // Allow any authenticated admin (auth:admin middleware); no policy.
             // $this->authorize('update', $client);
 
-            // Re-enable to enforce client–EOI association (prevent cross-client access).
-            // if ($eoiReference->client_id !== $client->id) {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'EOI record not found',
-            //     ], 404);
-            // }
+            if ($response = $this->ensureEoiBelongsToClient($client, $eoiReference)) {
+                return $response;
+            }
 
             $password = $eoiReference->getEOIPasswordDecrypted();
 
@@ -366,13 +350,9 @@ class ClientEoiRoiController extends Controller
             // Allow any authenticated admin (auth:admin middleware); no policy.
             // $this->authorize('update', $client);
 
-            // Re-enable to enforce client–EOI association (prevent cross-client access).
-            // if ($eoiReference->client_id !== $client->id) {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'EOI record not found',
-            //     ], 404);
-            // }
+            if ($response = $this->ensureEoiBelongsToClient($client, $eoiReference)) {
+                return $response;
+            }
 
             // Update verification fields (admin guard uses staff provider, so id is staff.id)
             $eoiReference->staff_verified = true;
@@ -416,6 +396,10 @@ class ClientEoiRoiController extends Controller
     public function sendConfirmationEmail(Admin $client, ClientEoiReference $eoiReference, Request $request): JsonResponse
     {
         try {
+            if ($response = $this->ensureEoiBelongsToClient($client, $eoiReference)) {
+                return $response;
+            }
+
             // Validate input from compose modal
             $validator = Validator::make($request->all(), [
                 'subject' => ['required', 'string', 'max:255', function ($attribute, $value, $fail) {
@@ -549,13 +533,9 @@ class ClientEoiRoiController extends Controller
             // Allow any authenticated admin (auth:admin middleware); no policy.
             // $this->authorize('update', $client);
 
-            // Re-enable to enforce client–EOI association (prevent cross-client access).
-            // if ($eoiReference->client_id !== $client->id) {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'EOI record not found',
-            //     ], 404);
-            // }
+            if ($response = $this->ensureEoiBelongsToClient($client, $eoiReference)) {
+                return $response;
+            }
 
             if ($eoiReference->client_confirmation_status !== 'amendment_requested') {
                 return response()->json([
@@ -687,6 +667,10 @@ class ClientEoiRoiController extends Controller
     public function getEmailPreview(Admin $client, ClientEoiReference $eoiReference): JsonResponse
     {
         try {
+            if ($response = $this->ensureEoiBelongsToClient($client, $eoiReference)) {
+                return $response;
+            }
+
             // Check client email exists
             if (!$client->email) {
                 return response()->json([
@@ -981,6 +965,22 @@ class ClientEoiRoiController extends Controller
         }
 
         return ['attachments' => $attachments, 'labels' => $labelsUsed];
+    }
+
+    /**
+     * Ensure EOI belongs to the route client (blocks cross-client IDOR).
+     * Does not change staff auth — auth:admin middleware still applies.
+     */
+    protected function ensureEoiBelongsToClient(Admin $client, ClientEoiReference $eoiReference): ?JsonResponse
+    {
+        if ((int) $eoiReference->client_id !== (int) $client->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'EOI record not found for this client',
+            ], 404);
+        }
+
+        return null;
     }
 
     /**
