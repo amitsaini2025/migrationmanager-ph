@@ -4,11 +4,13 @@ namespace App\Services\CrmAccess;
 
 use App\Events\BroadcastNotificationCreated;
 use App\Events\NotificationCountUpdated;
+use App\Models\Admin;
 use App\Models\Branch;
 use App\Models\ClientAccessGrant;
 use App\Models\Notification;
 use App\Models\Staff;
 use App\Models\Team;
+use App\Support\StaffClientVisibility;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -105,6 +107,7 @@ class CrmAccessService
         if (! array_key_exists($reasonCode, $reasons)) {
             throw new CrmAccessDeniedException('Invalid reason.');
         }
+        $this->denyIfSuperAdminOnlyLockedClient($adminId);
         if ($this->hasDuplicateActiveQuickGrant($user, $adminId)) {
             throw new CrmAccessDeniedException('An active quick access grant already exists for this record.');
         }
@@ -153,6 +156,8 @@ class CrmAccessService
         if ($reasonCode === '' || ! array_key_exists($reasonCode, $reasons)) {
             throw new CrmAccessDeniedException('Invalid reason.');
         }
+
+        $this->denyIfSuperAdminOnlyLockedClient($adminId);
 
         $maxPending = max(1, (int) config('crm_access.max_pending_supervisor_requests', 5));
         $pendingCount = ClientAccessGrant::query()
@@ -203,6 +208,8 @@ class CrmAccessService
         if ((int) $grant->staff_id === (int) $approver->id) {
             throw new CrmAccessDeniedException('You cannot approve your own request.');
         }
+
+        $this->denyIfSuperAdminOnlyLockedClient((int) $grant->admin_id);
 
         $hours = max(1, (int) config('crm_access.supervisor_grant_hours', 24));
         $starts = Carbon::now('UTC');
@@ -279,6 +286,23 @@ class CrmAccessService
             ->update(['status' => 'expired', 'revoke_reason' => 'Auto-expired: not actioned within ' . $pendingTtlDays . ' days']);
 
         return $expired + $pendingExpired;
+    }
+
+    /**
+     * Cross-access grants cannot open super-admin-only locked clients
+     * ({@see StaffClientVisibility::canAccessClientOrLead}); reject create/approve early.
+     * Missing records are left to existing callers — only an existing locked client is blocked.
+     */
+    protected function denyIfSuperAdminOnlyLockedClient(int $adminId): void
+    {
+        $row = Admin::query()
+            ->where('id', $adminId)
+            ->whereIn('type', ['client', 'lead'])
+            ->first(['id', 'type', 'client_id']);
+
+        if ($row && StaffClientVisibility::isSuperAdminOnlyLockedClient($row->type ?? null, $row->client_id ?? null)) {
+            throw new CrmAccessDeniedException('This client is restricted to super admin.');
+        }
     }
 
     protected function hasDuplicateActiveQuickGrant(Staff $user, int $adminId): bool

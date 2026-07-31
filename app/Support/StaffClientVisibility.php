@@ -322,7 +322,7 @@ final class StaffClientVisibility
                       ->where('client_access_grants.staff_id', $staffId)
                       ->where('client_access_grants.status', 'active')
                       ->whereNotNull('client_access_grants.ends_at')
-                      ->whereRaw('client_access_grants.ends_at > NOW()');
+                      ->where('client_access_grants.ends_at', '>', Carbon::now('UTC'));
               });
         });
     }
@@ -459,7 +459,7 @@ final class StaffClientVisibility
                           ->where('client_access_grants.staff_id', $staffId)
                           ->where('client_access_grants.status', 'active')
                           ->whereNotNull('client_access_grants.ends_at')
-                          ->whereRaw('client_access_grants.ends_at > NOW()');
+                          ->where('client_access_grants.ends_at', '>', Carbon::now('UTC'));
                   });
             });
 
@@ -486,7 +486,7 @@ final class StaffClientVisibility
                       ->where('client_access_grants.staff_id', $staffId)
                       ->where('client_access_grants.status', 'active')
                       ->whereNotNull('client_access_grants.ends_at')
-                      ->whereRaw('client_access_grants.ends_at > NOW()');
+                      ->where('client_access_grants.ends_at', '>', Carbon::now('UTC'));
               });
         });
     }
@@ -526,7 +526,7 @@ final class StaffClientVisibility
                       ->where('client_access_grants.staff_id', $staffId)
                       ->where('client_access_grants.status', 'active')
                       ->whereNotNull('client_access_grants.ends_at')
-                      ->whereRaw('client_access_grants.ends_at > NOW()');
+                      ->where('client_access_grants.ends_at', '>', Carbon::now('UTC'));
               });
         });
     }
@@ -656,7 +656,7 @@ final class StaffClientVisibility
                                     ->where('client_access_grants.staff_id', $staffId)
                                     ->where('client_access_grants.status', 'active')
                                     ->whereNotNull('client_access_grants.ends_at')
-                                    ->whereRaw('client_access_grants.ends_at > NOW()');
+                                    ->where('client_access_grants.ends_at', '>', Carbon::now('UTC'));
                             });
                         });
                 });
@@ -710,7 +710,7 @@ final class StaffClientVisibility
                                 ->where('client_access_grants.staff_id', $staffId)
                                 ->where('client_access_grants.status', 'active')
                                 ->whereNotNull('client_access_grants.ends_at')
-                                ->whereRaw('client_access_grants.ends_at > NOW()');
+                                ->where('client_access_grants.ends_at', '>', Carbon::now('UTC'));
                         });
                     });
             });

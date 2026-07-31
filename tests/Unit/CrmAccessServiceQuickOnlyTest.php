@@ -165,6 +165,29 @@ class CrmAccessServiceQuickOnlyTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Super-admin-only locked clients (B2) — grant paths must not create useless grants
+    // -----------------------------------------------------------------------
+
+    public function test_is_super_admin_only_locked_client_for_configured_file_id(): void
+    {
+        $prev = config('crm.super_admin_only_client_file_ids');
+        try {
+            config(['crm.super_admin_only_client_file_ids' => ['LOCKTEST01']]);
+            $this->assertTrue(
+                \App\Support\StaffClientVisibility::isSuperAdminOnlyLockedClient('client', 'locktest01')
+            );
+            $this->assertFalse(
+                \App\Support\StaffClientVisibility::isSuperAdminOnlyLockedClient('lead', 'LOCKTEST01')
+            );
+            $this->assertFalse(
+                \App\Support\StaffClientVisibility::isSuperAdminOnlyLockedClient('client', 'OTHER01')
+            );
+        } finally {
+            config(['crm.super_admin_only_client_file_ids' => $prev]);
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // StaffClientVisibility helpers (pure config-based, no DB)
     // -----------------------------------------------------------------------
 

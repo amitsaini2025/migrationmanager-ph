@@ -72,16 +72,18 @@
 ## B. Cross-access / client visibility
 
 ### B1. High — Grant expiry uses UTC in PHP but session-local `NOW()` in SQL list filters
-**Status:** Verified (live DB)  
+**Status:** Fixed  
 **What breaks:** Grants are written/checked with `Carbon::now('UTC')`, while list/document/booking restrictions use `ends_at > NOW()`. App timezone is `Australia/Melbourne`. Live environment: `DB_CONNECTION=pgsql`, session `TIMEZONE=Australia/Sydney`, so `NOW()` returns local (+10), not UTC. Active grants can disappear from lists while `hasActiveGrant()` / detail access still treat them as valid (or the reverse) near expiry boundaries.  
 **Evidence:** `app/Services/CrmAccess/CrmAccessService.php` ~88–96; `app/Support/StaffClientVisibility.php` ~322–325 (and similar `NOW()` filters elsewhere); `config/app.php` timezone; live `current_setting('TIMEZONE')`.  
-**Reproduce:** Non-exempt staff takes quick access → client detail works → reload restricted client list near grant expiry window; list SQL and PHP grant check can disagree.
+**Reproduce:** Non-exempt staff takes quick access → client detail works → reload restricted client list near grant expiry window; list SQL and PHP grant check can disagree.  
+**Fix:** All grant list/restriction filters in `StaffClientVisibility` now use `Carbon::now('UTC')`, matching `hasActiveGrant`.
 
 ### B2. Medium — Cross-access grants can be created for super-admin-only locked clients
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** `AccessGrantController::quick` / `supervisor` do not block super-admin-only locked file IDs. A grant is created, but `canAccessClientOrLead` still denies non–role-1 users because the locked check runs before grant checks. Staff get success then still cannot open the record (confusing UX, not privilege escalation).  
 **Evidence:** `AccessGrantController` ~58–70 / ~93–105 (no locked-client check) vs `StaffClientVisibility::canAccessClientOrLead` ~551–553 then grants ~563–566.  
-**Reproduce:** As non–super-admin with quick access, request grant on a locked client → API success → open detail → unauthorized.
+**Reproduce:** As non–super-admin with quick access, request grant on a locked client → API success → open detail → unauthorized.  
+**Fix:** `CrmAccessService::denyIfSuperAdminOnlyLockedClient` blocks quick/supervisor create and approve; access gate unchanged.
 
 ---
 
