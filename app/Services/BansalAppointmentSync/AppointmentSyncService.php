@@ -134,13 +134,11 @@ class AppointmentSyncService
         
         $bansalId = $appointmentData['id'];
 
-        // Check if already exists
+        // Check if already exists — selectively heal payment/status/cancel only
         $existingAppointment = BookingAppointment::where('bansal_appointment_id', $bansalId)->first();
 
         if ($existingAppointment) {
-            // Update if needed (optional - you might want to skip updates)
-            Log::info('Appointment already exists, skipping', ['bansal_id' => $bansalId]);
-            return 'skipped';
+            return $this->updateExistingAppointmentPaymentAndStatus($existingAppointment, $appointmentData);
         }
 
         // Match or create client
@@ -240,6 +238,115 @@ class AppointmentSyncService
     }
 
     /**
+     * Selectively update an existing CRM appointment from Bansal (payment/status/cancel only).
+     * Does not overwrite consultant, client, notes, datetime, meeting type, or other CRM-owned fields.
+     * Avoids downgrading CRM-local paid state when Bansal still shows unpaid (e.g. CRM paid first).
+     */
+    protected function updateExistingAppointmentPaymentAndStatus(
+        BookingAppointment $appointment,
+        array $appointmentData
+    ): string {
+        $bansalId = $appointmentData['id'] ?? $appointment->bansal_appointment_id;
+        $status = $this->mapStatus($appointmentData['status'] ?? 'pending');
+        $paymentStatus = $this->mapPaymentStatus($appointmentData);
+        $isPaid = filter_var($appointmentData['is_paid'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        if ($paymentStatus === 'completed' || $status === 'paid') {
+            $isPaid = true;
+            if ($paymentStatus === null && $status === 'paid') {
+                $paymentStatus = 'completed';
+            }
+        }
+
+        $crmPaid = (bool) $appointment->is_paid
+            || $appointment->status === 'paid'
+            || $appointment->payment_status === 'completed';
+
+        $updates = [];
+
+        if ($appointment->status !== $status) {
+            $bansalUnpaidPending = $status === 'pending' && !$isPaid;
+            $isTerminalFromBansal = in_array($status, ['cancelled', 'completed', 'no_show'], true);
+
+            if ($isTerminalFromBansal || !($crmPaid && $bansalUnpaidPending)) {
+                $updates['status'] = $status;
+            }
+        }
+
+        if ($isPaid && !$appointment->is_paid) {
+            $updates['is_paid'] = true;
+        }
+
+        if ($paymentStatus !== null && $appointment->payment_status !== $paymentStatus) {
+            $crmCompleted = $appointment->payment_status === 'completed';
+            if (!($crmCompleted && $paymentStatus !== 'completed')) {
+                $updates['payment_status'] = $paymentStatus;
+            }
+        }
+
+        $paymentMethod = $appointmentData['payment']['payment_method'] ?? null;
+        if (!empty($paymentMethod) && $appointment->payment_method !== $paymentMethod) {
+            if (empty($appointment->payment_method) || $isPaid) {
+                $updates['payment_method'] = $paymentMethod;
+            }
+        }
+
+        if (!empty($appointmentData['payment']['paid_at']) && empty($appointment->paid_at)) {
+            $updates['paid_at'] = Carbon::parse($appointmentData['payment']['paid_at']);
+        }
+
+        foreach (['amount', 'discount_amount', 'final_amount'] as $amountField) {
+            if (!array_key_exists($amountField, $appointmentData) || $appointmentData[$amountField] === null) {
+                continue;
+            }
+            if (!$isPaid && (float) $appointmentData[$amountField] == 0.0 && (float) $appointment->{$amountField} > 0) {
+                continue;
+            }
+            if ((string) $appointment->{$amountField} !== (string) $appointmentData[$amountField]) {
+                $updates[$amountField] = $appointmentData[$amountField];
+            }
+        }
+
+        $effectiveStatus = $updates['status'] ?? $appointment->status;
+
+        if ($effectiveStatus === 'confirmed' && empty($appointment->confirmed_at)) {
+            $updates['confirmed_at'] = now();
+        }
+        if ($effectiveStatus === 'completed' && empty($appointment->completed_at)) {
+            $updates['completed_at'] = now();
+        }
+        if ($effectiveStatus === 'cancelled' && empty($appointment->cancelled_at)) {
+            $updates['cancelled_at'] = now();
+        }
+
+        $cancelReason = $appointmentData['cancellation_reason']
+            ?? $appointmentData['cancel_reason']
+            ?? null;
+        if ($effectiveStatus === 'cancelled' && !empty($cancelReason) && empty($appointment->cancellation_reason)) {
+            $updates['cancellation_reason'] = $cancelReason;
+        }
+
+        if ($updates === []) {
+            Log::info('Appointment already exists, no payment/status changes', ['bansal_id' => $bansalId]);
+            return 'skipped';
+        }
+
+        $updates['last_synced_at'] = now();
+        $updates['sync_status'] = 'synced';
+        $updates['sync_error'] = null;
+
+        $appointment->fill($updates)->save();
+
+        Log::info('Updated existing appointment payment/status from Bansal', [
+            'bansal_id' => $bansalId,
+            'crm_id' => $appointment->id,
+            'updated_fields' => array_keys($updates),
+        ]);
+
+        return 'updated';
+    }
+
+    /**
      * Map location to inperson_address (legacy compatibility)
      */
     protected function mapInpersonAddress(string $location): ?int
@@ -334,13 +441,17 @@ class AppointmentSyncService
      */
     protected function mapStatus(string $bansalStatus): string
     {
-        return match($bansalStatus) {
+        $normalized = strtolower(trim($bansalStatus));
+        $normalized = str_replace([' ', '-'], '_', $normalized);
+
+        return match ($normalized) {
             'pending' => 'pending',
             'paid' => 'paid',
             'confirmed' => 'confirmed',
             'completed' => 'completed',
-            'cancelled' => 'cancelled',
-            'no_show' => 'no_show'
+            'cancelled', 'canceled' => 'cancelled',
+            'no_show' => 'no_show',
+            default => 'pending',
         };
     }
 
@@ -472,6 +583,7 @@ class AppointmentSyncService
             'cancelled' => 'cancel',
             'completed' => 'complete',
             'confirmed' => 'confirm',
+            'paid' => 'pay',
             default => null,
         };
 

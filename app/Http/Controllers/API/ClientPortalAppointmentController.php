@@ -2408,21 +2408,7 @@ class ClientPortalAppointmentController extends BaseController
                 return $this->sendError($result['message'], $result['data'] ?? [], 422);
             }
 
-            $syncError = null;
-            if ($appointment->bansal_appointment_id) {
-                try {
-                    Log::info('Payment successful - should sync with Bansal API', [
-                        'appointment_id' => $appointment->id,
-                        'bansal_appointment_id' => $appointment->bansal_appointment_id,
-                    ]);
-                } catch (\Exception $e) {
-                    $syncError = $e->getMessage();
-                    Log::error('Failed to sync payment status with Bansal API', [
-                        'appointment_id' => $appointment->id,
-                        'error' => $syncError,
-                    ]);
-                }
-            }
+            $syncError = $this->syncAppointmentPaidWithBansal($appointment);
 
             $appointment->refresh();
 
@@ -2676,23 +2662,7 @@ class ClientPortalAppointmentController extends BaseController
 
             $payment = $walletResult['payment'];
 
-            $syncError = null;
-            if ($appointment->bansal_appointment_id) {
-                try {
-                    Log::info('Wallet payment successful - should sync with Bansal API', [
-                        'appointment_id' => $appointment->id,
-                        'bansal_appointment_id' => $appointment->bansal_appointment_id,
-                        'payment_type' => $paymentType,
-                    ]);
-                } catch (\Exception $e) {
-                    $syncError = $e->getMessage();
-                    Log::error('Failed to sync wallet payment status with Bansal API', [
-                        'appointment_id' => $appointment->id,
-                        'payment_type' => $paymentType,
-                        'error' => $syncError,
-                    ]);
-                }
-            }
+            $syncError = $this->syncAppointmentPaidWithBansal($appointment);
 
             $appointment->refresh();
 
@@ -2822,21 +2792,7 @@ class ClientPortalAppointmentController extends BaseController
                 return $this->sendError($result['message'], $result['data'] ?? [], 422);
             }
 
-            $syncError = null;
-            if ($appointment->bansal_appointment_id) {
-                try {
-                    Log::info('Public payment successful - should sync with Bansal API', [
-                        'appointment_id' => $appointment->id,
-                        'bansal_appointment_id' => $appointment->bansal_appointment_id,
-                    ]);
-                } catch (\Exception $e) {
-                    $syncError = $e->getMessage();
-                    Log::error('Failed to sync payment status with Bansal API', [
-                        'appointment_id' => $appointment->id,
-                        'error' => $syncError,
-                    ]);
-                }
-            }
+            $syncError = $this->syncAppointmentPaidWithBansal($appointment);
 
             $appointment->refresh();
 
@@ -2963,23 +2919,7 @@ class ClientPortalAppointmentController extends BaseController
 
             $payment = $walletResult['payment'];
 
-            $syncError = null;
-            if ($appointment->bansal_appointment_id) {
-                try {
-                    Log::info('Public wallet payment successful - should sync with Bansal API', [
-                        'appointment_id' => $appointment->id,
-                        'bansal_appointment_id' => $appointment->bansal_appointment_id,
-                        'payment_type' => $paymentType,
-                    ]);
-                } catch (\Exception $e) {
-                    $syncError = $e->getMessage();
-                    Log::error('Failed to sync wallet payment status with Bansal API', [
-                        'appointment_id' => $appointment->id,
-                        'payment_type' => $paymentType,
-                        'error' => $syncError,
-                    ]);
-                }
-            }
+            $syncError = $this->syncAppointmentPaidWithBansal($appointment);
 
             $appointment->refresh();
 
@@ -3108,6 +3048,66 @@ class ClientPortalAppointmentController extends BaseController
                 'trace' => $e->getTraceAsString()
             ]);
             return $this->sendError('An error occurred: ' . $e->getMessage(), [], 500);
+        }
+    }
+
+    /**
+     * Push paid status to Bansal after CRM payment succeeds.
+     * Never throws — payment success must not depend on website sync.
+     *
+     * @return string|null Sync error message, or null on success / skip
+     */
+    protected function syncAppointmentPaidWithBansal(BookingAppointment $appointment): ?string
+    {
+        if (empty($appointment->bansal_appointment_id)) {
+            return null;
+        }
+
+        try {
+            $recoveryService = app(\App\Services\BansalAppointmentSync\BansalAppointmentRecoveryService::class);
+            $result = $recoveryService->syncStatus($appointment, 'paid');
+
+            if ($result['synced']) {
+                if ($result['bansal_appointment_id'] !== null) {
+                    $appointment->bansal_appointment_id = $result['bansal_appointment_id'];
+                }
+
+                $appointment->forceFill([
+                    'last_synced_at' => now(),
+                    'sync_status' => 'synced',
+                    'sync_error' => null,
+                ])->save();
+
+                Log::info('Payment status synced with Bansal API', [
+                    'appointment_id' => $appointment->id,
+                    'bansal_appointment_id' => $appointment->bansal_appointment_id,
+                ]);
+
+                return null;
+            }
+
+            $syncError = $result['error'] ?? 'Unknown Bansal sync error';
+
+            $appointment->forceFill([
+                'sync_status' => 'error',
+                'sync_error' => $syncError,
+            ])->save();
+
+            Log::error('Failed to sync payment status with Bansal API', [
+                'appointment_id' => $appointment->id,
+                'bansal_appointment_id' => $appointment->bansal_appointment_id,
+                'error' => $syncError,
+            ]);
+
+            return $syncError;
+        } catch (\Exception $e) {
+            $syncError = $e->getMessage();
+            Log::error('Failed to sync payment status with Bansal API', [
+                'appointment_id' => $appointment->id,
+                'error' => $syncError,
+            ]);
+
+            return $syncError;
         }
     }
 }

@@ -414,7 +414,7 @@ class BookingAppointmentsController extends Controller
         $appointment->save();
 
         $syncError = null;
-        $shouldSyncStatus = in_array($request->status, ['cancelled', 'completed', 'confirmed']);
+        $shouldSyncStatus = in_array($request->status, ['cancelled', 'completed', 'confirmed', 'paid']);
 
         if ($shouldSyncStatus) {
             if ($appointment->bansal_appointment_id) {

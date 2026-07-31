@@ -191,6 +191,7 @@ class BansalAppointmentRecoveryService
             'cancelled' => 'cancel',
             'completed' => 'complete',
             'confirmed' => 'confirm',
+            'paid' => 'pay',
             default => null,
         };
 

@@ -39,29 +39,33 @@
 ## A. Authentication & identity
 
 ### A1. Critical — CRM “Remember Me” stores password in a cookie and prefills the login form
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Checking Remember Me queues a `password` cookie and the login form re-fills `value` from `Cookie::get('password')`. Anyone who can read the decrypted cookie or view page source after load obtains the staff password. Laravel’s session remember-token already exists; this custom cookie is unsafe and redundant.  
 **Nuance:** `EncryptCookies` does not except this cookie, so the cookie is Laravel-encrypted at rest (not raw plaintext in DevTools). After framework decrypt, the password is still written into the HTML `value` attribute.  
 **Evidence:** `app/Http/Controllers/Auth/AdminLoginController.php` ~120–126; `resources/views/auth/admin-login.blade.php` ~40; `app/Http/Middleware/EncryptCookies.php` (`$except` empty).  
-**Reproduce:** Log in with Remember Me → reopen `/login` → password field prefilled from cookie.
+**Reproduce:** Log in with Remember Me → reopen `/login` → password field prefilled from cookie.  
+**Fix:** Forgets `password` cookie; Remember Me may persist email only; login password input has no cookie prefill.
 
 ### A2. Critical — Staff `/api/admin-login` writes `staff.id` into `refresh_tokens.user_id` (FK → `admins`)
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** After the dedicated `staff` table, `adminLogin` authenticates `Staff` but inserts `user_id = $staff->id` into `refresh_tokens`, which foreign-keys to `admins.id`. Usual outcome: FK failure → 500 on login. If `staff.id` collides with an `admins.id`, insert can succeed and `/api/refresh` loads that row via `Admin::find()`, mixing identities (and then requires client-type/`cp_status` checks that staff will fail). Same pattern risk for `device_tokens`.  
 **Evidence:** `app/Http/Controllers/API/ClientPortalController.php` ~189–199, ~567–572; `database/migrations/2025_09_11_230000_create_refresh_tokens_table.php` ~27–28.  
-**Reproduce:** `POST /api/admin-login` with valid staff credentials (roles 1/12/13/16). Expect 500 on refresh-token insert, or wrong identity path on refresh if IDs collide.
+**Reproduce:** `POST /api/admin-login` with valid staff credentials (roles 1/12/13/16). Expect 500 on refresh-token insert, or wrong identity path on refresh if IDs collide.  
+**Fix:** Inserts `user_type = staff`; migration adds `user_type` and drops admins-only FK; refresh branches on `user_type`.
 
 ### A3. High — Clients with `cp_status = 2` can log in but cannot refresh or reset password
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Login allows `cp_status` in `[1, 2]` (approval pending). Refresh and password reset require `cp_status == 1`. Pending clients get a token, then refresh fails and reset is blocked — inconsistent portal lifecycle.  
 **Evidence:** `app/Http/Controllers/API/ClientPortalController.php` ~45–48 (login), ~572–581 (refresh), ~353–357 (reset).  
-**Reproduce:** Client with `cp_status=2` → login succeeds → `POST /api/refresh` → 401 “no longer active”.
+**Reproduce:** Client with `cp_status=2` → login succeeds → `POST /api/refresh` → 401 “no longer active”.  
+**Fix:** `allowedClientPortalStatuses()` `[1, 2]` used for login, refresh, forgot, and reset.
 
 ### A4. Medium — Inactive staff can still log into the CRM
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** `AdminLoginController` uses `Auth::guard('admin')->attempt()` with no `status` / archive check. `Staff` has `scopeActive()` but no global scope; Auth does not apply it. Disabled staff (`status = 0`) can still authenticate if credentials are valid. Contrast: API `adminLogin` does filter `status = 1`.  
 **Evidence:** `app/Http/Controllers/Auth/AdminLoginController.php` ~60–65.  
-**Reproduce:** Set staff `status = 0` → log in at `/login` → session created.
+**Reproduce:** Set staff `status = 0` → log in at `/login` → session created.  
+**Fix:** After attempt, logs out and fails when staff `status === 0` (allows `1` and legacy `NULL`).
 
 ---
 
@@ -90,22 +94,25 @@
 **Reproduce:** Clients list → check A then B → Merge → confirm. B is `is_deleted=1`; A still active; related rows copied onto deleted B.
 
 ### C2. High — Company edit page JS throws on `editClientForm` null
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Company edit includes `#emailAddressesContainer` but form id is `editCompanyForm`. Shared `edit-client.js` does `document.getElementById('editClientForm').addEventListener(...)` with no null check when the email container exists → `TypeError`, which can abort later DOMContentLoaded handlers. Remove phone/email also appends delete markers only to `editClientForm`. Some other paths already fall back to `editCompanyForm || editClientForm`; the email-container submit listener and delete-marker paths do not.  
 **Evidence:** `public/js/clients/edit-client.js` ~5052–5067, ~2544; `resources/views/crm/clients/company_edit.blade.php` (`editCompanyForm` ~152, `#emailAddressesContainer` ~1025, loads `edit-client.js` ~1070).  
-**Reproduce:** Open company client edit → console TypeError on `editClientForm`. Remove an email/phone on company edit → same null dereference.
+**Reproduce:** Open company client edit → console TypeError on `editClientForm`. Remove an email/phone on company edit → same null dereference.  
+**Fix:** `getClientEditForm()` prefers `#editCompanyForm` then `#editClientForm`; submit/delete-marker paths use it with null guards.
 
 ### C3. High — `POST /clients/edit` (`clients.update`) never updates and gets no client id
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Route posts to `/clients/edit` with no `{id}`; both GET and POST hit `edit($id)`. On POST, `$id` is null → redirect unauthorized. Method only renders the edit view; it never persists (even if a hidden `id` is posted). Forms still `action="{{ route('clients.update') }}"`. Section AJAX saves work; native submit (Enter in a field, etc.) fails and saves nothing.  
 **Evidence:** `routes/clients.php` ~46–47; `ClientsController::edit` ~1962–1991. Documented in `docs/COMPANY_EMPLOYER_SPONSORSHIP_IMPLEMENTATION_PLAN.md`.  
-**Reproduce:** On personal or company edit, submit via normal POST (not section Save) → redirect to `/clients` with unauthorized; no data saved.
+**Reproduce:** On personal or company edit, submit via normal POST (not section Save) → redirect to `/clients` with unauthorized; no data saved.  
+**Fix:** `POST /clients/edit/{id}` redirects with section-save guidance; persistence is `/clients/save-section`.
 
 ### C4. Low — Detail page receipt upload hint can throw if hint element missing
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** After selecting a client-receipt file, code sets `hintElement.textContent` without checking that `.file-selection-hint` exists → `TypeError` if markup is absent.  
 **Evidence:** `public/js/crm/clients/detail-main.js` ~783–813.  
-**Reproduce:** Detail view where file input exists but `.file-selection-hint` does not → select file → console TypeError.
+**Reproduce:** Detail view where file input exists but `.file-selection-hint` does not → select file → console TypeError.  
+**Fix:** Guards `hintElement` with early return when missing.
 
 ---
 
@@ -129,72 +136,82 @@
 **Reproduce:** Matter with `workflow_id=2` → Next Stage → “Already at the last stage” / no stages.
 
 ### E2. High — Signing auto-advances workflow without checklist gates
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** On successful public sign, if the document has `client_matter_id`, the matter’s stage advances to the next stage (unless named “Decision Received”). This skips `WorkflowV2Display::outstandingRequiredForCurrentStage()` used by staff next-stage. Signing can jump the workflow past incomplete required checklists.  
 **Evidence:** `PublicDocumentController.php` ~704–720 vs `ClientPortalController::updateClientMatterNextStage` ~3739–3750.  
-**Reproduce:** Matter on stage with outstanding required checklist → sign a linked document → stage advances anyway.
+**Reproduce:** Matter on stage with outstanding required checklist → sign a linked document → stage advances anyway.  
+**Fix:** Signing checks `outstandingRequiredForCurrentStage` and skips advance when outstanding > 0 (also skips discontinued).
 
 ### E3. Medium — Stage transitions ignore discontinued status
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** `updateClientMatterNextStage` / `updateClientMatterPreviousStage` / `changeClientMatterWorkflow` / `completeWorkflowChecklist` do not check `matter_status`. Discontinued matters (`matter_status=0`) can still be advanced, rolled back, or have checklists completed.  
 **Evidence:** `ClientPortalController.php` ~3680–3784, ~3913–3970, ~4094–4139, ~5076–5111.  
-**Reproduce:** Discontinue matter → call next-stage / previous-stage / complete checklist with that `matter_id`.
+**Reproduce:** Discontinue matter → call next-stage / previous-stage / complete checklist with that `matter_id`.  
+**Fix:** `rejectIfClientMatterDiscontinued()` on next/prev/change workflow/complete checklist.
 
 ### E4. Medium — Assignee update does not verify matter belongs to client
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** `updateClientMatterAssignee` authorizes via request `client_id`, then updates `ClientMatter` by `selectedMatterLM` without ensuring that matter’s `client_id` matches. A staff user can reassign another client’s matter while passing a client they can access.  
 **Evidence:** `ClientPersonalDetailsController.php` ~763–787.  
-**Reproduce:** `POST /clients/updateClientMatterAssignee` with accessible `client_id` + another client’s `selectedMatterLM`.
+**Reproduce:** `POST /clients/updateClientMatterAssignee` with accessible `client_id` + another client’s `selectedMatterLM`.  
+**Fix:** Rejects when matter `client_id` ≠ request `client_id`.
 
 ### E5. Medium — Previous-stage progress % counts all workflows
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Next-stage progress scopes by `workflow_id`; previous-stage uses unscoped `WorkflowStage::count()` / global comparisons, so progress % after “previous” is wrong with multiple workflows.  
 **Evidence:** `ClientPortalController.php` ~3975–3979 vs ~3789–3797.  
-**Reproduce:** Multi-workflow DB → move previous stage → inspect returned `progress_percentage`.
+**Reproduce:** Multi-workflow DB → move previous stage → inspect returned `progress_percentage`.  
+**Fix:** Previous-stage progress/`isFirst` queries scoped by `workflow_id` like next-stage.
 
 ---
 
 ## F. Documents & checklists
 
 ### F1. Medium — Move document does not scope categories to the document’s client
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** `moveDocument` loads `PersonalDocumentType` / `VisaDocumentType` / `NominationDocumentType` by ID only. A category from another client (or unrelated matter) can be applied. Visa path validates `target_matter_id` against the document’s client, but not that the category belongs to that client/matter.  
 **Evidence:** `ClientDocumentsController::moveDocument` ~2224–2283.  
-**Reproduce:** Move a doc using another client’s category `target_id`.
+**Reproduce:** Move a doc using another client’s category `target_id`.  
+**Fix:** Categories scoped to document’s `client_id` (plus shared null-client categories); visa matter ownership validated.
 
 ---
 
 ## G. Electronic signatures
 
 ### G1. Critical — Cost-agreement signing accepts any token (auth bypass)
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** For `doc_type === 'agreement'`, `/sign/{id}/{token}` does not require the URL token to match the stored signer token. It overwrites the pending signer’s token with whatever is in the URL (any ≥32 alphanumeric chars), then renders the signing UI. An attacker who knows/guesses an agreement document ID can open and complete signing without the emailed link. Non-agreement docs correctly look up by token.  
 **Evidence:** `app/Http/Controllers/PublicDocumentController.php` ~65–78.  
-**Reproduce:** Create/send pending agreement → open `/sign/{id}/{any32+alphanumeric}` → signing page loads; submit uses the newly written token.
+**Reproduce:** Create/send pending agreement → open `/sign/{id}/{any32+alphanumeric}` → signing page loads; submit uses the newly written token.  
+**Fix:** All doc types (including agreements) require URL token to match a stored signer; no overwrite path.
 
 ### G2. Critical — Public PDF page endpoint has no token check
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** `GET /documents/{id}/page/{page}` is public and loads page images with only the document ID. The signing view embeds these URLs with no token. Anyone who can enumerate IDs can render confidential PDFs.  
 **Evidence:** `routes/documents.php` ~171–172; `PublicDocumentController::getPage` ~782–792; `resources/views/documents/sign.blade.php` ~410. Confirmed public in `route:list`.  
-**Reproduce:** Open `/documents/{knownId}/page/1` while logged out.
+**Reproduce:** Open `/documents/{knownId}/page/1` while logged out.  
+**Fix:** Requires admin session or `?token=` matching a valid signer; signing view passes token.
 
 ### G3. High — Public signed-download route names overwritten / broken
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Public routes `public.documents.download.signed` and `public.documents.download_and_thankyou` are registered, then the same URIs are re-registered under `auth:admin` with different names. Final route table has **no** `public.documents.download.*` names; URI `/documents/{id}/download-signed` requires admin auth. Code/views that call the public names throw `Route [public.documents.download.signed] not defined`. Local-file thank-you download path is broken.  
 **Evidence:** `routes/documents.php` ~178–182 vs ~244–248; `PublicDocumentController.php` ~1029; `resources/views/documents/index.blade.php` ~56; confirmed via `php artisan route:list`.  
-**Reproduce:** Sign a doc stored under local `/storage/…`, or render any view calling `route('public.documents.download.signed', …)`.
+**Reproduce:** Sign a doc stored under local `/storage/…`, or render any view calling `route('public.documents.download.signed', …)`.  
+**Fix:** Public route names kept; admin downloads use distinct `/admin/documents/...` URIs/names.
 
 ### G4. High — Attach-to-client writes wrong `doc_type` values
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** `SignatureService::associateWithCategory()` sets `doc_type` to `visa_documents` / `personal_documents`. Client document tabs query `doc_type = 'visa'|'personal'`. Attached signed docs do not appear in Personal/Visa tabs. `folder_name` is also never set, so category grouping would still fail even if types were fixed.  
 **Evidence:** `app/Services/SignatureService.php` ~457–467; tabs in `personal_documents.blade.php` / `visa_documents.blade.php`.  
-**Reproduce:** Signature dashboard → Attach → Personal/Visa → check client document tabs (doc missing).
+**Reproduce:** Signature dashboard → Attach → Personal/Visa → check client document tabs (doc missing).  
+**Fix:** Sets `doc_type` to `'visa'`/`'personal'` and writes `folder_name` when provided.
 
 ### G5. Medium — Unauthenticated debug / test / converter endpoints
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Outside `auth:admin`: `/debug-pdf-page/{id}/{page}` (renders any doc page), `/test-signature`, and `/doc-to-pdf*` (convert/debug). Document content and tooling exposure without login.  
 **Evidence:** `routes/documents.php` ~43–52, ~85–150.  
-**Reproduce:** Hit those URLs logged out.
+**Reproduce:** Hit those URLs logged out.  
+**Fix:** Routes sit inside `auth:admin` middleware group.
 
 ---
 
@@ -247,51 +264,59 @@
 ## I. Payments / Stripe
 
 ### I1. Critical — Wallet payment endpoints mark appointments paid without verifying Stripe
-**Status:** Verified  
+**Status:** Fixed (verification via `recordPaymentByIntent`; enforcement behind `STRIPE_ENFORCE_WALLET_PAYMENT_VERIFICATION` / config default true)  
 **What breaks:** `recordAppointmentPaymentWallet` (`auth:sanctum`) and `recordAppointmentPaymentWithoutLoginWallet` (**public**) accept any `payment_intent_id` string and immediately write `status = succeeded` / `payment_status = completed` with no `PaymentIntent::retrieve`, amount check, or status check. Contrast: non-wallet paths call `$stripeService->recordPaymentByIntent(...)`.  
 **Impact nuance:** Sanctum wallet is scoped to the user’s appointment; **public without-login wallet can mark any known `appointment_id` paid** with a forged PI id.  
 **Evidence:** `ClientPortalAppointmentController.php` ~2551–2580, ~2865–2894; `routes/api.php` ~68 (public), ~271 (sanctum).  
-**Reproduce:** `POST /api/appointments/record-payment-without-login-wallet` with `{appointment_id, payment_intent_id: "pi_fake", payment_type: "gpay"}` → appointment marked paid.
+**Reproduce:** `POST /api/appointments/record-payment-without-login-wallet` with `{appointment_id, payment_intent_id: "pi_fake", payment_type: "gpay"}` → appointment marked paid.  
+**Fix:** Wallet paths call `recordWalletPayment` → `StripePaymentService::recordPaymentByIntent` (retrieve/status/amount); non-`pi_*` rejected when enforcement on.
 
 ### I2. Critical — Unauthenticated PaymentIntent creation with arbitrary amount/currency
-**Status:** Verified  
+**Status:** Fixed (unbound intents rejected when `enforce_appointment_intent_binding` default true)  
 **What breaks:** Public `POST /api/payments/create-payment-intent` creates Stripe PaymentIntents from caller-controlled `amount` (min 50 cents), defaults currency to **USD** (not AUD), and returns `client_secret`. No appointment binding or auth (only API throttle). Enables charge creation / abuse of the Stripe account; combined with I1/I3 worsens free-paid or amount-mismatch flows.  
-**Evidence:** `routes/api.php` ~70–117.
+**Evidence:** `routes/api.php` ~70–117.  
+**Fix:** With appointment, amount/currency from appointment (AUD); unbound intents rejected by default; currency allow-list + max amount when binding off.
 
 ### I3. High — Public record-payment weakly binds PaymentIntent to appointment
-**Status:** Verified (description corrected)  
+**Status:** Fixed (metadata binding enforced by default; unbound intents claimed or rejected)  
 **What breaks:** `recordAppointmentPaymentWithoutLogin` **does** verify via Stripe (`PaymentIntent::retrieve`, status must be `succeeded`, amount must match). Remaining weaknesses: endpoint is public; appointment looked up by id only; metadata `appointment_id` is checked **only if present** on the PI. Any succeeded PI of matching amount (e.g. from I2) can mark another unpaid appointment paid (griefing / reassignment). Stronger than wallet paths (I1); weaker than ideal binding.  
 **Evidence:** `StripePaymentService::recordPaymentByIntent` ~495–527; `ClientPortalAppointmentController::recordAppointmentPaymentWithoutLogin` ~2724–2728; `routes/api.php` ~67.  
-**Reproduce:** Create a succeeded PI for amount X via public create-intent → attach it to a different unpaid appointment with the same amount via without-login record-payment.
+**Reproduce:** Create a succeeded PI for amount X via public create-intent → attach it to a different unpaid appointment with the same amount via without-login record-payment.  
+**Fix:** Rejects mismatched metadata; unbound/currency-mismatch rejected when enforcement on; claims unbound intents when allowed through cutover.
 
 ### I4. Medium — `processPayment` rolls back then tries to update the payment row
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** On card/API errors, `DB::rollBack()` undoes `AppointmentPayment::create`, then `$payment->update([... 'failed' ...])` runs against a rolled-back row — failure audit trail is lost. Reliability/accounting bug, not free mark-paid.  
-**Evidence:** `StripePaymentService.php` ~140–153, ~181–192, ~232–243, ~256–265.
+**Evidence:** `StripePaymentService.php` ~140–153, ~181–192, ~232–243, ~256–265.  
+**Fix:** After rollback, `recordFailedPayment()` creates a new failed row.
 
 ### I5. Medium — PaymentIntent amount uses truncating cast (cent rounding bug)
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Appointment `createPaymentIntent` uses `(int) ($amount * 100)` while public/record paths use `round()`. Floating point (e.g. `19.99 * 100`) can undercharge by 1 cent vs CRM amount checks. Lower practical impact if amounts are always whole dollars.  
-**Evidence:** `StripePaymentService.php` ~333–336 vs ~426, ~506.
+**Evidence:** `StripePaymentService.php` ~333–336 vs ~426, ~506.  
+**Fix:** Uses `(int) round($amount * 100)` consistently.
 
 ---
 
 ## J. Appointments / Bansal sync
 
 ### J1. High — Successful payments never push status to Bansal
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** After Stripe recording succeeds, code only `Log::info('... should sync with Bansal API')` inside a try/catch that never calls `syncStatus` / `updateAppointmentStatus`. CRM shows paid; website can stay unpaid. Same pattern on auth and public record-payment paths. Public pay-by-link also never syncs. (Other non-payment status-update paths do sync.)  
-**Evidence:** `ClientPortalAppointmentController.php` ~2411–2417, ~2734–2740, ~2902–2908; `PublicAppointmentPaymentController.php` (no Bansal calls).
+**Evidence:** `ClientPortalAppointmentController.php` ~2411–2417, ~2734–2740, ~2902–2908; `PublicAppointmentPaymentController.php` (no Bansal calls).  
+**Fix:** `syncStatus` maps `paid` → API type `pay`; portal + pay-by-link + CRM mark-paid call it after success; sync failures do not roll back payment.
 
 ### J2. High — Sync skips existing appointments — payment/status drift permanently
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** `processAppointment` returns `'skipped'` when `bansal_appointment_id` already exists, with no update of payment status, datetime, or cancellation. Cron `SyncBansalAppointments` cannot heal CRM after website payment or status changes.  
-**Evidence:** `app/Services/BansalAppointmentSync/AppointmentSyncService.php` ~137–143.
+**Evidence:** `app/Services/BansalAppointmentSync/AppointmentSyncService.php` ~137–143.  
+**Fix:** Existing rows get selective payment/status/cancel updates only (no consultant/client/datetime overwrite); CRM-local paid is not downgraded to unpaid pending.
 
 ### J3. Medium — `mapStatus` has no default — unknown Bansal status aborts that appointment
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** PHP `match` without `default` throws `UnhandledMatchError`, counted as sync failure for that item.  
-**Evidence:** `AppointmentSyncService.php` ~335–344.
+**Evidence:** `AppointmentSyncService.php` ~335–344.  
+**Fix:** Normalize status casing/separators; map known aliases; unknown values default to `pending` so sync continues.
 
 ---
 
@@ -313,70 +338,80 @@
 ## L. SMS
 
 ### L1. High — Twilio/Cellcast webhooks accept unauthenticated status updates
-**Status:** Verified  
+**Status:** Fixed (validates signature/Basic Auth when secrets configured; fail-open if secrets unset)  
 **What breaks:** Public webhook routes update `SmsLog` from request body with no Twilio signature / Cellcast auth check. Attackers can forge delivery status (status forgery, not account takeover).  
-**Evidence:** `routes/sms.php` ~20–28; `SmsWebhookController.php` ~21–98.
+**Evidence:** `routes/sms.php` ~20–28; `SmsWebhookController.php` ~21–98.  
+**Fix:** Twilio `X-Twilio-Signature` and Cellcast Basic Auth validated before updating `SmsLog`.
 
 ---
 
 ## M. CRM Sheets (EOI/ROI, ART, visa-type)
 
 ### M1. Critical — Cross-client EOI IDOR — association checks commented out
-**Status:** Verified  
+**Status:** Fixed (`ensureEoiBelongsToClient` on show/upsert/destroy/reveal/verify/send-email; AdminPolicy still commented — staff auth only)  
 **What breaks:** `ClientEoiRoiController` disables AdminPolicy auth and explicitly comments out `client_id` ownership checks on show/update/delete/reveal-password/verify/send-email. Any authenticated staff (`auth:admin`) can load, mutate, delete, or decrypt EOI passwords for another client’s EOI by ID under a different `{client}` URL.  
 **Evidence:** `app/Http/Controllers/CRM/ClientEoiRoiController.php` ~47–48, ~83–92, ~146–152, ~224–233, ~320–329, ~366–375.  
-**Reproduce:** As staff, `GET /clients/{clientB}/eoi-roi/{eoiOwnedByClientC}/reveal-password` (or delete/update).
+**Reproduce:** As staff, `GET /clients/{clientB}/eoi-roi/{eoiOwnedByClientC}/reveal-password` (or delete/update).  
+**Fix:** `ensureEoiBelongsToClient()` returns 404 when EOI `client_id` ≠ route client on mutating/sensitive actions.
 
 ### M2. High — Public EOI confirm/amend has no server-side status/token lifecycle
-**Status:** Verified  
+**Status:** Fixed (POST replay / status flip rejected; token kept for success page + staff re-send)  
 **What breaks:** `processClientConfirmation` never checks existing status, never expires/invalidates the token, and never rejects replay. UI disables the button only; a crafted POST can re-confirm or flip amendment after confirmation, re-firing staff notifications. Token remains valid forever for GET pages.  
 **Evidence:** `EoiRoiSheetController.php` ~853–906; view disable only in `eoi-client-confirmation.blade.php` ~234–236.  
-**Reproduce:** Open confirm link → Confirm → POST again with `action=confirm` or `amend` using same token.
+**Reproduce:** Open confirm link → Confirm → POST again with `action=confirm` or `amend` using same token.  
+**Fix:** Rejects when status is already `confirmed` or `amendment_requested`; redirects to success without re-notifying.
 
 ### M3. Medium — Null dereference if EOI client missing or confirmation date null
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Blade uses `$eoi->client->first_name` and `$eoi->client_last_confirmation->format(...)` without null-safe access. Deleted/missing client or status set without date → 500.  
-**Evidence:** `resources/views/crm/clients/sheets/eoi-client-confirmation.blade.php` ~160–174.
+**Evidence:** `resources/views/crm/clients/sheets/eoi-client-confirmation.blade.php` ~160–174.  
+**Fix:** Null-safe `$eoi->client?->…` and conditional formatting when `client_last_confirmation` is null.
 
 ---
 
 ## N. Client portal API (messages / documents / realtime)
 
 ### N1. High — `sendMessage` does not verify matter ownership
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Client can POST any `client_matter_id`; code loads the matter and messages that matter’s staff with no `client_matters.client_id === auth id` check. Cross-matter spam / leaking presence into other matters’ threads. (Staff→client `sendMessageToClient` is a different method and uses the matter’s `client_id` as recipient.)  
 **Evidence:** `app/Http/Controllers/API/ClientPortalMessageController.php` ~321–417.  
-**Reproduce:** Auth as client A → `POST /api/messages/send` with client B’s `client_matter_id`.
+**Reproduce:** Auth as client A → `POST /api/messages/send` with client B’s `client_matter_id`.  
+**Fix:** For `Admin` (client) callers, requires matter `client_id` to match auth id; otherwise 404.
 
 ### N2. High — API broadcasting auth omits `client_id`
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** `/api/broadcasting/auth` authorizes `private-matter.{id}` only via `sel_migration_agent|responsible|assisting` (staff FKs), not `client_id`. Legitimate clients cannot subscribe to their matter channels on the API path. Contrast: `routes/channels.php` includes `client_id`.  
 **Secondary risk:** After staff/admin ID split, numeric ID overlap could theoretically let a client whose `admins.id` equals a staff assignee ID authorize as that assignee — plausible, not proven for every environment.  
-**Evidence:** `routes/api.php` ~349–371; contrast `routes/channels.php` ~46–55.
+**Evidence:** `routes/api.php` ~349–371; contrast `routes/channels.php` ~46–55.  
+**Fix:** Clients authorize via `client_id`; staff via assignee columns; IDs not compared across tables.
 
 ### N3. Medium — Visa checklist/upload can attach arbitrary `client_matter_id`
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** `addDocumentChecklist` does not verify the matter belongs to the authenticated client before writing `documents` with that matter id (scoped under the caller’s `client_id`). Creates inconsistent matter/document links.  
-**Evidence:** `app/Http/Controllers/API/ClientPortalDocumentController.php` ~329–470.
+**Evidence:** `app/Http/Controllers/API/ClientPortalDocumentController.php` ~329–470.  
+**Fix:** Visa path checks `client_matters` exists with matching `client_id` before write.
 
 ---
 
 ## O. Agreements & Form 956
 
 ### O1. High — Wrong view names + destroy redirects to missing route
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Views live under `resources/views/crm/forms/*`, but controller returns `forms.index` / `forms.show` / `forms.create`. `edit` correctly uses `crm.forms.edit`. `destroy` redirects to `route('forms.index')` which is not registered (only store/show/edit/update/destroy/preview/pdf). Show/destroy/index break with View/RouteNotFound.  
-**Evidence:** `Form956Controller.php` ~33–37, ~146–150, ~1083, ~1100–1105; views at `resources/views/crm/forms/`; routes in `routes/clients.php` ~378–384.
+**Evidence:** `Form956Controller.php` ~33–37, ~146–150, ~1083, ~1100–1105; views at `resources/views/crm/forms/`; routes in `routes/clients.php` ~378–384.  
+**Fix:** Views use `crm.forms.*`; `forms.index` route registered; destroy redirects to it.
 
 ### O2. Medium — `create()` references removed `AgentDetails` class
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** `use App\Models\AgentDetails` is commented out but `AgentDetails::first()` remains → fatal Error if `create()` is invoked.  
-**Evidence:** `Form956Controller.php` ~6, ~43–46.
+**Evidence:** `Form956Controller.php` ~6, ~43–46.  
+**Fix:** `create()` uses logged-in staff (`Auth::user()`) as default agent; `AgentDetails` call removed.
 
 ### O3. Medium — No per-record CRM access checks on show/edit/pdf/destroy
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Any authenticated staff can open/edit/delete/PDF any Form 956 by ID; no `StaffClientVisibility` / matter access (unlike sheets).  
-**Evidence:** `Form956Controller.php` ~146–151, ~184+, ~1078–1105.
+**Evidence:** `Form956Controller.php` ~146–151, ~184+, ~1078–1105.  
+**Fix:** `assertCanAccessForm956` / `assertCanAccessClientId` via `StaffClientVisibility` on show/edit/update/destroy/pdf/preview/create/store.
 
 ---
 
@@ -433,12 +468,15 @@
 
 | Result | Items |
 |--------|-------|
-| Confirmed true | All 51 listed bugs (with clarifications above) |
+| Still open (`Verified`) | B1, B2, C1, E1, J1, J2, J3, K1, K2, P1, Q1 |
+| Fixed in code | A1–A4, C2–C4, D1, E2–E5, F1, G1–G5, H1–H8, I1–I5, L1, M1–M3, N1–N3, O1–O3 |
 | Description corrected | A1, I3, H2, B1, E1, D1, I1, C3, N2 |
 | Severity changed | Q1 Medium → Low |
 | Removed as false positive | None |
 | Still excluded (already fixed / not bugs) | LeadAnalytics Admin query, `documents.thankyou` live path, bulk SMS stubs |
 
+**Counts:** Fixed **40** · Open **11** (of 51)
+
 ---
 
-*End of audit. No code fixes were applied; this file is documentation only.*
+*Audit documentation. Status labels reflect later code fixes where marked Fixed; remaining Verified items are still open.*
