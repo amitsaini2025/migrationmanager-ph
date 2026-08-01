@@ -433,10 +433,11 @@
 ## Q. Python document services
 
 ### Q1. Low — `unix://` PYTHON_CONVERTER_URL is non-functional
-**Status:** Verified (latent)  
+**Status:** Fixed  
 **What breaks:** `isUnixSocket()` is detected but HTTP client still does normal `Http::get/post($this->apiUrl . '/health')`, which cannot talk to a Unix socket. Health checks and conversions fail when that URL scheme is configured. Default/docs mostly use `http://localhost:5000`, so this is latent unless deploy uses `unix://`.  
 **Evidence:** `app/Services/PythonConverterService.php` ~23–37, ~124–128.  
-**Severity note:** Downgraded from Medium → Low after deep review (code bug real; likely unused in current deploy).
+**Severity note:** Downgraded from Medium → Low after deep review (code bug real; likely unused in current deploy).  
+**Fix:** Unix-socket configs now set `CURLOPT_UNIX_SOCKET_PATH` and request `http://localhost/…` over the socket; existing `http://…` TCP path unchanged.
 
 ---
 
@@ -474,14 +475,14 @@
 
 | Result | Items |
 |--------|-------|
-| Still open (`Verified`) | B1, B2, J1, J2, J3, K1, P1, Q1 |
-| Fixed in code | A1–A4, C1–C4, D1, E1–E5, F1, G1–G5, H1–H8, I1–I5, K2, L1, M1–M3, N1–N3, O1–O3 |
+| Still open (`Verified`) | B1, B2, J1, J2, J3, K1, P1 |
+| Fixed in code | A1–A4, C1–C4, D1, E1–E5, F1, G1–G5, H1–H8, I1–I5, K2, L1, M1–M3, N1–N3, O1–O3, Q1 |
 | Description corrected | A1, I3, H2, B1, E1, D1, I1, C3, N2 |
 | Severity changed | Q1 Medium → Low |
 | Removed as false positive | None |
 | Still excluded (already fixed / not bugs) | LeadAnalytics Admin query, `documents.thankyou` live path, bulk SMS stubs |
 
-**Counts:** Fixed **43** · Open **8** (of 51)
+**Counts:** Fixed **44** · Open **7** (of 51)
 
 ---
 

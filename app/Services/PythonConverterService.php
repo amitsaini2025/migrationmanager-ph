@@ -26,17 +26,49 @@ class PythonConverterService
     }
 
     /**
+     * Extract filesystem path from a unix:// URL (e.g. unix:///var/run/app.sock).
+     */
+    private function getUnixSocketPath(): string
+    {
+        $path = substr($this->apiUrl, strlen('unix://'));
+
+        // unix:///path → /path; unix://path → /path
+        if ($path !== '' && $path[0] !== '/') {
+            $path = '/' . $path;
+        }
+
+        return $path;
+    }
+
+    /**
+     * Build the HTTP URL for an API path.
+     * HTTP configs keep the configured base URL unchanged.
+     * Unix sockets use a dummy http host; curl routes via the socket.
+     */
+    private function buildEndpointUrl(string $path): string
+    {
+        $path = '/' . ltrim($path, '/');
+
+        if ($this->isUnixSocket()) {
+            return 'http://localhost' . $path;
+        }
+
+        return $this->apiUrl . $path;
+    }
+
+    /**
      * Get the appropriate HTTP client for the connection type
      */
     private function getHttpClient()
     {
         if ($this->isUnixSocket()) {
-            // For Unix socket, we need to use a different approach
-            // This would require a custom HTTP client implementation
-            // For now, we'll use the standard HTTP client
-            return Http::timeout($this->timeout);
+            return Http::timeout($this->timeout)->withOptions([
+                'curl' => [
+                    CURLOPT_UNIX_SOCKET_PATH => $this->getUnixSocketPath(),
+                ],
+            ]);
         }
-        
+
         return Http::timeout($this->timeout);
     }
 
@@ -57,7 +89,7 @@ class PythonConverterService
             // Make request to Python API
             $response = $this->getHttpClient()
                 ->attach('file', file_get_contents($file->getRealPath()), $file->getClientOriginalName())
-                ->post($this->apiUrl . '/convert-json');
+                ->post($this->buildEndpointUrl('/convert-json'));
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -124,7 +156,7 @@ class PythonConverterService
     public function isApiAvailable(): bool
     {
         try {
-            $response = $this->getHttpClient()->get($this->apiUrl . '/health');
+            $response = $this->getHttpClient()->get($this->buildEndpointUrl('/health'));
             return $response->successful() && $response->json('status') === 'healthy';
         } catch (\Exception $e) {
             Log::warning('Python API health check failed', ['error' => $e->getMessage()]);
@@ -138,7 +170,7 @@ class PythonConverterService
     public function getApiStatus(): array
     {
         try {
-            $response = $this->getHttpClient()->get($this->apiUrl . '/health');
+            $response = $this->getHttpClient()->get($this->buildEndpointUrl('/health'));
 
             if ($response->successful()) {
                 return [
