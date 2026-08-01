@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 use App\Models\Admin;
@@ -10,7 +9,7 @@ use App\Models\UserRole;
 
 class AdminConsoleRoutesTest extends TestCase
 {
-    use RefreshDatabase;
+    use WithFaker;
 
     protected $admin;
 

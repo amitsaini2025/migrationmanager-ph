@@ -5,12 +5,10 @@ namespace Tests\Unit\Services;
 use Tests\TestCase;
 use App\Services\PointsService;
 use App\Models\Admin;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 
 class PointsServiceTest extends TestCase
 {
-    use RefreshDatabase;
 
     protected PointsService $pointsService;
 

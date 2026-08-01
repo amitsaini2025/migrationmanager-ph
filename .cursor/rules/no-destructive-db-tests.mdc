@@ -1,0 +1,12 @@
+---
+description: Never wipe databases in tests or artisan — ban migrate:fresh / RefreshDatabase
+alwaysApply: true
+---
+
+# No destructive database resets
+
+- **Never** run `php artisan migrate:fresh`, `migrate:refresh`, `db:wipe`, or equivalent against any project database.
+- **Never** use Laravel `RefreshDatabase` or `DatabaseMigrations` in PHPUnit (they call `migrate:fresh` under the hood).
+- Prefer unit tests with no DB, mocks, or `DatabaseTransactions` only when explicitly required and only against sqlite `:memory:` / a dedicated `*_testing` DB.
+- `phpunit.xml` must keep `DB_CONNECTION=sqlite` and `DB_DATABASE=:memory:` with `force="true"`.
+- Do not use `RefreshDatabase` even "just to verify" a fix. If a test needs schema, ask the user first.

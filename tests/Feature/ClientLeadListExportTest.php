@@ -6,13 +6,11 @@ use App\Models\Admin;
 use App\Models\Lead;
 use App\Models\Staff;
 use App\Services\ClientLeadListExportService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class ClientLeadListExportTest extends TestCase
 {
-    use RefreshDatabase;
 
     protected Staff $staff;
 

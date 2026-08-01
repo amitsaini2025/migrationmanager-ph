@@ -11,13 +11,11 @@ use App\Models\Email;
 use App\Services\SignatureService;
 use App\Services\EmailConfigService;
 use App\Services\SystemEmailLogService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class SignatureServiceTest extends TestCase
 {
-    use RefreshDatabase;
 
     protected SignatureService $signatureService;
     protected EmailConfigService $emailConfigService;

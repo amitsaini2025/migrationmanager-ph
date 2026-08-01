@@ -8,11 +8,8 @@ use App\Models\Document;
 use App\Models\Lead;
 use App\Models\Signer;
 use App\Policies\DocumentPolicy;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
 class DocumentPolicyTest extends TestCase
 {
-    use RefreshDatabase;
 
     protected $policy;
 
