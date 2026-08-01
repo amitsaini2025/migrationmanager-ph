@@ -423,9 +423,10 @@
 ## P. Admin Console / ops
 
 ### P1. High — `service-account:generate-token` targets `Admin` (clients), not Staff
-**Status:** Verified  
+**Status:** Fixed  
 **What breaks:** Without `admin_id`, command runs `Admin::where('status', 1)->get()` — post staff-table migration that is essentially all active clients/leads, not staff. Wrong tokens / huge blast radius if the command is run that way. Both `Admin` and `Staff` have `HasApiTokens`; the bug is bulk targeting the wrong population, not that Admin can never hold a token.  
-**Evidence:** `app/Console/Commands/ProcessServiceAccountTokens.php` ~36–51; also flagged in `docs/PLAN_DEDICATED_STAFF_TABLE.md`.
+**Evidence:** `app/Console/Commands/ProcessServiceAccountTokens.php` ~36–51; also flagged in `docs/PLAN_DEDICATED_STAFF_TABLE.md`.  
+**Fix:** Command now targets `Staff` (`staff_id` / `--all`); job accepts `Admin|Staff`; `service_token` + `token_generated_at` added on `staff`. Bare run without id/`--all` errors instead of bulk-minting. CRM UI and client-portal Sanctum paths unchanged.
 
 ---
 

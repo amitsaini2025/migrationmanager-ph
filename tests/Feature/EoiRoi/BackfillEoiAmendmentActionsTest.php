@@ -9,14 +9,12 @@ use App\Models\Note;
 use App\Models\Notification;
 use App\Models\Staff;
 use App\Services\EoiClientConfirmationNotificationService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class BackfillEoiAmendmentActionsTest extends TestCase
 {
-    use RefreshDatabase;
 
     protected Admin $client;
     protected Staff $verifier;

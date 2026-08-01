@@ -10,7 +10,6 @@ use App\Models\ClientMatter;
 use App\Models\Note;
 use App\Models\Notification;
 use App\Models\Staff;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
@@ -18,7 +17,7 @@ use Tests\TestCase;
 
 class EoiClientConfirmationNotificationTest extends TestCase
 {
-    use RefreshDatabase, WithFaker;
+    use WithFaker;
 
     protected Admin $client;
     protected Staff $verifier;

@@ -5,11 +5,8 @@ namespace Tests\Unit;
 use Tests\TestCase;
 use App\Models\Email;
 use App\Services\EmailConfigService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
 class EmailConfigServiceTest extends TestCase
 {
-    use RefreshDatabase;
 
     protected EmailConfigService $service;
 

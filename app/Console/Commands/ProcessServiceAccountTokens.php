@@ -3,8 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Jobs\GenerateServiceAccountToken;
-use App\Models\Admin;
+use App\Models\Staff;
 use App\Services\ServiceAccountTokenService;
 
 class ProcessServiceAccountTokens extends Command
@@ -12,16 +11,22 @@ class ProcessServiceAccountTokens extends Command
     /**
      * The name and signature of the console command.
      *
+     * Targets Staff (CRM ops users), not Admin (clients/leads).
+     * Bulk mode requires --all so a bare run cannot mint tokens for the whole table by accident.
+     *
      * @var string
      */
-    protected $signature = 'service-account:generate-token {admin_id?} {--sync}';
+    protected $signature = 'service-account:generate-token
+                            {staff_id? : Staff ID to generate a token for}
+                            {--all : Generate tokens for all active staff}
+                            {--sync : Generate synchronously instead of queueing}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Generate service account token for admin(s)';
+    protected $description = 'Generate service account token for staff member(s)';
 
     /**
      * Execute the console command.
@@ -30,39 +35,48 @@ class ProcessServiceAccountTokens extends Command
      */
     public function handle()
     {
-        $adminId = $this->argument('admin_id');
+        $staffId = $this->argument('staff_id');
         $sync = $this->option('sync');
+        $all = $this->option('all');
 
-        if ($adminId) {
-            // Generate token for specific admin
-            $admin = Admin::find($adminId);
-            if (!$admin) {
-                $this->error("Admin with ID {$adminId} not found.");
+        if ($staffId) {
+            $staff = Staff::find($staffId);
+            if (! $staff) {
+                $this->error("Staff with ID {$staffId} not found.");
                 return 1;
             }
 
             if ($sync) {
-                $this->generateTokenSync($admin);
+                $this->generateTokenSync($staff);
             } else {
-                $this->generateTokenAsync($admin);
-            }
-        } else {
-            // Generate tokens for all active admins
-            $admins = Admin::where('status', 1)->get();
-            
-            if ($admins->isEmpty()) {
-                $this->info('No active admins found.');
-                return 0;
+                $this->generateTokenAsync($staff);
             }
 
-            $this->info("Found {$admins->count()} active admin(s).");
+            return 0;
+        }
 
-            foreach ($admins as $admin) {
-                if ($sync) {
-                    $this->generateTokenSync($admin);
-                } else {
-                    $this->generateTokenAsync($admin);
-                }
+        if (! $all) {
+            $this->error('Provide a staff_id, or pass --all to generate tokens for all active staff.');
+            $this->line('Example: php artisan service-account:generate-token 42 --sync');
+            $this->line('Example: php artisan service-account:generate-token --all');
+
+            return 1;
+        }
+
+        $staffMembers = Staff::where('status', 1)->get();
+
+        if ($staffMembers->isEmpty()) {
+            $this->info('No active staff found.');
+            return 0;
+        }
+
+        $this->info("Found {$staffMembers->count()} active staff member(s).");
+
+        foreach ($staffMembers as $staff) {
+            if ($sync) {
+                $this->generateTokenSync($staff);
+            } else {
+                $this->generateTokenAsync($staff);
             }
         }
 
@@ -71,38 +85,32 @@ class ProcessServiceAccountTokens extends Command
 
     /**
      * Generate token synchronously
-     *
-     * @param Admin $admin
-     * @return void
      */
-    private function generateTokenSync(Admin $admin)
+    private function generateTokenSync(Staff $staff): void
     {
-        $this->info("Generating token synchronously for admin: {$admin->email}");
-        
+        $this->info("Generating token synchronously for staff: {$staff->email}");
+
         $service = new ServiceAccountTokenService();
-        $result = $service->generateTokenSync($admin);
-        
+        $result = $service->generateTokenSync($staff);
+
         if ($result) {
-            $this->info("Token generated successfully for {$admin->email}");
-            $this->line("Token: " . ($result['token'] ?? 'N/A'));
+            $this->info("Token generated successfully for {$staff->email}");
+            $this->line('Token: ' . ($result['token'] ?? 'N/A'));
         } else {
-            $this->error("Failed to generate token for {$admin->email}");
+            $this->error("Failed to generate token for {$staff->email}");
         }
     }
 
     /**
      * Generate token asynchronously
-     *
-     * @param Admin $admin
-     * @return void
      */
-    private function generateTokenAsync(Admin $admin)
+    private function generateTokenAsync(Staff $staff): void
     {
-        $this->info("Dispatching token generation job for admin: {$admin->email}");
-        
+        $this->info("Dispatching token generation job for staff: {$staff->email}");
+
         $service = new ServiceAccountTokenService();
-        $service->generateTokenInBackground($admin);
-        
-        $this->info("Job dispatched successfully for {$admin->email}");
+        $service->generateTokenInBackground($staff);
+
+        $this->info("Job dispatched successfully for {$staff->email}");
     }
-} 
+}

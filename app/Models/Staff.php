@@ -55,6 +55,8 @@ class Staff extends Authenticatable
         'business_mobile',
         'business_email',
         'tax_number',
+        'service_token',
+        'token_generated_at',
         'quick_access_enabled',
         'grant_super_admin_access',
     ];
@@ -76,6 +78,7 @@ class Staff extends Authenticatable
         'is_migration_agent' => 'integer',
         'quick_access_enabled' => 'boolean',
         'grant_super_admin_access' => 'boolean',
+        'token_generated_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

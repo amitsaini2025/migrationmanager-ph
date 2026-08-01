@@ -5,12 +5,11 @@ namespace Tests\Feature\EoiRoi;
 use Tests\TestCase;
 use App\Models\Admin;
 use App\Models\ClientEoiReference;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 
 class ClientEoiRoiControllerTest extends TestCase
 {
-    use RefreshDatabase, WithFaker;
+    use WithFaker;
 
     protected Admin $admin;
     protected Admin $client;

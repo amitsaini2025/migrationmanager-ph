@@ -7,11 +7,8 @@ use App\Models\Admin;
 use App\Models\Document;
 use App\Models\Lead;
 use App\Models\Signer;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
 class DocumentVisibilityTest extends TestCase
 {
-    use RefreshDatabase;
 
     /** @test */
     public function user_only_sees_documents_they_created()

@@ -9,6 +9,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use App\Models\Admin;
+use App\Models\Staff;
 use App\Http\Controllers\API\ServiceAccountController;
 use Illuminate\Http\Request;
 
@@ -17,11 +18,12 @@ class GenerateServiceAccountToken implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * If the Admin was deleted after the job was queued, discard the job
+     * If the Staff/Admin was deleted after the job was queued, discard the job
      * instead of failing and blocking other Redis queue work (e.g. emails).
      */
     public $deleteWhenMissingModels = true;
 
+    /** @var Admin|Staff */
     protected $admin;
     protected $serviceName;
     protected $description;
@@ -30,13 +32,15 @@ class GenerateServiceAccountToken implements ShouldQueue
     /**
      * Create a new job instance.
      *
-     * @param Admin $admin
-     * @param string $serviceName
-     * @param string $description
-     * @param string $password
+     * Accepts Staff (preferred for ops tokens) or Admin so existing service callers stay valid.
+     *
+     * @param Admin|Staff $admin
+     * @param string|null $serviceName
+     * @param string|null $description
+     * @param string|null $password
      * @return void
      */
-    public function __construct(Admin $admin, $serviceName = null, $description = null, $password = null)
+    public function __construct(Admin|Staff $admin, $serviceName = null, $description = null, $password = null)
     {
         $this->admin = $admin;
         $this->serviceName = $serviceName ?? 'Bansal Immigration CRM';
