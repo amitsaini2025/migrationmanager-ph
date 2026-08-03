@@ -2,10 +2,13 @@
 
 namespace App\Services\BansalAppointmentSync;
 
+use App\Models\Admin;
 use App\Models\BookingAppointment;
+use App\Models\Staff;
 use App\Services\AppointmentPaymentLinkService;
 use App\Services\Sms\UnifiedSmsManager;
 use App\Services\SystemEmailLogService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class NotificationService
@@ -256,10 +259,11 @@ class NotificationService
                 return true;
             }
 
-            $phone = $appointment->client_phone;
+            $phone = $this->resolveReminderPhoneNumber($appointment);
             if (empty($phone)) {
                 Log::warning('No phone number for reminder SMS', [
-                    'appointment_id' => $appointment->id
+                    'appointment_id' => $appointment->id,
+                    'client_id' => $appointment->client_id,
                 ]);
                 return false;
             }
@@ -288,6 +292,9 @@ class NotificationService
             $context = [
                 'appointment_id' => $appointment->id,
                 'client_id' => $appointment->client_id,
+                // Cron has no Auth user; attribute to system staff so the feed is not "Unknown".
+                // Manual "Send reminder" keeps the logged-in staff via Auth.
+                'sender_id' => $this->resolveSmsSenderId(),
             ];
 
             $result = $this->smsManager->sendFromTemplateByAlias($phone, $templateAlias, $variables, $context);
@@ -322,6 +329,117 @@ class NotificationService
             ]);
             return false;
         }
+    }
+
+    /**
+     * Staff id for SMS activity attribution.
+     * Prefer the CRM-authenticated staff (manual send); otherwise the configured system user (cron).
+     */
+    protected function resolveSmsSenderId(): ?int
+    {
+        $authId = Auth::guard('admin')->id() ?? Auth::id();
+        if ($authId) {
+            return (int) $authId;
+        }
+
+        $systemId = (int) config('app.system_user_id', 1);
+        if ($systemId > 0 && Staff::query()->whereKey($systemId)->exists()) {
+            return $systemId;
+        }
+
+        return null;
+    }
+
+    /**
+     * Phone for appointment reminder SMS.
+     * Prefer linked client/lead profile (country_code + phone) so international numbers are not
+     * forced to AU by formatForSMS's 9–10 digit default. Fall back to booking client_phone.
+     */
+    protected function resolveReminderPhoneNumber(BookingAppointment $appointment): ?string
+    {
+        if (! empty($appointment->client_id)) {
+            $client = $appointment->relationLoaded('client')
+                ? $appointment->client
+                : Admin::query()
+                    ->select(['id', 'phone', 'country_code'])
+                    ->find($appointment->client_id);
+
+            if ($client) {
+                $profileE164 = $this->buildE164FromCountryAndPhone(
+                    $client->country_code ?? null,
+                    $client->phone ?? null
+                );
+
+                if ($profileE164) {
+                    return $profileE164;
+                }
+
+                // Profile has a full E.164 string but no separate country_code
+                $profilePhone = trim((string) ($client->phone ?? ''));
+                if ($profilePhone !== '' && str_starts_with($profilePhone, '+')) {
+                    return preg_replace('/[^\d+]/', '', $profilePhone) ?: $profilePhone;
+                }
+            }
+        }
+
+        $bookingPhone = trim((string) ($appointment->client_phone ?? ''));
+        if ($bookingPhone === '') {
+            return null;
+        }
+
+        // Booking phone may already be E.164; if not, leave as-is for existing AU helper path.
+        return $bookingPhone;
+    }
+
+    /**
+     * Build E.164 from stored country_code + national phone (CRM convention).
+     * Matches manual SMS style used on client detail (country_code . phone).
+     */
+    protected function buildE164FromCountryAndPhone(?string $countryCode, ?string $phone): ?string
+    {
+        $phone = trim((string) $phone);
+        $countryCode = trim((string) $countryCode);
+
+        if ($phone === '' || $countryCode === '') {
+            return null;
+        }
+
+        if (str_starts_with($phone, '+')) {
+            $cleaned = preg_replace('/[^\d+]/', '', $phone);
+
+            return $cleaned !== '' ? $cleaned : null;
+        }
+
+        if (! str_starts_with($countryCode, '+')) {
+            $countryCode = '+' . ltrim($countryCode, '+');
+        }
+
+        $nationalDigits = preg_replace('/\D+/', '', $phone);
+        if ($nationalDigits === '') {
+            return null;
+        }
+
+        $countryDigits = ltrim($countryCode, '+');
+
+        // Phone column already includes country digits (e.g. 917566000001)
+        if (
+            $countryDigits !== ''
+            && str_starts_with($nationalDigits, $countryDigits)
+            && strlen($nationalDigits) > strlen($countryDigits) + 6
+        ) {
+            return '+' . $nationalDigits;
+        }
+
+        // Strip national trunk prefix when combining with country code (+61 + 04… → +614…)
+        if (str_starts_with($nationalDigits, '0')) {
+            $nationalDigits = ltrim($nationalDigits, '0');
+        }
+
+        if ($nationalDigits === '') {
+            return null;
+        }
+
+        return $countryCode . $nationalDigits;
     }
 
     /**
