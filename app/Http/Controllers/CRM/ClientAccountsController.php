@@ -6203,12 +6203,13 @@ public function getInvoiceAmount(Request $request)
             }
 
             // Update client_portal_sent = 1 and client_portal_sent_at = now
+            $clientPortalSentAt = now();
             DB::table('account_client_receipts')
                 ->where('receipt_type', 3)
                 ->where('receipt_id', $id)
                 ->update([
                     'client_portal_sent' => 1,
-                    'client_portal_sent_at' => now()
+                    'client_portal_sent_at' => $clientPortalSentAt
                 ]);
 
             // Insert in-app notification (visible in client portal notification center)
@@ -6255,7 +6256,10 @@ public function getInvoiceAmount(Request $request)
 
             return response()->json([
                 'status' => true,
-                'message' => 'Invoice sent to Client Portal successfully!'
+                'message' => 'Invoice sent to Client Portal successfully!',
+                'client_portal_sent' => true,
+                'client_portal_sent_at' => $clientPortalSentAt->toIso8601String(),
+                'client_portal_sent_at_formatted' => $clientPortalSentAt->format('d/m/Y H:i'),
             ]);
         } catch (\Exception $e) {
             Log::error('Error sending invoice to client portal: ' . $e->getMessage());

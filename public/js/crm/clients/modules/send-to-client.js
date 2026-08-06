@@ -170,6 +170,23 @@
     }
 
     /**
+     * Replace "Send to Client Portal" with the already-sent state (no page reload).
+     * Matches account.blade.php markup for client_portal_sent.
+     */
+    function updateClientPortalDropdownToSent($btn, sentAt, formattedDisplay) {
+        var formatted = formattedDisplay || formatHubdocSentAt(sentAt || new Date());
+        var $sentLabel = $('<span class="dropdown-item client-portal-sent-label" style="color: #28a745;">' +
+            crmI('fas fa-check') + ' Already Sent to Client Portal</span>');
+
+        $btn.replaceWith($sentLabel);
+
+        if (formatted) {
+            $('<div class="dropdown-item-text client-portal-sent-time" style="font-size: 11px; color: #666; padding: 0.25rem 1rem;">Sent: ' +
+                formatted + '</div>').insertAfter($sentLabel);
+        }
+    }
+
+    /**
      * Send Invoice to Client Portal (Client Portal / Mobile App)
      */
     function handleSendInvoiceToClientApplication($btn) {
@@ -218,6 +235,11 @@
             return;
         }
 
+        showSendInProgress(
+            'Sending to Client Portal...',
+            'Sending invoice #' + invoiceNo + ' to the client\'s mobile app / portal.'
+        );
+
         $.ajax({
             url: baseUrl + '/' + invoiceId,
             type: 'POST',
@@ -227,31 +249,16 @@
             },
             success: function(response) {
                 if (response.status) {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: response.message,
-                            timer: 2000
-                        }).then(function() {
-                            location.reload();
-                        });
-                    } else {
-                        alert(response.message);
-                        location.reload();
-                    }
+                    updateClientPortalDropdownToSent(
+                        $btn,
+                        response.client_portal_sent_at,
+                        response.client_portal_sent_at_formatted
+                    );
+                    showSendResult(true, response.message || 'Invoice sent to Client Portal successfully!');
                 } else {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: response.message
-                        });
-                    } else {
-                        alert('Error: ' + response.message);
-                    }
                     $btn.html(originalHtml);
                     $btn.prop('disabled', false);
+                    showSendResult(false, response.message || 'Failed to send.');
                 }
             },
             error: function(xhr) {
@@ -260,17 +267,9 @@
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;
                 }
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: errorMsg
-                    });
-                } else {
-                    alert('Error: ' + errorMsg);
-                }
                 $btn.html(originalHtml);
                 $btn.prop('disabled', false);
+                showSendResult(false, errorMsg);
             }
         });
     }
@@ -486,6 +485,7 @@
         var originalHtml = $btn.html();
         $btn.html(crmI('fas fa-spinner fa-spin') + ' Sending...');
         $btn.prop('disabled', true);
+        showSendInProgress('Sending to Hubdoc...', 'Please wait while the invoice is sent to Hubdoc.');
 
         var baseUrl = window.ClientDetailConfig.urls.sendToHubdoc;
         $.ajax({
@@ -498,28 +498,11 @@
             success: function(response) {
                 if (response.status) {
                     updateHubdocDropdownToSent($btn, response.hubdoc_sent_at, response.hubdoc_sent_at_formatted);
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: response.message || 'Invoice sent to Hubdoc successfully!',
-                            timer: 2000
-                        });
-                    } else {
-                        alert(response.message || 'Invoice sent to Hubdoc successfully!');
-                    }
+                    showSendResult(true, response.message || 'Invoice sent to Hubdoc successfully!');
                 } else {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: response.message || 'Failed to send to Hubdoc.'
-                        });
-                    } else {
-                        alert('Error: ' + (response.message || 'Failed to send to Hubdoc.'));
-                    }
                     $btn.html(originalHtml);
                     $btn.prop('disabled', false);
+                    showSendResult(false, response.message || 'Failed to send to Hubdoc.');
                 }
             },
             error: function(xhr) {
@@ -528,17 +511,9 @@
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;
                 }
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: errorMsg
-                    });
-                } else {
-                    alert('Error: ' + errorMsg);
-                }
                 $btn.html(originalHtml);
                 $btn.prop('disabled', false);
+                showSendResult(false, errorMsg);
             }
         });
     }
