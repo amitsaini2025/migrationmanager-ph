@@ -1378,18 +1378,19 @@ function customValidate(formName, savetype = '')
                                     localStorage.setItem('activeTab', 'accounts');
 									mmResetClientReceiptForm();
 
+									var okMsg = obj.message || 'Client funds ledger entry added successfully';
+									if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
+										toastr.success(okMsg);
+									} else {
+										$('.custom-error-msg').html('<span class="alert alert-success">'+okMsg+'</span>');
+									}
+
+									if (typeof getallactivities === 'function' && client_id) {
+										getallactivities(client_id);
+									}
+
+									// Soft-refresh Account UI in background (do not block success toast)
 									mmSoftRefreshAccountAfterClientFundCreate()
-										.then(function() {
-											if (typeof getallactivities === 'function' && client_id) {
-												getallactivities(client_id);
-											}
-											var okMsg = obj.message || 'Client funds ledger entry added successfully';
-											if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
-												toastr.success(okMsg);
-											} else {
-												$('.custom-error-msg').html('<span class="alert alert-success">'+okMsg+'</span>');
-											}
-										})
 										.catch(function(err) {
 											console.warn('[ClientFundsLedger] Soft refresh failed, falling back to reload', err);
 											if (client_id) {
@@ -1401,6 +1402,10 @@ function customValidate(formName, savetype = '')
 									alert(obj.message);
 									$('.custom-error-msg').html('<span class="alert alert-danger">'+obj.message+'</span>');
 								}
+							},
+							error: function(){
+								$('.popuploader').hide();
+								$('.custom-error-msg').html('<span class="alert alert-danger">An error occurred while saving the client funds ledger entry.</span>');
 							}
 						});
 					}
@@ -1450,22 +1455,21 @@ function customValidate(formName, savetype = '')
 								var okMsg = invNo
 									? ('Invoice No - ' + invNo + okSuffix)
 									: (edited ? 'Invoice updated.' : (savetype === 'draft' ? 'Draft saved.' : 'Invoice created.'));
-								alert(okMsg);
+								if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
+									toastr.success(okMsg);
+								} else {
+									alert(okMsg);
+								}
 								$('#createreceiptmodal').modal('hide');
 								localStorage.setItem('activeTab', 'accounts');
 								mmResetInvoiceReceiptForm();
 
+								if (typeof getallactivities === 'function' && client_id) {
+									getallactivities(client_id);
+								}
+
+								// Soft-refresh Account UI in background (do not block success toast)
 								mmSoftRefreshAccountAfterInvoiceCreate()
-									.then(function() {
-										if (typeof getallactivities === 'function' && client_id) {
-											getallactivities(client_id);
-										}
-										if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
-											toastr.success(okMsg);
-										} else {
-											$('.custom-error-msg').html('<span class="alert alert-success">' + okMsg + '</span>');
-										}
-									})
 									.catch(function(err) {
 										console.warn('[Invoice] Soft refresh failed, falling back to reload', err);
 										mmReleaseInvoiceSubmitLock();
@@ -1575,18 +1579,19 @@ function customValidate(formName, savetype = '')
                                         localStorage.setItem('activeTab', 'accounts');
                                         mmResetOfficeReceiptForm();
 
+                                        var okMsg = obj.message || 'Office receipt saved successfully';
+                                        if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
+                                            toastr.success(okMsg);
+                                        } else {
+                                            $('.custom-error-msg').html('<span class="alert alert-success">' + okMsg + '</span>');
+                                        }
+
+                                        if (typeof getallactivities === 'function' && client_id) {
+                                            getallactivities(client_id);
+                                        }
+
+                                        // Soft-refresh Account UI in background (do not block success toast)
                                         mmSoftRefreshAccountAfterOfficeReceiptCreate()
-                                            .then(function() {
-                                                if (typeof getallactivities === 'function' && client_id) {
-                                                    getallactivities(client_id);
-                                                }
-                                                var okMsg = obj.message || 'Office receipt saved successfully';
-                                                if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
-                                                    toastr.success(okMsg);
-                                                } else {
-                                                    $('.custom-error-msg').html('<span class="alert alert-success">' + okMsg + '</span>');
-                                                }
-                                            })
                                             .catch(function(err) {
                                                 console.warn('[OfficeReceipt] Soft refresh failed, falling back to reload', err);
                                                 if (client_id) {
