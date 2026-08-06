@@ -1455,10 +1455,11 @@ function customValidate(formName, savetype = '')
 								var okMsg = invNo
 									? ('Invoice No - ' + invNo + okSuffix)
 									: (edited ? 'Invoice updated.' : (savetype === 'draft' ? 'Draft saved.' : 'Invoice created.'));
+								// Same success UI as Office Receipt (green banner / toastr)
 								if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
 									toastr.success(okMsg);
 								} else {
-									alert(okMsg);
+									$('.custom-error-msg').html('<span class="alert alert-success">' + okMsg + '</span>');
 								}
 								$('#createreceiptmodal').modal('hide');
 								localStorage.setItem('activeTab', 'accounts');
