@@ -5660,6 +5660,78 @@ success: function(response) {
 
 
 
+        // Update checklist Cost Breakdown in place after amend (no full page reload).
+        function formatChecklistMoney(amount) {
+            var n = parseFloat(amount);
+            if (isNaN(n)) {
+                n = 0;
+            }
+            return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        function updateChecklistCostBreakdown(obj) {
+            if (!obj || !obj.totals) {
+                return false;
+            }
+
+            var $card = $();
+            if (obj.form_id) {
+                $card = $('.checklist-item-wrapper[data-id="' + obj.form_id + '"]');
+            }
+            if (!$card.length && obj.client_matter_id) {
+                $card = $('.checklist-item-wrapper[data-client-matter-id="' + obj.client_matter_id + '"]');
+            }
+            if (!$card.length) {
+                return false;
+            }
+
+            var totals = obj.totals;
+            var blockFee = parseFloat(totals.block_fee) || 0;
+            var deptCharges = parseFloat(totals.dept_charges) || 0;
+            var surcharges = parseFloat(totals.surcharges) || 0;
+            var additionalFee = parseFloat(totals.additional_fee_1) || 0;
+            var totalCost = parseFloat(totals.total_cost);
+            if (isNaN(totalCost)) {
+                totalCost = blockFee + deptCharges + surcharges + additionalFee;
+            }
+
+            $card.find('.js-cost-block-fee').text(formatChecklistMoney(blockFee));
+            $card.find('.js-cost-dept').text(formatChecklistMoney(deptCharges));
+            $card.find('.js-cost-total').text(formatChecklistMoney(totalCost));
+
+            var $surchargeRow = $card.find('.js-cost-surcharge-row');
+            if ($surchargeRow.length) {
+                $card.find('.js-cost-surcharge').text(formatChecklistMoney(surcharges));
+                if (surcharges > 0) {
+                    $surchargeRow.show();
+                } else {
+                    $surchargeRow.hide();
+                }
+            }
+
+            var $additionalRow = $card.find('.js-cost-additional-row');
+            if ($additionalRow.length) {
+                $card.find('.js-cost-additional').text(formatChecklistMoney(additionalFee));
+                if (additionalFee > 0) {
+                    $additionalRow.show();
+                } else {
+                    $additionalRow.hide();
+                }
+            }
+
+            var $badge = $card.find('.js-checklist-total-badge');
+            if ($badge.length) {
+                var badgeHtml = $badge.html() || '';
+                if (/\$[\d,]+\.\d{2}/.test(badgeHtml)) {
+                    $badge.html(badgeHtml.replace(/\$[\d,]+\.\d{2}/, formatChecklistMoney(totalCost)));
+                } else {
+                    $badge.text(formatChecklistMoney(totalCost));
+                }
+            }
+
+            return true;
+        }
+
         // Handle form submission via AJAX
 
         $(document).on('submit', '#costAssignmentform', function(e) {
@@ -5694,7 +5766,12 @@ success: function(response) {
                             localStorage.setItem('activeTab', 'checklists');
                         }
 
-                        // Reload the page to reflect the new data
+                        // Amend existing checklist card in place; reload only for create / missing card
+                        if (obj.action === 'updated' && updateChecklistCostBreakdown(obj)) {
+                            showClientDocFeedback('success', obj.message || 'Cost assignment updated successfully.');
+                            return;
+                        }
+
                         location.reload();
 
                     }

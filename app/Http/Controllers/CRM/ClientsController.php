@@ -6280,6 +6280,7 @@ class ClientsController extends Controller
             $TotalBLOCKFEE = $requestData['Block_1_Ex_Tax'] + $requestData['Block_2_Ex_Tax'] +  $requestData['Block_3_Ex_Tax'];
 
             $cost_assignment_cnt = \App\Models\CostAssignmentForm::where('client_id',$requestData['client_id'])->where('client_matter_id',$requestData['client_matter_id'])->count();
+            $savedFormId = null;
             //dd($surcharge);
             if($cost_assignment_cnt >0){
                 //update
@@ -6287,6 +6288,7 @@ class ClientsController extends Controller
                 ->where('client_matter_id', $requestData['client_matter_id'])
                 ->first();
                 if ($costAssignment) {
+                    $savedFormId = $costAssignment->id;
                     $saved = $costAssignment->update([
                         'agent_id' => $requestData['agent_id'],
                         'surcharge' => $surcharge,
@@ -6398,6 +6400,9 @@ class ClientsController extends Controller
                 $obj->TotalDoHASurcharges = $TotalDoHASurcharges;
                 $obj->TotalBLOCKFEE = $TotalBLOCKFEE;
                 $saved = $obj->save();
+                if ($saved) {
+                    $savedFormId = $obj->id;
+                }
             }
             if (!$saved) {
                 $response['status'] 	= 	false;
@@ -6408,6 +6413,20 @@ class ClientsController extends Controller
                 
                 // Log activity
                 $action = ($cost_assignment_cnt > 0) ? 'updated' : 'created';
+                $additionalFee1 = floatval($requestData['additional_fee_1'] ?? 0);
+                $blockFee = floatval($TotalBLOCKFEE);
+                $deptCharges = floatval($TotalDoHACharges);
+                $surcharges = floatval($TotalDoHASurcharges);
+                $response['action'] = $action;
+                $response['form_id'] = $savedFormId;
+                $response['client_matter_id'] = $requestData['client_matter_id'] ?? null;
+                $response['totals'] = [
+                    'block_fee' => $blockFee,
+                    'dept_charges' => $deptCharges,
+                    'surcharges' => $surcharges,
+                    'additional_fee_1' => $additionalFee1,
+                    'total_cost' => $blockFee + $deptCharges + $surcharges + $additionalFee1,
+                ];
                 $matter = \App\Models\ClientMatter::find($requestData['client_matter_id']);
                 $matterName = $matter ? $matter->title : 'N/A';
                 

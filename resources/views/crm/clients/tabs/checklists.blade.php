@@ -204,7 +204,7 @@
                                                     ->latest()
                                                     ->first();
                                             @endphp
-                                            <div class="checklist-item-wrapper" data-id="{{ $form->id }}">
+                                            <div class="checklist-item-wrapper" data-id="{{ $form->id }}" data-client-matter-id="{{ $form->client_matter_id }}">
                                                 <div class="checklist-item-header" data-bs-toggle="collapse" data-bs-target="#checklist-detail-{{ $form->id }}">
                                                     <div class="d-flex justify-content-between align-items-center">
                                                         <div class="d-flex align-items-center">
@@ -223,7 +223,7 @@
                                                             <span class="badge badge-info mr-2">
                                                                 @icon('fa-users') {{ $office ? $office->office_name : 'No Office' }}
                                                             </span>
-                                                            <span class="badge badge-success">
+                                                            <span class="badge badge-success js-checklist-total-badge">
                                                                 @icon('fa-dollar-sign') ${{ number_format($totalCost, 2) }}
                                                             </span>
                                                         </div>
@@ -268,36 +268,32 @@
                                                                 <div class="cost-item cost-breakdown-item">
                                                                     <div class="d-flex justify-content-between align-items-center">
                                                                         <span>Our Cost (Block Fees):</span>
-                                                                        <strong class="text-primary" style="font-size: 1.05rem;">${{ number_format($totalOurCost, 2) }}</strong>
+                                                                        <strong class="text-primary js-cost-block-fee" style="font-size: 1.05rem;">${{ number_format($totalOurCost, 2) }}</strong>
                                                                     </div>
                                                                 </div>
                                                                 <div class="cost-item cost-breakdown-item">
                                                                     <div class="d-flex justify-content-between align-items-center">
                                                                         <span>Dept. Charges:</span>
-                                                                        <strong class="text-info" style="font-size: 1.05rem;">${{ number_format($totalDeptCost, 2) }}</strong>
+                                                                        <strong class="text-info js-cost-dept" style="font-size: 1.05rem;">${{ number_format($totalDeptCost, 2) }}</strong>
                                                                     </div>
                                                                 </div>
-                                                                @if($totalSurcharge > 0)
-                                                                <div class="cost-item cost-breakdown-item">
+                                                                <div class="cost-item cost-breakdown-item js-cost-surcharge-row" @if($totalSurcharge <= 0) style="display: none;" @endif>
                                                                     <div class="d-flex justify-content-between align-items-center">
                                                                         <span>Surcharges:</span>
-                                                                        <strong class="text-danger" style="font-size: 1.05rem;">${{ number_format($totalSurcharge, 2) }}</strong>
+                                                                        <strong class="text-danger js-cost-surcharge" style="font-size: 1.05rem;">${{ number_format($totalSurcharge, 2) }}</strong>
                                                                     </div>
                                                                 </div>
-                                                                @endif
-                                                                @if($totalAdditionalFee1 > 0)
-                                                                <div class="cost-item cost-breakdown-item">
+                                                                <div class="cost-item cost-breakdown-item js-cost-additional-row" @if($totalAdditionalFee1 <= 0) style="display: none;" @endif>
                                                                     <div class="d-flex justify-content-between align-items-center">
                                                                         <span>Additional Fee1:</span>
-                                                                        <strong class="text-warning" style="font-size: 1.05rem;">${{ number_format($totalAdditionalFee1, 2) }}</strong>
+                                                                        <strong class="text-warning js-cost-additional" style="font-size: 1.05rem;">${{ number_format($totalAdditionalFee1, 2) }}</strong>
                                                                     </div>
                                                                 </div>
-                                                                @endif
                                                                 <hr class="cost-breakdown-hr">
                                                                 <div class="cost-item cost-breakdown-total">
                                                                     <div class="d-flex justify-content-between align-items-center">
                                                                         <span class="font-weight-bold" style="color: #1b5e20; font-size: 1rem;">Total Cost:</span>
-                                                                        <strong class="text-success" style="font-size: 1.1rem; font-weight: 700;">${{ number_format($totalCost, 2) }}</strong>
+                                                                        <strong class="text-success js-cost-total" style="font-size: 1.1rem; font-weight: 700;">${{ number_format($totalCost, 2) }}</strong>
                                                                     </div>
                                                                 </div>
                                                                 <div class="cost-breakdown-edit mt-2">
