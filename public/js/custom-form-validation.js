@@ -158,6 +158,286 @@ function mmAcquireInvoiceSubmitLock() {
 	return { acquired: true, $form: $form, $buttons: $buttons };
 }
 
+/** Reset Client Funds Ledger create form after successful save (no page reload). */
+function mmResetClientReceiptForm() {
+	var $form = $('#client_receipt_form');
+	if (!$form.length) {
+		return;
+	}
+	$form.find('.productitem tr.product_field_clone').remove();
+	var $row = $form.find('.productitem tr.clonedrow').first();
+	if ($row.length) {
+		$row.find('input[type="text"], input:not([type="hidden"]):not([type="file"])').val('');
+		$row.find('select').each(function() {
+			this.selectedIndex = 0;
+		});
+		$row.find('.invoice_no_cls').hide().removeAttr('data-valid').val('').empty();
+		$row.find('.ledger-invoice-placeholder').show();
+		$row.find('.ledger-eftpos-surcharge-block').hide();
+		$row.find('.ledger-eftpos-surcharge-input').val('');
+		$row.find('.deposit_amount_per_row, .withdraw_amount_per_row').prop('readonly', true).val('');
+	}
+	$form.find('.total_deposit_amount_all_rows, .total_withdraw_amount_all_rows').text('');
+	var fileInput = $form.find('.docclientreceiptupload')[0];
+	if (fileInput) {
+		fileInput.value = '';
+	}
+	$form.find('.file-selection-hint').text('');
+	$form.find('#ledgerDragDropZone').removeClass('file-selected drag_over');
+	$form.find('#ledgerDragDropZone .drag-zone-text').text(function() {
+		return $(this).data('default-text') || $(this).text();
+	});
+}
+
+/**
+ * Soft-refresh Account tab ledger/invoice fragments from server HTML so new rows
+ * keep full Blade actions (view/send/edit/allocate/upload). Falls back to reload on failure.
+ */
+function mmSoftRefreshAccountAfterClientFundCreate() {
+	return fetch(window.location.href, {
+		headers: {
+			'X-Requested-With': 'XMLHttpRequest',
+			'Accept': 'text/html'
+		},
+		credentials: 'same-origin'
+	}).then(function(response) {
+		if (!response.ok) {
+			throw new Error('Failed to soft-refresh account tab');
+		}
+		return response.text();
+	}).then(function(html) {
+		var doc = new DOMParser().parseFromString(html, 'text/html');
+		var scope = '#account-tab';
+
+		var newLedger = doc.querySelector(scope + ' .productitemList') || doc.querySelector('.productitemList');
+		var curLedger = document.querySelector(scope + ' .productitemList') || document.querySelector('.productitemList');
+		if (!newLedger || !curLedger) {
+			throw new Error('Client funds ledger table not found');
+		}
+		curLedger.innerHTML = newLedger.innerHTML;
+
+		var newFunds = doc.querySelector(scope + ' .funds-held') || doc.querySelector('.funds-held');
+		var curFunds = document.querySelector(scope + ' .funds-held') || document.querySelector('.funds-held');
+		if (newFunds && curFunds) {
+			curFunds.innerHTML = newFunds.innerHTML;
+		}
+
+		var newInv = doc.querySelector(scope + ' .productitemList_invoice');
+		var curInv = document.querySelector(scope + ' .productitemList_invoice');
+		if (newInv && curInv) {
+			curInv.innerHTML = newInv.innerHTML;
+		}
+
+		var newOut = doc.querySelector(scope + ' .outstanding-balance');
+		var curOut = document.querySelector(scope + ' .outstanding-balance');
+		if (newOut && curOut) {
+			curOut.innerHTML = newOut.innerHTML;
+		}
+
+		if (typeof window.attachAccountUploadHandlers === 'function') {
+			window.attachAccountUploadHandlers();
+		}
+		if (typeof window.attachEditOfficeReceiptHandlers === 'function') {
+			window.attachEditOfficeReceiptHandlers();
+		}
+		if (typeof refreshLucideIcons === 'function') {
+			var accountTab = document.getElementById('account-tab');
+			if (accountTab) {
+				refreshLucideIcons(accountTab);
+			}
+		}
+
+		var selectedMatter = $('#client_matter_id_ledger').val();
+		if (selectedMatter === undefined || selectedMatter === null || selectedMatter === '') {
+			if ($('.general_matter_checkbox_client_detail').is(':checked')) {
+				selectedMatter = $('.general_matter_checkbox_client_detail').val();
+			} else {
+				selectedMatter = $('#sel_matter_id_client_detail').val();
+			}
+		}
+		if (typeof clientLedgerBalanceAmount === 'function') {
+			clientLedgerBalanceAmount(selectedMatter);
+		}
+		if (typeof listOfInvoice === 'function') {
+			listOfInvoice();
+		}
+	});
+}
+
+/** Reset Direct Office Receipt create form after successful save (no page reload). */
+function mmResetOfficeReceiptForm() {
+	var $form = $('#office_receipt_form');
+	if (!$form.length) {
+		return;
+	}
+	$form.find('.productitem_office tr.product_field_clone_office').remove();
+	var $row = $form.find('.productitem_office tr.clonedrow_office').first();
+	if ($row.length) {
+		$row.find('input[type="text"], input:not([type="hidden"]):not([type="file"])').val('');
+		$row.find('select').each(function() {
+			this.selectedIndex = 0;
+		});
+		$row.find('.office-eftpos-surcharge-block').hide();
+		$row.find('.office-eftpos-surcharge-input').val('');
+		$row.find('.total_deposit_amount_office').val('');
+	}
+	$form.find('.total_deposit_amount_all_rows_office').text('');
+	$form.find('input[name="save_type"]').val('');
+	var fileInput = $form.find('.docofficereceiptupload')[0];
+	if (fileInput) {
+		fileInput.value = '';
+	}
+	$form.find('.file-selection-hint1').text('');
+	$form.find('#office-selected-files-display').hide();
+	$form.find('#office-files-list').empty();
+	$form.find('#officeDragDropZone').removeClass('file-selected drag_over').show();
+}
+
+/**
+ * Soft-refresh Account tab office receipts + invoice fragments from server HTML
+ * so new rows keep full Blade actions. Falls back to reload on failure.
+ */
+function mmSoftRefreshAccountAfterOfficeReceiptCreate() {
+	return fetch(window.location.href, {
+		headers: {
+			'X-Requested-With': 'XMLHttpRequest',
+			'Accept': 'text/html'
+		},
+		credentials: 'same-origin'
+	}).then(function(response) {
+		if (!response.ok) {
+			throw new Error('Failed to soft-refresh account tab');
+		}
+		return response.text();
+	}).then(function(html) {
+		var doc = new DOMParser().parseFromString(html, 'text/html');
+		var scope = '#account-tab';
+
+		var newOffice = doc.querySelector(scope + ' .productitemList_office') || doc.querySelector('.productitemList_office');
+		var curOffice = document.querySelector(scope + ' .productitemList_office') || document.querySelector('.productitemList_office');
+		if (!newOffice || !curOffice) {
+			throw new Error('Direct office receipts table not found');
+		}
+		curOffice.innerHTML = newOffice.innerHTML;
+
+		var newInv = doc.querySelector(scope + ' .productitemList_invoice');
+		var curInv = document.querySelector(scope + ' .productitemList_invoice');
+		if (newInv && curInv) {
+			curInv.innerHTML = newInv.innerHTML;
+		}
+
+		var newOut = doc.querySelector(scope + ' .outstanding-balance');
+		var curOut = document.querySelector(scope + ' .outstanding-balance');
+		if (newOut && curOut) {
+			curOut.innerHTML = newOut.innerHTML;
+		}
+
+		if (typeof window.attachAccountUploadHandlers === 'function') {
+			window.attachAccountUploadHandlers();
+		}
+		if (typeof window.attachEditOfficeReceiptHandlers === 'function') {
+			window.attachEditOfficeReceiptHandlers();
+		}
+		if (typeof refreshLucideIcons === 'function') {
+			var accountTab = document.getElementById('account-tab');
+			if (accountTab) {
+				refreshLucideIcons(accountTab);
+			}
+		}
+
+		if (typeof listOfInvoice === 'function') {
+			listOfInvoice();
+		}
+		if (typeof window.grandtotalAccountTab_office === 'function') {
+			window.grandtotalAccountTab_office();
+		}
+	});
+}
+
+/** Reset Invoice create/edit form after successful save (no page reload). */
+function mmResetInvoiceReceiptForm() {
+	var $form = $('#invoice_receipt_form');
+	if (!$form.length) {
+		return;
+	}
+	$form.find('.productitem_invoice tr.product_field_clone_invoice').remove();
+	var $row = $form.find('.productitem_invoice tr.clonedrow_invoice').first();
+	if ($row.length) {
+		$row.find('input[name="id[]"]').val('');
+		$row.find('input[type="text"], input:not([type="hidden"]):not([type="file"])').val('');
+		$row.find('select').each(function() {
+			this.selectedIndex = 0;
+		});
+		$row.find('.withdraw_amount_invoice_per_row').val('');
+	}
+	$form.find('.total_withdraw_amount_all_rows_invoice').text('');
+	$form.find('input[name="receipt_id"]').val('');
+	$form.find('input[name="function_type"]').val('add');
+	if ($('.unique_invoice_no').length) {
+		$('.unique_invoice_no').text('');
+	}
+	if ($('.invoice_no').length) {
+		$('.invoice_no').val('');
+	}
+	mmRefreshInvoiceSubmissionToken();
+	mmReleaseInvoiceSubmitLock();
+}
+
+/**
+ * Soft-refresh Account tab invoice list + outstanding from server HTML
+ * so new/updated rows keep full Blade actions. Falls back to reload on failure.
+ */
+function mmSoftRefreshAccountAfterInvoiceCreate() {
+	return fetch(window.location.href, {
+		headers: {
+			'X-Requested-With': 'XMLHttpRequest',
+			'Accept': 'text/html'
+		},
+		credentials: 'same-origin'
+	}).then(function(response) {
+		if (!response.ok) {
+			throw new Error('Failed to soft-refresh account tab');
+		}
+		return response.text();
+	}).then(function(html) {
+		var doc = new DOMParser().parseFromString(html, 'text/html');
+		var scope = '#account-tab';
+
+		var newInv = doc.querySelector(scope + ' .productitemList_invoice') || doc.querySelector('.productitemList_invoice');
+		var curInv = document.querySelector(scope + ' .productitemList_invoice') || document.querySelector('.productitemList_invoice');
+		if (!newInv || !curInv) {
+			throw new Error('Invoice table not found');
+		}
+		curInv.innerHTML = newInv.innerHTML;
+
+		var newOut = doc.querySelector(scope + ' .outstanding-balance');
+		var curOut = document.querySelector(scope + ' .outstanding-balance');
+		if (newOut && curOut) {
+			curOut.innerHTML = newOut.innerHTML;
+		}
+
+		if (typeof window.attachAccountUploadHandlers === 'function') {
+			window.attachAccountUploadHandlers();
+		}
+		if (typeof window.attachEditOfficeReceiptHandlers === 'function') {
+			window.attachEditOfficeReceiptHandlers();
+		}
+		if (typeof refreshLucideIcons === 'function') {
+			var accountTab = document.getElementById('account-tab');
+			if (accountTab) {
+				refreshLucideIcons(accountTab);
+			}
+		}
+
+		if (typeof listOfInvoice === 'function') {
+			listOfInvoice();
+		}
+		if (typeof window.grandtotalAccountTab_invoice === 'function') {
+			window.grandtotalAccountTab_invoice();
+		}
+	});
+}
+
 function mmReleaseInvoiceSubmitLock() {
 	var $form = $('#invoice_receipt_form');
 	if (!$form.length) {
@@ -1095,108 +1375,28 @@ function customValidate(formName, savetype = '')
                                 $('.popuploader').hide();
                                 if(obj.status){
                                     $('#createreceiptmodal').modal('hide');
-                                    
                                     localStorage.setItem('activeTab', 'accounts');
-                                    
-                                    // Store client_id in localStorage so we can call getallactivities after reload
-                                    if (client_id) {
-                                        localStorage.setItem('pendingGetActivities', client_id);
-                                    }
-                                    
-                                    location.reload();
-									if(obj.requestData){
-										var reqData = obj.requestData;
-										var awsUrl = obj.awsUrl; //console.log('awsUrl='+awsUrl);
-										var trRows = "";
-										$.each(reqData, function(index, subArray) {
-											// Determine icon based on type
-											let typeIcon = '';
-											if(subArray.client_fund_ledger_type == 'Deposit'){
-												typeIcon = 'fa-arrow-down';
-											} else if(subArray.client_fund_ledger_type == 'Fee Transfer'){
-												typeIcon = 'fa-arrow-right-from-bracket';
-											} else if(subArray.client_fund_ledger_type == 'Disbursement'){
-												typeIcon = 'fa-arrow-up';
+									mmResetClientReceiptForm();
+
+									mmSoftRefreshAccountAfterClientFundCreate()
+										.then(function() {
+											if (typeof getallactivities === 'function' && client_id) {
+												getallactivities(client_id);
 											}
-
-											// Create AWS link if available
-											let awsLink = (awsUrl != "") ? '<a target="_blank" class="link-primary" href="'+awsUrl+'" title="View Receipt '+subArray.trans_no+'">' + crmI('fas fa-file-pdf') + '</a>' : '';
-
-											// Format currency
-											let depositAmount = subArray.deposit_amount ? "$" + parseFloat(subArray.deposit_amount).toFixed(2) : '';
-											let withdrawAmount = subArray.withdraw_amount ? "$" + parseFloat(subArray.withdraw_amount).toFixed(2) : '';
-											let balanceAmount = subArray.balance_amount ? "$" + parseFloat(subArray.balance_amount).toFixed(2) : '';
-
-											const pm = (subArray.payment_method && String(subArray.payment_method).trim()) ? subArray.payment_method : '—';
-											let methodCellDyn = pm;
-											if (subArray.eftpos_surcharge_amount && parseFloat(subArray.eftpos_surcharge_amount) > 0) {
-												methodCellDyn += '<br/><span style="font-size:11px;color:#6c757d;">+$' + parseFloat(subArray.eftpos_surcharge_amount).toFixed(2) + ' surcharge</span>';
+											var okMsg = obj.message || 'Client funds ledger entry added successfully';
+											if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
+												toastr.success(okMsg);
+											} else {
+												$('.custom-error-msg').html('<span class="alert alert-success">'+okMsg+'</span>');
 											}
-											trRows += `<tr>
-												<td>${subArray.trans_date} ${awsLink}</td>
-												<td class="type-cell">
-													<i class="fas ${typeIcon} type-icon" title="${subArray.client_fund_ledger_type}"></i>
-													<span>${subArray.client_fund_ledger_type}  ${subArray.invoice_no ? `(${subArray.invoice_no})` : ''}</span>
-												</td>
-												<td style="font-size:0.9em;color:#495057;">${methodCellDyn}</td>
-												<td class="description">${subArray.description}</td>
-												<td><a href="#" title="View Receipt ${subArray.trans_no}">${subArray.trans_no}</a></td>
-												<td class="currency text-success">${depositAmount}</td>
-												<td class="currency">${withdrawAmount}</td>
-												<td class="currency balance">${balanceAmount}</td>
-											</tr>`;
+										})
+										.catch(function(err) {
+											console.warn('[ClientFundsLedger] Soft refresh failed, falling back to reload', err);
+											if (client_id) {
+												localStorage.setItem('pendingGetActivities', client_id);
+											}
+											location.reload();
 										});
-									}
-				                    //console.log('trRows='+trRows);
-									$('.productitemList').append(trRows);
-									if(obj.db_total_balance_amount){
-										let db_total_balance_amount = obj.db_total_balance_amount ? "$" + parseFloat(obj.db_total_balance_amount).toFixed(2) : '';
-										$('.funds-held').html(db_total_balance_amount);
-									}
-
-                                    // Now find and update the row
-                                    if( obj.invoice_no != "" ) {
-                                        let invoiceNo = obj.invoice_no;
-                                        let invoiceBalance = obj.invoice_balance;
-                                        let invoiceStatus = obj.invoice_status;
-
-                                        // Define the status class and description
-                                        let statusClassMap = {
-                                            '0': 'status-unpaid',
-                                            '1': 'status-paid',
-                                            '2': 'status-partial',
-                                            '3': 'status-void'
-                                        };
-
-                                        let statusVal = {
-                                            '0': 'Unpaid',
-                                            '1': 'Paid',
-                                            '2': 'Partial',
-                                            '3': 'Void'
-                                        };
-
-                                        let statusClass = statusClassMap[invoiceStatus];
-                                        let statusText = statusVal[invoiceStatus];
-
-                                        $(".productitemList_invoice tr").each(function () {
-                                            let $row = $(this);
-                                            let rowInvoiceNo = $.trim($row.find("td:first").clone().children().remove().end().text());
-                                            console.log('rowInvoiceNo='+rowInvoiceNo);
-                                            console.log('invoiceNo='+invoiceNo);
-                                            if (rowInvoiceNo === invoiceNo) {
-                                                // Update Amount
-                                                $row.find("td.currency").html(`$ ${invoiceBalance}`);
-
-                                                // Update Status
-                                                $row.find("td:last").html(
-                                                    `<span class="status-badge ${statusClass}">${statusText}</span>`
-                                                );
-                                            }
-                                        });
-                                        $('.outstanding-balance').text('$ ' + obj.outstanding_balance);
-                                    }
-                                    //Fetch All Activities - handled after page reload via localStorage mechanism
-                                    $('.custom-error-msg').html('<span class="alert alert-success">'+obj.message+'</span>');
 								}else{
 									alert(obj.message);
 									$('.custom-error-msg').html('<span class="alert alert-danger">'+obj.message+'</span>');
@@ -1252,45 +1452,28 @@ function customValidate(formName, savetype = '')
 									: (edited ? 'Invoice updated.' : (savetype === 'draft' ? 'Draft saved.' : 'Invoice created.'));
 								alert(okMsg);
 								$('#createreceiptmodal').modal('hide');
-                                localStorage.setItem('activeTab', 'accounts');
-                                
-                                var matterIdUsed = $('#client_matter_id_invoice').val();
-                                
-                                var currentPath = window.location.pathname;
-                                var pathMatch = currentPath.match(/\/clients\/detail\/([^\/]+)/);
-                                var encodedClientId = pathMatch ? pathMatch[1] : null;
-                                
-                                if (!encodedClientId) {
-                                    console.error('Could not extract client ID from URL, using location.reload()');
-                                    location.reload();
-                                    return;
-                                }
-                                
-                                var matterRefNo = '';
-                                if (matterIdUsed && matterIdUsed !== '' && matterIdUsed !== 'null') {
-                                    var $selectedOption = $('#sel_matter_id_client_detail option[value="' + matterIdUsed + '"]');
-                                    if ($selectedOption.length) {
-                                        matterRefNo = $selectedOption.data('clientuniquematterno') || '';
-                                    }
-                                    if (!matterRefNo) {
-                                        var urlSegments = window.location.pathname.split('/');
-                                        if (urlSegments.length > 4 && urlSegments[4] && urlSegments[4] !== 'account' && urlSegments[4] !== 'personaldetails' && urlSegments[4] !== 'notes' && urlSegments[4] !== 'emails') {
-                                            matterRefNo = urlSegments[4];
-                                        }
-                                    }
-                                } else {
-                                    var urlSegments2 = window.location.pathname.split('/');
-                                    if (urlSegments2.length > 4 && urlSegments2[4] && urlSegments2[4] !== 'account' && urlSegments2[4] !== 'personaldetails' && urlSegments2[4] !== 'notes' && urlSegments2[4] !== 'emails') {
-                                        matterRefNo = urlSegments2[4];
-                                    }
-                                }
-                                
-                                var baseUrl = window.location.origin + '/clients/detail/' + encodedClientId;
-                                if (matterRefNo) {
-                                    baseUrl += '/' + encodeURIComponent(matterRefNo);
-                                }
-                                baseUrl += '/account';
-                                window.location.href = baseUrl;
+								localStorage.setItem('activeTab', 'accounts');
+								mmResetInvoiceReceiptForm();
+
+								mmSoftRefreshAccountAfterInvoiceCreate()
+									.then(function() {
+										if (typeof getallactivities === 'function' && client_id) {
+											getallactivities(client_id);
+										}
+										if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
+											toastr.success(okMsg);
+										} else {
+											$('.custom-error-msg').html('<span class="alert alert-success">' + okMsg + '</span>');
+										}
+									})
+									.catch(function(err) {
+										console.warn('[Invoice] Soft refresh failed, falling back to reload', err);
+										mmReleaseInvoiceSubmitLock();
+										if (client_id) {
+											localStorage.setItem('pendingGetActivities', client_id);
+										}
+										location.reload();
+									});
 							},
 							error: function(xhr) {
 								$('.popuploader').hide();
@@ -1373,91 +1556,44 @@ function customValidate(formName, savetype = '')
                                     data: fd,
                                     success: function(response) {
                                         $('.popuploader').hide();
-                                        var obj = response; // Remove $.parseJSON(response)
+                                        var obj = response;
+                                        if (typeof response === 'string') {
+                                            try {
+                                                obj = $.parseJSON(response);
+                                            } catch (e) {
+                                                obj = null;
+                                            }
+                                        }
+                                        if (!obj || !(obj.status === true || obj.status === 1)) {
+                                            var failMsg = (obj && obj.message) ? obj.message : 'Could not save office receipt. Please try again.';
+                                            alert(failMsg);
+                                            $('.custom-error-msg').html('<span class="alert alert-danger">' + failMsg + '</span>');
+                                            return;
+                                        }
+
                                         $('#createreceiptmodal').modal('hide');
                                         localStorage.setItem('activeTab', 'accounts');
-                                        location.reload();
+                                        mmResetOfficeReceiptForm();
 
-                                        if (obj.status) {
-                                            if (obj.requestData) {
-                                                var reqData = obj.requestData;
-                                                var awsUrl = obj.awsUrl;
-                                                var trRows_office = "";
-                                                $.each(reqData, function(index, subArray) {
-                                                    let awsLink = awsUrl !== "" ? '<a target="_blank" class="link-primary" href="' + awsUrl + '">' + crmI('fas fa-file-pdf') + '</a>' : '';
-
-                                                    let payIconMap = {
-                                                        'Cash': 'fa-arrow-down',
-                                                        'Bank transfer': 'fa-arrow-right-from-bracket',
-                                                        'EFTPOS': 'fa-arrow-right-from-bracket',
-                                                        'Refund': 'fa-arrow-right-from-bracket'
-                                                    };
-                                                    let paymentIcon = payIconMap[subArray.payment_method] || 'fa-money-bill';
-
-                                                    let depositAmount = subArray.deposit_amount ? '$ ' + parseFloat(subArray.deposit_amount).toFixed(2) : '';
-
-                                                    trRows_office += `
-                                                        <tr>
-                                                            <td>${subArray.trans_date} ${awsLink}</td>
-                                                            <td class="type-cell">
-                                                                <i class="fas ${paymentIcon} type-icon"></i>
-                                                                <span>
-                                                                ${subArray.payment_method}<br/>
-                                                                (${subArray.invoice_no})
-                                                                </span>
-                                                            </td>
-                                                            <td></td>
-                                                            <td class="description">${subArray.description}</td>
-                                                            <td><a href="#" title="View Receipt ${subArray.trans_no}">${subArray.trans_no}</a></td>
-                                                            <td class="currency text-success">${depositAmount}</td>
-                                                        </tr>
-                                                    `;
-                                                });
-                                                $('.productitemList_office').append(trRows_office);
-                                            }
-
-                                            // Update invoice row if applicable
-                                            if (obj.invoice_no != "") {
-                                                let invoiceNo = obj.invoice_no;
-                                                let invoiceBalance = obj.invoice_balance;
-                                                let invoiceStatus = obj.invoice_status;
-
-                                                let statusClassMap = {
-                                                    '0': 'status-unpaid',
-                                                    '1': 'status-paid',
-                                                    '2': 'status-partial',
-                                                    '3': 'status-void'
-                                                };
-
-                                                let statusVal = {
-                                                    '0': 'Unpaid',
-                                                    '1': 'Paid',
-                                                    '2': 'Partial',
-                                                    '3': 'Void'
-                                                };
-
-                                                let statusClass = statusClassMap[invoiceStatus];
-                                                let statusText = statusVal[invoiceStatus];
-
-                                                $(".productitemList_invoice tr").each(function() {
-                                                    let $row = $(this);
-                                                    let rowInvoiceNo = $.trim($row.find("td:first").clone().children().remove().end().text());
-                                                    if (rowInvoiceNo === invoiceNo) {
-                                                        $row.find("td.currency").html(`$ ${invoiceBalance}`);
-                                                        $row.find("td:last").html(
-                                                            `<span class="status-badge ${statusClass}">${statusText}</span>`
-                                                        );
-                                                    }
-                                                });
-                                                $('.outstanding-balance').text('$ ' + obj.outstanding_balance);
-                                            }
-
-                                            //Fetch All Activities
-                                            getallactivities(client_id);
-                                            $('.custom-error-msg').html('<span class="alert alert-success">' + obj.message + '</span>');
-                                        } else {
-                                            $('.custom-error-msg').html('<span class="alert alert-danger">' + obj.message + '</span>');
-                                        }
+                                        mmSoftRefreshAccountAfterOfficeReceiptCreate()
+                                            .then(function() {
+                                                if (typeof getallactivities === 'function' && client_id) {
+                                                    getallactivities(client_id);
+                                                }
+                                                var okMsg = obj.message || 'Office receipt saved successfully';
+                                                if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
+                                                    toastr.success(okMsg);
+                                                } else {
+                                                    $('.custom-error-msg').html('<span class="alert alert-success">' + okMsg + '</span>');
+                                                }
+                                            })
+                                            .catch(function(err) {
+                                                console.warn('[OfficeReceipt] Soft refresh failed, falling back to reload', err);
+                                                if (client_id) {
+                                                    localStorage.setItem('pendingGetActivities', client_id);
+                                                }
+                                                location.reload();
+                                            });
                                     },
                                     error: function(xhr, status, error) {
                                         $('.popuploader').hide();

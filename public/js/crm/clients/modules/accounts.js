@@ -69,7 +69,33 @@
         }
     }
 
+    /** Close the reference actions dropdown before opening Edit modal (fixed + high z-index otherwise overlays the modal). */
+    function closeParentAccountDropdown(el) {
+        if (!el) {
+            return;
+        }
+        try {
+            var dropdownRoot = el.closest ? el.closest('.dropdown') : null;
+            var toggle = dropdownRoot ? dropdownRoot.querySelector('[data-bs-toggle="dropdown"]') : null;
+            if (toggle && window.bootstrap && bootstrap.Dropdown) {
+                var instance = bootstrap.Dropdown.getInstance(toggle) || bootstrap.Dropdown.getOrCreateInstance(toggle);
+                if (instance) {
+                    instance.hide();
+                    return;
+                }
+            }
+        } catch (err) {
+            // fall through to class cleanup
+        }
+        var $dropdown = $(el).closest('.dropdown');
+        $dropdown.removeClass('show');
+        $dropdown.find('.dropdown-menu').removeClass('show');
+        $dropdown.find('[data-bs-toggle="dropdown"]').attr('aria-expanded', 'false');
+    }
+
     function handleEditLedgerEntry(element) {
+        // Must run before modal open: edit click uses stopPropagation so Bootstrap won't auto-hide the menu
+        closeParentAccountDropdown(element);
         var id = $(element).data('id');
         var transDate = $(element).data('trans-date');
         var entryDate = $(element).data('entry-date');
@@ -158,6 +184,22 @@
 
         $(document).on('shown.bs.dropdown', function() {
             attachEditLedgerHandlers();
+        });
+
+        // Safety net: hide any leftover open account dropdowns when Edit modal opens
+        $(document).on('show.bs.modal', '#editLedgerModal', function() {
+            $('#account-tab .dropdown-menu.show').each(function() {
+                var toggle = $(this).closest('.dropdown').find('[data-bs-toggle="dropdown"]')[0];
+                if (toggle && window.bootstrap && bootstrap.Dropdown) {
+                    var instance = bootstrap.Dropdown.getInstance(toggle);
+                    if (instance) {
+                        instance.hide();
+                        return;
+                    }
+                }
+                $(this).removeClass('show');
+                $(this).closest('.dropdown').removeClass('show');
+            });
         });
 
         $(document).on('click', '.edit-ledger-entry', function(e) {

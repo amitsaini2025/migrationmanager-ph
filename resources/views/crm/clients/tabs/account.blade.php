@@ -2845,6 +2845,9 @@ $(document).ready(function() {
     // Attach handlers on page load
     attachUploadHandlers();
     attachEditOfficeReceiptHandlers();
+    // Expose for soft-refresh after Client Funds Ledger create (no full page reload)
+    window.attachAccountUploadHandlers = attachUploadHandlers;
+    window.attachEditOfficeReceiptHandlers = attachEditOfficeReceiptHandlers;
     
     $(document).on('change', '#edit_office_payment_method', function() {
         var pm = $(this).val();
