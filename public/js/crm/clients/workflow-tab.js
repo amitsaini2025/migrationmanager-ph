@@ -77,10 +77,335 @@
         }
     }
 
+    var workflowTabLoadPromise = null;
+    var clientPortalTabLoadPromise = null;
+
+    function workflowTabFragmentUrl(tabEl) {
+        var el = tabEl || document.getElementById('workflow-tab');
+        if (el && el.getAttribute('data-workflow-url')) {
+            return el.getAttribute('data-workflow-url');
+        }
+        var urls = (window.ClientDetailConfig && window.ClientDetailConfig.urls) || {};
+        if (urls.workflowTab) {
+            return urls.workflowTab;
+        }
+        var encodeId = window.ClientDetailConfig && window.ClientDetailConfig.encodeId;
+        if (!encodeId) {
+            return '';
+        }
+        var matterRef = (window.ClientDetailConfig.matterId || window.ClientDetailConfig.matterRefNo || '');
+        var url = '/clients/detail-workflow-tab/' + encodeURIComponent(encodeId);
+        if (matterRef) {
+            url += '/' + encodeURIComponent(matterRef);
+        }
+        return url;
+    }
+
+    function clientPortalTabFragmentUrl(tabEl) {
+        var el = tabEl || document.getElementById('client_portal-tab');
+        if (el && el.getAttribute('data-portal-url')) {
+            return el.getAttribute('data-portal-url');
+        }
+        var urls = (window.ClientDetailConfig && window.ClientDetailConfig.urls) || {};
+        if (urls.clientPortalTab) {
+            return urls.clientPortalTab;
+        }
+        // Build from known client/matter config when the attribute was lost after an HTML replace.
+        var encodeId = window.ClientDetailConfig && window.ClientDetailConfig.encodeId;
+        if (!encodeId) {
+            return '';
+        }
+        var matterRef = (window.ClientDetailConfig.matterId || window.ClientDetailConfig.matterRefNo || '');
+        var url = '/clients/detail-client-portal-tab/' + encodeURIComponent(encodeId);
+        if (matterRef) {
+            url += '/' + encodeURIComponent(matterRef);
+        }
+        return url;
+    }
+
+    function importTabFragment(node) {
+        if (!node) {
+            return null;
+        }
+        try {
+            return document.importNode(node, true);
+        } catch (err) {
+            return node;
+        }
+    }
+
+    function showWorkflowLazyError(message) {
+        var tab = document.getElementById('workflow-tab');
+        if (!tab) {
+            return;
+        }
+        var placeholder = tab.querySelector('[data-workflow-lazy-placeholder]');
+        if (placeholder) {
+            placeholder.textContent = message || 'Failed to load workflow. Please refresh the page.';
+            return;
+        }
+        var container = tab.querySelector('.workflow-tab-container') || tab;
+        container.innerHTML = '<div class="workflow-v2-empty" data-workflow-lazy-placeholder>' +
+            (message || 'Failed to load workflow. Please refresh the page.') +
+            '</div>';
+    }
+
+    /**
+     * Load Workflow tab HTML from the dedicated fragment endpoint when marked lazy
+     * (or when force=true for post-action refresh). Client Portal is unchanged.
+     */
+    function ensureWorkflowTabLoaded(force) {
+        var currentTab = document.getElementById('workflow-tab');
+        if (!currentTab) {
+            return Promise.resolve(null);
+        }
+
+        var needsLoad = force === true
+            || currentTab.getAttribute('data-workflow-lazy') === '1'
+            || !!currentTab.querySelector('[data-workflow-lazy-placeholder]');
+
+        if (!needsLoad) {
+            return Promise.resolve(currentTab);
+        }
+
+        if (workflowTabLoadPromise) {
+            return workflowTabLoadPromise;
+        }
+
+        var url = workflowTabFragmentUrl(currentTab);
+        if (!url) {
+            showWorkflowLazyError('Workflow URL is missing. Please refresh the page.');
+            return Promise.reject(new Error('Workflow fragment URL missing'));
+        }
+
+        currentTab.setAttribute('data-workflow-loading', '1');
+        var wasActive = currentTab.classList.contains('active');
+
+        workflowTabLoadPromise = fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            },
+            credentials: 'same-origin'
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('Failed to load workflow tab fragment (' + response.status + ')');
+            }
+            return response.text();
+        })
+        .then(function(html) {
+            currentTab = document.getElementById('workflow-tab');
+            if (!currentTab || !currentTab.parentNode) {
+                throw new Error('Workflow tab element no longer in document');
+            }
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            var parsedTab = doc.querySelector('#workflow-tab');
+            if (!parsedTab) {
+                throw new Error('Workflow tab fragment not found in response');
+            }
+            var newTab = importTabFragment(parsedTab);
+            if (!newTab) {
+                throw new Error('Failed to import workflow tab fragment');
+            }
+            newTab.removeAttribute('data-workflow-lazy');
+            newTab.removeAttribute('data-workflow-loading');
+            if (!newTab.getAttribute('data-workflow-url') && url) {
+                newTab.setAttribute('data-workflow-url', url);
+            }
+            if (wasActive || currentTab.classList.contains('active')) {
+                newTab.classList.add('active');
+            }
+            currentTab.replaceWith(newTab);
+            refreshWorkflowV2Icons(newTab);
+            ensureStageNavBackButtonVisible();
+            initWorkflowV2StageNavigation();
+            return newTab;
+        })
+        .catch(function(err) {
+            var tab = document.getElementById('workflow-tab');
+            if (tab) {
+                tab.removeAttribute('data-workflow-loading');
+            }
+            showWorkflowLazyError('Failed to load workflow. Please refresh the page.');
+            throw err;
+        })
+        .finally(function() {
+            workflowTabLoadPromise = null;
+        });
+
+        return workflowTabLoadPromise;
+    }
+
+    function bootWorkflowTabIfNeeded() {
+        var tab = document.getElementById('workflow-tab');
+        if (!tab) {
+            return;
+        }
+        var needsLoad = tab.getAttribute('data-workflow-lazy') === '1'
+            || !!tab.querySelector('[data-workflow-lazy-placeholder]');
+        if (!needsLoad) {
+            return;
+        }
+        var activeNav = document.querySelector('.client-nav-button.active');
+        var activeTab = (activeNav && activeNav.getAttribute('data-tab'))
+            || (window.ClientDetailConfig && window.ClientDetailConfig.activeTab)
+            || '';
+        var path = window.location.pathname || '';
+        if (activeTab === 'workflow' || /\/workflow\/?$/.test(path)) {
+            ensureWorkflowTabLoaded().catch(function(err) {
+                console.error('[WorkflowTab] Boot load failed', err);
+            });
+        }
+    }
+
+    /**
+     * Re-run inline scripts from an AJAX-injected tab fragment.
+     * DOMContentLoaded already fired on the host page, so those listeners are invoked immediately.
+     */
+    function activateInjectedScripts(root) {
+        if (!root || !root.querySelectorAll) {
+            return;
+        }
+        Array.prototype.slice.call(root.querySelectorAll('script')).forEach(function(oldScript) {
+            var scriptType = (oldScript.getAttribute('type') || '').toLowerCase();
+            if (scriptType && scriptType !== 'text/javascript' && scriptType !== 'application/javascript') {
+                return;
+            }
+            var s = document.createElement('script');
+            Array.prototype.slice.call(oldScript.attributes || []).forEach(function(attr) {
+                if (attr.name === 'src' || attr.name === 'type') {
+                    return;
+                }
+                s.setAttribute(attr.name, attr.value);
+            });
+            if (oldScript.src) {
+                s.src = oldScript.src;
+                s.async = false;
+            } else {
+                var code = oldScript.textContent || '';
+                if (document.readyState !== 'loading') {
+                    code = '(function(){\n' +
+                        'var __docAdd = Document.prototype.addEventListener;\n' +
+                        'Document.prototype.addEventListener = function(type, listener, options){\n' +
+                        '  if (String(type).toLowerCase() === "domcontentloaded") {\n' +
+                        '    try { listener.call(this); } catch (e) { console.error(e); }\n' +
+                        '    return;\n' +
+                        '  }\n' +
+                        '  return __docAdd.call(this, type, listener, options);\n' +
+                        '};\n' +
+                        'try {\n' + code + '\n} finally {\n' +
+                        '  Document.prototype.addEventListener = __docAdd;\n' +
+                        '}\n' +
+                        '})();';
+                }
+                s.textContent = code;
+            }
+            oldScript.parentNode.replaceChild(s, oldScript);
+        });
+    }
+
+    /**
+     * Load Client Portal tab HTML from the dedicated fragment endpoint when marked lazy
+     * (or when force=true for post-action refresh). Does not change Workflow tab.
+     */
+    function ensureClientPortalTabLoaded(force) {
+        var currentTab = document.getElementById('client_portal-tab');
+        if (!currentTab) {
+            return Promise.resolve(null);
+        }
+
+        var needsLoad = force === true
+            || currentTab.getAttribute('data-portal-lazy') === '1'
+            || !!currentTab.querySelector('[data-portal-lazy-placeholder]');
+
+        if (!needsLoad) {
+            return Promise.resolve(currentTab);
+        }
+
+        if (clientPortalTabLoadPromise) {
+            return clientPortalTabLoadPromise;
+        }
+
+        var url = clientPortalTabFragmentUrl(currentTab);
+        if (!url) {
+            return Promise.resolve(currentTab);
+        }
+
+        currentTab.setAttribute('data-portal-loading', '1');
+        var wasActive = currentTab.classList.contains('active');
+
+        clientPortalTabLoadPromise = fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            },
+            credentials: 'same-origin'
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('Failed to load client portal tab fragment');
+            }
+            return response.text();
+        })
+        .then(function(html) {
+            currentTab = document.getElementById('client_portal-tab');
+            if (!currentTab || !currentTab.parentNode) {
+                throw new Error('Client portal tab element no longer in document');
+            }
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            var parsedTab = doc.querySelector('#client_portal-tab');
+            if (!parsedTab) {
+                throw new Error('Client portal tab fragment not found');
+            }
+            var newTab = importTabFragment(parsedTab);
+            if (!newTab) {
+                throw new Error('Failed to import client portal tab fragment');
+            }
+            newTab.removeAttribute('data-portal-lazy');
+            newTab.removeAttribute('data-portal-loading');
+            if (!newTab.getAttribute('data-portal-url') && url) {
+                newTab.setAttribute('data-portal-url', url);
+            }
+            if (wasActive || currentTab.classList.contains('active')) {
+                newTab.classList.add('active');
+            }
+            currentTab.replaceWith(newTab);
+            activateInjectedScripts(newTab);
+            refreshWorkflowV2Icons(newTab);
+            ensureStageNavBackButtonVisible();
+            bindClientPortalSubTabDelegation();
+            initWorkflowV2StageNavigation();
+            return newTab;
+        })
+        .catch(function(err) {
+            var tab = document.getElementById('client_portal-tab');
+            if (tab) {
+                tab.removeAttribute('data-portal-loading');
+            }
+            throw err;
+        })
+        .finally(function() {
+            clientPortalTabLoadPromise = null;
+        });
+
+        return clientPortalTabLoadPromise;
+    }
+
     function refreshTabPane(tabSelector) {
         var currentTab = document.querySelector(tabSelector);
         if (!currentTab) {
             return Promise.resolve();
+        }
+
+        // Workflow tab: use dedicated fragment (avoids re-rendering the full client detail page).
+        if (tabSelector === '#workflow-tab' && workflowTabFragmentUrl(currentTab)) {
+            return ensureWorkflowTabLoaded(true);
+        }
+
+        // Client Portal tab: use dedicated fragment (avoids pulling a lazy shell from another tab URL).
+        if (tabSelector === '#client_portal-tab') {
+            return ensureClientPortalTabLoaded(true);
         }
 
         var wasActive = currentTab.classList.contains('active');
@@ -192,7 +517,7 @@
     }
 
     function refreshClientPortalTab() {
-        return refreshTabPane('#client_portal-tab').then(function() {
+        return ensureClientPortalTabLoaded(true).then(function() {
             ensureStageNavBackButtonVisible();
             bindClientPortalSubTabDelegation();
             initWorkflowV2StageNavigation();
@@ -922,7 +1247,7 @@
     }
 
     function refreshWorkflowTab() {
-        return refreshTabPane('#workflow-tab').then(function() {
+        return ensureWorkflowTabLoaded(true).then(function() {
             ensureStageNavBackButtonVisible();
             initWorkflowV2StageNavigation();
             refreshActivityFeedIfVisible();
@@ -1481,6 +1806,8 @@
 
     window.refreshWorkflowTab = refreshWorkflowTab;
     window.refreshClientPortalTab = refreshClientPortalTab;
+    window.ensureWorkflowTabLoaded = ensureWorkflowTabLoaded;
+    window.ensureClientPortalTabLoaded = ensureClientPortalTabLoaded;
     window.ensureWorkflowV2StageIcons = refreshWorkflowV2Icons;
     window.handleWorkflowStageUpdateSuccess = onWorkflowTabSuccess;
     window.handleClientPortalStageUpdateSuccess = onClientPortalStageUpdateSuccess;
@@ -1493,11 +1820,16 @@
             bindClientPortalSubTabDelegation();
             ensureStageNavBackButtonVisible();
             initWorkflowV2StageNavigation();
+            // After sidebar init may still be pending; retry shortly for deep links.
+            bootWorkflowTabIfNeeded();
+            setTimeout(bootWorkflowTabIfNeeded, 300);
         });
     } else {
         bindWorkflowTabHandlers();
         bindClientPortalSubTabDelegation();
         ensureStageNavBackButtonVisible();
         initWorkflowV2StageNavigation();
+        bootWorkflowTabIfNeeded();
+        setTimeout(bootWorkflowTabIfNeeded, 300);
     }
 })();

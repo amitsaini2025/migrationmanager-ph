@@ -116,6 +116,8 @@ Route::post('/clients/convert-lead-only', [ClientsController::class, 'convertLea
 Route::get('/document/download/pdf/{id}', [ClientsController::class, 'downloadpdf']);
 Route::get('/clients/removetag', [ClientsController::class, 'removetag']);
 Route::get('/clients/detail/{client_id}/{client_unique_matter_ref_no?}/{tab?}', [ClientsController::class, 'detail'])->name('clients.detail');
+Route::get('/clients/detail-workflow-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'workflowTab'])->name('clients.detail.workflow-tab');
+Route::get('/clients/detail-client-portal-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'clientPortalTab'])->name('clients.detail.client-portal-tab');
 Route::post('/clients/google-review-reminder', [ClientsController::class, 'updateGoogleReviewReminder'])->name('clients.google-review-reminder');
 Route::post('/clients/google-review-reminder/sms', [ClientsController::class, 'sendGoogleReviewReminderSms'])->name('clients.google-review-reminder.sms');
 

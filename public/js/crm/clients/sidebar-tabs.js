@@ -241,15 +241,19 @@
                 filterNominationDocumentsByMatter(SidebarTabs.selectedMatter);
                 break;
             case 'client_portal':
-                if (typeof showClientMatterPortalData === 'function') {
-                    showClientMatterPortalData(SidebarTabs.selectedMatter);
-                }
-                if (typeof window.ensureStageNavBackButtonVisible === 'function') {
-                    window.ensureStageNavBackButtonVisible();
-                }
-                if (typeof window.ensureWorkflowV2StageIcons === 'function') {
-                    window.ensureWorkflowV2StageIcons(document.getElementById('client_portal-tab'));
-                }
+                (typeof window.ensureClientPortalTabLoaded === 'function'
+                    ? window.ensureClientPortalTabLoaded()
+                    : Promise.resolve()
+                ).then(function() {
+                    if (typeof window.ensureStageNavBackButtonVisible === 'function') {
+                        window.ensureStageNavBackButtonVisible();
+                    }
+                    if (typeof window.ensureWorkflowV2StageIcons === 'function') {
+                        window.ensureWorkflowV2StageIcons(document.getElementById('client_portal-tab'));
+                    }
+                }).catch(function(err) {
+                    console.error('[SidebarTabs] Failed to load Client Portal tab', err);
+                });
                 break;
             case 'emails':
                 if (typeof window.loadEmails === 'function') {
@@ -257,12 +261,19 @@
                 }
                 break;
             case 'workflow':
-                if (typeof window.ensureStageNavBackButtonVisible === 'function') {
-                    window.ensureStageNavBackButtonVisible();
-                }
-                if (typeof window.ensureWorkflowV2StageIcons === 'function') {
-                    window.ensureWorkflowV2StageIcons(document.getElementById('workflow-tab'));
-                }
+                (typeof window.ensureWorkflowTabLoaded === 'function'
+                    ? window.ensureWorkflowTabLoaded()
+                    : Promise.resolve()
+                ).then(function() {
+                    if (typeof window.ensureStageNavBackButtonVisible === 'function') {
+                        window.ensureStageNavBackButtonVisible();
+                    }
+                    if (typeof window.ensureWorkflowV2StageIcons === 'function') {
+                        window.ensureWorkflowV2StageIcons(document.getElementById('workflow-tab'));
+                    }
+                }).catch(function(err) {
+                    console.error('[SidebarTabs] Failed to load Workflow tab', err);
+                });
                 break;
         }
     }
@@ -396,7 +407,15 @@
     function activateInitialTab(activeTabFromUrl) {
         // Check localStorage first (takes precedence for better UX when returning to page)
         const storedTab = localStorage.getItem('activeTab');
-        let tabId = storedTab || activeTabFromUrl || 'personaldetails';
+        // Deep-linked tabs in the URL must win over stale localStorage (e.g. /workflow, /client_portal).
+        const deepLinkTabs = ['workflow', 'client_portal', 'account', 'emails', 'checklists', 'eoiroi', 'visadocuments', 'personaldocuments', 'noteterm', 'activityfeed'];
+        const urlTab = (activeTabFromUrl || '').toLowerCase();
+        let tabId;
+        if (urlTab && deepLinkTabs.indexOf(urlTab) !== -1) {
+            tabId = urlTab;
+        } else {
+            tabId = storedTab || activeTabFromUrl || 'personaldetails';
+        }
         
         // Clear localStorage after reading to prevent stale tab persistence
         if (storedTab) {

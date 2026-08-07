@@ -2554,6 +2554,110 @@ class ClientsController extends Controller
         }
     }
 
+    /**
+     * Lightweight HTML fragment for the Workflow tab only (lazy-load / partial refresh).
+     * Does not render Client Portal or other detail tabs.
+     */
+    public function workflowTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
+    {
+        if (empty($client_id)) {
+            abort(404);
+        }
+
+        $encodeId = $client_id;
+        $id = $this->decodeString($client_id);
+
+        $knownTabNames = [
+            'personaldetails', 'companydetails', 'activityfeed', 'noteterm', 'personaldocuments', 'visadocuments',
+            'nominationdocuments', 'eoiroi', 'emails', 'client_portal', 'formgenerations', 'formgenerationsl',
+            'workflow', 'checklists', 'account', 'notuseddocuments',
+        ];
+        if ($client_unique_matter_ref_no && in_array(strtolower((string) $client_unique_matter_ref_no), $knownTabNames, true)) {
+            $client_unique_matter_ref_no = null;
+        }
+
+        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
+            abort(403);
+        }
+
+        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
+        if (!$fetchedData) {
+            abort(404);
+        }
+
+        return view('crm.clients.tabs.workflow', [
+            'fetchedData' => $fetchedData,
+            'encodeId' => $encodeId,
+            'id1' => $client_unique_matter_ref_no,
+            'activeTab' => 'workflow',
+        ]);
+    }
+
+    /**
+     * Lightweight HTML fragment for the Client Portal tab only (lazy-load / partial refresh).
+     * Mirrors getClientPortalDetail data so Details/Documents/Messages keep working.
+     */
+    public function clientPortalTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
+    {
+        if (empty($client_id)) {
+            abort(404);
+        }
+
+        $encodeId = $client_id;
+        $id = $this->decodeString($client_id);
+
+        $knownTabNames = [
+            'personaldetails', 'companydetails', 'activityfeed', 'noteterm', 'personaldocuments', 'visadocuments',
+            'nominationdocuments', 'eoiroi', 'emails', 'client_portal', 'formgenerations', 'formgenerationsl',
+            'workflow', 'checklists', 'account', 'notuseddocuments',
+        ];
+        if ($client_unique_matter_ref_no && in_array(strtolower((string) $client_unique_matter_ref_no), $knownTabNames, true)) {
+            $client_unique_matter_ref_no = null;
+        }
+
+        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
+            abort(403);
+        }
+
+        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
+        if (!$fetchedData) {
+            abort(404);
+        }
+
+        $clientId = (int) $fetchedData->id;
+        $clientContacts = ClientContact::where('client_id', $clientId)->orderBy('id')->get();
+        $emails = ClientEmail::where('client_id', $clientId)->get();
+        $clientAddresses = ClientAddress::where('client_id', $clientId)->orderedForDisplay()->get();
+        $clientPassports = ClientPassportInformation::where('client_id', $clientId)->orderBy('id')->get();
+        $visaCountries = ClientVisaCountry::with('matter')->where('client_id', $clientId)->orderBy('id')->get();
+        $clientTravels = ClientTravelInformation::where('client_id', $clientId)
+            ->orderByRaw('travel_arrival_date DESC NULLS LAST, created_at DESC')
+            ->get();
+        $qualifications = ClientQualification::where('client_id', $clientId)
+            ->orderByRaw('finish_date DESC NULLS LAST')
+            ->get();
+        $experiences = ClientExperience::where('client_id', $clientId)->orderedForDisplay()->get();
+        $clientOccupations = ClientOccupation::where('client_id', $clientId)->get();
+        $testScores = ClientTestScore::where('client_id', $clientId)->get();
+
+        return view('crm.clients.tabs.client_portal', [
+            'fetchedData' => $fetchedData,
+            'encodeId' => $encodeId,
+            'id1' => $client_unique_matter_ref_no,
+            'activeTab' => 'client_portal',
+            'clientContacts' => $clientContacts,
+            'emails' => $emails,
+            'clientAddresses' => $clientAddresses,
+            'clientPassports' => $clientPassports,
+            'visaCountries' => $visaCountries,
+            'clientTravels' => $clientTravels,
+            'qualifications' => $qualifications,
+            'experiences' => $experiences,
+            'clientOccupations' => $clientOccupations,
+            'testScores' => $testScores,
+        ]);
+    }
+
     protected function googleReviewCrmTemplateExists(): bool
     {
         if ($this->googleReviewCrmTemplateExistsCache !== null) {

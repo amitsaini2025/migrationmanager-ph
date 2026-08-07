@@ -287,8 +287,16 @@ use App\Http\Controllers\Controller;
                 @include('crm.clients.tabs.account')
                 @include('crm.clients.tabs.emails')
                 @include('crm.clients.tabs.checklists')
-                @include('crm.clients.tabs.workflow')
-                @include('crm.clients.tabs.client_portal')
+                @if(($activeTab ?? '') === 'workflow')
+                    @include('crm.clients.tabs.workflow')
+                @else
+                    @include('crm.clients.tabs.workflow_lazy')
+                @endif
+                @if(($activeTab ?? '') === 'client_portal')
+                    @include('crm.clients.tabs.client_portal')
+                @else
+                    @include('crm.clients.tabs.client_portal_lazy')
+                @endif
             @else
                 @include('crm.clients.tabs.checklists')
             @endif
@@ -1166,7 +1174,7 @@ $(document).ready(function() {
 <script src="{{ URL::asset('js/crm/clients/tabs/activity-feed.js') }}"></script>
 
 {{-- Sidebar Tabs Management - Dedicated file for sidebar navigation --}}
-<script src="{{URL::asset('js/crm/clients/sidebar-tabs.js')}}"></script>
+<script src="{{URL::asset('js/crm/clients/sidebar-tabs.js')}}?v={{ file_exists(public_path('js/crm/clients/sidebar-tabs.js')) ? filemtime(public_path('js/crm/clients/sidebar-tabs.js')) : time() }}"></script>
 
 {{-- Pass Blade variables to JavaScript --}}
 <script>
@@ -1218,6 +1226,8 @@ $(document).ready(function() {
             getInvoicesByMatter: '{{ URL::to("/get-invoices-by-matter") }}',
             loadMatterUpsert: '{{ URL::to("/client-portal/load-matter-upsert") }}',
             getClientPortalDetail: '{{ URL::to("/client-portal/detail") }}',
+            clientPortalTab: '{{ route("clients.detail.client-portal-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+            workflowTab: '{{ route("clients.detail.workflow-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
             updateIntake: '{{ URL::to("/client-portal/updateintake") }}',
             updateExpectWin: '{{ URL::to("/client-portal/updateexpectwin") }}',
             updateDates: '{{ URL::to("/client-portal/updatedates") }}',

@@ -1,6 +1,17 @@
 <!-- Client Portal Tab -->
 <link rel="stylesheet" href="{{ URL::asset('css/workflow-tab.css') }}?v={{ time() }}">
-<div class="tab-pane" id="client_portal-tab">
+@php
+    $portalTabFragmentUrl = !empty($encodeId)
+        ? route('clients.detail.client-portal-tab', array_filter([
+            'client_id' => $encodeId,
+            'client_unique_matter_ref_no' => $id1 ?? null,
+        ], static function ($value) {
+            return $value !== null && $value !== '';
+        }))
+        : '';
+@endphp
+<div class="tab-pane" id="client_portal-tab"
+     @if($portalTabFragmentUrl !== '') data-portal-url="{{ $portalTabFragmentUrl }}" @endif>
     <div class="card full-width client-portal-container">
         @php
             $client_matters_exist = DB::table('client_matters')
