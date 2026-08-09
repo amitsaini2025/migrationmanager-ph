@@ -28,6 +28,7 @@
         "barryvdh/laravel-ide-helper": "^3.7",
         "fakerphp/faker": "^1.9.1",
         "filp/whoops": "^2.0",
+        "laravel/boost": "^2.5",
         "laravel/pint": "^1.0",
         "laravel/sail": "^1.43",
         "mockery/mockery": "^1.4.4",
