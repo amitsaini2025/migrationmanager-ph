@@ -56,6 +56,7 @@
         text-decoration: none;
         box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
         cursor: pointer;
+        margin-right: 8px;
     }
 
     .btn-archive-icon:hover {
@@ -74,6 +75,54 @@
     .btn-archive-icon i {
         font-size: 14px;
         color: white;
+    }
+
+    /* Send To Legal CRM Icon Button Styling */
+    .btn-legal-crm-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+        border: none;
+        border-radius: 8px;
+        color: white !important;
+        text-decoration: none;
+        box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+        cursor: pointer;
+    }
+
+    .btn-legal-crm-icon:hover:not(:disabled):not(.is-sent) {
+        background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+        box-shadow: 0 4px 8px rgba(13, 148, 136, 0.3);
+        color: white !important;
+        text-decoration: none;
+    }
+
+    .btn-legal-crm-icon:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
+        color: white !important;
+    }
+
+    .btn-legal-crm-icon i,
+    .btn-legal-crm-icon svg {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .btn-legal-crm-icon.is-sent,
+    .btn-legal-crm-icon:disabled {
+        background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: 0.9;
+        pointer-events: auto;
     }
 
     .action-buttons {
@@ -512,6 +561,31 @@
                                                 <button type="button" class="btn-archive-icon" title="Archive Lead" onclick='return archiveLeadAction(event, {{ (int) @$list->id }}, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))), @json(route("leads.archive", base64_encode(convert_uuencode(@$list->id)))))'>
                                                     @icon('fa-archive')
                                                 </button>
+                                                @php $sentToLegalCrm = (int) ($list->send_to_legal_crm ?? 0) === 1; @endphp
+                                                @if($sentToLegalCrm)
+                                                    <span title="Already Sent For Legal CRM" style="display: inline-flex;">
+                                                        <button
+                                                            type="button"
+                                                            class="btn-legal-crm-icon is-sent"
+                                                            data-lead-id="{{ (int) @$list->id }}"
+                                                            disabled
+                                                            aria-disabled="true"
+                                                            tabindex="-1"
+                                                        >
+                                                            @icon('fa-gavel')
+                                                        </button>
+                                                    </span>
+                                                @else
+                                                    <button
+                                                        type="button"
+                                                        class="btn-legal-crm-icon"
+                                                        title="Send For Legal CRM"
+                                                        data-lead-id="{{ (int) @$list->id }}"
+                                                        onclick='return sendLeadToLegalCrmAction(event, this, {{ (int) @$list->id }}, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))), @json(route("leads.send_to_legal_crm", base64_encode(convert_uuencode(@$list->id)))))'
+                                                    >
+                                                        @icon('fa-gavel')
+                                                    </button>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -1091,6 +1165,110 @@ function exportLeadList(filteredTotal) {
             error: function(xhr) {
                 $('.popuploader').hide();
                 var errorMsg = 'An error occurred while archiving the lead.';
+
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMsg = response.message;
+                        }
+                    } catch (e) {
+                        // Use default error message
+                    }
+                }
+
+                showListingMessage('error', errorMsg);
+                $('html, body').animate({scrollTop: 0}, 'slow');
+            },
+            beforeSend: function() {
+                $("#loader").show();
+            },
+            complete: function() {
+                $("#loader").hide();
+            }
+        });
+
+        return false;
+    }
+
+    // Mark lead as Send To Legal CRM without leaving the list
+    function sendLeadToLegalCrmAction(event, buttonEl, leadId, leadName, actionUrl) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        if (!leadId || !actionUrl) {
+            alert('Error: Could not update Legal CRM status. Please refresh and try again.');
+            return false;
+        }
+
+        if (buttonEl && ($(buttonEl).prop('disabled') || $(buttonEl).hasClass('is-sent'))) {
+            return false;
+        }
+
+        var confirmMessage = 'Are you sure you want to send the lead "' + (leadName || 'this lead') + '" for Legal CRM?';
+
+        if (!confirm(confirmMessage)) {
+            return false;
+        }
+
+        $('.popuploader').show();
+        $(".server-error").html('');
+        clearListingMessage();
+
+        $.ajax({
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept': 'application/json'
+            },
+            url: actionUrl,
+            data: {},
+            dataType: 'json',
+            success: function(resp) {
+                $('.popuploader').hide();
+                var obj = resp;
+
+                if (typeof resp === 'string') {
+                    try {
+                        obj = $.parseJSON(resp);
+                    } catch (e) {
+                        showListingMessage('error', 'Invalid server response. Please try again.');
+                        $('html, body').animate({scrollTop: 0}, 'slow');
+                        return;
+                    }
+                }
+
+                if (obj.status == 1) {
+                    var $btn = buttonEl ? $(buttonEl) : $("#id_" + leadId + " .btn-legal-crm-icon");
+
+                    $btn.addClass('is-sent')
+                        .prop('disabled', true)
+                        .attr({
+                            'aria-disabled': 'true',
+                            tabindex: '-1'
+                        })
+                        .removeAttr('onclick')
+                        .removeAttr('title')
+                        .off('click');
+
+                    if (!$btn.parent().is('span[title="Already Sent For Legal CRM"]')) {
+                        $btn.wrap('<span title="Already Sent For Legal CRM" style="display: inline-flex;"></span>');
+                    }
+
+                    showListingMessage('success', obj.message || 'Lead has been marked as Send To Legal CRM.');
+                } else {
+                    showListingMessage('error', obj.message || 'Failed to update Legal CRM status.');
+                }
+
+                $('html, body').animate({scrollTop: 0}, 'slow');
+            },
+            error: function(xhr) {
+                $('.popuploader').hide();
+                var errorMsg = 'An error occurred while updating Legal CRM status.';
 
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;

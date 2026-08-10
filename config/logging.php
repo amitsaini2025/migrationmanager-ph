@@ -97,6 +97,15 @@ return [
             'path' => storage_path('logs/reverb.log'),
             'level' => env('REVERB_LOG_LEVEL', 'debug'),
         ],
+
+        'migration_legal_crm' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/migration-legal-crm.log'),
+            'level' => 'debug',
+            'days' => 30,
+            'permission' => 0644,
+            'tap' => [App\Logging\Utf8LogFormatter::class],
+        ],
     ],
 
 ];

@@ -175,6 +175,24 @@ class Lead extends Admin
     {
         return $this->is_archived == 1;
     }
+
+    /**
+     * Mark lead as sent to Legal CRM (send_to_legal_crm = 1).
+     */
+    public function markSentToLegalCrm(): bool
+    {
+        $this->send_to_legal_crm = 1;
+
+        return $this->save();
+    }
+
+    /**
+     * Whether this lead has been sent to Legal CRM.
+     */
+    public function isSentToLegalCrm(): bool
+    {
+        return (int) ($this->send_to_legal_crm ?? 0) === 1;
+    }
     
     /**
      * Get full name

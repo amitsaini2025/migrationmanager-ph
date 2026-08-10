@@ -144,6 +144,17 @@ return [
     ],
 
     /*
+    | Instant lead handoff: Migration CRM → Legal CRM
+    | POST {LEGAL_CRM_API_BASE_URL}/migration-crm/leads (Bearer = LEGAL_CRM_API_TOKEN)
+    */
+    'legal_crm' => [
+        'url' => env('LEGAL_CRM_API_BASE_URL', 'https://legal.bansalcrm.com/api'),
+        'token' => env('LEGAL_CRM_API_TOKEN'),
+        'timeout' => env('LEGAL_CRM_API_TIMEOUT', 30),
+        'leads_path' => env('LEGAL_CRM_LEADS_PATH', '/migration-crm/leads'),
+    ],
+
+    /*
     | Optional: HTTPS URL used in emails for "Call Us" (must serve the phone-call bridge).
     | Example: https://www.bansalimmigration.com.au/phone-call
     | If unset, APP_URL + /phone-call (this app's bridge) is used.

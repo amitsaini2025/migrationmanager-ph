@@ -22,6 +22,7 @@ use App\Services\ClientReferenceService;
 use App\Services\ClientLeadListExportService;
 use App\Support\StaffClientVisibility;
 use App\Services\LeadFollowUpNoteService;
+use App\Services\LegalCrm\LegalCrmApiClient;
 use App\Models\Staff;
 use App\Helpers\PhoneHelper;
 
@@ -1664,6 +1665,134 @@ class LeadController extends Controller
         } catch (\Exception $e) {
             Log::error('Error archiving lead: ' . $e->getMessage());
             $message = 'An error occurred while archiving the lead. Please try again.';
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 0, 'message' => $message], 500);
+            }
+
+            return redirect()->route('leads.index')
+                ->with('error', $message);
+        }
+    }
+
+    /**
+     * Instantly push a lead to Legal CRM, then mark send_to_legal_crm = 1 on success only.
+     *
+     * @param Request $request
+     * @param string $id Encoded lead ID
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+     */
+    public function sendToLegalCrm(Request $request, $id)
+    {
+        try {
+            $decodedId = $this->decodeString($id);
+
+            if (!$decodedId) {
+                $message = config('constants.decode_string') ?? 'Invalid lead ID.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 400);
+                }
+                return redirect()->route('leads.index')
+                    ->with('error', $message);
+            }
+
+            if (! StaffClientVisibility::canAccessClientOrLead((int) $decodedId, Auth::user())) {
+                $message = config('constants.unauthorized');
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 403);
+                }
+                return redirect()->route('leads.index')
+                    ->with('error', $message);
+            }
+
+            $lead = Lead::where('id', $decodedId)->where('is_archived', 0)->first();
+
+            if (!$lead) {
+                $message = 'Lead not found.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 404);
+                }
+                return redirect()->route('leads.index')
+                    ->with('error', $message);
+            }
+
+            if ($lead->isSentToLegalCrm()) {
+                $message = 'Lead is already sent to Legal CRM.';
+                Log::channel('migration_legal_crm')->info('Send to Legal CRM skipped — already sent', [
+                    'migration_lead_id' => (int) $lead->id,
+                    'email' => $lead->email,
+                    'phone' => $lead->phone,
+                    'staff_id' => Auth::id(),
+                ]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'status' => 1,
+                        'message' => $message,
+                        'send_to_legal_crm' => 1,
+                        'already_sent' => true,
+                    ], 200);
+                }
+                return redirect()->route('leads.index')
+                    ->with('info', $message);
+            }
+
+            Log::channel('migration_legal_crm')->info('Send to Legal CRM started', [
+                'migration_lead_id' => (int) $lead->id,
+                'first_name' => $lead->first_name,
+                'last_name' => $lead->last_name,
+                'email' => $lead->email,
+                'phone' => $lead->phone,
+                'country_code' => $lead->country_code,
+                'staff_id' => Auth::id(),
+            ]);
+
+            // Push to Legal CRM first; only mark local flag after success.
+            $apiResult = app(LegalCrmApiClient::class)->createLeadFromMigrationLead($lead);
+
+            $lead->markSentToLegalCrm();
+
+            $alreadyExists = (bool) ($apiResult['already_exists'] ?? false);
+            $message = $alreadyExists
+                ? 'Lead already exists in Legal CRM and has been marked as sent.'
+                : 'Lead has been sent to Legal CRM successfully.';
+
+            Log::channel('migration_legal_crm')->info('Send to Legal CRM succeeded', [
+                'migration_lead_id' => (int) $lead->id,
+                'legal_lead_id' => $apiResult['lead_id'] ?? null,
+                'legal_already_exists' => $alreadyExists,
+                'email' => $lead->email,
+                'phone' => $lead->phone,
+                'staff_id' => Auth::id(),
+                'api_message' => $apiResult['message'] ?? null,
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 1,
+                    'message' => $message,
+                    'send_to_legal_crm' => 1,
+                    'already_sent' => false,
+                    'legal_lead_id' => $apiResult['lead_id'] ?? null,
+                    'legal_already_exists' => $alreadyExists,
+                ], 200);
+            }
+
+            return redirect()->route('leads.index')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            Log::channel('migration_legal_crm')->error('Send to Legal CRM failed', [
+                'error' => $e->getMessage(),
+                'staff_id' => Auth::id(),
+                'encoded_id' => $id,
+            ]);
+            Log::error('Error sending lead to Legal CRM: ' . $e->getMessage());
+
+            // Surface validation / config / API errors to the user; keep flag at 0.
+            $message = $e->getMessage();
+            if ($message === '' || str_contains(strtolower($message), 'sqlstate')) {
+                $message = 'An error occurred while sending the lead to Legal CRM. Please try again.';
+            }
 
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json(['status' => 0, 'message' => $message], 500);
