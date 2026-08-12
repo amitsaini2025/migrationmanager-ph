@@ -1838,6 +1838,13 @@
             });
 
 
+            function hydrateCheckinDetailIcons() {
+                var root = document.querySelector('.showchecindetail');
+                if (typeof window.refreshLucideIcons === 'function' && root) {
+                    window.refreshLucideIcons(root);
+                }
+            }
+
             $(document).delegate('.opencheckin', 'click', function(){
                 $('#checkinmodal').modal('show');
             });
@@ -1858,6 +1865,7 @@
                             success: function(res){
                                 $('.popuploader').hide();
                                 $('.showchecindetail').html(res);
+                                hydrateCheckinDetailIcons();
                             },
                             error: function(){
                                 $('.popuploader').hide();
@@ -1888,6 +1896,7 @@
                             success: function(res){
                                 $('.popuploader').hide();
                                 $('.showchecindetail').html(res);
+                                hydrateCheckinDetailIcons();
                             },
                             error: function(){
                                 $('.popuploader').hide();
@@ -1922,6 +1931,7 @@
                                 success: function(res){
                                     $('.popuploader').hide();
                                     $('.showchecindetail').html(res);
+                                    hydrateCheckinDetailIcons();
                                 },
                                 error: function(){
                                     $('.popuploader').hide();
@@ -1980,6 +1990,7 @@
                     success: function(responses){
                         $('.popuploader').hide();
                         $('.showchecindetail').html(responses);
+                        hydrateCheckinDetailIcons();
                     },
                     error: function(){
                         $('.popuploader').hide();
@@ -2739,6 +2750,7 @@
                 success: function(response) {
                     $('.popuploader').hide();
                     $('.showchecindetail').html(response);
+                    hydrateCheckinDetailIcons();
                 }
             });
         };

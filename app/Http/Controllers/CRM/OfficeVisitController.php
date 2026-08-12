@@ -342,7 +342,7 @@ class OfficeVisitController extends Controller
 						</div>
 					</div>
 					<div class="col-md-7">
-						<b>In Person Assignee </b> <a class="openassignee" href="javascript:;"><?php echo \App\Helpers\IconHelper::fromLegacy('fa fa-edit'); ?></a>
+						<b>In Person Assignee </b> <a class="openassignee" href="javascript:;" title="Change Person Assignee" aria-label="Change Person Assignee"><?php echo \App\Helpers\IconHelper::fromLegacy('fa fa-edit'); ?></a>
 						<br>
 						<?php
 						$admin = \App\Models\Staff::find($CheckinLog->user_id);
@@ -350,27 +350,26 @@ class OfficeVisitController extends Controller
 						<a href=""><?php echo @$admin->first_name.' '.@$admin->last_name; ?></a>
 						<br>
 						<span><?php echo @$admin->email; ?></span>
-					</div>
-						<div class="assignee" style="display:none;">
-						    <div class="row">
-						        <div class="col-md-8">
+						<div class="assignee" style="display:none; margin-top: 8px;">
+						    <div class="row align-items-center">
+						        <div class="col-md-9">
 						            <select class="form-control mm-select" id="changeassignee" name="changeassignee">
 						                 <?php
-											foreach(\App\Models\Staff::orderby('first_name','ASC')->get() as $admin){
-												$branchname = \App\Models\Branch::where('id',$admin->office_id)->first();
+											foreach(\App\Models\Staff::orderby('first_name','ASC')->get() as $staffOption){
+												$branchname = \App\Models\Branch::where('id',$staffOption->office_id)->first();
+												$isSelected = ((int) $staffOption->id === (int) $CheckinLog->user_id);
 										?>
-												<option value="<?php echo $admin->id; ?>"><?php echo $admin->first_name.' '.$admin->last_name.' ('.@$branchname->office_name.')'; ?></option>
+												<option value="<?php echo $staffOption->id; ?>"<?php echo $isSelected ? ' selected' : ''; ?>><?php echo $staffOption->first_name.' '.$staffOption->last_name.' ('.@$branchname->office_name.')'; ?></option>
 										<?php } ?>
 									</select>
 								</div>
-								<div class="col-md-2">
-									<a class="saveassignee btn btn-success" data-id="<?php echo $CheckinLog->id; ?>" href="javascript:;">Save</a>
-								</div>
-								<div class="col-md-2">
+								<div class="col-md-3" style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">
+									<a class="saveassignee btn btn-success" data-id="<?php echo $CheckinLog->id; ?>" href="javascript:;" style="white-space:nowrap;">Save</a>
 									<a class="closeassignee" href="javascript:;"><?php echo \App\Helpers\IconHelper::fromLegacy('fa fa-times'); ?></a>
 								</div>
 							</div>
 						</div>
+					</div>
 
 					<div class="col-md-5">
 					<?php
