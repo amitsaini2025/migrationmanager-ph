@@ -66,7 +66,7 @@
 												<div class="ml-3 flex-grow-1 d-flex justify-content-between align-items-center">
 													<div>
 														<h6 class="mb-1 font-weight-bold" style="color: #212529; font-size: 15px;">Free Consultation</h6>
-														<small style="color: #6c757d; font-size: 13px;">15 minutes</small>
+														<small class="service-duration-label" data-default-minutes="15" style="color: #6c757d; font-size: 13px;">15 minutes</small>
 													</div>
 													<span class="badge badge-success font-weight-bold ml-2" style="white-space: nowrap; padding: 6px 10px; font-size: 13px;">Free</span>
 												</div>
@@ -81,7 +81,7 @@
 													<div class="ml-3 flex-grow-1 d-flex justify-content-between align-items-center">
 														<div>
 															<h6 class="mb-1 font-weight-bold" style="color: #212529; font-size: 15px;">Comprehensive Migration Advice</h6>
-															<small style="color: #6c757d; font-size: 13px;">30 minutes</small>
+															<small class="service-duration-label" data-default-minutes="30" style="color: #6c757d; font-size: 13px;">30 minutes</small>
 														</div>
 														<span class="badge badge-success font-weight-bold ml-2" style="white-space: nowrap; padding: 6px 10px; font-size: 13px;">$150</span>
 													</div>
@@ -97,7 +97,7 @@
 													<div class="ml-3 flex-grow-1 d-flex justify-content-between align-items-center">
 														<div>
 															<h6 class="mb-1 font-weight-bold" style="color: #212529; font-size: 15px;">Overseas Applicant Enquiry</h6>
-															<small style="color: #6c757d; font-size: 13px;">30 minutes</small>
+															<small class="service-duration-label" data-default-minutes="30" style="color: #6c757d; font-size: 13px;">30 minutes</small>
 														</div>
 														<span class="badge badge-success font-weight-bold ml-2" style="white-space: nowrap; padding: 6px 10px; font-size: 13px;">$150</span>
 													</div>
@@ -107,6 +107,7 @@
 									
 								</div>
                                 <input type="hidden" id="service_id" name="service_id" value="">
+                                <input type="hidden" id="api_duration_minutes" name="api_duration_minutes" value="">
                             </div>
 						</div>
 
@@ -924,6 +925,17 @@ document.addEventListener('DOMContentLoaded', function() {
 		const sendConfirmationCheckbox = document.getElementById('send_confirmation_email');
 		if (sendConfirmationCheckbox) {
 			sendConfirmationCheckbox.checked = true;
+		}
+		// Restore static duration fallbacks until getDateTimeBackend returns
+		document.querySelectorAll('.service-duration-label').forEach(function (el) {
+			var def = parseInt(el.getAttribute('data-default-minutes'), 10);
+			if (def > 0) {
+				el.textContent = def + ' minutes';
+			}
+		});
+		var apiDurationInput = document.getElementById('api_duration_minutes');
+		if (apiDurationInput) {
+			apiDurationInput.value = '';
 		}
 		// Hide services and appointment sections
 		document.getElementById('services').style.display = 'none';

@@ -47,6 +47,12 @@ class AppointmentEmailFormatter
 
     public static function resolveDurationMinutes(BookingAppointment $appointment): int
     {
+        // Prefer stored duration (CRM now persists getDateTimeBackend duration, e.g. Education paid = 60)
+        $stored = (int) ($appointment->duration_minutes ?? 0);
+        if ($stored >= 5 && $stored <= 180) {
+            return $stored;
+        }
+
         // DB service_id: 2 = free (15 min), 1/3 = paid (30 min)
         if ((int) $appointment->service_id === 2) {
             return 15;
@@ -56,9 +62,7 @@ class AppointmentEmailFormatter
             return 30;
         }
 
-        $stored = (int) ($appointment->duration_minutes ?? 0);
-
-        return $stored > 0 ? $stored : 30;
+        return 30;
     }
 
     public static function normalizeTimeslotFull(?string $timeslot): ?string

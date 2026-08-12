@@ -37,6 +37,39 @@
         return pad(hour, 2) + ':' + pad(m, 2);
     }
 
+    /**
+     * Restore hardcoded service card durations (used before API responds / on reset).
+     */
+    function resetServiceDurationLabels() {
+        $('.service-duration-label').each(function () {
+            var def = parseInt($(this).attr('data-default-minutes'), 10);
+            if (def > 0) {
+                $(this).text(def + ' minutes');
+            }
+        });
+        $('#api_duration_minutes').val('');
+    }
+
+    /**
+     * Show API duration on the currently selected service card only.
+     * Slot interval already uses the same `duration` value from getDateTimeBackend.
+     */
+    function updateSelectedServiceDurationFromApi(durationMinutes) {
+        var mins = parseInt(durationMinutes, 10);
+        if (!mins || mins < 1) {
+            return;
+        }
+        var serviceId = $("input[name='radioGroup']:checked").val();
+        if (!serviceId) {
+            return;
+        }
+        var $label = $('.service-card-compact[data-service-id="' + serviceId + '"] .service-duration-label');
+        if ($label.length) {
+            $label.text(mins + ' minutes');
+        }
+        $('#api_duration_minutes').val(String(mins));
+    }
+
     function ValidateEmail(inputText) {
         var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
         return inputText && inputText.match(mailformat);
@@ -121,7 +154,7 @@
 
                 $('.showselecteddate').html('');
 
-
+                resetServiceDurationLabels();
 
                 $('#timeslot_col_date').val("");
 
@@ -251,6 +284,8 @@
                             if(obj.success){
 
                                 duration = obj.duration;
+
+                                updateSelectedServiceDurationFromApi(duration);
 
                                 daysOfWeek =  obj.weeks;
 
@@ -610,6 +645,8 @@
             var id = $(this).val();
 
             syncAppointFormServiceIdFromRadio();
+
+            resetServiceDurationLabels();
 
             //console.log($('#service_id').val());
 

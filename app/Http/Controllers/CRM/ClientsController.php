@@ -8566,9 +8566,14 @@ class ClientsController extends Controller
                 }
             }
 
-            // Calculate duration based on service
-            // Service 1 (Free Consultation) = 15 min, Service 2/3 (Paid) = 30 min
-            $durationMinutes = $requestData['service_id'] == 1 ? 15 : 30;
+            // Calculate duration based on service (fallback when API duration not sent)
+            // Form service_id: 1 = Free → 15 min; 2/3 = Paid → 30 min
+            // Prefer api_duration_minutes from getDateTimeBackend so Education etc. match slot interval (e.g. 60)
+            $durationMinutes = ((int) $requestData['service_id'] === 1) ? 15 : 30;
+            $apiDurationMinutes = (int) ($requestData['api_duration_minutes'] ?? 0);
+            if ($apiDurationMinutes >= 5 && $apiDurationMinutes <= 180) {
+                $durationMinutes = $apiDurationMinutes;
+            }
 
             // Use ConsultantAssignmentService to assign consultant
             $consultantAssigner = app(\App\Services\BansalAppointmentSync\ConsultantAssignmentService::class);
