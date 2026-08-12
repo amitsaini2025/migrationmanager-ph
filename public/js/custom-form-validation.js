@@ -1191,6 +1191,11 @@ function customValidate(formName, savetype = '')
 								localStorage.setItem('activeTab', 'checklists');
 								if(obj.status){
 									$('.custom-error-msg').html('<span class="alert alert-success">'+msg+'</span>');
+									// Prefer server redirect to the new matter; fall back to reload for older responses / other flows.
+									if (obj.redirect_url) {
+										window.location.href = obj.redirect_url;
+										return;
+									}
 								}else{
 									$('.custom-error-msg').html('<span class="alert alert-danger">'+msg+'</span>');
 								}

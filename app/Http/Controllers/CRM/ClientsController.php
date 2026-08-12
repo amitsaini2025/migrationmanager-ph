@@ -7084,6 +7084,14 @@ class ClientsController extends Controller
                 {
                     $response['status'] 	= 	true;
                     $response['message']	=	'Cost assignment added successfully';
+                    // Redirect to the newly created matter checklists tab (Create Checklist / Lead cost assignment).
+                    // Additive fields only — existing clients that ignore them keep working.
+                    $response['client_unique_matter_no'] = $obj5->client_unique_matter_no;
+                    $response['redirect_url'] = route('clients.detail', [
+                        'client_id' => base64_encode(convert_uuencode((string) $requestData['client_id'])),
+                        'client_unique_matter_ref_no' => $obj5->client_unique_matter_no,
+                        'tab' => 'checklists',
+                    ]);
                 }
             }
         }
