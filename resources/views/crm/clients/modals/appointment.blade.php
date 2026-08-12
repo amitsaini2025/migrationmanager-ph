@@ -275,9 +275,10 @@
                                                     <div class="slotTimeOverwriteDivCls" style="display: none;">
 														<?php
                                                         if (!function_exists('generateTimeDropdown')) {
-                                                            function generateTimeDropdown($interval = 15) {
+                                                            // Slot Overwrite Select Time only — does not affect API/available slots.
+                                                            function generateTimeDropdown($interval = 20) {
                                                                 $start = new DateTime('00:00');
-                                                                $end = new DateTime('23:45'); // Set the end time to 11:45 PM
+                                                                $end = (new DateTime('00:00'))->modify('+1 day'); // Include last slot (e.g. 11:40 PM - 12:00 AM)
 
                                                                 $intervalDuration = new DateInterval('PT' . $interval . 'M');
                                                                 $times = new DatePeriod($start, $intervalDuration, $end);
@@ -300,7 +301,7 @@
                                                             }
                                                         }
 
-                                                        generateTimeDropdown(15); // 15-minute interval
+                                                        generateTimeDropdown(20); // Slot Overwrite: 20-minute intervals
                                                         ?>
                                                     </div>
 
