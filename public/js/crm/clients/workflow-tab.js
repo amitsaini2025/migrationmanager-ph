@@ -1454,6 +1454,111 @@
         });
     }
 
+    function getActiveClientDetailTab() {
+        var active = document.querySelector('.client-nav-button.active');
+        return active ? (active.getAttribute('data-tab') || '') : '';
+    }
+
+    /**
+     * Decision Received modal submit — lives in always-loaded workflow-tab.js so Workflow
+     * works even when Client Portal (lazy) has never been opened.
+     */
+    function submitDecisionReceivedForm(submitBtn) {
+        var urls = workflowUrls();
+        if (!urls.updateNextStage) {
+            alert('Workflow configuration error. Please refresh the page.');
+            return;
+        }
+
+        var outcomeEl = document.getElementById('decision-outcome');
+        var noteEl = document.getElementById('decision-note');
+        var matterEl = document.getElementById('decision-received-matter-id');
+        var outcome = outcomeEl ? String(outcomeEl.value || '') : '';
+        var note = noteEl ? String(noteEl.value || '') : '';
+        var matterId = matterEl ? String(matterEl.value || '') : '';
+        var outcomeErr = document.querySelector('.decision-outcome-error strong');
+        var noteErr = document.querySelector('.decision-note-error strong');
+
+        if (outcomeErr) {
+            outcomeErr.textContent = '';
+        }
+        if (noteErr) {
+            noteErr.textContent = '';
+        }
+
+        if (!outcome.trim()) {
+            if (outcomeErr) {
+                outcomeErr.textContent = 'Please select an outcome.';
+            }
+            return;
+        }
+        if (!note.trim()) {
+            if (noteErr) {
+                noteErr.textContent = 'Please enter a note.';
+            }
+            return;
+        }
+        if (!matterId) {
+            alert('Error: Matter ID not found');
+            return;
+        }
+
+        var btn = submitBtn;
+        var orig = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = crmI('fas fa-spinner fa-spin') + ' Processing...';
+        }
+        $('#decision-received-modal').modal('hide');
+
+        var activeTab = getActiveClientDetailTab();
+        var payload = {
+            matter_id: matterId,
+            decision_outcome: outcome,
+            decision_note: note
+        };
+        if (activeTab === 'client_portal') {
+            payload.source = 'client_portal';
+        }
+
+        fetch(urls.updateNextStage, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken(),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+            if (data && data.status) {
+                var successMessage = data.message || 'Matter has been successfully moved to the next stage.';
+                if (activeTab === 'client_portal') {
+                    onClientPortalStageUpdateSuccess(successMessage);
+                } else {
+                    onWorkflowTabSuccess(successMessage);
+                }
+            } else {
+                alert((data && data.message) ? data.message : 'Failed to move to next stage.');
+                $('#decision-received-modal').modal('show');
+            }
+        })
+        .catch(function(err) {
+            console.error(err);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+            alert('An error occurred.');
+            $('#decision-received-modal').modal('show');
+        });
+    }
+
     function bindWorkflowTabHandlers() {
         if (initialized) {
             return;
@@ -1461,6 +1566,14 @@
         initialized = true;
 
         document.addEventListener('click', function(e) {
+            var decisionSubmit = e.target.closest('#decision-received-submit');
+            if (decisionSubmit) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                submitDecisionReceivedForm(decisionSubmit);
+                return;
+            }
+
             var clientPortalNextBtn = e.target.closest('#proceed-to-next-stage, #client-portal-activities-proceed-to-next-stage, #client_portal-tab .js-workflow-advance-btn');
             if (clientPortalNextBtn) {
                 e.preventDefault();

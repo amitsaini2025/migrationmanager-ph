@@ -3759,67 +3759,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(ensureBackButtonVisible, 500);
 
     // Back to Previous Stage and Proceed to Next Stage — handled by workflow-tab.js (partial tab refresh, no full page reload)
-    $(document).on('click', '#decision-received-submit', function() {
-        const outcome = document.getElementById('decision-outcome')?.value;
-        const note = document.getElementById('decision-note')?.value;
-        const matterId = document.getElementById('decision-received-matter-id')?.value;
-        const outcomeErr = document.querySelector('.decision-outcome-error strong');
-        const noteErr = document.querySelector('.decision-note-error strong');
-
-        if (outcomeErr) outcomeErr.textContent = '';
-        if (noteErr) noteErr.textContent = '';
-
-        if (!outcome || outcome.trim() === '') {
-            if (outcomeErr) outcomeErr.textContent = 'Please select an outcome.';
-            return;
-        }
-        if (!note || note.trim() === '') {
-            if (noteErr) noteErr.textContent = 'Please enter a note.';
-            return;
-        }
-
-        const btn = this;
-        const orig = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '@icon('fa-spinner', ['spin' => true]) Processing...';
-        $('#decision-received-modal').modal('hide');
-
-        const decisionPayload = { matter_id: matterId, decision_outcome: outcome, decision_note: note };
-        if (document.querySelector('.client-nav-button.active')?.getAttribute('data-tab') === 'client_portal') {
-            decisionPayload.source = 'client_portal';
-        }
-        fetch('{{ route("clients.matter.update-next-stage") }}', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' },
-            body: JSON.stringify(decisionPayload)
-        })
-        .then(r => r.json())
-        .then(data => {
-            btn.disabled = false;
-            btn.innerHTML = orig;
-            if (data.status) {
-                const activeTab = document.querySelector('.client-nav-button.active')?.getAttribute('data-tab');
-                if (activeTab === 'workflow' && typeof window.handleWorkflowStageUpdateSuccess === 'function') {
-                    window.handleWorkflowStageUpdateSuccess(data.message || 'Matter has been successfully moved to the next stage.');
-                } else if (activeTab === 'client_portal' && typeof window.handleClientPortalStageUpdateSuccess === 'function') {
-                    window.handleClientPortalStageUpdateSuccess(data.message || 'Matter has been successfully moved to the next stage.');
-                } else {
-                    alert(data.message || 'Matter has been successfully moved to the next stage.');
-                    window.location.reload();
-                }
-            } else {
-                alert(data.message || 'Failed to move to next stage.');
-                $('#decision-received-modal').modal('show');
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            btn.disabled = false;
-            btn.innerHTML = orig;
-            alert('An error occurred.');
-            $('#decision-received-modal').modal('show');
-        });
-    });
+    // Decision Received modal submit — handled by workflow-tab.js (always loaded; works when Client Portal is lazy).
 
     // Discontinue button - opens modal (shared with Workflow tab)
     $(document).on('click', '.client-portal-discontinue-btn', function() {
