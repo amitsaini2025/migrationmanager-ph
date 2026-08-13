@@ -20,8 +20,7 @@ class PublicAppointmentPaymentController extends Controller
     public function __construct(
         protected AppointmentPaymentLinkService $paymentLinkService,
         protected StripePaymentService $stripePaymentService,
-    ) {
-    }
+    ) {}
 
     public function show(string $token): View
     {
@@ -180,7 +179,7 @@ class PublicAppointmentPaymentController extends Controller
 
             app(SystemEmailLogService::class)->logAndSendMailable([
                 'category' => 'appointment',
-                'from_mail' => config('mail.from.address'),
+                'from_mail' => config('mail.appointment.address'),
                 'to_mail' => $appointment->client_email,
                 'subject' => 'Appointment Confirmation - Bansal Immigration',
                 'client_id' => $appointment->client_id,

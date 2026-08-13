@@ -2,8 +2,10 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\UsesAppointmentMailFrom;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
@@ -11,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 
 class AppointmentCancellation extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, UsesAppointmentMailFrom;
 
     /**
      * Create a new message instance.
@@ -28,6 +30,7 @@ class AppointmentCancellation extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
+            from: $this->appointmentFromAddress(),
             subject: 'Appointment Cancellation - Bansal Immigration',
         );
     }
@@ -83,7 +86,7 @@ class AppointmentCancellation extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {

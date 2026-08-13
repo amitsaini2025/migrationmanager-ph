@@ -2,15 +2,15 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\UsesAppointmentMailFrom;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Contracts\Queue\ShouldQueue;
 
 class AppointmentMail extends Mailable
 {
-    use Queueable, SerializesModels;
-    
+    use Queueable, SerializesModels, UsesAppointmentMailFrom;
+
     public $details;
 
     /**
@@ -30,6 +30,6 @@ class AppointmentMail extends Mailable
      */
     public function build()
     {
-        return $this->view('emails.appointment');
+        return $this->applyAppointmentFrom()->view('emails.appointment');
     }
 }

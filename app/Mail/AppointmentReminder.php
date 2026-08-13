@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\UsesAppointmentMailFrom;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -10,7 +11,7 @@ use Illuminate\Queue\SerializesModels;
 
 class AppointmentReminder extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, UsesAppointmentMailFrom;
 
     public function __construct(
         public array $details
@@ -21,6 +22,7 @@ class AppointmentReminder extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
+            from: $this->appointmentFromAddress(),
             subject: 'Appointment Reminder - Bansal Immigration',
         );
     }

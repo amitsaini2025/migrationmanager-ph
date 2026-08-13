@@ -2,15 +2,17 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\UsesAppointmentMailFrom;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 class AppointmentDetailedConfirmation extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, UsesAppointmentMailFrom;
 
     /**
      * Create a new message instance.
@@ -27,6 +29,7 @@ class AppointmentDetailedConfirmation extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
+            from: $this->appointmentFromAddress(),
             subject: 'Appointment Confirmation - Bansal Immigration',
         );
     }
@@ -71,7 +74,7 @@ class AppointmentDetailedConfirmation extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {
@@ -83,9 +86,9 @@ class AppointmentDetailedConfirmation extends Mailable
      */
     protected function getLocationAddress(string $location): string
     {
-        return match($location) {
+        return match ($location) {
             'melbourne' => 'Level 8/278 Collins St, Melbourne VIC 3000, Australia',
-            'adelaide'  => 'Unit 5, 55 Gawler Pl, Adelaide SA 5000, Australia',
+            'adelaide' => 'Unit 5, 55 Gawler Pl, Adelaide SA 5000, Australia',
             default => 'Bansal Immigration Office'
         };
     }
@@ -95,11 +98,10 @@ class AppointmentDetailedConfirmation extends Mailable
      */
     protected function getLocationPhone(string $location): string
     {
-        return match($location) {
+        return match ($location) {
             'adelaide' => '0883171340',
             'melbourne' => '+61 3 9602 1330',
             default => '1300 859 368',
         };
     }
 }
-

@@ -2,14 +2,14 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\UsesAppointmentMailFrom;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Contracts\Queue\ShouldQueue;
 
 class AppointmentStripeMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, UsesAppointmentMailFrom;
 
     public $details;
 
@@ -32,6 +32,9 @@ class AppointmentStripeMail extends Mailable
     {
         $serviceTitle = $this->details['service'];
         $subject = "Confirmation of Your {$serviceTitle} Appointment";
-        return $this->subject($subject)->view('emails.appointmentstripe');
+
+        return $this->applyAppointmentFrom()
+            ->subject($subject)
+            ->view('emails.appointmentstripe');
     }
 }

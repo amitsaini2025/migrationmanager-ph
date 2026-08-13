@@ -96,4 +96,20 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Appointment System Emails
+    |--------------------------------------------------------------------------
+    |
+    | From address used only by appointment confirmation / reminder / cancel /
+    | reschedule / payment-link mailables. Does not change the global from
+    | used by CRM compose, signatures, EOI, etc.
+    |
+    */
+
+    'appointment' => [
+        'address' => env('APPOINTMENT_MAIL_FROM_ADDRESS', 'noreply@bansalimmigration.com.au'),
+        'name' => env('APPOINTMENT_MAIL_FROM_NAME', env('MAIL_FROM_NAME', 'Bansal Immigration')),
+    ],
+
 ];

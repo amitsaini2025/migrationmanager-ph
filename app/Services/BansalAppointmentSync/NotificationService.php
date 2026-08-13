@@ -2,18 +2,25 @@
 
 namespace App\Services\BansalAppointmentSync;
 
+use App\Mail\AppointmentCancellation;
+use App\Mail\AppointmentDetailedConfirmation;
+use App\Mail\AppointmentPaidPaymentLink;
+use App\Mail\AppointmentReminder;
+use App\Mail\AppointmentReschedule;
 use App\Models\Admin;
 use App\Models\BookingAppointment;
 use App\Models\Staff;
 use App\Services\AppointmentPaymentLinkService;
 use App\Services\Sms\UnifiedSmsManager;
 use App\Services\SystemEmailLogService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class NotificationService
 {
     protected UnifiedSmsManager $smsManager;
+
     protected SystemEmailLogService $systemEmailLog;
 
     public function __construct(UnifiedSmsManager $smsManager, SystemEmailLogService $systemEmailLog)
@@ -60,11 +67,11 @@ class NotificationService
 
             $this->systemEmailLog->logAndSendMailable([
                 'category' => 'appointment_payment',
-                'from_mail' => config('mail.from.address'),
+                'from_mail' => config('mail.appointment.address'),
                 'to_mail' => $appointment->client_email,
                 'subject' => 'Complete Your Appointment Payment - Bansal Immigration',
                 'client_id' => $appointment->client_id,
-            ], new \App\Mail\AppointmentPaidPaymentLink($appointment, $paymentUrl), $appointment->client_email);
+            ], new AppointmentPaidPaymentLink($appointment, $paymentUrl), $appointment->client_email);
 
             Log::info('Sent paid appointment payment link email', [
                 'appointment_id' => $appointment->id,
@@ -105,29 +112,30 @@ class NotificationService
             ];
 
             $this->systemEmailLog->logAndSendMailable([
-                'category'  => 'appointment',
-                'from_mail' => config('mail.from.address'),
-                'to_mail'   => $appointment->client_email,
-                'subject'   => 'Appointment Confirmation - Bansal Immigration',
+                'category' => 'appointment',
+                'from_mail' => config('mail.appointment.address'),
+                'to_mail' => $appointment->client_email,
+                'subject' => 'Appointment Confirmation - Bansal Immigration',
                 'client_id' => $appointment->client_id,
-            ], new \App\Mail\AppointmentDetailedConfirmation($details), $appointment->client_email);
+            ], new AppointmentDetailedConfirmation($details), $appointment->client_email);
 
             $appointment->update([
                 'confirmation_email_sent' => true,
-                'confirmation_email_sent_at' => now()
+                'confirmation_email_sent_at' => now(),
             ]);
 
             Log::info('Sent detailed confirmation email', [
                 'appointment_id' => $appointment->id,
-                'email' => $appointment->client_email
+                'email' => $appointment->client_email,
             ]);
 
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to send confirmation email', [
                 'appointment_id' => $appointment->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -147,12 +155,12 @@ class NotificationService
             ];
 
             $this->systemEmailLog->logAndSendMailable([
-                'category'  => 'appointment_cancellation',
-                'from_mail' => config('mail.from.address'),
-                'to_mail'   => $appointment->client_email,
-                'subject'   => 'Appointment Cancellation - Bansal Immigration',
+                'category' => 'appointment_cancellation',
+                'from_mail' => config('mail.appointment.address'),
+                'to_mail' => $appointment->client_email,
+                'subject' => 'Appointment Cancellation - Bansal Immigration',
                 'client_id' => $appointment->client_id,
-            ], new \App\Mail\AppointmentCancellation($details), $appointment->client_email);
+            ], new AppointmentCancellation($details), $appointment->client_email);
 
             Log::info('Sent cancellation confirmation email', [
                 'appointment_id' => $appointment->id,
@@ -165,6 +173,7 @@ class NotificationService
                 'appointment_id' => $appointment->id,
                 'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -173,41 +182,42 @@ class NotificationService
      * Send reschedule confirmation email to client when an appointment's date/time is updated by staff.
      *
      * @param  BookingAppointment  $appointment  The appointment with the NEW datetime already saved.
-     * @param  \Carbon\Carbon|null  $oldDatetime  The previous appointment datetime.
+     * @param  Carbon|null  $oldDatetime  The previous appointment datetime.
      */
-    public function sendRescheduleEmail(BookingAppointment $appointment, ?\Carbon\Carbon $oldDatetime): bool
+    public function sendRescheduleEmail(BookingAppointment $appointment, ?Carbon $oldDatetime): bool
     {
         try {
             $details = [
-                'client_name'          => $appointment->client_name,
-                'old_datetime'         => $oldDatetime,
+                'client_name' => $appointment->client_name,
+                'old_datetime' => $oldDatetime,
                 'appointment_datetime' => $appointment->appointment_datetime,
-                'timeslot_full'        => $appointment->timeslot_full,
-                'location'             => $appointment->location,
-                'meeting_type'         => $appointment->meeting_type,
+                'timeslot_full' => $appointment->timeslot_full,
+                'location' => $appointment->location,
+                'meeting_type' => $appointment->meeting_type,
             ];
 
             $this->systemEmailLog->logAndSendMailable([
-                'category'  => 'appointment_reschedule',
-                'from_mail' => config('mail.from.address'),
-                'to_mail'   => $appointment->client_email,
-                'subject'   => 'Appointment Rescheduled - Bansal Immigration',
+                'category' => 'appointment_reschedule',
+                'from_mail' => config('mail.appointment.address'),
+                'to_mail' => $appointment->client_email,
+                'subject' => 'Appointment Rescheduled - Bansal Immigration',
                 'client_id' => $appointment->client_id,
-            ], new \App\Mail\AppointmentReschedule($details), $appointment->client_email);
+            ], new AppointmentReschedule($details), $appointment->client_email);
 
             Log::info('Sent reschedule confirmation email', [
                 'appointment_id' => $appointment->id,
-                'email'          => $appointment->client_email,
-                'old_datetime'   => $oldDatetime?->toIso8601String(),
-                'new_datetime'   => $appointment->appointment_datetime?->toIso8601String(),
+                'email' => $appointment->client_email,
+                'old_datetime' => $oldDatetime?->toIso8601String(),
+                'new_datetime' => $appointment->appointment_datetime?->toIso8601String(),
             ]);
 
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to send reschedule email', [
                 'appointment_id' => $appointment->id,
-                'error'          => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -226,12 +236,12 @@ class NotificationService
             ];
 
             $this->systemEmailLog->logAndSendMailable([
-                'category'  => 'appointment_reminder',
-                'from_mail' => config('mail.from.address'),
-                'to_mail'   => $appointment->client_email,
-                'subject'   => 'Appointment Reminder - Bansal Immigration',
+                'category' => 'appointment_reminder',
+                'from_mail' => config('mail.appointment.address'),
+                'to_mail' => $appointment->client_email,
+                'subject' => 'Appointment Reminder - Bansal Immigration',
                 'client_id' => $appointment->client_id,
-            ], new \App\Mail\AppointmentReminder($details), $appointment->client_email);
+            ], new AppointmentReminder($details), $appointment->client_email);
 
             Log::info('Sent appointment reminder email', [
                 'appointment_id' => $appointment->id,
@@ -265,11 +275,12 @@ class NotificationService
                     'appointment_id' => $appointment->id,
                     'client_id' => $appointment->client_id,
                 ]);
+
                 return false;
             }
 
             // Get office phone number based on location
-            $officePhone = match($appointment->location) {
+            $officePhone = match ($appointment->location) {
                 'adelaide' => '08 8317 1340',
                 'melbourne' => '03 9602 1330',
                 default => '1300 859 368' // Fallback to original number
@@ -312,12 +323,12 @@ class NotificationService
             if ($result['success']) {
                 $appointment->update([
                     'reminder_sms_sent' => true,
-                    'reminder_sms_sent_at' => now()
+                    'reminder_sms_sent_at' => now(),
                 ]);
 
                 Log::info('Sent reminder SMS', [
                     'appointment_id' => $appointment->id,
-                    'phone' => $phone
+                    'phone' => $phone,
                 ]);
             }
 
@@ -325,8 +336,9 @@ class NotificationService
         } catch (\Exception $e) {
             Log::error('Failed to send reminder SMS', [
                 'appointment_id' => $appointment->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -411,7 +423,7 @@ class NotificationService
         }
 
         if (! str_starts_with($countryCode, '+')) {
-            $countryCode = '+' . ltrim($countryCode, '+');
+            $countryCode = '+'.ltrim($countryCode, '+');
         }
 
         $nationalDigits = preg_replace('/\D+/', '', $phone);
@@ -427,7 +439,7 @@ class NotificationService
             && str_starts_with($nationalDigits, $countryDigits)
             && strlen($nationalDigits) > strlen($countryDigits) + 6
         ) {
-            return '+' . $nationalDigits;
+            return '+'.$nationalDigits;
         }
 
         // Strip national trunk prefix when combining with country code (+61 + 04… → +614…)
@@ -439,7 +451,7 @@ class NotificationService
             return null;
         }
 
-        return $countryCode . $nationalDigits;
+        return $countryCode.$nationalDigits;
     }
 
     /**
@@ -458,7 +470,7 @@ class NotificationService
         $stats = [
             'total' => $appointments->count(),
             'sent' => 0,
-            'failed' => 0
+            'failed' => 0,
         ];
 
         foreach ($appointments as $appointment) {
@@ -474,4 +486,3 @@ class NotificationService
         return $stats;
     }
 }
-

@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\UsesAppointmentMailFrom;
 use App\Models\BookingAppointment;
 use App\Support\AppointmentEmailFormatter;
 use Illuminate\Bus\Queueable;
@@ -12,17 +13,17 @@ use Illuminate\Queue\SerializesModels;
 
 class AppointmentPaidPaymentLink extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, UsesAppointmentMailFrom;
 
     public function __construct(
         public BookingAppointment $appointment,
         public string $paymentUrl,
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
+            from: $this->appointmentFromAddress(),
             subject: 'Complete Your Appointment Payment - Bansal Immigration',
         );
     }
