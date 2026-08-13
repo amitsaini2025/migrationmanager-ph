@@ -703,7 +703,6 @@
             var disabled = !isActive;
             var itemClass = 'workflow-v2-checklist-item'
                 + (done ? ' is-done' : '')
-                + (isActive ? ' is-active-item' : '')
                 + (disabled && !done ? ' is-locked-item' : '');
 
             html += '<div class="' + itemClass + '"'

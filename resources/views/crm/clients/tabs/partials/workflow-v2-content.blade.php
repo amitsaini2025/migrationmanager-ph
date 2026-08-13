@@ -264,7 +264,7 @@
                                         && !empty($itemId);
                                     $itemDisabled = !$itemActive;
                                 @endphp
-                                <div class="workflow-v2-checklist-item {{ $itemDone ? 'is-done' : '' }} {{ $itemActive ? 'is-active-item' : '' }} {{ $itemDisabled && !$itemDone ? 'is-locked-item' : '' }}"
+                                <div class="workflow-v2-checklist-item {{ $itemDone ? 'is-done' : '' }} {{ $itemDisabled && !$itemDone ? 'is-locked-item' : '' }}"
                                     data-checklist-id="{{ $itemId ?? '' }}"
                                     data-checklist-index="{{ $checkIndex }}"
                                     data-required="{{ $itemRequired ? '1' : '0' }}">
