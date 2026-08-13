@@ -5109,7 +5109,7 @@ class ClientPortalController extends Controller
 
 	/**
 	 * POST /clients/matter/complete-workflow-checklist
-	 * Sequentially complete a workflow stage checklist item (Workflow tab).
+	 * Complete a workflow stage checklist item on the current stage (any order).
 	 */
 	public function completeWorkflowChecklist(Request $request)
 	{
@@ -5179,21 +5179,6 @@ class ClientPortalController extends Controller
 				'outstandingRequired' => $checklist['outstanding'],
 				'activeChecklistIndex' => \App\Support\WorkflowV2Display::activeChecklistIndex($checklist['rows']),
 			]);
-		}
-
-		$stageChecklist = \App\Support\WorkflowV2Display::checklistForStage(
-			$clientMatter,
-			(int) $currentStage->id,
-			$currentStageName
-		);
-		$activeIndex = \App\Support\WorkflowV2Display::activeChecklistIndex($stageChecklist['rows']);
-		$activeItem = $activeIndex >= 0 ? ($stageChecklist['rows'][$activeIndex] ?? null) : null;
-
-		if (!$activeItem || (int) ($activeItem['id'] ?? 0) !== $checklistId) {
-			return response()->json([
-				'status' => false,
-				'message' => 'Complete the previous checklist item first.',
-			], 422);
 		}
 
 		$adminUser = Auth::guard('admin')->user();

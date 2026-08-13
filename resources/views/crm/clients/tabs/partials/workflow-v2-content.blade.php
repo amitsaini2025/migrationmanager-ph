@@ -10,7 +10,6 @@
     $wfReopenButtonId = $wfReopenButtonId ?? 'workflow-tab-reopen';
     $wfChangeWorkflowButtonId = $wfChangeWorkflowButtonId ?? 'workflow-tab-change-workflow';
     $wfDiscontinueButtonId = $wfDiscontinueButtonId ?? 'workflow-tab-discontinue';
-    $activeChecklistIndex = $activeChecklistIndex ?? \App\Support\WorkflowV2Display::activeChecklistIndex($checklistRows ?? []);
     $currentStageOutstanding = $currentStageOutstanding ?? $outstandingRequired ?? 0;
     $wfAdvanceDisabled = !empty($nextBtnDisabled)
         || ($wfChecklistInteractive && (int) $currentStageOutstanding > 0);
@@ -258,10 +257,10 @@
                                     $itemDone = !empty($checkItem['done']);
                                     $itemRequired = !empty($checkItem['required']);
                                     $itemId = $checkItem['id'] ?? null;
+                                    // All incomplete items on the current stage are open (any order).
                                     $itemActive = $wfChecklistInteractive
                                         && $wfViewIsCurrent
                                         && !$itemDone
-                                        && (int) $activeChecklistIndex === (int) $checkIndex
                                         && !empty($itemId);
                                     $itemDisabled = !$itemActive;
                                 @endphp

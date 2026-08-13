@@ -681,18 +681,6 @@
         return body ? (body.getAttribute('data-matter-id') || '') : '';
     }
 
-    function getActiveChecklistIndex(rows) {
-        if (!rows || !rows.length) {
-            return -1;
-        }
-        for (var i = 0; i < rows.length; i++) {
-            if (!rows[i].done) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
     function renderWorkflowV2Checklist(rows, options) {
         options = options || {};
         var interactive = !!options.interactive;
@@ -705,13 +693,13 @@
                 + '</div>';
         }
 
-        var activeIndex = getActiveChecklistIndex(rows);
+        // All incomplete items are open when the stage is interactive (any order).
         var html = '<div class="workflow-v2-checklist" id="workflow-v2-checklist">';
         rows.forEach(function(item, index) {
             var done = !!item.done;
             var required = !!item.required;
             var itemId = item.id != null ? item.id : '';
-            var isActive = interactive && !readOnly && !done && activeIndex === index && !!itemId;
+            var isActive = interactive && !readOnly && !done && !!itemId;
             var disabled = !isActive;
             var itemClass = 'workflow-v2-checklist-item'
                 + (done ? ' is-done' : '')

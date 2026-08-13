@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Models\ClientMatter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -49,22 +48,22 @@ class WorkflowV2Display
         }
 
         $marnNumber = null;
-        if ($matter && !empty($matter->sel_migration_agent)) {
+        if ($matter && ! empty($matter->sel_migration_agent)) {
             $marnNumber = DB::table('staff')
                 ->where('id', $matter->sel_migration_agent)
                 ->value('marn_number');
         }
 
         $clientDisplayName = trim(
-            (($client->first_name ?? '') !== '' ? mb_substr($client->first_name, 0, 1) . '. ' : '')
-            . ($client->last_name ?? '')
+            (($client->first_name ?? '') !== '' ? mb_substr($client->first_name, 0, 1).'. ' : '')
+            .($client->last_name ?? '')
         );
 
         $stagesPayload = self::buildStagesPayload($matter, $allStages, $currentStageId);
 
         $resolvedViewStageId = $viewStageId ?: $currentStageId;
         $viewStage = $resolvedViewStageId ? $allStages->firstWhere('id', $resolvedViewStageId) : null;
-        if (!$viewStage && $currentStageRow) {
+        if (! $viewStage && $currentStageRow) {
             $viewStage = $currentStageRow;
             $resolvedViewStageId = $currentStageId;
         }
@@ -191,16 +190,16 @@ class WorkflowV2Display
                 'isCurrent' => $isActive,
                 'isCompleted' => (bool) $isCompleted,
                 'isProtected' => $isProtected,
-                'isFuture' => !$isActive && !$isCompleted,
+                'isFuture' => ! $isActive && ! $isCompleted,
                 'stageDisplay' => $stageDisplay ? [
                     'pending_from' => $stageDisplay['pending_from'] ?? null,
                     'completion_rule' => $stageDisplay['completion_rule'] ?? null,
-                    'file_note_section' => !empty($stageDisplay['file_note_section']),
+                    'file_note_section' => ! empty($stageDisplay['file_note_section']),
                 ] : null,
                 'checklistRows' => $checklist['rows'],
                 'outstandingRequired' => $checklist['outstanding'],
                 'activeChecklistIndex' => self::activeChecklistIndex($checklist['rows']),
-                'fileNoteBody' => ($matter && !empty($stageDisplay['file_note_section']))
+                'fileNoteBody' => ($matter && ! empty($stageDisplay['file_note_section']))
                     ? self::fileNoteBodyForStage($matter, (int) $stage->id)
                     : '',
             ];
@@ -211,7 +210,7 @@ class WorkflowV2Display
 
     public static function stageDisplayMeta(?string $stageName): ?array
     {
-        if (!$stageName) {
+        if (! $stageName) {
             return null;
         }
 
@@ -236,7 +235,7 @@ class WorkflowV2Display
         $rows = [];
         $outstanding = 0;
 
-        if (!$matter || !$stageName) {
+        if (! $matter || ! $stageName) {
             return ['rows' => $rows, 'outstanding' => $outstanding];
         }
 
@@ -267,12 +266,12 @@ class WorkflowV2Display
                 'required' => $itemRequired,
                 'done' => $isDone,
             ];
-            if ($itemRequired && !$isDone) {
+            if ($itemRequired && ! $isDone) {
                 $outstanding++;
             }
         }
 
-        if (Schema::hasTable('workflow_stage_checklists') && !empty($matter->workflow_id)) {
+        if (Schema::hasTable('workflow_stage_checklists') && ! empty($matter->workflow_id)) {
             $templates = DB::table('workflow_stage_checklists')
                 ->where('workflow_id', $matter->workflow_id)
                 ->where('workflow_stage_id', $stageId)
@@ -304,21 +303,21 @@ class WorkflowV2Display
         if (count($rows) === 0) {
             $stageDisplay = self::stageDisplayMeta($stageName);
             $hasAdminTemplates = Schema::hasTable('workflow_stage_checklists')
-                && !empty($matter->workflow_id)
+                && ! empty($matter->workflow_id)
                 && DB::table('workflow_stage_checklists')
                     ->where('workflow_id', $matter->workflow_id)
                     ->where('workflow_stage_id', $stageId)
                     ->exists();
 
-            if (!$hasAdminTemplates && $stageDisplay && !empty($stageDisplay['checklist_items'])) {
+            if (! $hasAdminTemplates && $stageDisplay && ! empty($stageDisplay['checklist_items'])) {
                 foreach ($stageDisplay['checklist_items'] as $item) {
                     $rows[] = [
                         'id' => null,
                         'label' => $item['label'] ?? 'Item',
-                        'required' => !empty($item['required']),
+                        'required' => ! empty($item['required']),
                         'done' => false,
                     ];
-                    if (!empty($item['required'])) {
+                    if (! empty($item['required'])) {
                         $outstanding++;
                     }
                 }
@@ -333,7 +332,7 @@ class WorkflowV2Display
      */
     public static function checklistItemIsDone(object $cpItem): bool
     {
-        if (Schema::hasColumn('cp_doc_checklists', 'is_completed') && !empty($cpItem->is_completed)) {
+        if (Schema::hasColumn('cp_doc_checklists', 'is_completed') && ! empty($cpItem->is_completed)) {
             return true;
         }
 
@@ -344,7 +343,8 @@ class WorkflowV2Display
     }
 
     /**
-     * Index of the first incomplete checklist item (active for sequential checking), or -1 if all done.
+     * Index of the first incomplete checklist item, or -1 if all done.
+     * Informational only — items on the current stage may be completed in any order.
      *
      * @param  array<int, array{done?: bool}>  $rows
      */
@@ -364,12 +364,12 @@ class WorkflowV2Display
      */
     public static function outstandingRequiredForCurrentStage(?object $matter): int
     {
-        if (!$matter || empty($matter->workflow_stage_id)) {
+        if (! $matter || empty($matter->workflow_stage_id)) {
             return 0;
         }
 
         $stage = DB::table('workflow_stages')->where('id', $matter->workflow_stage_id)->first();
-        if (!$stage || empty($stage->name)) {
+        if (! $stage || empty($stage->name)) {
             return 0;
         }
 
@@ -383,7 +383,7 @@ class WorkflowV2Display
      */
     public static function fileNoteBodyForStage(?object $matter, int $stageId): string
     {
-        if (!$matter || $stageId <= 0 || !Schema::hasTable('workflow_file_notes')) {
+        if (! $matter || $stageId <= 0 || ! Schema::hasTable('workflow_file_notes')) {
             return '';
         }
 
@@ -400,7 +400,7 @@ class WorkflowV2Display
      */
     public static function stageIsProtected(object $stage): bool
     {
-        if (!Schema::hasColumn('workflow_stages', 'is_protected')) {
+        if (! Schema::hasColumn('workflow_stages', 'is_protected')) {
             return false;
         }
 
