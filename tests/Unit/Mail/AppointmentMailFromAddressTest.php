@@ -19,8 +19,7 @@ class AppointmentMailFromAddressTest extends TestCase
         config([
             'mail.from.address' => 'info@bansalimmigration.com.au',
             'mail.from.name' => 'Bansal Immigration',
-            'mail.appointment.address' => 'noreply@bansalimmigration.com.au',
-            'mail.appointment.name' => 'Bansal Immigration',
+            'mail.noreply.address' => 'noreply@bansalimmigration.com.au',
         ]);
 
         $details = [

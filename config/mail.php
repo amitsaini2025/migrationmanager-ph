@@ -98,18 +98,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Appointment System Emails
+    | No-reply From Address (Appointment + Signature)
     |--------------------------------------------------------------------------
     |
-    | From address used only by appointment confirmation / reminder / cancel /
-    | reschedule / payment-link mailables. Does not change the global from
-    | used by CRM compose, signatures, EOI, etc.
+    | Shared from address for appointment and signature system emails.
+    | Does not change the global from used by CRM compose, EOI, etc.
+    | Display name uses mail.from.name (MAIL_FROM_NAME).
     |
     */
 
-    'appointment' => [
-        'address' => env('APPOINTMENT_MAIL_FROM_ADDRESS', 'noreply@bansalimmigration.com.au'),
-        'name' => env('APPOINTMENT_MAIL_FROM_NAME', env('MAIL_FROM_NAME', 'Bansal Immigration')),
+    'noreply' => [
+        'address' => env('NOREPLY_MAIL_FROM_ADDRESS', 'noreply@bansalimmigration.com.au'),
     ],
 
 ];

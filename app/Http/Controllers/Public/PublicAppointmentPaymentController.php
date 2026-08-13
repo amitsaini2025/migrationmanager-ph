@@ -179,7 +179,7 @@ class PublicAppointmentPaymentController extends Controller
 
             app(SystemEmailLogService::class)->logAndSendMailable([
                 'category' => 'appointment',
-                'from_mail' => config('mail.appointment.address'),
+                'from_mail' => config('mail.noreply.address'),
                 'to_mail' => $appointment->client_email,
                 'subject' => 'Appointment Confirmation - Bansal Immigration',
                 'client_id' => $appointment->client_id,

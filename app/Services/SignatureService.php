@@ -2,23 +2,25 @@
 
 namespace App\Services;
 
-use App\Models\Document;
-use App\Models\Signer;
+use App\Models\ActivitiesLog;
 use App\Models\Admin;
+use App\Models\Document;
+use App\Models\Email;
 use App\Models\Lead;
 use App\Models\SignatureActivity;
-use App\Models\ActivitiesLog;
+use App\Models\Signer;
 use App\Support\DocumentStoredFilename;
-use Illuminate\Support\Str;
 use Illuminate\Mail\Message;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SignatureService
 {
     protected EmailConfigService $emailConfigService;
+
     protected SystemEmailLogService $systemEmailLog;
 
     public function __construct(EmailConfigService $emailConfigService, SystemEmailLogService $systemEmailLog)
@@ -26,13 +28,12 @@ class SignatureService
         $this->emailConfigService = $emailConfigService;
         $this->systemEmailLog = $systemEmailLog;
     }
+
     /**
      * Send a document for signature
      *
-     * @param Document $document
-     * @param array $signers Array of ['email' => '', 'name' => '']
-     * @param array $options Additional options (subject, message, from_email, template, attachments)
-     * @return bool
+     * @param  array  $signers  Array of ['email' => '', 'name' => '']
+     * @param  array  $options  Additional options (subject, message, from_email, template, attachments)
      */
     public function send(Document $document, array $signers, array $options = []): bool
     {
@@ -64,23 +65,29 @@ class SignatureService
         } catch (\Exception $e) {
             Log::error('Failed to send document for signature', [
                 'document_id' => $document->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
 
     /**
-     * Resolve sender details from selected sender or defaults.
+     * Resolve sender details from selected sender or signature defaults.
+     * Preferred from_email (UI / signer) always wins; otherwise use
+     * mail.noreply.address so CRM global from stays unchanged.
      */
     protected function resolveFrom(?string $preferredFrom = null): array
     {
-        $fromAddress = $preferredFrom ?: config('mail.from.address');
-        $fromName = config('mail.from.name', 'Bansal Migration');
+        $defaultAddress = (string) config('mail.noreply.address', 'noreply@bansalimmigration.com.au');
+        $defaultName = (string) config('mail.from.name', 'Bansal Migration');
+
+        $fromAddress = $preferredFrom ?: $defaultAddress;
+        $fromName = $defaultName;
         $signature = '';
 
-        if (!empty($fromAddress)) {
-            $emailAccount = \App\Models\Email::where('status', true)
+        if (! empty($fromAddress)) {
+            $emailAccount = Email::where('status', true)
                 ->where('email', $fromAddress)
                 ->first();
             if ($emailAccount) {
@@ -92,8 +99,8 @@ class SignatureService
         if (empty($signature)) {
             $default = $this->emailConfigService->getDefaultAccount();
             $signature = $default['email_signature'] ?? '';
-            $fromAddress = $fromAddress ?: ($default['from_address'] ?? config('mail.from.address'));
-            $fromName = $fromName ?: ($default['from_name'] ?? config('mail.from.name', 'Bansal Migration'));
+            $fromAddress = $fromAddress ?: ($default['from_address'] ?? $defaultAddress);
+            $fromName = $fromName ?: ($default['from_name'] ?? $defaultName);
         }
 
         return [
@@ -113,17 +120,17 @@ class SignatureService
 
         try {
             $signingUrl = url("/sign/{$document->id}/{$signer->token}");
-            
+
             // Determine template based on document type or options
             $template = $options['template'] ?? 'emails.signature.send';
             if (($options['document_type'] ?? null) === 'agreement') {
                 $template = 'emails.signature.send_agreement';
             }
-            
+
             $subject = $options['subject'] ?? 'Document Signature Request from Bansal Migration';
-            $message = $options['message'] ?? "Please review and sign the attached document.";
-            $from = $this->resolveFrom($options['from_email'] ?? null);
-            
+            $message = $options['message'] ?? 'Please review and sign the attached document.';
+            $from = $this->resolveFrom($options['from_email'] ?? $signer->from_email ?? null);
+
             // Prepare template data
             $templateData = [
                 'signerName' => $signer->name,
@@ -143,13 +150,13 @@ class SignatureService
 
             $systemEmailLog = $this->systemEmailLog;
             $log = $systemEmailLog->createPending([
-                'category'  => 'signature',
+                'category' => 'signature',
                 'from_mail' => $from['from_address'],
-                'to_mail'   => $signer->email,
-                'subject'   => $subject,
-                'message'   => $message,
+                'to_mail' => $signer->email,
+                'subject' => $subject,
+                'message' => $message,
                 'client_id' => $document->client_id,
-                'user_id'   => Auth::guard('admin')->id(),
+                'user_id' => Auth::guard('admin')->id(),
             ]);
 
             Mail::mailer('sendgrid')->send($template, $templateData, function (Message $mail) use ($signer, $subject, $from, $attachments, $log, $systemEmailLog) {
@@ -160,6 +167,7 @@ class SignatureService
                 foreach ($attachments as $attachment) {
                     if (is_string($attachment) && file_exists($attachment)) {
                         $mail->attach($attachment);
+
                         continue;
                     }
 
@@ -167,10 +175,10 @@ class SignatureService
                         $path = $attachment['path'] ?? null;
                         if ($path && file_exists($path)) {
                             $options = [];
-                            if (!empty($attachment['name'])) {
+                            if (! empty($attachment['name'])) {
                                 $options['as'] = $attachment['name'];
                             }
-                            if (!empty($attachment['mime'])) {
+                            if (! empty($attachment['mime'])) {
                                 $options['mime'] = $attachment['mime'];
                             }
                             $mail->attach($path, $options);
@@ -194,7 +202,7 @@ class SignatureService
                     'subject' => $subject,
                     'status' => 'sent_via_sendgrid',
                     'email_account' => $from['from_address'],
-                ]
+                ],
             ]);
 
             Log::info('Signing email sent via SendGrid mailer', [
@@ -221,20 +229,20 @@ class SignatureService
                         'signer_name' => $signer->name,
                         'error' => $e->getMessage(),
                         'error_trace' => substr($e->getTraceAsString(), 0, 500), // Limit trace length
-                    ]
+                    ],
                 ]);
             } catch (\Exception $noteException) {
                 // If note creation fails, just log it
                 Log::warning('Failed to create email failure note', [
                     'document_id' => $document->id,
-                    'error' => $noteException->getMessage()
+                    'error' => $noteException->getMessage(),
                 ]);
             }
 
             Log::error('Failed to send signing email', [
                 'document_id' => $document->id,
                 'signer_id' => $signer->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             throw $e;
         }
@@ -253,12 +261,12 @@ class SignatureService
             if ($signer->status === 'cancelled') {
                 throw new \Exception('Cannot send reminder. Signature has been cancelled.');
             }
-            
+
             // Check if already signed - no need to send reminders
             if ($signer->status === 'signed') {
                 throw new \Exception('Cannot send reminder. Document has already been signed.');
             }
-            
+
             // Check reminder limits
             if ($signer->reminder_count >= 3) {
                 throw new \Exception('Maximum reminders already sent');
@@ -266,7 +274,7 @@ class SignatureService
 
             $document = $signer->document;
             $signingUrl = url("/sign/{$document->id}/{$signer->token}");
-            $from = $this->resolveFrom($options['from_email'] ?? null);
+            $from = $this->resolveFrom($options['from_email'] ?? $signer->from_email ?? null);
 
             $templateData = [
                 'signerName' => $signer->name,
@@ -279,12 +287,12 @@ class SignatureService
 
             $systemEmailLog = $this->systemEmailLog;
             $log = $systemEmailLog->createPending([
-                'category'  => 'signature_reminder',
+                'category' => 'signature_reminder',
                 'from_mail' => $from['from_address'],
-                'to_mail'   => $signer->email,
-                'subject'   => 'Reminder: Please Sign Your Document - Bansal Migration',
+                'to_mail' => $signer->email,
+                'subject' => 'Reminder: Please Sign Your Document - Bansal Migration',
                 'client_id' => $document->client_id,
-                'user_id'   => Auth::guard('admin')->id(),
+                'user_id' => Auth::guard('admin')->id(),
             ]);
 
             Mail::mailer('sendgrid')->send('emails.signature.reminder', $templateData, function (Message $mail) use ($signer, $from, $log, $systemEmailLog) {
@@ -298,7 +306,7 @@ class SignatureService
             // Update reminder tracking
             $signer->update([
                 'last_reminder_sent_at' => now(),
-                'reminder_count' => $signer->reminder_count + 1
+                'reminder_count' => $signer->reminder_count + 1,
             ]);
 
             // Create activity note for reminder email
@@ -313,13 +321,13 @@ class SignatureService
                     'signer_name' => $signer->name,
                     'reminder_number' => $signer->reminder_count,
                     'status' => 'sent_via_sendgrid',
-                ]
+                ],
             ]);
 
             Log::info('Reminder sent via SendGrid mailer', [
                 'signer_id' => $signer->id,
                 'reminder_count' => $signer->reminder_count,
-                'email_account' => $from['from_address']
+                'email_account' => $from['from_address'],
             ]);
 
             return true;
@@ -341,19 +349,20 @@ class SignatureService
                         'signer_name' => $signer->name,
                         'reminder_number' => $signer->reminder_count + 1,
                         'error' => $e->getMessage(),
-                    ]
+                    ],
                 ]);
             } catch (\Exception $noteException) {
                 Log::warning('Failed to create reminder failure note', [
                     'document_id' => $document->id,
-                    'error' => $noteException->getMessage()
+                    'error' => $noteException->getMessage(),
                 ]);
             }
 
             Log::error('Failed to send reminder', [
                 'signer_id' => $signer->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -361,7 +370,7 @@ class SignatureService
     /**
      * Void a document
      */
-    public function void(Document $document, string $reason = null): bool
+    public function void(Document $document, ?string $reason = null): bool
     {
         try {
             $document->update([
@@ -372,7 +381,7 @@ class SignatureService
             if ($reason) {
                 Log::info('Document voided', [
                     'document_id' => $document->id,
-                    'reason' => $reason
+                    'reason' => $reason,
                 ]);
             }
 
@@ -380,8 +389,9 @@ class SignatureService
         } catch (\Exception $e) {
             Log::error('Failed to void document', [
                 'document_id' => $document->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -389,10 +399,10 @@ class SignatureService
     /**
      * Associate a document with an entity (Client or Lead)
      */
-    public function associate(Document $document, string $entityType, int $entityId, string $note = null): bool
+    public function associate(Document $document, string $entityType, int $entityId, ?string $note = null): bool
     {
         try {
-            $updates = match($entityType) {
+            $updates = match ($entityType) {
                 'client' => ['client_id' => $entityId, 'lead_id' => null],
                 'lead' => ['lead_id' => $entityId, 'client_id' => null],
                 default => throw new \InvalidArgumentException("Invalid entity type: {$entityType}")
@@ -409,7 +419,7 @@ class SignatureService
                 'metadata' => [
                     'entity_type' => $entityType,
                     'entity_id' => $entityId,
-                ]
+                ],
             ]);
 
             // Create activity log on Client/Lead timeline
@@ -430,15 +440,16 @@ class SignatureService
                 'document_id' => $document->id,
                 'entity_type' => $entityType,
                 'entity_id' => $entityId,
-                'note' => $note
+                'note' => $note,
             ]);
 
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to associate document', [
                 'document_id' => $document->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -446,17 +457,17 @@ class SignatureService
     /**
      * Associate a document with category-specific storage and matter
      */
-    public function associateWithCategory(Document $document, string $entityType, int $entityId, ?int $matterId, string $docCategory, string $note = null, ?string $folderName = null, ?string $checklist = null): bool
+    public function associateWithCategory(Document $document, string $entityType, int $entityId, ?int $matterId, string $docCategory, ?string $note = null, ?string $folderName = null, ?string $checklist = null): bool
     {
         try {
-            $documentableType = match($entityType) {
+            $documentableType = match ($entityType) {
                 'client' => Admin::class,
                 'lead' => Lead::class,
                 default => throw new \InvalidArgumentException("Invalid entity type: {$entityType}")
             };
 
             // Client document tabs query doc_type = 'visa'|'personal' (not *_documents).
-            $docType = match($docCategory) {
+            $docType = match ($docCategory) {
                 'visa' => 'visa',
                 'personal' => 'personal',
                 default => 'general'
@@ -509,7 +520,7 @@ class SignatureService
                     'doc_type' => $docType,
                     'folder_name' => $folderName,
                     'checklist' => $checklist,
-                ]
+                ],
             ]);
 
             // Create activity log on Client/Lead timeline
@@ -535,15 +546,16 @@ class SignatureService
                 'doc_category' => $docCategory,
                 'doc_type' => $docType,
                 'checklist' => $checklist,
-                'note' => $note
+                'note' => $note,
             ]);
 
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to associate document with category', [
                 'document_id' => $document->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -581,7 +593,7 @@ class SignatureService
         }
 
         return [
-            'file_name' => $namePrefix . '_' . $checklist . '_' . time(),
+            'file_name' => $namePrefix.'_'.$checklist.'_'.time(),
             'filetype' => $document->getPreviewFileExtension(),
         ];
     }
@@ -589,7 +601,7 @@ class SignatureService
     /**
      * Detach a document from its association
      */
-    public function detach(Document $document, string $reason = null): bool
+    public function detach(Document $document, ?string $reason = null): bool
     {
         try {
             $oldClientId = $document->client_id;
@@ -611,7 +623,7 @@ class SignatureService
                 'metadata' => [
                     'old_entity_type' => $entityType,
                     'old_entity_id' => $oldEntityId,
-                ]
+                ],
             ]);
 
             // Create activity log on Client/Lead timeline
@@ -631,7 +643,7 @@ class SignatureService
             if ($reason) {
                 Log::info('Document detached', [
                     'document_id' => $document->id,
-                    'reason' => $reason
+                    'reason' => $reason,
                 ]);
             }
 
@@ -639,8 +651,9 @@ class SignatureService
         } catch (\Exception $e) {
             Log::error('Failed to detach document', [
                 'document_id' => $document->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -659,7 +672,7 @@ class SignatureService
         if ($entity) {
             // Determine if it's a client or lead based on type field
             $entityType = ($entity->type === 'lead') ? 'lead' : 'client';
-            
+
             if ($entityType === 'client') {
                 // Get client's matters
                 $matters = \DB::table('client_matters')
@@ -673,11 +686,11 @@ class SignatureService
                     )
                     ->orderBy('client_matters.created_at', 'desc')
                     ->get()
-                    ->map(function($matter) {
+                    ->map(function ($matter) {
                         return [
                             'id' => $matter->id,
-                            'label' => $matter->client_unique_matter_no . ' - ' . $matter->matter_title,
-                            'status' => $matter->matter_status
+                            'label' => $matter->client_unique_matter_no.' - '.$matter->matter_title,
+                            'status' => $matter->matter_status,
                         ];
                     })
                     ->toArray();
@@ -692,7 +705,7 @@ class SignatureService
                 'name' => trim("{$entity->first_name} {$entity->last_name}"),
                 'email' => $entity->email,
                 'matters' => $matters,
-                'has_matters' => count($matters) > 0
+                'has_matters' => count($matters) > 0,
             ];
         }
 
@@ -725,4 +738,3 @@ class SignatureService
             ->count();
     }
 }
-

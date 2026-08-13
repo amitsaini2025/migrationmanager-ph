@@ -67,7 +67,7 @@ class NotificationService
 
             $this->systemEmailLog->logAndSendMailable([
                 'category' => 'appointment_payment',
-                'from_mail' => config('mail.appointment.address'),
+                'from_mail' => config('mail.noreply.address'),
                 'to_mail' => $appointment->client_email,
                 'subject' => 'Complete Your Appointment Payment - Bansal Immigration',
                 'client_id' => $appointment->client_id,
@@ -113,7 +113,7 @@ class NotificationService
 
             $this->systemEmailLog->logAndSendMailable([
                 'category' => 'appointment',
-                'from_mail' => config('mail.appointment.address'),
+                'from_mail' => config('mail.noreply.address'),
                 'to_mail' => $appointment->client_email,
                 'subject' => 'Appointment Confirmation - Bansal Immigration',
                 'client_id' => $appointment->client_id,
@@ -156,7 +156,7 @@ class NotificationService
 
             $this->systemEmailLog->logAndSendMailable([
                 'category' => 'appointment_cancellation',
-                'from_mail' => config('mail.appointment.address'),
+                'from_mail' => config('mail.noreply.address'),
                 'to_mail' => $appointment->client_email,
                 'subject' => 'Appointment Cancellation - Bansal Immigration',
                 'client_id' => $appointment->client_id,
@@ -198,7 +198,7 @@ class NotificationService
 
             $this->systemEmailLog->logAndSendMailable([
                 'category' => 'appointment_reschedule',
-                'from_mail' => config('mail.appointment.address'),
+                'from_mail' => config('mail.noreply.address'),
                 'to_mail' => $appointment->client_email,
                 'subject' => 'Appointment Rescheduled - Bansal Immigration',
                 'client_id' => $appointment->client_id,
@@ -237,7 +237,7 @@ class NotificationService
 
             $this->systemEmailLog->logAndSendMailable([
                 'category' => 'appointment_reminder',
-                'from_mail' => config('mail.appointment.address'),
+                'from_mail' => config('mail.noreply.address'),
                 'to_mail' => $appointment->client_email,
                 'subject' => 'Appointment Reminder - Bansal Immigration',
                 'client_id' => $appointment->client_id,
