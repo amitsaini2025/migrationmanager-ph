@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\CRM\ClientsController;
 use App\Models\Admin;
 use App\Models\ClientAddress;
 use App\Models\Company;
@@ -180,7 +181,7 @@ class CompanyVisaAgreementMacroBuilder
     }
 
     /**
-     * Same rule as {@see \App\Http\Controllers\CRM\ClientsController::resolveDoHaAmountInclSurcharge}.
+     * Same rule as {@see ClientsController::resolveDoHaAmountInclSurcharge}.
      */
     private function resolveAmountInclSurcharge(float $base, $storedInclSurcharge, $surchargeFlag): float
     {
@@ -217,28 +218,34 @@ class CompanyVisaAgreementMacroBuilder
      * First email / checklist compose fee macros — same mapping as agreement Section 4:
      * TotalDoHASurcharges = DoHA charges incl. surcharge; TotalEstimatedOthCosts = additional_fee_1.
      *
-     * @return array{Blocktotalfeesincltax: string, TotalDoHASurcharges: string, TotalEstimatedOthCosts: string, GrandTotalFeesAndCosts: string}
+     * @return array{Blocktotalfeesincltax: string, TotalDoHASurcharges: string, TotalEstimatedOthCosts: string, DiscountAmount: string, GrandTotalFeesAndCosts: string}
      */
     public static function buildFirstEmailComposeFeeMacros(
         float $blockTotalFeesInclTax,
         float $totalDoHACharges,
         float $totalDoHASurchargesOnly,
-        float $additionalFee1
+        float $additionalFee1,
+        float $discount = 0.0
     ): array {
         $dohaInclSurcharge = self::calculateDohaChargesInclSurcharges(
             $totalDoHACharges,
             $totalDoHASurchargesOnly
         );
+        $appliedDiscount = max(0.0, $discount);
+        $gross = $blockTotalFeesInclTax
+            + floatval($dohaInclSurcharge)
+            + $additionalFee1;
+        if ($appliedDiscount > $gross) {
+            $appliedDiscount = $gross;
+        }
+        $grandTotal = $gross - $appliedDiscount;
 
         return [
             'Blocktotalfeesincltax' => number_format($blockTotalFeesInclTax, 2, '.', ''),
             'TotalDoHASurcharges' => $dohaInclSurcharge,
             'TotalEstimatedOthCosts' => number_format($additionalFee1, 2, '.', ''),
-            'GrandTotalFeesAndCosts' => self::calculateGrandTotalFeesAndCosts(
-                $blockTotalFeesInclTax,
-                $dohaInclSurcharge,
-                $additionalFee1
-            ),
+            'DiscountAmount' => number_format($appliedDiscount, 2, '.', ''),
+            'GrandTotalFeesAndCosts' => number_format($grandTotal, 2, '.', ''),
         ];
     }
 

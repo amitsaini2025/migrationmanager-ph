@@ -196,7 +196,14 @@
                                                 $totalSurcharge = $form->TotalDoHASurcharges ?? 0;
                                                 $totalOurCost = $form->TotalBLOCKFEE ?? 0;
                                                 $totalAdditionalFee1 = floatval($form->additional_fee_1 ?? 0);
-                                                $totalCost = $totalOurCost + $totalDeptCost + $totalSurcharge + $totalAdditionalFee1;
+                                                $discountAmount = \App\Models\CostAssignmentForm::appliedDiscountFromRow($form);
+                                                $totalCost = \App\Models\CostAssignmentForm::calculateTotalCost(
+                                                    floatval($totalOurCost),
+                                                    floatval($totalDeptCost),
+                                                    floatval($totalSurcharge),
+                                                    $totalAdditionalFee1,
+                                                    $discountAmount
+                                                );
                                                 
                                                 // Check if agreement document exists
                                                 $agreementDoc = \App\Models\Document::where('client_matter_id', $form->client_matter_id)
@@ -287,6 +294,12 @@
                                                                     <div class="d-flex justify-content-between align-items-center">
                                                                         <span>Additional Fee1:</span>
                                                                         <strong class="text-warning js-cost-additional" style="font-size: 1.05rem;">${{ number_format($totalAdditionalFee1, 2) }}</strong>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="cost-item cost-breakdown-item js-cost-discount-row" @if($discountAmount <= 0) style="display: none;" @endif>
+                                                                    <div class="d-flex justify-content-between align-items-center">
+                                                                        <span>Discount:</span>
+                                                                        <strong class="text-success js-cost-discount" style="font-size: 1.05rem;">-${{ number_format($discountAmount, 2) }}</strong>
                                                                     </div>
                                                                 </div>
                                                                 <hr class="cost-breakdown-hr">

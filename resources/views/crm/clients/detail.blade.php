@@ -935,6 +935,7 @@ var tinymceEmailConfig = {
     plugins: ['lists', 'link', 'autolink'],
     toolbar: 'bold italic underline strikethrough | forecolor | bullist numlist | link',
     convert_urls: false,
+    extended_valid_elements: 'table[border|cellpadding|cellspacing|width|style|class|align],thead,tbody,tfoot,tr[class|style],td[class|style|colspan|rowspan|align|valign|width],th[class|style|colspan|rowspan|align|valign|width],colgroup,col[span|width],hr[style|width]',
     content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
     branding: false,
     promotion: false,

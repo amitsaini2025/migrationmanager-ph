@@ -16,7 +16,7 @@ class CompanyVisaAgreementMacroBuilderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->builder = new CompanyVisaAgreementMacroBuilder();
+        $this->builder = new CompanyVisaAgreementMacroBuilder;
     }
 
     public function test_non_company_client_returns_empty_array(): void
@@ -183,6 +183,37 @@ class CompanyVisaAgreementMacroBuilderTest extends TestCase
         $this->assertSame('550.00', $macros['Blocktotalfeesincltax']);
         $this->assertSame('630.00', $macros['TotalDoHASurcharges']);
         $this->assertSame('0.00', $macros['TotalEstimatedOthCosts']);
+        $this->assertSame('0.00', $macros['DiscountAmount']);
         $this->assertSame('1180.00', $macros['GrandTotalFeesAndCosts']);
+    }
+
+    public function test_build_first_email_compose_fee_macros_subtracts_discount(): void
+    {
+        $macros = CompanyVisaAgreementMacroBuilder::buildFirstEmailComposeFeeMacros(
+            540.00,
+            1674.00,
+            0.00,
+            0.00,
+            100.00
+        );
+
+        $this->assertSame('540.00', $macros['Blocktotalfeesincltax']);
+        $this->assertSame('1674.00', $macros['TotalDoHASurcharges']);
+        $this->assertSame('0.00', $macros['TotalEstimatedOthCosts']);
+        $this->assertSame('100.00', $macros['DiscountAmount']);
+        $this->assertSame('2114.00', $macros['GrandTotalFeesAndCosts']);
+    }
+
+    public function test_build_first_email_compose_fee_macros_without_discount_matches_existing_total(): void
+    {
+        $macros = CompanyVisaAgreementMacroBuilder::buildFirstEmailComposeFeeMacros(
+            540.00,
+            1674.00,
+            0.00,
+            0.00
+        );
+
+        $this->assertSame('0.00', $macros['DiscountAmount']);
+        $this->assertSame('2214.00', $macros['GrandTotalFeesAndCosts']);
     }
 }

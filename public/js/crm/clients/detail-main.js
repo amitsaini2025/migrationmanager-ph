@@ -5423,6 +5423,12 @@ success: function(response) {
 
                             $scope.find('#TotalBLOCKFEE').val(obj.cost_assignment_matterInfo.TotalBLOCKFEE);
 
+                            applyCostAssignmentDiscountUi(
+                                $scope,
+                                isCostAssignmentDiscountEnabled(obj.cost_assignment_matterInfo.discount_enabled),
+                                obj.cost_assignment_matterInfo.discount
+                            );
+
                         } else {
 
                             $scope.find('#surcharge').val(obj.matterInfo.surcharge).trigger('change');
@@ -5472,6 +5478,8 @@ success: function(response) {
 
                             $scope.find('#TotalDoHASurcharges').val(obj.matterInfo.TotalDoHASurcharges);
 
+                            applyCostAssignmentDiscountUi($scope, false, '0.00');
+
                         }
 
                         // Initialize calculation handlers and trigger calculations after data is loaded
@@ -5508,6 +5516,268 @@ success: function(response) {
         // Make function available globally for subtab handlers
         window.getCostAssignmentMigrationAgentDetail = getCostAssignmentMigrationAgentDetail;
 
+        function isCostAssignmentDiscountEnabled(value) {
+            return value === true || value === 1 || value === '1' || value === 'true';
+        }
+
+        function applyCostAssignmentDiscountUi($scope, enabled, amount) {
+            var isEnabled = !!enabled;
+            var $checkbox = $scope.find('.js-cost-discount-enabled');
+            var $wrap = $scope.find('.js-cost-discount-field-wrap');
+            var $input = $scope.find('.js-cost-discount-amount');
+            $checkbox.prop('checked', isEnabled);
+            $input.val(isEnabled && amount !== undefined && amount !== null && amount !== '' ? amount : '0.00');
+            if (isEnabled) {
+                $wrap.show();
+            } else {
+                $wrap.hide();
+            }
+        }
+
+        function bindCostAssignmentDiscountToggle($scope) {
+            $scope.find('.js-cost-discount-enabled').off('change.costDiscount').on('change.costDiscount', function() {
+                var on = $(this).is(':checked');
+                applyCostAssignmentDiscountUi($scope, on, on ? $scope.find('.js-cost-discount-amount').val() : '0.00');
+            });
+        }
+
+        function applyDiscountRowToEmailHtml(html, discountAmount) {
+            try {
+                var discount = parseFloat(discountAmount);
+                if (!html || isNaN(discount) || discount <= 0) {
+                    return html;
+                }
+                if (html.indexOf('js-cost-discount-email-row') !== -1) {
+                    return html;
+                }
+                var needles = ['GrandTotalFeesAndCosts', 'Total Applicable Costs', 'Total Applicable'];
+                var lower = html.toLowerCase();
+                var pos = -1;
+                for (var i = 0; i < needles.length; i++) {
+                    var found = lower.lastIndexOf(needles[i].toLowerCase());
+                    if (found !== -1) {
+                        pos = found;
+                        break;
+                    }
+                }
+                if (pos === -1) {
+                    return html;
+                }
+                var totalTrStart = lastEmailTableRowOpen(html, pos);
+                if (totalTrStart === -1) {
+                    return html;
+                }
+                var formatted = discount.toFixed(2);
+                var source = findPreviousEmailCostLineRow(html, totalTrStart);
+                var row = source ? buildDiscountEmailRowFromSource(source.html, formatted) : defaultDiscountEmailRow(formatted);
+                var insertAt = source ? source.end : totalTrStart;
+                if (!isInsideOpenEmailTable(html, insertAt)) {
+                    return html;
+                }
+                return html.substring(0, insertAt) + row + html.substring(insertAt);
+            } catch (err) {
+                return html;
+            }
+        }
+
+        function isEmailTableRowOpenAt(lower, index) {
+            if (lower.substr(index, 3) !== '<tr') {
+                return false;
+            }
+            var next = lower.charAt(index + 3);
+            return next === '' || next === '>' || next === '/' || /\s/.test(next);
+        }
+
+        function lastEmailTableRowOpen(html, beforePos) {
+            var lower = html.toLowerCase();
+            var pos = -1;
+            var i = 0;
+            while (i < beforePos) {
+                var found = lower.indexOf('<tr', i);
+                if (found === -1 || found >= beforePos) {
+                    break;
+                }
+                if (isEmailTableRowOpenAt(lower, found)) {
+                    pos = found;
+                }
+                i = found + 3;
+            }
+            return pos;
+        }
+
+        function matchingEmailTableRowEnd(html, trStart) {
+            var lower = html.toLowerCase();
+            var offset = trStart;
+            var depth = 0;
+            while (offset < lower.length) {
+                var nextOpen = -1;
+                var search = offset;
+                while (search < lower.length) {
+                    var found = lower.indexOf('<tr', search);
+                    if (found === -1) {
+                        break;
+                    }
+                    if (isEmailTableRowOpenAt(lower, found)) {
+                        nextOpen = found;
+                        break;
+                    }
+                    search = found + 3;
+                }
+                var nextClose = lower.indexOf('</tr>', offset);
+                if (nextClose === -1) {
+                    return -1;
+                }
+                if (nextOpen !== -1 && nextOpen <= nextClose) {
+                    depth++;
+                    offset = nextOpen + 3;
+                    continue;
+                }
+                depth--;
+                var end = nextClose + 5;
+                if (depth <= 0) {
+                    return end;
+                }
+                offset = end;
+            }
+            return -1;
+        }
+
+        function isInsideOpenEmailTable(html, insertAt) {
+            return emailTableNestingDepth(html, insertAt) > 0;
+        }
+
+        function emailTableNestingDepth(html, pos) {
+            var prefix = html.substring(0, Math.max(0, pos));
+            var opens = prefix.match(/<table\b/gi);
+            var closes = prefix.match(/<\/table/gi);
+            return Math.max(0, (opens ? opens.length : 0) - (closes ? closes.length : 0));
+        }
+
+        function findPreviousEmailCostLineRow(html, totalTrStart) {
+            var searchEnd = totalTrStart;
+            for (var i = 0; i < 6; i++) {
+                var trStart = lastEmailTableRowOpen(html, searchEnd);
+                if (trStart === -1) {
+                    return null;
+                }
+                var end = matchingEmailTableRowEnd(html, trStart);
+                if (end === -1 || end > totalTrStart || emailTableNestingDepth(html, trStart) !== emailTableNestingDepth(html, totalTrStart)) {
+                    searchEnd = trStart;
+                    continue;
+                }
+                var row = html.substring(trStart, end);
+                if (emailRowLooksLikeCostLine(row)) {
+                    return { html: row, end: end };
+                }
+                searchEnd = trStart;
+            }
+            return null;
+        }
+
+        function emailRowLooksLikeCostLine(row) {
+            var lower = row.toLowerCase();
+            if (lower.indexOf('total applicable') !== -1 || row.indexOf('GrandTotalFeesAndCosts') !== -1) {
+                return false;
+            }
+            return /\$\s*[\d,]+\.\d{2}|TotalEstimatedOthCosts|Other Costs|>\s*\d+\.\s*</i.test(row);
+        }
+
+        function buildDiscountEmailRowFromSource(sourceRow, formatted) {
+            var tdRe = /<td\b([^>]*)>([\s\S]*?)<\/td>/gi;
+            var cells = [];
+            var match;
+            while ((match = tdRe.exec(sourceRow)) !== null) {
+                cells.push({ attrs: match[1], html: match[2] });
+            }
+            if (!cells.length) {
+                return defaultDiscountEmailRow(formatted);
+            }
+            var openTr = '<tr class="js-cost-discount-email-row">';
+            var trMatch = sourceRow.match(/<tr\b([^>]*)>/i);
+            if (trMatch) {
+                var attrs = trMatch[1] || '';
+                if (/\bclass\s*=/i.test(attrs)) {
+                    attrs = attrs.replace(/\bclass\s*=\s*(["'])(.*?)\1/i, 'class=$1$2 js-cost-discount-email-row$1');
+                } else {
+                    attrs += ' class="js-cost-discount-email-row"';
+                }
+                openTr = '<tr' + attrs + '>';
+            }
+            var amount = '-$' + formatted;
+            if (cells.length >= 3) {
+                return openTr + '<td' + cells[0].attrs + '>' + wrapEmailCostCellLikeSource(cells[0].html, '4.') + '</td><td' + cells[1].attrs + '>Discount</td><td' + cells[cells.length - 1].attrs + '>' + wrapEmailCostCellLikeSource(cells[cells.length - 1].html, amount) + '</td></tr>';
+            }
+            if (cells.length === 2) {
+                return openTr + '<td' + cells[0].attrs + '>' + wrapEmailCostCellLikeSource(cells[0].html, '4.') + ' Discount</td><td' + cells[1].attrs + '>' + wrapEmailCostCellLikeSource(cells[1].html, amount) + '</td></tr>';
+            }
+            return defaultDiscountEmailRow(formatted);
+        }
+
+        function wrapEmailCostCellLikeSource(sourceInner, replacement) {
+            var match = String(sourceInner || '').match(/<(strong|b)\b[^>]*>/i);
+            if (match) {
+                var tag = match[1].toLowerCase();
+                return '<' + tag + '>' + replacement + '</' + tag + '>';
+            }
+            return '<strong>' + replacement + '</strong>';
+        }
+
+        function defaultDiscountEmailRow(formatted) {
+            return '<tr class="js-cost-discount-email-row"><td><strong>4.</strong></td><td>Discount</td><td style="text-align:right;"><strong>-$' + formatted + '</strong></td></tr>';
+        }
+        window.applyDiscountRowToEmailHtml = applyDiscountRowToEmailHtml;
+
+        function composeEmailBodyHasVisibleText(html) {
+            return String(html || '')
+                .replace(/<[^>]*>/g, ' ')
+                .replace(/&nbsp;/gi, ' ')
+                .replace(/\s+/g, ' ')
+                .trim().length > 0;
+        }
+
+        function writeComposeEmailMessage(html) {
+            var content = html || '';
+            $('#compose_email_message').val(content);
+            try {
+                if (typeof tinymce !== 'undefined' && tinymce.get('compose_email_message')) {
+                    tinymce.get('compose_email_message').setContent(content);
+                    return;
+                }
+                if (typeof setTinyMCEContent === 'function') {
+                    setTinyMCEContent('compose_email_message', content);
+                }
+            } catch (err) {
+                $('#compose_email_message').val(content);
+            }
+        }
+
+        function setComposeEmailTemplateBody(html, fallbackHtml) {
+            var primary = html || '';
+            var fallback = fallbackHtml || primary;
+            writeComposeEmailMessage(primary);
+            var attempts = 0;
+            var verify = function() {
+                attempts++;
+                var current = '';
+                if (typeof tinymce !== 'undefined' && tinymce.get('compose_email_message')) {
+                    current = tinymce.get('compose_email_message').getContent() || '';
+                } else {
+                    current = $('#compose_email_message').val() || '';
+                    if (typeof setTinyMCEContent === 'function') {
+                        setTinyMCEContent('compose_email_message', primary);
+                    }
+                }
+                if (composeEmailBodyHasVisibleText(current) || attempts >= 4) {
+                    if (!composeEmailBodyHasVisibleText(current) && fallback && fallback !== primary) {
+                        writeComposeEmailMessage(fallback);
+                    }
+                    return;
+                }
+                setTimeout(verify, 150);
+            };
+            setTimeout(verify, 150);
+        }
+
 
 
         // Initialize calculation handlers for Cost Assignment form
@@ -5519,6 +5789,7 @@ success: function(response) {
             $scope.find('#Dept_Base_Application_Charge, #Dept_Non_Internet_Application_Charge, #Dept_Additional_Applicant_Charge_18_Plus, #Dept_Additional_Applicant_Charge_Under_18, #Dept_Subsequent_Temp_Application_Charge, #Dept_Second_VAC_Instalment_Charge_18_Plus, #Dept_Second_VAC_Instalment_Under_18, #Dept_Nomination_Application_Charge, #Dept_Sponsorship_Application_Charge, #saf_levy').off('input change keyup');
             $scope.find('#Dept_Base_Application_Charge_no_of_person, #Dept_Non_Internet_Application_Charge_no_of_person, #Dept_Additional_Applicant_Charge_18_Plus_no_of_person, #Dept_Additional_Applicant_Charge_Under_18_no_of_person, #Dept_Subsequent_Temp_Application_Charge_no_of_person, #Dept_Second_VAC_Instalment_Charge_18_Plus_no_of_person, #Dept_Second_VAC_Instalment_Under_18_no_of_person').off('input change keyup');
             $scope.find('#surcharge').off('change');
+            bindCostAssignmentDiscountToggle($scope);
 
             // Calculate Total Block Fee when Block fields change
             $scope.find('#Block_1_Ex_Tax, #Block_2_Ex_Tax, #Block_3_Ex_Tax').on('input change keyup', function() {
@@ -5690,9 +5961,10 @@ success: function(response) {
             var deptCharges = parseFloat(totals.dept_charges) || 0;
             var surcharges = parseFloat(totals.surcharges) || 0;
             var additionalFee = parseFloat(totals.additional_fee_1) || 0;
+            var discount = parseFloat(totals.discount) || 0;
             var totalCost = parseFloat(totals.total_cost);
             if (isNaN(totalCost)) {
-                totalCost = blockFee + deptCharges + surcharges + additionalFee;
+                totalCost = blockFee + deptCharges + surcharges + additionalFee - discount;
             }
 
             $card.find('.js-cost-block-fee').text(formatChecklistMoney(blockFee));
@@ -5716,6 +5988,16 @@ success: function(response) {
                     $additionalRow.show();
                 } else {
                     $additionalRow.hide();
+                }
+            }
+
+            var $discountRow = $card.find('.js-cost-discount-row');
+            if ($discountRow.length) {
+                $card.find('.js-cost-discount').text('-' + formatChecklistMoney(discount));
+                if (discount > 0) {
+                    $discountRow.show();
+                } else {
+                    $discountRow.hide();
                 }
             }
 
@@ -5935,6 +6217,12 @@ success: function(response) {
 
                             $('#TotalBLOCKFEE_lead').val(obj.cost_assignment_matterInfo.TotalBLOCKFEE);
 
+                            applyCostAssignmentDiscountUi(
+                                $('#costAssignmentCreateFormModelLead'),
+                                isCostAssignmentDiscountEnabled(obj.cost_assignment_matterInfo.discount_enabled),
+                                obj.cost_assignment_matterInfo.discount
+                            );
+
                         }
 
                         else {
@@ -5986,6 +6274,8 @@ success: function(response) {
 
                             $('#TotalDoHASurcharges_lead').val(obj.matterInfo.TotalDoHASurcharges);
 
+                            applyCostAssignmentDiscountUi($('#costAssignmentCreateFormModelLead'), false, '0.00');
+
                         }
 
                         // Initialize calculation handlers for Lead form (Total Block Fee, Total DoHA Charges, Total DoHA Surcharges)
@@ -6009,6 +6299,7 @@ success: function(response) {
             $('#Dept_Base_Application_Charge_lead, #Dept_Non_Internet_Application_Charge_lead, #Dept_Additional_Applicant_Charge_18_Plus_lead, #Dept_Additional_Applicant_Charge_Under_18_lead, #Dept_Subsequent_Temp_Application_Charge_lead, #Dept_Second_VAC_Instalment_Charge_18_Plus_lead, #Dept_Second_VAC_Instalment_Under_18_lead, #Dept_Nomination_Application_Charge_lead, #Dept_Sponsorship_Application_Charge_lead, #saf_levy_lead').off('input change keyup');
             $('#Dept_Base_Application_Charge_no_of_person_lead, #Dept_Non_Internet_Application_Charge_no_of_person_lead, #Dept_Additional_Applicant_Charge_18_Plus_no_of_person_lead, #Dept_Additional_Applicant_Charge_Under_18_no_of_person_lead, #Dept_Subsequent_Temp_Application_Charge_no_of_person_lead, #Dept_Second_VAC_Instalment_Charge_18_Plus_no_of_person_lead, #Dept_Second_VAC_Instalment_Under_18_no_of_person_lead').off('input change keyup');
             $('#surcharge_lead').off('change');
+            bindCostAssignmentDiscountToggle($('#costAssignmentCreateFormModelLead'));
 
             $('#Block_1_Ex_Tax_lead, #Block_2_Ex_Tax_lead, #Block_3_Ex_Tax_lead').on('input change keyup', function() { calculateTotalBlockFeeLead(); });
             $('#Dept_Base_Application_Charge_lead, #Dept_Non_Internet_Application_Charge_lead, #Dept_Additional_Applicant_Charge_18_Plus_lead, #Dept_Additional_Applicant_Charge_Under_18_lead, #Dept_Subsequent_Temp_Application_Charge_lead, #Dept_Second_VAC_Instalment_Charge_18_Plus_lead, #Dept_Second_VAC_Instalment_Under_18_lead, #Dept_Nomination_Application_Charge_lead, #Dept_Sponsorship_Application_Charge_lead, #saf_levy_lead').on('input change keyup', function() { calculateTotalDoHAChargesLead(); });
@@ -8099,6 +8390,7 @@ success: function(response) {
 
                     // Apply First email macro values when available (from getComposeDefaults)
                     var macroVals = $('#emailmodal').data('composeMacroValues');
+                    var descriptionBeforeDiscount = subjct_description;
                     if (macroVals) {
                         var repl = function(str) {
                             if (!str) return '';
@@ -8111,6 +8403,8 @@ success: function(response) {
                             str = str.replace(/\$\{TotalDoHASurcharges\}/g, macroVals.TotalDoHASurcharges || '');
                             str = str.replace(/\{TotalEstimatedOthCosts\}/g, macroVals.TotalEstimatedOthCosts || '');
                             str = str.replace(/\$\{TotalEstimatedOthCosts\}/g, macroVals.TotalEstimatedOthCosts || '');
+                            str = str.replace(/\{DiscountAmount\}/g, macroVals.DiscountAmount || '');
+                            str = str.replace(/\$\{DiscountAmount\}/g, macroVals.DiscountAmount || '');
                             str = str.replace(/\{GrandTotalFeesAndCosts\}/g, macroVals.GrandTotalFeesAndCosts || '');
                             str = str.replace(/\$\{GrandTotalFeesAndCosts\}/g, macroVals.GrandTotalFeesAndCosts || '');
                             var pdfUrl = macroVals.PDF_url_for_sign || '';
@@ -8125,22 +8419,20 @@ success: function(response) {
                         };
                         subjct_message = repl(subjct_message);
                         subjct_description = repl(subjct_description);
+                        descriptionBeforeDiscount = subjct_description;
+                        try {
+                            if (typeof applyDiscountRowToEmailHtml === 'function') {
+                                subjct_description = applyDiscountRowToEmailHtml(subjct_description, macroVals.DiscountAmount);
+                            } else if (typeof window.applyDiscountRowToEmailHtml === 'function') {
+                                subjct_description = window.applyDiscountRowToEmailHtml(subjct_description, macroVals.DiscountAmount);
+                            }
+                        } catch (discountErr) {
+                            subjct_description = descriptionBeforeDiscount;
+                        }
                     }
 
                     $('.selectedsubject').val(subjct_message);
-
-                    clearEditor("#emailmodal .tinymce-editor");
-
-
-
-                    // Set content in TinyMCE editor
-                    if (typeof setTinyMCEContent === 'function') {
-                        setTinyMCEContent('compose_email_message', subjct_description);
-                    } else if (typeof tinymce !== 'undefined' && tinymce.get('compose_email_message')) {
-                        tinymce.get('compose_email_message').setContent(subjct_description);
-                    } else {
-                        $("#compose_email_message").val(subjct_description);
-                    }
+                    setComposeEmailTemplateBody(subjct_description, descriptionBeforeDiscount);
 
                 }
 

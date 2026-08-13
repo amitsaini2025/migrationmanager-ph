@@ -1100,6 +1100,7 @@ public function getChapters(Request $request)
 			'Blocktotalfeesincltax' => '',
 			'TotalDoHASurcharges' => '',
 			'TotalEstimatedOthCosts' => '',
+			'DiscountAmount' => '0.00',
 			'GrandTotalFeesAndCosts' => '',
 			'PDF_url_for_sign' => '',
 		];
@@ -1148,11 +1149,15 @@ public function getChapters(Request $request)
 					floatval($matterInfo->Dept_Nomination_Application_Charge ?? 0) +
 					floatval($matterInfo->Dept_Sponsorship_Application_Charge ?? 0);
 			}
+			$discount = $costAssignment
+				? \App\Models\CostAssignmentForm::appliedDiscountFromRow($costAssignment)
+				: 0.0;
 			$feeMacros = CompanyVisaAgreementMacroBuilder::buildFirstEmailComposeFeeMacros(
 				$blockTotal,
 				$totalDepartmentCharges,
 				$totalSurcharges,
-				$totalOther
+				$totalOther,
+				$discount
 			);
 			$values = array_merge($values, $feeMacros);
 		}
@@ -1418,6 +1423,10 @@ public function getChapters(Request $request)
 		if ($clientMatterIdForMacros && $clientIdForMacros) {
 			$macroValues = $this->getComposeMacroValues($clientIdForMacros, $clientMatterIdForMacros);
 		if ($macroValues) {
+			$message = ComposeEmailPayload::applyDiscountRowToMessage(
+				$message,
+				floatval($macroValues['DiscountAmount'] ?? 0)
+			);
 			foreach ($macroValues as $key => $val) {
 				if ((string)$val === '' || $key === 'PDF_url_for_sign') continue;
 				$subject = str_replace('{' . $key . '}', $val, $subject);

@@ -514,6 +514,25 @@
                             </div>
                         </div>
 
+                        <div style="margin-bottom: 15px;" class="accordion-header">
+                            <h4>Discount</h4>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input js-cost-discount-enabled" type="checkbox" name="discount_enabled" id="discount_enabled" value="1">
+                                    <label class="form-check-label" for="discount_enabled">Apply Discount</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-6 js-cost-discount-field-wrap" style="display: none;">
+                                <div class="form-group">
+                                    <label for="discount">Discount</label>
+                                    <input type="text" name="discount" class="form-control js-cost-discount-amount" id="discount" autocomplete="off" placeholder="Enter Discount" value="0.00">
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
 					<!-- Submit Button -->
@@ -901,6 +920,25 @@
                                             <strong>{{ @$errors->first('additional_fee_1') }}</strong>
                                         </span>
                                     @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 15px;" class="accordion-header">
+                            <h4>Discount</h4>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input js-cost-discount-enabled" type="checkbox" name="discount_enabled" id="discount_enabled_lead" value="1">
+                                    <label class="form-check-label" for="discount_enabled_lead">Apply Discount</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-6 js-cost-discount-field-wrap" style="display: none;">
+                                <div class="form-group">
+                                    <label for="discount_lead">Discount</label>
+                                    <input type="text" name="discount" class="form-control js-cost-discount-amount" id="discount_lead" autocomplete="off" placeholder="Enter Discount" value="0.00">
                                 </div>
                             </div>
                         </div>

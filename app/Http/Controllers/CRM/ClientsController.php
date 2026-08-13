@@ -6242,6 +6242,10 @@ class ClientsController extends Controller
         if ($request->isMethod('post'))
         {
             $requestData = $request->all(); //dd($requestData);
+            $discountFields = CostAssignmentForm::discountFieldsFromRequest(
+                $request->boolean('discount_enabled'),
+                $requestData['discount'] ?? 0
+            );
 
             $adminClient = Admin::find($requestData['client_id'] ?? null);
             $isCompanyClient = $adminClient && (bool) $adminClient->is_company;
@@ -6439,6 +6443,8 @@ class ClientsController extends Controller
                         'Block_2_Ex_Tax' => $requestData['Block_2_Ex_Tax'],
                         'Block_3_Ex_Tax' => $requestData['Block_3_Ex_Tax'],
                         'additional_fee_1' => $requestData['additional_fee_1'],
+                        'discount_enabled' => $discountFields['discount_enabled'],
+                        'discount' => $discountFields['discount'],
                         'TotalDoHACharges' => $TotalDoHACharges,
                         'TotalDoHASurcharges' => $TotalDoHASurcharges,
                         'TotalBLOCKFEE' => $TotalBLOCKFEE
@@ -6500,6 +6506,8 @@ class ClientsController extends Controller
                 $obj->Block_2_Ex_Tax = $requestData['Block_2_Ex_Tax'];
                 $obj->Block_3_Ex_Tax = $requestData['Block_3_Ex_Tax'];
                 $obj->additional_fee_1 = $requestData['additional_fee_1'];
+                $obj->discount_enabled = $discountFields['discount_enabled'];
+                $obj->discount = $discountFields['discount'];
                 $obj->TotalDoHACharges = $TotalDoHACharges;
                 $obj->TotalDoHASurcharges = $TotalDoHASurcharges;
                 $obj->TotalBLOCKFEE = $TotalBLOCKFEE;
@@ -6529,7 +6537,15 @@ class ClientsController extends Controller
                     'dept_charges' => $deptCharges,
                     'surcharges' => $surcharges,
                     'additional_fee_1' => $additionalFee1,
-                    'total_cost' => $blockFee + $deptCharges + $surcharges + $additionalFee1,
+                    'discount_enabled' => $discountFields['discount_enabled'],
+                    'discount' => $discountFields['discount'],
+                    'total_cost' => CostAssignmentForm::calculateTotalCost(
+                        $blockFee,
+                        $deptCharges,
+                        $surcharges,
+                        $additionalFee1,
+                        $discountFields['discount']
+                    ),
                 ];
                 $matter = \App\Models\ClientMatter::find($requestData['client_matter_id']);
                 $matterName = $matter ? $matter->title : 'N/A';
@@ -6767,6 +6783,10 @@ class ClientsController extends Controller
         if ($request->isMethod('post'))
         {
             $requestData = $request->all(); //dd($requestData);
+            $discountFields = CostAssignmentForm::discountFieldsFromRequest(
+                $request->boolean('discount_enabled'),
+                $requestData['discount'] ?? 0
+            );
             $clientForMatter = Admin::find($requestData['client_id'] ?? null);
             if (!$clientForMatter || ! in_array($clientForMatter->type, ['client', 'lead'], true)) {
                 $response['message'] = 'Invalid client.';
@@ -7010,6 +7030,8 @@ class ClientsController extends Controller
                             'Block_2_Ex_Tax' => $requestData['Block_2_Ex_Tax'],
                             'Block_3_Ex_Tax' => $requestData['Block_3_Ex_Tax'],
                             'additional_fee_1' => $requestData['additional_fee_1'],
+                            'discount_enabled' => $discountFields['discount_enabled'],
+                            'discount' => $discountFields['discount'],
                             'TotalDoHACharges' => $TotalDoHACharges,
                             'TotalDoHASurcharges' => $TotalDoHASurcharges,
                             'TotalBLOCKFEE' => $TotalBLOCKFEE
@@ -7070,6 +7092,8 @@ class ClientsController extends Controller
                     $obj->Block_2_Ex_Tax = $requestData['Block_2_Ex_Tax'];
                     $obj->Block_3_Ex_Tax = $requestData['Block_3_Ex_Tax'];
                     $obj->additional_fee_1 = $requestData['additional_fee_1'];
+                    $obj->discount_enabled = $discountFields['discount_enabled'];
+                    $obj->discount = $discountFields['discount'];
                     $obj->TotalDoHACharges = $TotalDoHACharges;
                     $obj->TotalDoHASurcharges = $TotalDoHASurcharges;
                     $obj->TotalBLOCKFEE = $TotalBLOCKFEE;
