@@ -686,7 +686,7 @@
             </div>
 
             <!-- Hidden fields for email configuration -->
-            <input type="hidden" name="from_email" value="info@bansalimmigration.com.au">
+            <input type="hidden" name="from_email" value="{{ config('mail.noreply.address') }}">
             <input type="hidden" name="email_template" value="emails.signature.send">
 
             <!-- Hidden fields for document and association data -->
