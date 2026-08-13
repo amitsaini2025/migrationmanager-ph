@@ -2205,9 +2205,85 @@ success: function(response) {
 
 
 
-        // Handle click event on the action button
+        // Handle click event on the action / followup button
 
-        $(document).delegate('.btn-assignstaff, .btn-assignuser, .btn-create-action', 'click', function(){
+        window.followupLocalDateString = function() {
+
+            var now = new Date();
+
+            var month = String(now.getMonth() + 1).padStart(2, '0');
+
+            var day = String(now.getDate()).padStart(2, '0');
+
+            return now.getFullYear() + '-' + month + '-' + day;
+
+        };
+
+
+
+        window.applyAssignStaffPopupMode = function(mode) {
+
+            var $modal = $('#create_action_popup');
+
+            var isFollowup = mode === 'followup';
+
+            var $date = $modal.find('#popoverdatetime');
+
+            var today = window.followupLocalDateString();
+
+            $modal.attr('data-popup-mode', isFollowup ? 'followup' : 'action');
+
+            $modal.find('.js-action-group-field').toggle(!isFollowup);
+
+            $modal.find('.js-action-deadline-field').toggle(!isFollowup);
+
+            $modal.find('.js-action-date-field').toggleClass('col-md-6', !isFollowup).toggleClass('col-12', isFollowup);
+
+            $('#create_action_popupLabel').text(isFollowup ? 'Create Followup' : 'Assign Staff');
+
+            $modal.find('.js-assign-staff-label').text(isFollowup ? 'Create Followup' : 'Assign Staff');
+
+            if (isFollowup) {
+
+                $date.attr('min', today);
+
+                if (!$date.val() || $date.val() < today) {
+
+                    $date.val(today);
+
+                }
+
+            } else {
+
+                $date.removeAttr('min');
+
+            }
+
+        };
+
+
+
+        $(document).on('change input', '#create_action_popup #popoverdatetime', function() {
+
+            if ($('#create_action_popup').attr('data-popup-mode') !== 'followup') {
+
+                return;
+
+            }
+
+            var today = window.followupLocalDateString();
+
+            if (!this.value || this.value < today) {
+
+                this.value = today;
+
+            }
+
+        });
+
+
+
+        $(document).delegate('.btn-assignstaff, .btn-assignuser, .btn-create-action, .btn-create-followup', 'click', function(){
 
             // Get the value from the #note_description TinyMCE editor
 
@@ -2294,6 +2370,10 @@ success: function(response) {
             // Close the #create_note_d modal
 
             $('#create_note_d').modal('hide');
+
+
+
+            window.applyAssignStaffPopupMode($(this).hasClass('btn-create-followup') ? 'followup' : 'action');
 
 
 
@@ -6734,6 +6814,8 @@ success: function(response) {
 
             $(".custom-error").remove();
 
+            var isFollowupMode = $('#create_action_popup').attr('data-popup-mode') === 'followup';
+
 
 
             // Get all checked assignee IDs from checkboxes
@@ -6798,7 +6880,7 @@ success: function(response) {
 
             
 
-            if ($('#task_group').val() === '') {
+            if (!isFollowupMode && $('#task_group').val() === '') {
 
                 $('.popuploader').hide();
 
@@ -6807,6 +6889,28 @@ success: function(response) {
                 $('#task_group').after("<span class='custom-error' role='alert' style='color: red; font-size: 12px; display: block; margin-top: 5px;'>" + error + "</span>");
 
                 flag = false;
+
+            }
+
+
+
+            if (isFollowupMode) {
+
+                var followupDate = $('#create_action_popup #popoverdatetime').val();
+
+                var followupToday = window.followupLocalDateString();
+
+                if (!followupDate || followupDate < followupToday) {
+
+                    $('.popuploader').hide();
+
+                    error = "Followup date cannot be in the past.";
+
+                    $('#create_action_popup #popoverdatetime').after("<span class='custom-error' role='alert' style='color: red; font-size: 12px; display: block; margin-top: 5px;'>" + error + "</span>");
+
+                    flag = false;
+
+                }
 
             }
 
@@ -6834,11 +6938,11 @@ success: function(response) {
 
                         rem_cat: selectedValues,
 
-                        task_group: $('#task_group option:selected').val(),
+                        task_group: isFollowupMode ? 'Follow Up' : $('#task_group option:selected').val(),
 
-                        note_deadline_checkbox: $('#note_deadline_checkbox').val(),
+                        note_deadline_checkbox: isFollowupMode ? '' : $('#note_deadline_checkbox').val(),
 
-                        note_deadline: $('#note_deadline').val()
+                        note_deadline: isFollowupMode ? '' : $('#note_deadline').val()
 
                     },
 
@@ -6851,6 +6955,15 @@ success: function(response) {
                         var obj = safeParseJsonResponse(response);
                         if (!obj) return;
                         if (obj.success) {
+
+                            var successMessage = isFollowupMode ? 'Followup created successfully.' : 'Action assigned successfully.';
+                            if (typeof mmShowToastMsg === 'function') {
+                                mmShowToastMsg('success', successMessage, 'Success');
+                            } else if (typeof iziToast !== 'undefined' && typeof iziToast.success === 'function') {
+                                iziToast.success({ title: 'Success', message: successMessage, position: 'topRight', timeout: 3000 });
+                            } else if (typeof showClientDocFeedback === 'function') {
+                                showClientDocFeedback('success', successMessage);
+                            }
 
                             $("[data-role=popover]").each(function() {
 
@@ -6875,6 +6988,12 @@ success: function(response) {
                             $('#note_deadline').prop('disabled', true);
 
                             $('.checkbox-item').prop('checked', false);
+
+                            if (typeof window.applyAssignStaffPopupMode === 'function') {
+
+                                window.applyAssignStaffPopupMode('action');
+
+                            }
 
                             
 
@@ -6901,27 +7020,17 @@ success: function(response) {
                             // Call the functions to refresh the data
                             // Add a small delay to ensure database transaction is committed
                             setTimeout(function() {
-                                // Refresh Activity Feed
-                                if (typeof getallactivities === 'function') {
+                                if (typeof window.loadActivities === 'function') {
+                                    if (window.ActivityFeedState && window.ActivityFeedState.loading) {
+                                        window.ActivityFeedState.pendingReset = true;
+                                    } else {
+                                        window.loadActivities({ reset: true });
+                                    }
+                                } else if (typeof getallactivities === 'function') {
                                     try {
                                         getallactivities();
                                     } catch (e) {
                                         console.error('Error refreshing Activity Feed:', e);
-                                        // Try fallback method
-                                        if (typeof window.loadActivities === 'function') {
-                                            try {
-                                                window.loadActivities();
-                                            } catch (e2) {
-                                                console.error('Error with fallback Activity Feed refresh:', e2);
-                                            }
-                                        }
-                                    }
-                                } else if (typeof window.loadActivities === 'function') {
-                                    // Fallback if getallactivities is not available
-                                    try {
-                                        window.loadActivities();
-                                    } catch (e) {
-                                        console.error('Error with window.loadActivities():', e);
                                     }
                                 }
 
@@ -6933,7 +7042,7 @@ success: function(response) {
                                         console.error('Error refreshing notes:', e);
                                     }
                                 }
-                            }, 500); // 500ms delay to ensure DB transaction is committed
+                            }, 400);
 
                         } else {
 
@@ -6968,6 +7077,7 @@ success: function(response) {
 
 
         function getallactivities(){
+            window.getallactivities = getallactivities;
 
             if (typeof window.loadActivities === 'function') {
                 window.loadActivities({ reset: true });

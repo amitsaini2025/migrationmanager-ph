@@ -350,6 +350,9 @@ $('#create_action_popup').on('hidden.bs.modal', function() {
     filterStaff('');
     updateSelectedStaff();
     updateHiddenSelect();
+    if (typeof window.applyAssignStaffPopupMode === 'function') {
+        window.applyAssignStaffPopupMode('action');
+    }
     // Close dropdown
     $('#staffDropdownMenu').removeClass('show');
     $('#staff-search-input').attr('aria-expanded', 'false');

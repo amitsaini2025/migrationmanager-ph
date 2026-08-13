@@ -13,7 +13,8 @@ use Illuminate\Database\Eloquent\Model;
  * 
  * Database field clarifications for the Action feature:
  * - is_action: When set to 1, this note is an Action item. 0 = regular note
- * - task_group (field name preserved): The action category (Call, Checklist, Review, Query, Urgent, Personal Action)
+ * - task_group (field name preserved): The action category (Call, Checklist, Review, Query, Urgent, Personal Action, Follow Up)
+ * - Follow Up: is_action = 1 AND task_group = 'Follow Up' (Action page Follow up tab)
  * - action_date: The scheduled date for the action
  * - task_status (in ActivitiesLog): Action completion status (0 = incomplete, 1 = completed)
  * - assigned_to: The staff member assigned to complete this action

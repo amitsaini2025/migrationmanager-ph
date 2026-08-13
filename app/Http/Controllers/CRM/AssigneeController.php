@@ -447,6 +447,12 @@ class AssigneeController extends Controller
                             );
                         }
                     }
+                } else {
+                    ActionTaskGroup::hideFollowUpsNotYetDue($query, 'notes.task_group', 'notes.action_date');
+                }
+
+                if ((string) $request->filter === 'follow_up') {
+                    ActionTaskGroup::constrainToVisibleFollowUpDates($query, 'notes.action_date');
                 }
 
                 // Note: Search functionality is now handled by Yajra DataTables filterColumn() definitions
@@ -685,7 +691,9 @@ class AssigneeController extends Controller
             $query->where('assigned_to', Auth::user()->id);
         }
 
-        $counts['all'] = (clone $query)->count();
+        $allQuery = clone $query;
+        ActionTaskGroup::hideFollowUpsNotYetDue($allQuery, 'task_group', 'action_date');
+        $counts['all'] = $allQuery->count();
         $counts['call'] = (clone $query)->where('task_group', 'Call')->count();
         $counts['checklist'] = (clone $query)->where('task_group', 'Checklist')->count();
         $counts['review'] = (clone $query)->where('task_group', 'Review')->count();
@@ -699,7 +707,9 @@ class AssigneeController extends Controller
                 ->count(DB::raw("COALESCE(NULLIF(unique_group_id, ''), CONCAT('note_', id))"))
             : (clone $query)->where('task_group', 'Client Portal')->count();
         $counts['eoi_roi_amendment'] = (clone $query)->whereIn('task_group', ActionTaskGroup::eoiRoiGroups())->count();
-        $counts['follow_up'] = (clone $query)->where('task_group', 'Follow Up')->count();
+        $followUpQuery = (clone $query)->where('task_group', ActionTaskGroup::FOLLOW_UP);
+        ActionTaskGroup::constrainToVisibleFollowUpDates($followUpQuery, 'action_date');
+        $counts['follow_up'] = $followUpQuery->count();
 
         return response()->json($counts);
     }

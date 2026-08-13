@@ -33,6 +33,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Mail;
 use App\Services\ClientReferenceService;
+use App\Support\ActionTaskGroup;
 use App\Support\AppointmentActivityDescription;
 use App\Support\NoteDescriptionHtml;
 use App\Support\StaffClientVisibility;
@@ -7669,9 +7670,11 @@ class ClientsController extends Controller
                     $action->action_date = $requestData['followup_datetime'];
                 }
 
-                //add note deadline
-                if(isset($requestData['note_deadline_checkbox']) && $requestData['note_deadline_checkbox'] != ''){
-                    if($requestData['note_deadline_checkbox'] == 1){
+                // Follow-ups do not use Note Deadline; keep it null so they stay distinct from actions.
+                if (ActionTaskGroup::isFollowUp($action->task_group)) {
+                    $action->note_deadline = null;
+                } elseif (isset($requestData['note_deadline_checkbox']) && $requestData['note_deadline_checkbox'] != '') {
+                    if ($requestData['note_deadline_checkbox'] == 1) {
                         $action->note_deadline = $requestData['note_deadline'] ?? null;
                     } else {
                         $action->note_deadline = NULL;
@@ -7711,7 +7714,8 @@ class ClientsController extends Controller
                         $formattedDate = date('d/M/Y h:i A');
                     }
                     
-                    $o->message = ($clientLabel !== '' ? 'Action for ' . $clientLabel . '. ' : '')
+                    $itemLabel = ActionTaskGroup::isFollowUp($action->task_group) ? 'Followup' : 'Action';
+                    $o->message = ($clientLabel !== '' ? $itemLabel . ' for ' . $clientLabel . '. ' : '')
                         . 'Assigned by ' . Auth::user()->first_name . ' ' . Auth::user()->last_name . ' on ' . $formattedDate;
                     $o->save();
 
@@ -7719,7 +7723,7 @@ class ClientsController extends Controller
                     $objs = new ActivitiesLog;
                     $objs->client_id = $clientId;
                     $objs->created_by = Auth::user()->id;
-                    $objs->subject = 'Set action for ' . $assigneeName;
+                    $objs->subject = ActionTaskGroup::assignActivitySubject($assigneeName, $action->task_group);
                     $objs->description = '<span class="text-semi-bold">' . ($requestData['remindersubject'] ?? '') . '</span><p>' . ($requestData['description'] ?? '') . '</p>';
                     $objs->task_status = 0;
                     $objs->pin = 0;

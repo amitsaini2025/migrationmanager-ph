@@ -187,6 +187,9 @@
 
                         <div class="col-12">
 							<div class="modal-footer-buttons">
+								<button type="button" class="btn btn-primary btn-lg btn-create-followup" data-container="body" data-role="popover" data-placement="bottom" data-html="true">
+									@icon('fa-calendar-check', ['class' => 'mr-2'])Create Followup
+								</button>
 								<button type="button" class="btn btn-primary btn-lg btn-create-action" data-container="body" data-role="popover" data-placement="bottom" data-html="true">
 									@icon('fa-cog', ['class' => 'mr-2'])Create Action
 								</button>
@@ -408,7 +411,8 @@
 }
 
 .btn-create-note,
-.btn-create-action {
+.btn-create-action,
+.btn-create-followup {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
     border-radius: 8px;
@@ -420,7 +424,8 @@
 }
 
 .btn-create-note:hover,
-.btn-create-action:hover {
+.btn-create-action:hover,
+.btn-create-followup:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
@@ -493,7 +498,8 @@
 
 /* Loading state for buttons */
 .btn-create-note:disabled,
-.btn-create-action:disabled {
+.btn-create-action:disabled,
+.btn-create-followup:disabled {
     opacity: 0.7;
     cursor: not-allowed;
     transform: none;

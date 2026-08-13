@@ -1306,7 +1306,7 @@ $(document).ready(function() {
     };
     
     // Global function to load activities feed (paginated via /get-activities)
-    window.ActivityFeedState = window.ActivityFeedState || { page: 1, hasMore: false, loading: false };
+    window.ActivityFeedState = window.ActivityFeedState || { page: 1, hasMore: false, loading: false, pendingReset: false };
 
     window.loadActivities = function(options) {
         var opts = options || {};
@@ -1314,10 +1314,14 @@ $(document).ready(function() {
         var append = opts.append === true;
 
         if (window.ActivityFeedState.loading) {
+            if (reset && !append) {
+                window.ActivityFeedState.pendingReset = true;
+            }
             return;
         }
 
         if (reset) {
+            window.ActivityFeedState.pendingReset = false;
             window.ActivityFeedState.page = 1;
             window.ActivityFeedState.hasMore = false;
             $('.activity-feed').scrollTop(0);
@@ -1479,7 +1483,12 @@ $(document).ready(function() {
                         $('.feed-list .feed-item.activity').last().after(html);
                     } else {
                         $('.feed-list .feed-item.activity').remove();
-                        $('.feed-list .feed-item--empty').before(html);
+                        var $emptyItem = $('.feed-list .feed-item--empty');
+                        if ($emptyItem.length) {
+                            $emptyItem.before(html);
+                        } else if ($('.feed-list').length) {
+                            $('.feed-list').prepend(html);
+                        }
                     }
 
                     window.ActivityFeedState.hasMore = !!response.has_more;
@@ -1507,6 +1516,10 @@ $(document).ready(function() {
                 $('#activity-feed-load-more').prop('disabled', false);
                 if (window.ActivityFeed && typeof window.ActivityFeed.afterActivitiesLoaded === 'function') {
                     window.ActivityFeed.afterActivitiesLoaded();
+                }
+                if (window.ActivityFeedState.pendingReset) {
+                    window.ActivityFeedState.pendingReset = false;
+                    window.loadActivities({ reset: true });
                 }
             }
         });

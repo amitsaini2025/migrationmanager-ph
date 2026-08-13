@@ -14,7 +14,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         '\App\Console\Commands\CronJob',
-        //'\App\Console\Commands\CompleteTaskRemoval',
+        // '\App\Console\Commands\CompleteTaskRemoval',
 
         '\App\Console\Commands\InPersonCompleteTaskRemoval',
         '\App\Console\Commands\ProcessServiceAccountTokens',
@@ -23,8 +23,8 @@ class Kernel extends ConsoleKernel
         '\App\Console\Commands\CleanUtf8Data',
         '\App\Console\Commands\BackfillEoiRoiData',
         '\App\Console\Commands\BackfillEoiAmendmentActions',
-        //'\App\Console\Commands\VisaExpireReminderEmail',
-        
+        // '\App\Console\Commands\VisaExpireReminderEmail',
+
         // Appointment Sync System Commands
         '\App\Console\Commands\SyncBansalAppointments',
         '\App\Console\Commands\SendAppointmentReminders',
@@ -33,7 +33,7 @@ class Kernel extends ConsoleKernel
         '\App\Console\Commands\RetryInvalidEnquiryTypeSync',
         '\App\Console\Commands\RetryAppointmentNotFoundSync',
         '\App\Console\Commands\MigrateKunalCalendarAppointments',
-        
+
         // Signature Management System Commands
         '\App\Console\Commands\ArchiveOldDrafts',
         '\App\Console\Commands\SendSignatureReminders',
@@ -42,27 +42,27 @@ class Kernel extends ConsoleKernel
         '\App\Console\Commands\RetryLocalSignaturePngsToS3',
         '\App\Console\Commands\MigrateMessageAttachmentsToS3',
         '\App\Console\Commands\RetryLocalAgreementsToS3',
-        
+
         // SQL Migration Tools
-        //'\App\Console\Commands\FixMySqlDumpForPostgres', // Command file does not exist
-        //'\App\Console\Commands\FixRemainingSqlIssues', // Command file does not exist
-        
+        // '\App\Console\Commands\FixMySqlDumpForPostgres', // Command file does not exist
+        // '\App\Console\Commands\FixRemainingSqlIssues', // Command file does not exist
+
         // Login Data Import
         '\App\Console\Commands\ImportLoginDataFromMySQL',
-        
+
         // Client Reference Management Commands
         '\App\Console\Commands\FixDuplicateClientReferences',
 
         // Smart Email Import
         '\App\Console\Commands\CleanSmartEmailImportStaging',
-        
+
         // Client Age Management Commands
         '\App\Console\Commands\UpdateClientAges',
-        
+
         // Activity Cleanup Commands
         '\App\Console\Commands\CleanupActivityDescriptions',
         '\App\Console\Commands\BackfillAppointmentActivityLogs',
-        
+
         // Database Comparison
         '\App\Console\Commands\CompareDatabaseTables',
         '\App\Console\Commands\CheckMigrationTablesExist',
@@ -75,19 +75,19 @@ class Kernel extends ConsoleKernel
         '\App\Console\Commands\DiagnoseVisaSheet',
         '\App\Console\Commands\ExpireCrmAccessGrants',
         '\App\Console\Commands\CacheAccessGrantGlobalCounts',
+        '\App\Console\Commands\SendFollowUpReminders',
     ];
 
     /**
      * Define the application's command schedule.
      *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
      * @return void
      */
     protected function schedule(Schedule $schedule)
     {
         // $schedule->command('inspire')
         //          ->hourly();
-	$schedule->command('CronJob:cronjob')->daily();
+        $schedule->command('CronJob:cronjob')->daily();
 
         // Smart Email Import — prune staging folders older than 24h
         $schedule->command('smart-email-import:clean')
@@ -95,13 +95,13 @@ class Kernel extends ConsoleKernel
             ->timezone('Australia/Melbourne')
             ->withoutOverlapping(5)
             ->appendOutputTo(storage_path('logs/smart-email-import-clean.log'));
-        //$schedule->command('CompleteTaskRemoval:daily')->daily();
+        // $schedule->command('CompleteTaskRemoval:daily')->daily();
 
-        //InPerson Complete Task Removal daily 1 time
-        //$schedule->command('InPersonCompleteTaskRemoval:daily')->daily();
-        //visa expire Reminder email before 15 days daily at 1 time
-        //$schedule->command('VisaExpireReminderEmail:daily')->daily();
-        
+        // InPerson Complete Task Removal daily 1 time
+        // $schedule->command('InPersonCompleteTaskRemoval:daily')->daily();
+        // visa expire Reminder email before 15 days daily at 1 time
+        // $schedule->command('VisaExpireReminderEmail:daily')->daily();
+
         // Appointment Sync System - Sync from Bansal website every 15 minutes (look back 20 minutes for overlap buffer)
         $schedule->command('booking:sync-appointments --minutes=20')
             ->everyFifteenMinutes()
@@ -115,7 +115,13 @@ class Kernel extends ConsoleKernel
             ->timezone('Australia/Melbourne')
             ->withoutOverlapping(10)
             ->appendOutputTo(storage_path('logs/appointment-reminders.log'));
-        
+
+        $schedule->command('followups:send-reminders')
+            ->dailyAt('08:30')
+            ->timezone('Australia/Melbourne')
+            ->withoutOverlapping(10)
+            ->appendOutputTo(storage_path('logs/followup-reminders.log'));
+
         // Signature Management - Archive old drafts daily at 2 AM
         $schedule->command('signatures:archive-drafts --days=30')
             ->daily()
@@ -143,7 +149,7 @@ class Kernel extends ConsoleKernel
             ->timezone('Australia/Melbourne')
             ->withoutOverlapping(60)
             ->appendOutputTo(storage_path('logs/retry-agreements-s3.log'));
-        
+
         // Signature Management - Send auto-reminders daily at 10 AM
         /*$schedule->command('signatures:send-auto-reminders --days=7')
             ->daily()
@@ -151,7 +157,7 @@ class Kernel extends ConsoleKernel
             ->timezone('Australia/Melbourne')
             ->withoutOverlapping(30)
             ->appendOutputTo(storage_path('logs/signature-auto-reminders.log'));*/
-        
+
         // Client Age Management - Update ages bi-weekly (1st and 15th of each month) at 2 AM
         $schedule->command('clients:update-ages --smart')
             ->twiceMonthly(1, 15)
@@ -171,7 +177,7 @@ class Kernel extends ConsoleKernel
      */
     protected function commands()
     {
-       // $this->load(__DIR__.'/Commands');
+        // $this->load(__DIR__.'/Commands');
 
         require base_path('routes/console.php');
     }

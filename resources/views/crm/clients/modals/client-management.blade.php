@@ -610,7 +610,7 @@
 </style>
 
 <!-- Assign Staff Modal -->
-<div class="modal fade custom_modal" id="create_action_popup" tabindex="-1" role="dialog" aria-labelledby="create_action_popupLabel" aria-hidden="true">
+<div class="modal fade custom_modal" id="create_action_popup" tabindex="-1" role="dialog" aria-labelledby="create_action_popupLabel" aria-hidden="true" data-popup-mode="action">
     <div class="modal-dialog">
         <div class="modal-content assign-staff-modal">
             <div class="modal-header assign-staff-header">
@@ -695,7 +695,7 @@
                         </div>
                     </div>
 
-                    <div class="col-12 col-md-6">
+                    <div class="col-12 col-md-6 js-action-date-field">
                         <div class="form-group enhanced-form-group">
                             <label for="popoverdatetime" class="form-label">
                                 @icon('fa-calendar', ['class' => 'text-muted mr-1'])
@@ -710,7 +710,7 @@
                         </div>
                     </div>
 
-                    <div class="col-12 col-md-6">
+                    <div class="col-12 col-md-6 js-action-group-field">
                         <div class="form-group enhanced-form-group">
                             <label for="task_group" class="form-label">
                                 @icon('fa-tag', ['class' => 'text-muted mr-1'])
@@ -732,7 +732,7 @@
                         </div>
                     </div>
 
-                    <div class="col-12">
+                    <div class="col-12 js-action-deadline-field">
                         <div class="form-group enhanced-form-group note_deadline">
                             <div class="row align-items-center">
                                 <div class="col-12 col-md-4">
@@ -760,7 +760,7 @@
                 
                 <div class="modal-footer-buttons">
                     <button class="btn btn-primary btn-lg btn-assign-staff" id="assignStaff">
-                        @icon('fa-user-plus', ['class' => 'mr-2'])Assign Staff
+                        @icon('fa-user-plus', ['class' => 'mr-2'])<span class="js-assign-staff-label">Assign Staff</span>
                     </button>
                     <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal">
                         @icon('fa-times', ['class' => 'mr-2'])Cancel
