@@ -452,6 +452,9 @@ Route::post('/save_tag', [ClientsController::class, 'save_tag']);
 Route::post('/save-references', [ClientsController::class, 'savereferences'])->name('references.store');
 Route::post('/check-star-client', [ClientsController::class, 'checkStarClient'])->name('check.star.client');
 Route::post('/merge_records', [ClientsController::class, 'merge_records'])->name('client.merge_records');
+Route::get('/merge_records/search', [ClientsController::class, 'searchMergeRecords'])
+    ->middleware('throttle:30,1')
+    ->name('client.merge_records.search');
 
 /*---------- Contact Person Search (for Company Leads) ----------*/
 Route::get('/api/search-contact-person', [ClientsController::class, 'searchContactPerson'])

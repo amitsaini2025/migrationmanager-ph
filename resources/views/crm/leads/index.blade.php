@@ -339,10 +339,9 @@
                             <a class="btn btn-primary" href="javascript:;">Change Assignee</a>
                         </li>
 
-                        {{-- Merge hidden (C1): inverted soft-delete / data corruption — re-enable only after fix --}}
-                        {{-- <li class="nav-item is_checked_client_merge" style="display:none;">
+                        <li class="nav-item is_checked_client_merge_test" style="display:none;">
                             <a class="btn btn-primary" href="javascript:;">Merge</a>
-                        </li> --}}
+                        </li>
 
                         <li class="nav-item is_checked_clientn">
                             <a class="nav-link " id="clients-tab"  href="{{URL::to('/clients')}}" >Clients</a>
@@ -527,7 +526,7 @@
                                     <tr id="id_{{@$list->id}}">
                                         <td style="white-space: initial;" class="text-center">
                                             <div class="custom-checkbox custom-control">
-                                                <input data-id="{{@$list->id}}" data-email="{{@$list->email}}" data-name="{{@$list->first_name}} {{@$list->last_name}}" data-clientid="{{@$list->client_id}}" type="checkbox" data-checkboxes="mygroup" class="cb-element custom-control-input  your-checkbox" id="checkbox-{{$i}}">
+                                                <input data-id="{{@$list->id}}" data-email="{{@$list->email}}" data-name="{{@$list->first_name}} {{@$list->last_name}}" data-clientid="{{@$list->client_id}}" data-phone="{{@$list->phone}}" type="checkbox" data-checkboxes="mygroup" class="cb-element custom-control-input  your-checkbox" id="checkbox-{{$i}}">
                                                 <label for="checkbox-{{$i}}" class="custom-control-label">&nbsp;</label>
                                             </div>
                                         </td>
@@ -811,12 +810,11 @@ function exportLeadList(filteredTotal) {
                         $('.listing-container .is_checked_clientn').show();
                     }
                 }
-                // Merge UI hidden (C1) — do not show until merge_records is fixed
-                // if(checked_length == 2){
-                //     $('.listing-container .is_checked_client_merge').show();
-                // } else {
-                //     $('.listing-container .is_checked_client_merge').hide();
-                // }
+                if(checked_length == 1){
+                    $('.listing-container .is_checked_client_merge_test').show();
+                } else {
+                    $('.listing-container .is_checked_client_merge_test').hide();
+                }
             });
         });
 
@@ -842,9 +840,6 @@ function exportLeadList(filteredTotal) {
             }
         });
 
-        // Merge click handler disabled (C1) — endpoint also disabled server-side
-        // $(document).delegate('.listing-container .is_checked_client_merge', 'click', function(){ ... });
-
         $('.listing-container .cb-element').change(function () {
             if ($('.listing-container .cb-element:checked').length == $('.listing-container .cb-element').length){
                 $('.listing-container #checkbox-all').prop('checked',true);
@@ -859,6 +854,11 @@ function exportLeadList(filteredTotal) {
             }else{
                 $('.listing-container .is_checked_client').hide();
                 $('.listing-container .is_checked_clientn').show();
+            }
+            if ($('.listing-container .cb-element:checked').length == 1){
+                $('.listing-container .is_checked_client_merge_test').show();
+            } else {
+                $('.listing-container .is_checked_client_merge_test').hide();
             }
         });
 
@@ -1297,5 +1297,6 @@ function exportLeadList(filteredTotal) {
         return false;
     }
 </script>
+@include('crm.partials.merge-test-modal', ['mergeSearchType' => 'lead'])
 @endpush
 

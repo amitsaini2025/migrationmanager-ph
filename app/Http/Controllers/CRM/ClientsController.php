@@ -33,6 +33,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Mail;
 use App\Services\ClientReferenceService;
+use App\Services\MergeClientRecordsService;
 use App\Support\ActionTaskGroup;
 use App\Support\AppointmentActivityDescription;
 use App\Support\NoteDescriptionHtml;
@@ -110,6 +111,7 @@ class ClientsController extends Controller
     
     protected $openAiClient;
     protected $smsManager;
+    protected MergeClientRecordsService $mergeClientRecords;
 
     /** @var bool|null Cached for the current request only */
     protected $googleReviewCrmTemplateExistsCache = null;
@@ -123,10 +125,11 @@ class ClientsController extends Controller
      *
      * @return void
      */
-    public function __construct(UnifiedSmsManager $smsManager)
+    public function __construct(UnifiedSmsManager $smsManager, MergeClientRecordsService $mergeClientRecords)
     {
         $this->middleware('auth:admin');
         $this->smsManager = $smsManager;
+        $this->mergeClientRecords = $mergeClientRecords;
 
         $this->openAiClient = new Client([
             'base_uri' => 'https://api.openai.com/v1/',
@@ -3879,206 +3882,133 @@ class ClientsController extends Controller
     }*/
 
     public function merge_records(Request $request){
-        // C1: Merge soft-deletes the wrong record and corrupts related data.
-        // Feature hidden in UI; endpoint disabled until a correct merge is implemented.
         $response = array();
         $response['status'] 	= 	false;
-        $response['message']	=	'Merge is temporarily disabled.';
-        echo json_encode($response);
-        return;
+        $response['message']	=	'Please try again';
+
+        $mergeFrom = (int) $request->input('merge_from');
+        $mergeInto = (int) $request->input('merge_into');
+
+        if ($mergeFrom <= 0 || $mergeInto <= 0 || $mergeFrom === $mergeInto) {
+            $response['message'] = 'Please select two different records to merge.';
+            return response()->json($response);
+        }
+
+        if (
+            ! StaffClientVisibility::canAccessClientOrLead($mergeFrom, Auth::user())
+            || ! StaffClientVisibility::canAccessClientOrLead($mergeInto, Auth::user())
+        ) {
+            return response()->json(StaffClientVisibility::unauthorizedPayload());
+        }
+
+        $fromRecord = Admin::query()->where('id', $mergeFrom)->whereNull('is_deleted')->first();
+        $intoRecord = Admin::query()->where('id', $mergeInto)->whereNull('is_deleted')->first();
+        if (! $fromRecord || ! $intoRecord) {
+            $response['message'] = 'One or both records were not found.';
+            return response()->json($response);
+        }
 
         if(
             ( isset($request->merge_from) && $request->merge_from != "" )
             && ( isset($request->merge_into) && $request->merge_into != "" )
         ){
-            //Update merge_into to be deleted
-            DB::table('admins')->where('id',$request->merge_into)->update( array('is_deleted'=>1) );
+            DB::beginTransaction();
 
-            //activities_logs
-            $activitiesLogs = DB::table('activities_logs')->where('client_id', $request->merge_from)->get(); //dd($activitiesLogs);
-            if(!empty($activitiesLogs)){
-                foreach($activitiesLogs as $actkey=>$actval){
-                    DB::table('activities_logs')->insert(
-                        [
-                            'client_id' => $request->merge_into,
-                            'created_by' => $actval->created_by,
-                            'description' => $actval->description,
-                            'created_at' => $actval->created_at,
-                            'updated_at' => $actval->updated_at,
-                            'subject' => $actval->subject,
-                            'use_for' => $actval->use_for,
-                            'followup_date' => $actval->followup_date,
-                            'task_group' => $actval->task_group,
-                            'task_status' => $actval->task_status,
-                            'source' => $actval->source ?? null
-                        ]
-                    );
-                }
+            try {
+            $this->mergeClientRecords->move($mergeFrom, $mergeInto);
+
+            // Survivor is merge_into; retire merge_from (the record being merged away).
+            DB::table('admins')->where('id', $mergeFrom)->update( array('is_deleted'=>1) );
+
+            DB::commit();
+            $response['status'] 	= 	true;
+            $response['message']	=	'You have successfully merged records.';
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                Log::error('merge_records failed', [
+                    'merge_from' => $mergeFrom,
+                    'merge_into' => $mergeInto,
+                    'error' => $e->getMessage(),
+                ]);
+                $response['status'] 	= 	false;
+                $response['message']	=	'Merge failed. Please try again.';
             }
-
-            //notes
-            $notes = DB::table('notes')->where('client_id', $request->merge_from)->get(); //dd($notes);
-            if(!empty($notes)){
-                foreach($notes as $notekey=>$noteval){
-                    DB::table('notes')->insert(
-                        [
-                            'user_id'=> $noteval->user_id,
-                            'client_id' => $request->merge_into,
-                            'lead_id' => $noteval->lead_id,
-                            'title' => $noteval->title,
-                            'description' => $noteval->description,
-                            'created_at' => $noteval->created_at,
-                            'updated_at' => $noteval->updated_at,
-                            'mail_id' => $noteval->mail_id,
-                            'type' => $noteval->type,
-                            'pin' => $noteval->pin,
-                            'action_date' => $noteval->action_date,
-                            'is_action' => $noteval->is_action,
-                            'assigned_to' => $noteval->assigned_to,
-                            'status' => $noteval->status,
-                            'task_group' => $noteval->task_group,
-                        ]
-                    );
-                }
-            }
-
-            // applications table has been removed - workflow is tracked via client_matters
-
-            //education documents and migration documents
-            $documents = DB::table('documents')->where('client_id', $request->merge_from)->get(); //dd($documents);
-            if(!empty($documents)){
-                foreach($documents as $dockey=>$docval){
-                    DB::table('documents')->insert(
-                        [
-                            'document'=> $docval->document,
-                            'filetype' => $docval->filetype,
-                            'myfile' => $docval->myfile,
-                            'user_id' => $docval->user_id,
-                            'client_id' => $request->merge_into,
-                            'file_size' => $docval->file_size,
-                            'type' => $docval->type,
-                            'doc_type' => $docval->doc_type,
-                            'created_at' => $docval->created_at,
-                            'updated_at' => $docval->updated_at
-                        ]
-                    );
-                }
-            }
-
-            //appointments
-            $appointments = DB::table('appointments')->where('client_id', $request->merge_from)->get(); //dd($appointments);
-            if(!empty($appointments)){
-                foreach($appointments as $appkey=>$appval){
-                    DB::table('appointments')->insert(
-                        [
-                            'user_id'=> $appval->user_id,
-                            'client_id' => $request->merge_into,
-                            'service_id' => $appval->service_id,
-                            'noe_id' => $appval->noe_id,
-                            'full_name' => $appval->full_name,
-                            'email' => $appval->email,
-                            'phone' => $appval->phone,
-                            'timezone' => $appval->timezone,
-                            'date' => $appval->date,
-                            'time' => $appval->time,
-                            'timeslot_full' => $appval->timeslot_full,
-                            'title' => $appval->title,
-                            'description' => $appval->description,
-                            'invites' => $appval->invites,
-                            'appointment_details' => $appval->appointment_details,
-                            'status' => $appval->status,
-                            'assignee' => $appval->assignee,
-                            'priority' => $appval->priority,
-                            'priority_no' => $appval->priority_no,
-                            'created_at' => $appval->created_at,
-                            'updated_at' => $appval->updated_at,
-                            'related_to' => $appval->related_to,
-                            'order_hash' => $appval->order_hash
-                        ]
-                    );
-                }
-            }
-
-            //quotations
-            $quotations = DB::table('quotations')->where('client_id', $request->merge_from)->get(); //dd($quotations);
-            if(!empty($quotations)){
-                foreach($quotations as $quotekey=>$quoteval){
-                    DB::table('quotations')->insert(
-                        [
-                            'client_id' => $request->merge_into,
-                            'user_id'=> $quoteval->user_id,
-                            'total_fee' => $quoteval->total_fee,
-                            'status' => $quoteval->status,
-                            'due_date' => $quoteval->due_date,
-                            'created_by' => $quoteval->created_by,
-                            'created_at' => $quoteval->created_at,
-                            'updated_at' => $quoteval->updated_at,
-                            'currency' => $quoteval->currency,
-                            'is_archive' => $quoteval->is_archive
-                        ]
-                    );
-                }
-            }
-
-            // Email history (email_logs)
-            $conversations = DB::table('email_logs')->where('client_id', $request->merge_from)->get(); //dd($conversations);
-            if(!empty($conversations)){
-                foreach($conversations as $mailkey=>$mailval){
-                    DB::table('email_logs')->insert(
-                        [
-                            'user_id' => $mailval->user_id,
-                            'from_mail' => $mailval->from_mail,
-                            'to_mail' => $mailval->to_mail,
-                            'cc' => $mailval->cc,
-                            'template_id' => $mailval->template_id,
-                            'subject' => $mailval->subject,
-                            'message' => $mailval->message,
-                            'created_at' => $mailval->created_at,
-                            'updated_at' => $mailval->updated_at,
-                            'type' => $mailval->type,
-                            'reciept_id' => $mailval->reciept_id,
-                            'attachments' => $mailval->attachments,
-                            'mail_type' => $mailval->mail_type,
-                            'client_id' => $request->merge_into
-                        ]
-                    );
-                }
-            }
-
-            // Education table removed - system deprecated (replaced by ClientQualification)
-            // Table 'education' no longer exists in database - verified 2026-01-27
-            // Current qualification system uses 'client_qualifications' table with ClientQualification model
-
-            //CheckinLogs
-            $checkinLogs = DB::table('checkin_logs')->where('client_id', $request->merge_from)->get(); //dd($checkinLogs);
-            if(!empty($checkinLogs)){
-                foreach($checkinLogs as $checkkey=>$checkval){
-                    DB::table('checkin_logs')->insert(
-                        [
-                             'client_id' => $request->merge_into,
-                             'contact_type' => $checkval->contact_type,
-                             'user_id' => $checkval->user_id,
-                             'visit_purpose' => $checkval->visit_purpose,
-                             'status' => $checkval->status,
-                             'date' => $checkval->date,
-                             'sesion_start' => $checkval->sesion_start,
-                             'sesion_end' => $checkval->sesion_end,
-                             'created_at' => $checkval->created_at,
-                             'updated_at' => $checkval->updated_at,
-                             'wait_time' => $checkval->wait_time,
-                             'attend_time' => $checkval->attend_time,
-                             'office' => $checkval->office,
-                             'wait_type' => $checkval->wait_type
-                        ]
-                    );
-                }
-            }
-
-            // prev_visa column dropped Phase 4 - no longer copied during merge
         }
-        $response['status'] 	= 	true;
-        $response['message']	=	'You have successfully merged records.';
-        echo json_encode($response);
+        return response()->json($response);
+    }
+
+    public function searchMergeRecords(Request $request)
+    {
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:100'],
+            'exclude_id' => ['required', 'integer'],
+            'type' => ['nullable', Rule::in(['lead', 'client'])],
+        ]);
+
+        $excludeId = (int) $validated['exclude_id'];
+        $term = '%'.$validated['q'].'%';
+        $likeOperator = DB::getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
+
+        if (! StaffClientVisibility::canAccessClientOrLead($excludeId, Auth::user())) {
+            return response()->json(StaffClientVisibility::unauthorizedPayload(), 403);
+        }
+
+        $applySearch = function ($builder) use ($likeOperator, $term, $excludeId) {
+            return $builder
+                ->whereNull('is_deleted')
+                ->where(function ($q) {
+                    $q->where('is_archived', 0)->orWhereNull('is_archived');
+                })
+                ->where('id', '!=', $excludeId)
+                ->where(function ($q) use ($likeOperator, $term) {
+                    $q->where('phone', $likeOperator, $term)
+                        ->orWhere('email', $likeOperator, $term)
+                        ->orWhere('first_name', $likeOperator, $term)
+                        ->orWhere('last_name', $likeOperator, $term)
+                        ->orWhere('client_id', $likeOperator, $term);
+                    if (DB::getDriverName() === 'pgsql') {
+                        $q->orWhereRaw("CONCAT(first_name, ' ', last_name) ILIKE ?", [$term]);
+                    } else {
+                        $q->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", [$term]);
+                    }
+                })
+                ->select('id', 'first_name', 'last_name', 'email', 'phone', 'client_id', 'type')
+                ->orderByDesc('id')
+                ->limit(20);
+        };
+
+        $leadBuilder = $applySearch(Admin::query()->where('type', 'lead'));
+        StaffClientVisibility::restrictLeadListQuery($leadBuilder);
+
+        $clientBuilder = $applySearch(Admin::query()->where('type', 'client'));
+        StaffClientVisibility::restrictAdminEloquentQuery($clientBuilder);
+
+        $mapRecord = function (Admin $person) {
+            $fullName = trim($person->first_name.' '.$person->last_name);
+            $type = $person->type === 'client' ? 'client' : 'lead';
+
+            return [
+                'id' => $person->id,
+                'first_name' => $person->first_name,
+                'last_name' => $person->last_name,
+                'name' => $fullName,
+                'email' => $person->email,
+                'phone' => $person->phone,
+                'client_id' => $person->client_id,
+                'type' => $type,
+                'type_label' => $type === 'client' ? 'Client' : 'Lead',
+                'label' => $fullName.' ('.$person->client_id.')',
+            ];
+        };
+
+        $results = $leadBuilder->get()
+            ->concat($clientBuilder->get())
+            ->sortByDesc('id')
+            ->take(20)
+            ->values()
+            ->map($mapRecord);
+
+        return response()->json(['results' => $results]);
     }
 
     //address_auto_populate
