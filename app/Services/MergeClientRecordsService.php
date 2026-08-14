@@ -27,6 +27,8 @@ class MergeClientRecordsService
         foreach (['companies' => 'admin_id', 'client_access_grants' => 'admin_id'] as $table => $column) {
             $this->reassign($table, $column, $fromId, $intoId);
         }
+
+        $this->moveTagsAndRelatedFiles($fromId, $intoId);
     }
 
     /**
@@ -138,5 +140,85 @@ class MergeClientRecordsService
                 // Unique conflict: keep the survivor's row and leave this one on the source.
             }
         }
+    }
+
+    private function moveTagsAndRelatedFiles(int $fromId, int $intoId): void
+    {
+        $this->mergeCommaSeparatedAdminField('tagname', $fromId, $intoId, false);
+        $this->mergeCommaSeparatedAdminField('related_files', $fromId, $intoId, true);
+        $this->retargetRelatedFileLinks($fromId, $intoId);
+    }
+
+    private function mergeCommaSeparatedAdminField(string $column, int $fromId, int $intoId, bool $excludeRecordIds): void
+    {
+        if (! Schema::hasColumn('admins', $column)) {
+            return;
+        }
+
+        $fromValue = DB::table('admins')->where('id', $fromId)->value($column);
+        $intoValue = DB::table('admins')->where('id', $intoId)->value($column);
+        $merged = array_values(array_unique(array_merge(
+            $this->csvToList($intoValue),
+            $this->csvToList($fromValue)
+        )));
+
+        if ($excludeRecordIds) {
+            $merged = array_values(array_filter(
+                $merged,
+                static fn ($id) => (int) $id !== $fromId && (int) $id !== $intoId
+            ));
+        }
+
+        DB::table('admins')->where('id', $intoId)->update([
+            $column => $merged === [] ? null : implode(',', $merged),
+        ]);
+        DB::table('admins')->where('id', $fromId)->update([$column => null]);
+    }
+
+    private function retargetRelatedFileLinks(int $fromId, int $intoId): void
+    {
+        if (! Schema::hasColumn('admins', 'related_files')) {
+            return;
+        }
+
+        $from = (string) $fromId;
+        $linked = DB::table('admins')
+            ->where('id', '!=', $fromId)
+            ->whereNotNull('related_files')
+            ->where('related_files', '!=', '')
+            ->where(function ($query) use ($from) {
+                $query->where('related_files', $from)
+                    ->orWhere('related_files', 'like', $from.',%')
+                    ->orWhere('related_files', 'like', '%,'.$from)
+                    ->orWhere('related_files', 'like', '%,'.$from.',%');
+            })
+            ->get(['id', 'related_files']);
+
+        foreach ($linked as $row) {
+            $ids = $this->csvToList($row->related_files);
+            $ids = array_map(static fn ($id) => (int) $id === $fromId ? (string) $intoId : $id, $ids);
+            $ids = array_values(array_unique(array_filter(
+                $ids,
+                static fn ($id) => (int) $id !== $fromId && (int) $id !== (int) $row->id
+            )));
+
+            DB::table('admins')->where('id', $row->id)->update([
+                'related_files' => $ids === [] ? null : implode(',', $ids),
+            ]);
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function csvToList(mixed $csv): array
+    {
+        if ($csv === null) {
+            return [];
+        }
+
+        $parts = array_map('trim', explode(',', (string) $csv));
+
+        return array_values(array_filter($parts, static fn ($part) => $part !== ''));
     }
 }

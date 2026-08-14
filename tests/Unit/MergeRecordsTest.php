@@ -215,6 +215,58 @@ class MergeRecordsTest extends TestCase
     }
 
     #[Test]
+    public function merge_moves_tags_and_related_files_onto_the_surviving_record(): void
+    {
+        $source = Admin::factory()->create([
+            'type' => 'lead',
+            'email' => 'source.tags.merge@test.com',
+        ]);
+        $target = Admin::factory()->create([
+            'type' => 'lead',
+            'email' => 'target.tags.merge@test.com',
+        ]);
+        $linked = Admin::factory()->create([
+            'type' => 'lead',
+            'email' => 'linked.tags.merge@test.com',
+        ]);
+
+        $this->staff->refresh();
+
+        DB::table('admins')->where('id', $source->id)->update([
+            'tagname' => '10,20',
+            'related_files' => (string) $linked->id,
+        ]);
+        DB::table('admins')->where('id', $target->id)->update([
+            'tagname' => '20,30',
+            'related_files' => '',
+        ]);
+        DB::table('admins')->where('id', $linked->id)->update([
+            'related_files' => (string) $source->id,
+        ]);
+
+        $response = $this->actingAs($this->staff, 'admin')
+            ->post('/merge_records', [
+                'merge_from' => $source->id,
+                'merge_into' => $target->id,
+            ]);
+
+        $response->assertOk();
+        $payload = $response->json();
+        $this->assertTrue($payload['status'] ?? false, $payload['message'] ?? 'Merge failed');
+
+        $targetRow = DB::table('admins')->where('id', $target->id)->first();
+        $this->assertSame('20,30,10', $targetRow->tagname);
+        $this->assertSame((string) $linked->id, $targetRow->related_files);
+
+        $sourceRow = DB::table('admins')->where('id', $source->id)->first();
+        $this->assertNull($sourceRow->tagname);
+        $this->assertNull($sourceRow->related_files);
+
+        $linkedRow = DB::table('admins')->where('id', $linked->id)->first();
+        $this->assertSame((string) $target->id, $linkedRow->related_files);
+    }
+
+    #[Test]
     public function merge_rejects_the_same_record_twice(): void
     {
         $lead = Admin::factory()->create([
@@ -371,6 +423,8 @@ class MergeRecordsTest extends TestCase
                 $table->unsignedInteger('is_archived')->nullable();
                 $table->string('client_id')->nullable();
                 $table->unsignedBigInteger('user_id')->nullable();
+                $table->string('tagname')->nullable();
+                $table->text('related_files')->nullable();
                 $table->timestamps();
             });
         } else {
@@ -382,6 +436,16 @@ class MergeRecordsTest extends TestCase
             if (! Schema::hasColumn('admins', 'is_archived')) {
                 Schema::table('admins', function (Blueprint $table) {
                     $table->unsignedInteger('is_archived')->nullable();
+                });
+            }
+            if (! Schema::hasColumn('admins', 'tagname')) {
+                Schema::table('admins', function (Blueprint $table) {
+                    $table->string('tagname')->nullable();
+                });
+            }
+            if (! Schema::hasColumn('admins', 'related_files')) {
+                Schema::table('admins', function (Blueprint $table) {
+                    $table->text('related_files')->nullable();
                 });
             }
         }
