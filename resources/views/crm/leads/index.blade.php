@@ -77,7 +77,8 @@
         color: white;
     }
 
-    /* Send To Legal CRM Icon Button Styling */
+    /* Send To Legal CRM Icon Button Styling
+       bit 0 = grey, bit 1 = green (synced), bit 2 = red (pending) */
     .btn-legal-crm-icon {
         display: inline-flex;
         align-items: center;
@@ -85,25 +86,25 @@
         width: 36px;
         height: 36px;
         padding: 0;
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
         border: none;
         border-radius: 8px;
         color: white !important;
         text-decoration: none;
-        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+        box-shadow: 0 2px 4px rgba(100, 116, 139, 0.2);
         cursor: pointer;
     }
 
-    .btn-legal-crm-icon:hover:not(:disabled):not(.is-sent) {
-        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-        box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+    .btn-legal-crm-icon:hover:not(:disabled):not(.is-sent):not(.is-pending) {
+        background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+        box-shadow: 0 4px 8px rgba(100, 116, 139, 0.3);
         color: white !important;
         text-decoration: none;
     }
 
     .btn-legal-crm-icon:focus {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+        box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.25);
         color: white !important;
     }
 
@@ -117,16 +118,20 @@
     }
 
     .btn-legal-crm-icon.is-pending {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
         cursor: pointer;
         opacity: 0.95;
     }
 
     .btn-legal-crm-icon.is-pending:hover:not(:disabled) {
-        background: linear-gradient(135deg, #e58e0a 0%, #c26505 100%);
-        box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
         color: white !important;
+    }
+
+    .btn-legal-crm-icon.is-pending:focus {
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
     }
 
     .btn-legal-crm-icon.is-sent {
