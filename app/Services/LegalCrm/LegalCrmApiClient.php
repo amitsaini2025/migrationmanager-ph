@@ -134,7 +134,7 @@ class LegalCrmApiClient
                 'success' => true,
                 'lead_id' => $leadId !== null ? (int) $leadId : null,
                 'already_exists' => $alreadyExists,
-                'message' => (string) ($data['message'] ?? 'Lead sent to Legal CRM.'),
+                'message' => (string) ($data['message'] ?? 'Lead synced to Legal CRM.'),
                 'data' => is_array($data['data'] ?? null) ? $data['data'] : $data,
             ];
         } catch (Exception $e) {

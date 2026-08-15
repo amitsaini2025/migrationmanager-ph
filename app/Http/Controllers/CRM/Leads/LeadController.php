@@ -1718,8 +1718,8 @@ class LeadController extends Controller
             }
 
             if ($lead->isSentToLegalCrm()) {
-                $message = 'Lead is already sent to Legal CRM.';
-                Log::channel('migration_legal_crm')->info('Send to Legal CRM skipped — already sent', [
+                $message = 'Lead is already synced to Legal CRM.';
+                Log::channel('migration_legal_crm')->info('Send to Legal CRM skipped — already synced', [
                     'migration_lead_id' => (int) $lead->id,
                     'email' => $lead->email,
                     'phone' => $lead->phone,
@@ -1758,8 +1758,8 @@ class LeadController extends Controller
 
                 $alreadyExists = (bool) ($apiResult['already_exists'] ?? false);
                 $message = $alreadyExists
-                    ? 'Lead already exists in Legal CRM and has been marked as sent.'
-                    : 'Lead has been sent to Legal CRM successfully.';
+                    ? 'Lead already exists in Legal CRM and has been marked as synced.'
+                    : 'Lead has been synced to Legal CRM successfully.';
 
                 Log::channel('migration_legal_crm')->info('Send to Legal CRM instant succeeded', [
                     'migration_lead_id' => (int) $lead->id,
