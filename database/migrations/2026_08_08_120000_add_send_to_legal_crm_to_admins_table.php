@@ -20,7 +20,7 @@ return new class extends Migration
         Schema::table('admins', function (Blueprint $table) {
             if (! Schema::hasColumn('admins', 'send_to_legal_crm')) {
                 $table->unsignedTinyInteger('send_to_legal_crm')->default(0)
-                    ->comment('0 = not sent, 1 = Send To Legal CRM');
+                    ->comment('0 = not sent, 2 = pending cron sync, 1 = sent to Legal CRM');
             }
         });
     }

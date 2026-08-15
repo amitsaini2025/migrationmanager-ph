@@ -76,6 +76,9 @@ class Kernel extends ConsoleKernel
         '\App\Console\Commands\ExpireCrmAccessGrants',
         '\App\Console\Commands\CacheAccessGrantGlobalCounts',
         '\App\Console\Commands\SendFollowUpReminders',
+
+        // Legal CRM — sync queued leads from Migration CRM
+        '\App\Console\Commands\SyncPendingLegalCrmLeads',
     ];
 
     /**
@@ -168,6 +171,13 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('access:expire-grants')->hourly();
         $schedule->command('access:cache-grant-stats')->hourly();
+
+        // Legal CRM — push queued leads (send_to_legal_crm = 2 → API → 1)
+        $schedule->command('legal-crm:sync-pending-leads --limit=50')
+            ->everyFiveMinutes()
+            ->timezone('Australia/Melbourne')
+            ->withoutOverlapping(10)
+            ->appendOutputTo(storage_path('logs/legal-crm-sync-pending.log'));
     }
 
     /**

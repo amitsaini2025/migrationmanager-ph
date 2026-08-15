@@ -94,7 +94,7 @@
         cursor: pointer;
     }
 
-    .btn-legal-crm-icon:hover:not(:disabled):not(.is-sent) {
+    .btn-legal-crm-icon:hover:not(:disabled):not(.is-sent):not(.is-pending) {
         background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
         box-shadow: 0 4px 8px rgba(13, 148, 136, 0.3);
         color: white !important;
@@ -114,6 +114,14 @@
         height: 14px;
         color: white;
         flex-shrink: 0;
+    }
+
+    .btn-legal-crm-icon.is-pending {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: 0.95;
+        pointer-events: auto;
     }
 
     .btn-legal-crm-icon.is-sent,
@@ -560,12 +568,29 @@
                                                 <button type="button" class="btn-archive-icon" title="Archive Lead" onclick='return archiveLeadAction(event, {{ (int) @$list->id }}, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))), @json(route("leads.archive", base64_encode(convert_uuencode(@$list->id)))))'>
                                                     @icon('fa-archive')
                                                 </button>
-                                                @php $sentToLegalCrm = (int) ($list->send_to_legal_crm ?? 0) === 1; @endphp
+                                                @php
+                                                    $legalCrmStatus = (int) ($list->send_to_legal_crm ?? 0);
+                                                    $sentToLegalCrm = $legalCrmStatus === \App\Models\Lead::LEGAL_CRM_SENT;
+                                                    $pendingLegalCrm = $legalCrmStatus === \App\Models\Lead::LEGAL_CRM_PENDING;
+                                                @endphp
                                                 @if($sentToLegalCrm)
                                                     <span title="Already Sent For Legal CRM" style="display: inline-flex;">
                                                         <button
                                                             type="button"
                                                             class="btn-legal-crm-icon is-sent"
+                                                            data-lead-id="{{ (int) @$list->id }}"
+                                                            disabled
+                                                            aria-disabled="true"
+                                                            tabindex="-1"
+                                                        >
+                                                            @icon('fa-gavel')
+                                                        </button>
+                                                    </span>
+                                                @elseif($pendingLegalCrm)
+                                                    <span title="Pending Send To Legal CRM" style="display: inline-flex;">
+                                                        <button
+                                                            type="button"
+                                                            class="btn-legal-crm-icon is-pending"
                                                             data-lead-id="{{ (int) @$list->id }}"
                                                             disabled
                                                             aria-disabled="true"
@@ -1205,7 +1230,7 @@ function exportLeadList(filteredTotal) {
             return false;
         }
 
-        if (buttonEl && ($(buttonEl).prop('disabled') || $(buttonEl).hasClass('is-sent'))) {
+        if (buttonEl && ($(buttonEl).prop('disabled') || $(buttonEl).hasClass('is-sent') || $(buttonEl).hasClass('is-pending'))) {
             return false;
         }
 
@@ -1244,8 +1269,12 @@ function exportLeadList(filteredTotal) {
 
                 if (obj.status == 1) {
                     var $btn = buttonEl ? $(buttonEl) : $("#id_" + leadId + " .btn-legal-crm-icon");
+                    var isAlreadySent = !!obj.already_sent;
+                    var wrapTitle = isAlreadySent ? 'Already Sent For Legal CRM' : 'Pending Send To Legal CRM';
+                    var stateClass = isAlreadySent ? 'is-sent' : 'is-pending';
 
-                    $btn.addClass('is-sent')
+                    $btn.removeClass('is-sent is-pending')
+                        .addClass(stateClass)
                         .prop('disabled', true)
                         .attr({
                             'aria-disabled': 'true',
@@ -1255,11 +1284,16 @@ function exportLeadList(filteredTotal) {
                         .removeAttr('title')
                         .off('click');
 
-                    if (!$btn.parent().is('span[title="Already Sent For Legal CRM"]')) {
-                        $btn.wrap('<span title="Already Sent For Legal CRM" style="display: inline-flex;"></span>');
+                    if (!$btn.parent().is('span[title="' + wrapTitle + '"]')) {
+                        if ($btn.parent().is('span[title]')) {
+                            $btn.unwrap();
+                        }
+                        $btn.wrap('<span title="' + wrapTitle + '" style="display: inline-flex;"></span>');
+                    } else {
+                        $btn.parent().attr('title', wrapTitle);
                     }
 
-                    showListingMessage('success', obj.message || 'Lead has been marked as Send To Legal CRM.');
+                    showListingMessage('success', obj.message || 'Lead has been queued for Legal CRM.');
                 } else {
                     showListingMessage('error', obj.message || 'Failed to update Legal CRM status.');
                 }

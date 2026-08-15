@@ -59,7 +59,7 @@ class Admin extends Authenticatable
         'details_verified_at', 'details_verified_by',
         // Archive fields
         'is_archived', 'archived_by', 'archived_on',
-        // Legal CRM handoff (0 = default, 1 = sent)
+        // Legal CRM handoff (0 = not sent, 2 = pending cron, 1 = sent)
         'send_to_legal_crm',
         // Personal
         'marital_status',

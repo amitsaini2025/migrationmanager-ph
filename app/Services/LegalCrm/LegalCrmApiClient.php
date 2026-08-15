@@ -37,22 +37,12 @@ class LegalCrmApiClient
      */
     public function createLeadFromMigrationLead(Lead $lead): array
     {
+        self::assertLeadHasRequiredFields($lead);
+
         $email = strtolower(trim((string) ($lead->email ?? '')));
         $phone = trim((string) ($lead->phone ?? ''));
         $firstName = trim((string) ($lead->first_name ?? ''));
         $lastName = trim((string) ($lead->last_name ?? ''));
-
-        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception('Lead email is required to send to Legal CRM.');
-        }
-
-        if ($phone === '') {
-            throw new Exception('Lead phone is required to send to Legal CRM.');
-        }
-
-        if ($firstName === '' && $lastName === '') {
-            throw new Exception('Lead name is required to send to Legal CRM.');
-        }
 
         if (empty($this->apiToken)) {
             throw new Exception('Legal CRM API token not configured. Set LEGAL_CRM_API_TOKEN in .env');
@@ -71,6 +61,29 @@ class LegalCrmApiClient
         ];
 
         return $this->createLead($payload);
+    }
+
+    /**
+     * Validate lead has the fields Legal CRM requires (no API call).
+     */
+    public static function assertLeadHasRequiredFields(Lead $lead): void
+    {
+        $email = strtolower(trim((string) ($lead->email ?? '')));
+        $phone = trim((string) ($lead->phone ?? ''));
+        $firstName = trim((string) ($lead->first_name ?? ''));
+        $lastName = trim((string) ($lead->last_name ?? ''));
+
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception('Lead email is required to send to Legal CRM.');
+        }
+
+        if ($phone === '') {
+            throw new Exception('Lead phone is required to send to Legal CRM.');
+        }
+
+        if ($firstName === '' && $lastName === '') {
+            throw new Exception('Lead name is required to send to Legal CRM.');
+        }
     }
 
     /**
