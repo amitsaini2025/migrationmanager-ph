@@ -85,25 +85,25 @@
         width: 36px;
         height: 36px;
         padding: 0;
-        background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         border: none;
         border-radius: 8px;
         color: white !important;
         text-decoration: none;
-        box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
         cursor: pointer;
     }
 
     .btn-legal-crm-icon:hover:not(:disabled):not(.is-sent) {
-        background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
-        box-shadow: 0 4px 8px rgba(13, 148, 136, 0.3);
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
         color: white !important;
         text-decoration: none;
     }
 
     .btn-legal-crm-icon:focus {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
         color: white !important;
     }
 
@@ -129,13 +129,24 @@
         color: white !important;
     }
 
-    .btn-legal-crm-icon.is-sent,
-    .btn-legal-crm-icon:disabled {
-        background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+    .btn-legal-crm-icon.is-sent {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
         box-shadow: none;
         cursor: not-allowed;
-        opacity: 0.9;
+        opacity: 0.95;
         pointer-events: auto;
+    }
+
+    .btn-legal-crm-icon.is-sent:hover,
+    .btn-legal-crm-icon.is-sent:focus {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        box-shadow: none;
+        color: white !important;
+    }
+
+    .btn-legal-crm-icon:disabled:not(.is-sent) {
+        cursor: not-allowed;
+        opacity: 0.9;
     }
 
     .action-buttons {
