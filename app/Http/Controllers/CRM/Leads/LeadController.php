@@ -1676,8 +1676,8 @@ class LeadController extends Controller
     }
 
     /**
-     * Send a lead to Legal CRM instantly; on API failure queue for cron (send_to_legal_crm = 2).
-     * Cron command legal-crm:sync-pending-leads retries pending leads and sets = 1 on success.
+     * Send a lead to Legal CRM instantly (send_to_legal_crm = 1 on success).
+     * On API failure the lead stays unsynced so staff can click again to retry.
      *
      * @param Request $request
      * @param string $id Encoded lead ID
@@ -1786,9 +1786,10 @@ class LeadController extends Controller
                 return redirect()->route('leads.index')
                     ->with('success', $message);
             } catch (\Exception $apiException) {
-                // Instant failed — queue for cron retry (keep/set pending = 2).
-                if (! $lead->isPendingLegalCrm()) {
-                    $lead->markPendingForLegalCrm();
+                // Instant failed — do not queue; keep/reset to not synced so user can retry.
+                if ((int) ($lead->send_to_legal_crm ?? 0) !== Lead::LEGAL_CRM_SENT) {
+                    $lead->send_to_legal_crm = Lead::LEGAL_CRM_NOT_SENT;
+                    $lead->save();
                 }
 
                 $apiError = $apiException->getMessage();
@@ -1796,7 +1797,7 @@ class LeadController extends Controller
                     $apiError = 'Legal CRM API request failed.';
                 }
 
-                Log::channel('migration_legal_crm')->warning('Send to Legal CRM instant failed — queued for cron', [
+                Log::channel('migration_legal_crm')->warning('Send to Legal CRM instant failed — retry manually', [
                     'migration_lead_id' => (int) $lead->id,
                     'email' => $lead->email,
                     'phone' => $lead->phone,
@@ -1804,22 +1805,22 @@ class LeadController extends Controller
                     'error' => $apiError,
                 ]);
 
-                $message = 'Instant send failed ('.$apiError.'). Lead has been queued for Legal CRM and will be retried by cron.';
+                $message = 'Send to Legal CRM failed ('.$apiError.'). Please try again.';
 
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json([
-                        'status' => 1,
+                        'status' => 0,
                         'message' => $message,
-                        'send_to_legal_crm' => Lead::LEGAL_CRM_PENDING,
+                        'send_to_legal_crm' => Lead::LEGAL_CRM_NOT_SENT,
                         'already_sent' => false,
-                        'queued' => true,
+                        'queued' => false,
                         'instant_failed' => true,
                         'api_error' => $apiError,
                     ], 200);
                 }
 
                 return redirect()->route('leads.index')
-                    ->with('warning', $message);
+                    ->with('error', $message);
             }
 
         } catch (\Exception $e) {

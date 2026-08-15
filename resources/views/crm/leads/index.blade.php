@@ -1273,7 +1273,6 @@ function exportLeadList(filteredTotal) {
                     var $btn = buttonEl ? $(buttonEl) : $("#id_" + leadId + " .btn-legal-crm-icon");
                     var legalStatus = parseInt(obj.send_to_legal_crm, 10);
                     var isSent = legalStatus === 1 || !!obj.already_sent;
-                    var isQueued = legalStatus === 2 || (!!obj.queued && !isSent);
 
                     if (isSent) {
                         $btn.removeClass('is-pending')
@@ -1297,23 +1296,19 @@ function exportLeadList(filteredTotal) {
                         }
 
                         showListingMessage('success', obj.message || 'Lead has been synced to Legal CRM successfully.');
-                    } else if (isQueued) {
-                        // Keep clickable so user can retry while pending (bit = 2).
-                        if ($btn.parent().is('span[title]')) {
-                            $btn.unwrap();
+                    }
+                } else {
+                    var $failBtn = buttonEl ? $(buttonEl) : $("#id_" + leadId + " .btn-legal-crm-icon");
+                    if ($failBtn.length) {
+                        if ($failBtn.parent().is('span[title]')) {
+                            $failBtn.unwrap();
                         }
-
-                        $btn.removeClass('is-sent')
-                            .addClass('is-pending')
+                        $failBtn.removeClass('is-sent is-pending')
                             .prop('disabled', false)
                             .removeAttr('aria-disabled')
                             .removeAttr('tabindex')
-                            .attr('title', 'Pending — click to retry Send For Legal CRM');
-
-                        var msgType = obj.instant_failed ? 'error' : 'success';
-                        showListingMessage(msgType, obj.message || 'Lead has been queued for Legal CRM.');
+                            .attr('title', 'Send For Legal CRM');
                     }
-                } else {
                     showListingMessage('error', obj.message || 'Failed to update Legal CRM status.');
                 }
 

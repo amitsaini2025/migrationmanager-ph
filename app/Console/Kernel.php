@@ -171,13 +171,6 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('access:expire-grants')->hourly();
         $schedule->command('access:cache-grant-stats')->hourly();
-
-        // Legal CRM — push queued leads (send_to_legal_crm = 2 → API → 1), twice daily
-        $schedule->command('legal-crm:sync-pending-leads --limit=50')
-            ->twiceDaily(9, 18)
-            ->timezone('Australia/Melbourne')
-            ->withoutOverlapping(10)
-            ->appendOutputTo(storage_path('logs/legal-crm-sync-pending.log'));
     }
 
     /**

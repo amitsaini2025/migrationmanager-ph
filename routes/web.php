@@ -252,7 +252,7 @@ Route::middleware(['auth:admin'])->group(function() {
         // Archive operations
         Route::post('/archive/{id}', [LeadController::class, 'archive'])->name('archive');
 
-        // Legal CRM handoff (instant API; on fail queue 2 for cron → 1 sent)
+        // Legal CRM handoff (instant sync only; bit 1 = synced)
         Route::post('/send-to-legal-crm/{id}', [LeadController::class, 'sendToLegalCrm'])->name('send_to_legal_crm');
         
         // Analytics (Admin/Team Lead only)
