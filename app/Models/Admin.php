@@ -540,4 +540,50 @@ class Admin extends Authenticatable
 
         return ['email' => $email, 'name' => $name];
     }
+
+    /**
+     * send_to_legal_crm values on admins.
+     * 0 = not synced, 2 = pending, 1 = synced to Legal CRM (as a Legal Lead).
+     */
+    public const LEGAL_CRM_NOT_SENT = 0;
+
+    public const LEGAL_CRM_SENT = 1;
+
+    public const LEGAL_CRM_PENDING = 2;
+
+    /**
+     * Mark record as synced to Legal CRM (send_to_legal_crm = 1).
+     */
+    public function markSentToLegalCrm(): bool
+    {
+        $this->send_to_legal_crm = self::LEGAL_CRM_SENT;
+
+        return $this->save();
+    }
+
+    /**
+     * Mark record as pending Legal CRM sync (send_to_legal_crm = 2).
+     */
+    public function markPendingForLegalCrm(): bool
+    {
+        $this->send_to_legal_crm = self::LEGAL_CRM_PENDING;
+
+        return $this->save();
+    }
+
+    /**
+     * Whether this record has been synced to Legal CRM.
+     */
+    public function isSentToLegalCrm(): bool
+    {
+        return (int) ($this->send_to_legal_crm ?? 0) === self::LEGAL_CRM_SENT;
+    }
+
+    /**
+     * Whether this record is pending Legal CRM sync.
+     */
+    public function isPendingLegalCrm(): bool
+    {
+        return (int) ($this->send_to_legal_crm ?? 0) === self::LEGAL_CRM_PENDING;
+    }
 }

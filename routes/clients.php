@@ -204,6 +204,7 @@ Route::post('/convert-activity-to-note', [ClientsController::class, 'convertActi
 /*---------- Client Status & Archive ----------*/
 Route::get('/archived', [ClientsController::class, 'archived'])->name('clients.archived');
 Route::post('/archive/{id}', [ClientsController::class, 'archive'])->name('clients.archive');
+Route::post('/clients/send-to-legal-crm/{id}', [ClientsController::class, 'sendToLegalCrm'])->name('clients.send_to_legal_crm');
 Route::post('/unarchive/{id}', [ClientsController::class, 'unarchive'])->name('clients.unarchive');
 Route::get('/change-client-status', [ClientsController::class, 'updateclientstatus'])->name('clients.updateclientstatus');
 Route::get('/get-activities', [ClientsController::class, 'activities'])->name('clients.activities');

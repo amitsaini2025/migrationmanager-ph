@@ -39,6 +39,7 @@ use App\Support\AppointmentActivityDescription;
 use App\Support\NoteDescriptionHtml;
 use App\Support\StaffClientVisibility;
 use App\Support\WorkflowAssignment;
+use App\Services\LegalCrm\LegalCrmApiClient;
 
 use DateTime;
 use DateTimeZone;
@@ -747,6 +748,166 @@ class ClientsController extends Controller
 
             return redirect()->route('clients.index')
                 ->with('error', $message);
+        }
+    }
+
+    /**
+     * Sync a Migration CRM client to Legal CRM as a Legal Lead (instant).
+     * On success sets send_to_legal_crm = 1; on failure leaves 0 so staff can retry.
+     * If the person already exists in Legal CRM, returns a clear already-synced message.
+     *
+     * @param Request $request
+     * @param string $id Encoded client ID
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+     */
+    public function sendToLegalCrm(Request $request, $id)
+    {
+        try {
+            $decodedId = $this->decodeString($id);
+
+            if (! $decodedId || ! is_numeric($decodedId)) {
+                $message = 'Invalid client ID.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 400);
+                }
+                return redirect()->route('clients.index')->with('error', $message);
+            }
+
+            if (! StaffClientVisibility::canAccessClientOrLead((int) $decodedId, Auth::user())) {
+                $message = config('constants.unauthorized');
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 403);
+                }
+                return redirect()->route('clients.index')->with('error', $message);
+            }
+
+            $client = Admin::where('id', $decodedId)
+                ->where('type', 'client')
+                ->where('is_archived', 0)
+                ->whereNull('is_deleted')
+                ->first();
+
+            if (! $client) {
+                $message = 'Client not found.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['status' => 0, 'message' => $message], 404);
+                }
+                return redirect()->route('clients.index')->with('error', $message);
+            }
+
+            if ($client->isSentToLegalCrm()) {
+                $message = 'This client is already synced to Legal CRM as a Lead.';
+                Log::channel('migration_legal_crm')->info('Client Send to Legal CRM skipped — already synced', [
+                    'migration_client_id' => (int) $client->id,
+                    'email' => $client->email,
+                    'phone' => $client->phone,
+                    'staff_id' => Auth::id(),
+                ]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'status' => 1,
+                        'message' => $message,
+                        'send_to_legal_crm' => Admin::LEGAL_CRM_SENT,
+                        'already_sent' => true,
+                        'queued' => false,
+                    ], 200);
+                }
+                return redirect()->route('clients.index')->with('info', $message);
+            }
+
+            LegalCrmApiClient::assertLeadHasRequiredFields($client);
+
+            Log::channel('migration_legal_crm')->info('Client Send to Legal CRM started (as Legal Lead)', [
+                'migration_client_id' => (int) $client->id,
+                'first_name' => $client->first_name,
+                'last_name' => $client->last_name,
+                'email' => $client->email,
+                'phone' => $client->phone,
+                'staff_id' => Auth::id(),
+            ]);
+
+            try {
+                $apiResult = app(LegalCrmApiClient::class)->createLeadFromMigrationLead($client);
+                $client->markSentToLegalCrm();
+
+                $alreadyExists = (bool) ($apiResult['already_exists'] ?? false);
+                $message = $alreadyExists
+                    ? 'This person already exists in Legal CRM as a Lead and has been marked as synced.'
+                    : 'Client has been synced to Legal CRM as a Lead successfully.';
+
+                Log::channel('migration_legal_crm')->info('Client Send to Legal CRM succeeded', [
+                    'migration_client_id' => (int) $client->id,
+                    'legal_lead_id' => $apiResult['lead_id'] ?? null,
+                    'legal_already_exists' => $alreadyExists,
+                    'email' => $client->email,
+                    'staff_id' => Auth::id(),
+                ]);
+
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'status' => 1,
+                        'message' => $message,
+                        'send_to_legal_crm' => Admin::LEGAL_CRM_SENT,
+                        'already_sent' => false,
+                        'queued' => false,
+                        'legal_lead_id' => $apiResult['lead_id'] ?? null,
+                        'legal_already_exists' => $alreadyExists,
+                    ], 200);
+                }
+
+                return redirect()->route('clients.index')->with('success', $message);
+            } catch (\Exception $apiException) {
+                if ((int) ($client->send_to_legal_crm ?? 0) !== Admin::LEGAL_CRM_SENT) {
+                    $client->send_to_legal_crm = Admin::LEGAL_CRM_NOT_SENT;
+                    $client->save();
+                }
+
+                $apiError = $apiException->getMessage();
+                if ($apiError === '' || str_contains(strtolower($apiError), 'sqlstate')) {
+                    $apiError = 'Legal CRM API request failed.';
+                }
+
+                Log::channel('migration_legal_crm')->warning('Client Send to Legal CRM failed — retry manually', [
+                    'migration_client_id' => (int) $client->id,
+                    'email' => $client->email,
+                    'staff_id' => Auth::id(),
+                    'error' => $apiError,
+                ]);
+
+                $message = 'Send to Legal CRM failed ('.$apiError.'). Please try again.';
+
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'status' => 0,
+                        'message' => $message,
+                        'send_to_legal_crm' => Admin::LEGAL_CRM_NOT_SENT,
+                        'already_sent' => false,
+                        'queued' => false,
+                        'instant_failed' => true,
+                        'api_error' => $apiError,
+                    ], 200);
+                }
+
+                return redirect()->route('clients.index')->with('error', $message);
+            }
+        } catch (\Exception $e) {
+            Log::channel('migration_legal_crm')->error('Client Send to Legal CRM failed', [
+                'error' => $e->getMessage(),
+                'staff_id' => Auth::id(),
+                'encoded_id' => $id,
+            ]);
+            Log::error('Error sending client to Legal CRM: '.$e->getMessage());
+
+            $message = $e->getMessage();
+            if ($message === '' || str_contains(strtolower($message), 'sqlstate')) {
+                $message = 'An error occurred while sending the client to Legal CRM. Please try again.';
+            }
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 0, 'message' => $message], 500);
+            }
+
+            return redirect()->route('clients.index')->with('error', $message);
         }
     }
 

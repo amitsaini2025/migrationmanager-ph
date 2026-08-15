@@ -2,7 +2,7 @@
 
 namespace App\Services\LegalCrm;
 
-use App\Models\Lead;
+use App\Models\Admin;
 use Exception;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
@@ -31,18 +31,19 @@ class LegalCrmApiClient
     }
 
     /**
-     * Create (or match existing) lead on Legal CRM via POST /api/migration-crm/leads.
+     * Create (or match existing) Legal CRM lead from a Migration CRM lead or client.
+     * Always creates a Lead on Legal CRM (not a client).
      *
      * @return array{success: bool, lead_id?: int|null, already_exists?: bool, message?: string, data?: array}
      */
-    public function createLeadFromMigrationLead(Lead $lead): array
+    public function createLeadFromMigrationLead(Admin $record): array
     {
-        self::assertLeadHasRequiredFields($lead);
+        self::assertLeadHasRequiredFields($record);
 
-        $email = strtolower(trim((string) ($lead->email ?? '')));
-        $phone = trim((string) ($lead->phone ?? ''));
-        $firstName = trim((string) ($lead->first_name ?? ''));
-        $lastName = trim((string) ($lead->last_name ?? ''));
+        $email = strtolower(trim((string) ($record->email ?? '')));
+        $phone = trim((string) ($record->phone ?? ''));
+        $firstName = trim((string) ($record->first_name ?? ''));
+        $lastName = trim((string) ($record->last_name ?? ''));
 
         if (empty($this->apiToken)) {
             throw new Exception('Legal CRM API token not configured. Set LEGAL_CRM_API_TOKEN in .env');
@@ -53,36 +54,36 @@ class LegalCrmApiClient
             'last_name' => $lastName !== '' ? $lastName : null,
             'email' => $email,
             'phone' => $phone,
-            'country_code' => $lead->country_code ?: null,
+            'country_code' => $record->country_code ?: null,
             'source' => 'Migration CRM',
             'refer_by' => 'Migration CRM',
-            'lead_status' => 'new', // Legal Stage shows "Synced From Bansal Immigration" via source display override
-            'migration_lead_id' => (int) $lead->id,
+            'lead_status' => 'new',
+            'migration_lead_id' => (int) $record->id,
         ];
 
         return $this->createLead($payload);
     }
 
     /**
-     * Validate lead has the fields Legal CRM requires (no API call).
+     * Validate record has the fields Legal CRM requires (no API call).
      */
-    public static function assertLeadHasRequiredFields(Lead $lead): void
+    public static function assertLeadHasRequiredFields(Admin $record): void
     {
-        $email = strtolower(trim((string) ($lead->email ?? '')));
-        $phone = trim((string) ($lead->phone ?? ''));
-        $firstName = trim((string) ($lead->first_name ?? ''));
-        $lastName = trim((string) ($lead->last_name ?? ''));
+        $email = strtolower(trim((string) ($record->email ?? '')));
+        $phone = trim((string) ($record->phone ?? ''));
+        $firstName = trim((string) ($record->first_name ?? ''));
+        $lastName = trim((string) ($record->last_name ?? ''));
 
         if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception('Lead email is required to send to Legal CRM.');
+            throw new Exception('Email is required to send to Legal CRM.');
         }
 
         if ($phone === '') {
-            throw new Exception('Lead phone is required to send to Legal CRM.');
+            throw new Exception('Phone is required to send to Legal CRM.');
         }
 
         if ($firstName === '' && $lastName === '') {
-            throw new Exception('Lead name is required to send to Legal CRM.');
+            throw new Exception('Name is required to send to Legal CRM.');
         }
     }
 

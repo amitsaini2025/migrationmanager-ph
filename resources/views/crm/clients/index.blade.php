@@ -8,6 +8,81 @@
 <style>
     /* Page-specific styles for clients index page */
     /* Action dropdown positioning handled by Popper (custom.js); see listing-container.css for menu styling */
+
+    .client-action-cell {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+    }
+
+    /* Legal CRM icon: bit 0 = grey, 1 = green, 2 = red */
+    .btn-legal-crm-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+        border: none;
+        border-radius: 8px;
+        color: white !important;
+        text-decoration: none;
+        box-shadow: 0 2px 4px rgba(100, 116, 139, 0.2);
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .btn-legal-crm-icon:hover:not(:disabled):not(.is-sent):not(.is-pending) {
+        background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+        box-shadow: 0 4px 8px rgba(100, 116, 139, 0.3);
+        color: white !important;
+        text-decoration: none;
+    }
+
+    .btn-legal-crm-icon:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.25);
+        color: white !important;
+    }
+
+    .btn-legal-crm-icon i,
+    .btn-legal-crm-icon svg {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .btn-legal-crm-icon.is-pending {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+        cursor: pointer;
+        opacity: 0.95;
+    }
+
+    .btn-legal-crm-icon.is-pending:hover:not(:disabled) {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+        color: white !important;
+    }
+
+    .btn-legal-crm-icon.is-sent {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: 0.95;
+        pointer-events: auto;
+    }
+
+    .btn-legal-crm-icon.is-sent:hover,
+    .btn-legal-crm-icon.is-sent:focus {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        box-shadow: none;
+        color: white !important;
+    }
     
     .listing-container .table td .dropdown {
         position: relative;
@@ -534,6 +609,7 @@
                                                 @endif
                                             </td>
                                             <td style="white-space: initial;">
+                                                <div class="client-action-cell">
                                                 <div class="dropdown d-inline">
                                                     <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                         Action
@@ -552,6 +628,46 @@
                                                             @icon('fa-archive') Archive
                                                         </a>
                                                     </div>
+                                                </div>
+                                                @php
+                                                    $legalCrmStatus = (int) ($list->send_to_legal_crm ?? 0);
+                                                    $sentToLegalCrm = $legalCrmStatus === \App\Models\Admin::LEGAL_CRM_SENT;
+                                                    $pendingLegalCrm = $legalCrmStatus === \App\Models\Admin::LEGAL_CRM_PENDING;
+                                                @endphp
+                                                @if($sentToLegalCrm)
+                                                    <span title="Already Synced" style="display: inline-flex;">
+                                                        <button
+                                                            type="button"
+                                                            class="btn-legal-crm-icon is-sent"
+                                                            data-client-id="{{ (int) @$list->id }}"
+                                                            disabled
+                                                            aria-disabled="true"
+                                                            tabindex="-1"
+                                                        >
+                                                            @icon('fa-gavel')
+                                                        </button>
+                                                    </span>
+                                                @elseif($pendingLegalCrm)
+                                                    <button
+                                                        type="button"
+                                                        class="btn-legal-crm-icon is-pending"
+                                                        title="Pending — click to retry Send For Legal CRM"
+                                                        data-client-id="{{ (int) @$list->id }}"
+                                                        onclick='return sendClientToLegalCrmAction(event, this, {{ (int) @$list->id }}, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))), @json(route("clients.send_to_legal_crm", base64_encode(convert_uuencode(@$list->id)))))'
+                                                    >
+                                                        @icon('fa-gavel')
+                                                    </button>
+                                                @else
+                                                    <button
+                                                        type="button"
+                                                        class="btn-legal-crm-icon"
+                                                        title="Send For Legal CRM (as Lead)"
+                                                        data-client-id="{{ (int) @$list->id }}"
+                                                        onclick='return sendClientToLegalCrmAction(event, this, {{ (int) @$list->id }}, @json(trim(($list->first_name ?? '') . ' ' . ($list->last_name ?? ''))), @json(route("clients.send_to_legal_crm", base64_encode(convert_uuencode(@$list->id)))))'
+                                                    >
+                                                        @icon('fa-gavel')
+                                                    </button>
+                                                @endif
                                                 </div>
                                             </td>
                                         </tr>
@@ -1124,6 +1240,130 @@ jQuery(document).ready(function($){
             error: function(xhr) {
                 $('.popuploader').hide();
                 var errorMsg = 'An error occurred while archiving the client.';
+
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMsg = response.message;
+                        }
+                    } catch (e) {
+                        // Use default error message
+                    }
+                }
+
+                showListingMessage('error', errorMsg);
+                $('html, body').animate({scrollTop: 0}, 'slow');
+            },
+            beforeSend: function() {
+                $("#loader").show();
+            },
+            complete: function() {
+                $("#loader").hide();
+            }
+        });
+
+        return false;
+    }
+
+    function sendClientToLegalCrmAction(event, buttonEl, clientId, clientName, actionUrl) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        if (!clientId || !actionUrl) {
+            alert('Error: Could not update Legal CRM status. Please refresh and try again.');
+            return false;
+        }
+
+        if (buttonEl && ($(buttonEl).prop('disabled') || $(buttonEl).hasClass('is-sent'))) {
+            return false;
+        }
+
+        var confirmMessage = 'Are you sure you want to sync the client "' + (clientName || 'this client') + '" to Legal CRM as a Lead?';
+
+        if (!confirm(confirmMessage)) {
+            return false;
+        }
+
+        $('.popuploader').show();
+        $(".server-error").html('');
+        clearListingMessage();
+
+        $.ajax({
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept': 'application/json'
+            },
+            url: actionUrl,
+            data: {},
+            dataType: 'json',
+            success: function(resp) {
+                $('.popuploader').hide();
+                var obj = resp;
+
+                if (typeof resp === 'string') {
+                    try {
+                        obj = $.parseJSON(resp);
+                    } catch (e) {
+                        showListingMessage('error', 'Invalid server response. Please try again.');
+                        $('html, body').animate({scrollTop: 0}, 'slow');
+                        return;
+                    }
+                }
+
+                var $btn = buttonEl ? $(buttonEl) : $("#id_" + clientId + " .btn-legal-crm-icon");
+
+                if (obj.status == 1) {
+                    var legalStatus = parseInt(obj.send_to_legal_crm, 10);
+                    var isSent = legalStatus === 1 || !!obj.already_sent;
+
+                    if (isSent) {
+                        $btn.removeClass('is-pending')
+                            .addClass('is-sent')
+                            .prop('disabled', true)
+                            .attr({
+                                'aria-disabled': 'true',
+                                tabindex: '-1'
+                            })
+                            .removeAttr('onclick')
+                            .removeAttr('title')
+                            .off('click');
+
+                        if (!$btn.parent().is('span[title="Already Synced"]')) {
+                            if ($btn.parent().is('span[title]')) {
+                                $btn.unwrap();
+                            }
+                            $btn.wrap('<span title="Already Synced" style="display: inline-flex;"></span>');
+                        } else {
+                            $btn.parent().attr('title', 'Already Synced');
+                        }
+
+                        showListingMessage('success', obj.message || 'Client has been synced to Legal CRM as a Lead.');
+                    }
+                } else {
+                    if ($btn.length) {
+                        if ($btn.parent().is('span[title]')) {
+                            $btn.unwrap();
+                        }
+                        $btn.removeClass('is-sent is-pending')
+                            .prop('disabled', false)
+                            .removeAttr('aria-disabled')
+                            .removeAttr('tabindex')
+                            .attr('title', 'Send For Legal CRM (as Lead)');
+                    }
+                    showListingMessage('error', obj.message || 'Failed to sync client to Legal CRM.');
+                }
+
+                $('html, body').animate({scrollTop: 0}, 'slow');
+            },
+            error: function(xhr) {
+                $('.popuploader').hide();
+                var errorMsg = 'An error occurred while syncing to Legal CRM.';
 
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;

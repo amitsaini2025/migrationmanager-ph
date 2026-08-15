@@ -177,52 +177,6 @@ class Lead extends Admin
     }
 
     /**
-     * send_to_legal_crm values on admins.
-     * 0 = not requested, 2 = queued for cron, 1 = successfully sent to Legal CRM.
-     */
-    public const LEGAL_CRM_NOT_SENT = 0;
-
-    public const LEGAL_CRM_SENT = 1;
-
-    public const LEGAL_CRM_PENDING = 2;
-
-    /**
-     * Mark lead as sent to Legal CRM (send_to_legal_crm = 1).
-     */
-    public function markSentToLegalCrm(): bool
-    {
-        $this->send_to_legal_crm = self::LEGAL_CRM_SENT;
-
-        return $this->save();
-    }
-
-    /**
-     * Queue lead for Legal CRM sync via cron (send_to_legal_crm = 2).
-     */
-    public function markPendingForLegalCrm(): bool
-    {
-        $this->send_to_legal_crm = self::LEGAL_CRM_PENDING;
-
-        return $this->save();
-    }
-
-    /**
-     * Whether this lead has been sent to Legal CRM.
-     */
-    public function isSentToLegalCrm(): bool
-    {
-        return (int) ($this->send_to_legal_crm ?? 0) === self::LEGAL_CRM_SENT;
-    }
-
-    /**
-     * Whether this lead is queued waiting for Legal CRM cron sync.
-     */
-    public function isPendingLegalCrm(): bool
-    {
-        return (int) ($this->send_to_legal_crm ?? 0) === self::LEGAL_CRM_PENDING;
-    }
-    
-    /**
      * Get full name
      */
     public function getFullNameAttribute(): string
