@@ -1676,8 +1676,8 @@ class LeadController extends Controller
     }
 
     /**
-     * Queue a lead for Legal CRM sync (send_to_legal_crm = 2).
-     * Cron command legal-crm:sync-pending-leads pushes to Legal CRM and sets = 1 on success.
+     * Send a lead to Legal CRM instantly; on API failure queue for cron (send_to_legal_crm = 2).
+     * Cron command legal-crm:sync-pending-leads retries pending leads and sets = 1 on success.
      *
      * @param Request $request
      * @param string $id Encoded lead ID
@@ -1738,25 +1738,10 @@ class LeadController extends Controller
                     ->with('info', $message);
             }
 
-            if ($lead->isPendingLegalCrm()) {
-                $message = 'Lead is already queued for Legal CRM.';
-                if ($request->ajax() || $request->wantsJson()) {
-                    return response()->json([
-                        'status' => 1,
-                        'message' => $message,
-                        'send_to_legal_crm' => Lead::LEGAL_CRM_PENDING,
-                        'already_sent' => false,
-                        'queued' => true,
-                    ], 200);
-                }
-                return redirect()->route('leads.index')
-                    ->with('info', $message);
-            }
-
-            // Validate required fields only — API call is done by cron.
+            // Validate required fields before any API / queue attempt.
             LegalCrmApiClient::assertLeadHasRequiredFields($lead);
 
-            Log::channel('migration_legal_crm')->info('Send to Legal CRM queued for cron', [
+            Log::channel('migration_legal_crm')->info('Send to Legal CRM started (instant)', [
                 'migration_lead_id' => (int) $lead->id,
                 'first_name' => $lead->first_name,
                 'last_name' => $lead->last_name,
@@ -1764,36 +1749,90 @@ class LeadController extends Controller
                 'phone' => $lead->phone,
                 'country_code' => $lead->country_code,
                 'staff_id' => Auth::id(),
+                'was_pending' => $lead->isPendingLegalCrm(),
             ]);
 
-            $lead->markPendingForLegalCrm();
+            try {
+                $apiResult = app(LegalCrmApiClient::class)->createLeadFromMigrationLead($lead);
+                $lead->markSentToLegalCrm();
 
-            $message = 'Lead has been queued for Legal CRM. It will be sent shortly.';
+                $alreadyExists = (bool) ($apiResult['already_exists'] ?? false);
+                $message = $alreadyExists
+                    ? 'Lead already exists in Legal CRM and has been marked as sent.'
+                    : 'Lead has been sent to Legal CRM successfully.';
 
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'status' => 1,
-                    'message' => $message,
-                    'send_to_legal_crm' => Lead::LEGAL_CRM_PENDING,
-                    'already_sent' => false,
-                    'queued' => true,
-                ], 200);
+                Log::channel('migration_legal_crm')->info('Send to Legal CRM instant succeeded', [
+                    'migration_lead_id' => (int) $lead->id,
+                    'legal_lead_id' => $apiResult['lead_id'] ?? null,
+                    'legal_already_exists' => $alreadyExists,
+                    'email' => $lead->email,
+                    'phone' => $lead->phone,
+                    'staff_id' => Auth::id(),
+                    'api_message' => $apiResult['message'] ?? null,
+                ]);
+
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'status' => 1,
+                        'message' => $message,
+                        'send_to_legal_crm' => Lead::LEGAL_CRM_SENT,
+                        'already_sent' => false,
+                        'queued' => false,
+                        'legal_lead_id' => $apiResult['lead_id'] ?? null,
+                        'legal_already_exists' => $alreadyExists,
+                    ], 200);
+                }
+
+                return redirect()->route('leads.index')
+                    ->with('success', $message);
+            } catch (\Exception $apiException) {
+                // Instant failed — queue for cron retry (keep/set pending = 2).
+                if (! $lead->isPendingLegalCrm()) {
+                    $lead->markPendingForLegalCrm();
+                }
+
+                $apiError = $apiException->getMessage();
+                if ($apiError === '' || str_contains(strtolower($apiError), 'sqlstate')) {
+                    $apiError = 'Legal CRM API request failed.';
+                }
+
+                Log::channel('migration_legal_crm')->warning('Send to Legal CRM instant failed — queued for cron', [
+                    'migration_lead_id' => (int) $lead->id,
+                    'email' => $lead->email,
+                    'phone' => $lead->phone,
+                    'staff_id' => Auth::id(),
+                    'error' => $apiError,
+                ]);
+
+                $message = 'Instant send failed ('.$apiError.'). Lead has been queued for Legal CRM and will be retried by cron.';
+
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'status' => 1,
+                        'message' => $message,
+                        'send_to_legal_crm' => Lead::LEGAL_CRM_PENDING,
+                        'already_sent' => false,
+                        'queued' => true,
+                        'instant_failed' => true,
+                        'api_error' => $apiError,
+                    ], 200);
+                }
+
+                return redirect()->route('leads.index')
+                    ->with('warning', $message);
             }
 
-            return redirect()->route('leads.index')
-                ->with('success', $message);
-
         } catch (\Exception $e) {
-            Log::channel('migration_legal_crm')->error('Send to Legal CRM queue failed', [
+            Log::channel('migration_legal_crm')->error('Send to Legal CRM failed', [
                 'error' => $e->getMessage(),
                 'staff_id' => Auth::id(),
                 'encoded_id' => $id,
             ]);
-            Log::error('Error queueing lead for Legal CRM: ' . $e->getMessage());
+            Log::error('Error sending lead to Legal CRM: ' . $e->getMessage());
 
             $message = $e->getMessage();
             if ($message === '' || str_contains(strtolower($message), 'sqlstate')) {
-                $message = 'An error occurred while queueing the lead for Legal CRM. Please try again.';
+                $message = 'An error occurred while sending the lead to Legal CRM. Please try again.';
             }
 
             if ($request->ajax() || $request->wantsJson()) {

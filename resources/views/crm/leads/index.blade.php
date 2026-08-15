@@ -1269,9 +1269,11 @@ function exportLeadList(filteredTotal) {
 
                 if (obj.status == 1) {
                     var $btn = buttonEl ? $(buttonEl) : $("#id_" + leadId + " .btn-legal-crm-icon");
-                    var isAlreadySent = !!obj.already_sent;
-                    var wrapTitle = isAlreadySent ? 'Already Sent For Legal CRM' : 'Pending Send To Legal CRM';
-                    var stateClass = isAlreadySent ? 'is-sent' : 'is-pending';
+                    var legalStatus = parseInt(obj.send_to_legal_crm, 10);
+                    var isSent = legalStatus === 1 || !!obj.already_sent;
+                    var isQueued = legalStatus === 2 || (!!obj.queued && !isSent);
+                    var wrapTitle = isSent ? 'Already Sent For Legal CRM' : 'Pending Send To Legal CRM';
+                    var stateClass = isSent ? 'is-sent' : 'is-pending';
 
                     $btn.removeClass('is-sent is-pending')
                         .addClass(stateClass)
@@ -1293,7 +1295,16 @@ function exportLeadList(filteredTotal) {
                         $btn.parent().attr('title', wrapTitle);
                     }
 
-                    showListingMessage('success', obj.message || 'Lead has been queued for Legal CRM.');
+                    var defaultMsg = isSent
+                        ? 'Lead has been sent to Legal CRM successfully.'
+                        : 'Lead has been queued for Legal CRM.';
+                    var msgType = (isQueued && obj.instant_failed) ? 'error' : 'success';
+                    if (msgType === 'error') {
+                        // Pending after instant fail — still a handled outcome; show as warning-style via error banner text.
+                        showListingMessage('error', obj.message || defaultMsg);
+                    } else {
+                        showListingMessage('success', obj.message || defaultMsg);
+                    }
                 } else {
                     showListingMessage('error', obj.message || 'Failed to update Legal CRM status.');
                 }
