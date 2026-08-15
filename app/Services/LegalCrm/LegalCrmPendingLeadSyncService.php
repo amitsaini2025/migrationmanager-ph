@@ -12,7 +12,7 @@ class LegalCrmPendingLeadSyncService
      * Push queued Migration CRM leads (send_to_legal_crm = 2) to Legal CRM.
      * On success marks send_to_legal_crm = 1; on failure leaves pending for retry.
      *
-     * @return array{scanned: int, sent: int, failed: int}
+     * @return array{scanned: int, sent: int, failed: int, failures: list<array{migration_lead_id: int, email: ?string, error: string}>}
      */
     public function syncPending(int $limit = 50): array
     {
@@ -29,13 +29,34 @@ class LegalCrmPendingLeadSyncService
             'scanned' => $leads->count(),
             'sent' => 0,
             'failed' => 0,
+            'failures' => [],
         ];
 
         if ($leads->isEmpty()) {
             return $stats;
         }
 
-        $client = app(LegalCrmApiClient::class);
+        try {
+            $client = app(LegalCrmApiClient::class);
+        } catch (Throwable $e) {
+            foreach ($leads as $lead) {
+                $stats['failed']++;
+                $stats['failures'][] = [
+                    'migration_lead_id' => (int) $lead->id,
+                    'email' => $lead->email,
+                    'error' => $e->getMessage(),
+                ];
+
+                Log::channel('migration_legal_crm')->error('Cron Legal CRM sync failed — client init error', [
+                    'migration_lead_id' => (int) $lead->id,
+                    'email' => $lead->email,
+                    'phone' => $lead->phone,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            return $stats;
+        }
 
         foreach ($leads as $lead) {
             try {
@@ -53,6 +74,11 @@ class LegalCrmPendingLeadSyncService
                 ]);
             } catch (Throwable $e) {
                 $stats['failed']++;
+                $stats['failures'][] = [
+                    'migration_lead_id' => (int) $lead->id,
+                    'email' => $lead->email,
+                    'error' => $e->getMessage(),
+                ];
 
                 Log::channel('migration_legal_crm')->error('Cron Legal CRM sync failed — left pending for retry', [
                     'migration_lead_id' => (int) $lead->id,

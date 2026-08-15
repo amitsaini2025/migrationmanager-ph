@@ -27,6 +27,15 @@ class SyncPendingLegalCrmLeads extends Command
                 $stats['failed']
             ));
 
+            foreach ($stats['failures'] ?? [] as $failure) {
+                $this->error(sprintf(
+                    'Lead #%d (%s) failed: %s',
+                    (int) ($failure['migration_lead_id'] ?? 0),
+                    (string) ($failure['email'] ?? 'no-email'),
+                    (string) ($failure['error'] ?? 'Unknown error')
+                ));
+            }
+
             return self::SUCCESS;
         } catch (Throwable $e) {
             $this->error('Failed: '.$e->getMessage());
