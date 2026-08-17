@@ -1,34 +1,45 @@
 <?php
+
 namespace App\Http\Controllers\CRM\Leads;
 
+use App\Helpers\PhoneHelper;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use App\Models\Admin;
-use App\Models\Company;
-use App\Models\Lead;
+use App\Models\ClientAddress;
 use App\Models\ClientContact;
 use App\Models\ClientEmail;
-use App\Models\ClientVisaCountry;
 use App\Models\ClientPassportInformation;
+use App\Models\ClientTravelInformation;
+use App\Models\ClientVisaCountry;
+use App\Models\Company;
+use App\Models\Country;
+use App\Models\Lead;
 use App\Models\Matter;
-use Carbon\Carbon;
-use App\Traits\ClientHelpers;
-use App\Services\ClientReferenceService;
+use App\Models\Staff;
+use App\Models\UserRole;
 use App\Services\ClientLeadListExportService;
-use App\Support\StaffClientVisibility;
+use App\Services\ClientReferenceService;
 use App\Services\LeadFollowUpNoteService;
 use App\Services\LegalCrm\LegalCrmApiClient;
-use App\Models\Staff;
-use App\Helpers\PhoneHelper;
+use App\Support\StaffClientVisibility;
+use App\Traits\ClientHelpers;
+use Carbon\Carbon;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\ValidationException;
 
 class LeadController extends Controller
 {
     use ClientHelpers;
+
     /**
      * Create a new controller instance.
      *
@@ -42,21 +53,21 @@ class LeadController extends Controller
     /**
      * Display a listing of leads
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function index(Request $request)
     {
-        $roles = \App\Models\UserRole::find(Auth::user()->role); 
-        $module_access = $this->decodeRoleModuleAccess($roles?->module_access); //dd(Auth::user()->role);
-        
+        $roles = UserRole::find(Auth::user()->role);
+        $module_access = $this->decodeRoleModuleAccess($roles?->module_access); // dd(Auth::user()->role);
+
         $perPage = 20;
-        if ($this->staffRoleCanOpenLeadList($module_access)) { //dd('yes');
+        if ($this->staffRoleCanOpenLeadList($module_access)) { // dd('yes');
             $query = $this->buildLeadListQuery($request);
             $totalData = (clone $query)->count();
 
             $allowedPerPage = [10, 20, 50, 100, 200];
             $perPage = (int) $request->get('per_page', 20);
-            if (!in_array($perPage, $allowedPerPage, true)) {
+            if (! in_array($perPage, $allowedPerPage, true)) {
                 $perPage = 20;
             }
 
@@ -70,7 +81,7 @@ class LeadController extends Controller
             $lists = $query->sortable(['id' => 'desc'])
                 ->paginate($perPage)
                 ->appends($request->except('page'));
-        } else { //dd('no');
+        } else { // dd('no');
             $lists = Lead::whereNull('id')->whereNotNull('id')->sortable(['id' => 'desc'])->paginate($perPage);
             $totalData = 0;
             $leadStageLabels = [
@@ -80,7 +91,7 @@ class LeadController extends Controller
                 'hostile' => 'Hostile',
             ];
         }
-        
+
         return view('crm.leads.index', compact('lists', 'totalData', 'perPage', 'leadStageLabels'));
     }
 
@@ -89,7 +100,7 @@ class LeadController extends Controller
      */
     public function exportList(Request $request)
     {
-        $roles = \App\Models\UserRole::find(Auth::user()->role);
+        $roles = UserRole::find(Auth::user()->role);
         $module_access = $this->decodeRoleModuleAccess($roles?->module_access);
 
         if (! $this->staffRoleCanOpenLeadList($module_access)) {
@@ -127,7 +138,7 @@ class LeadController extends Controller
         $query->when($request->filled('name'), function ($q) use ($request) {
             $nameLower = strtolower($request->input('name'));
 
-            return $q->whereRaw('LOWER(first_name) LIKE ?', ['%' . $nameLower . '%']);
+            return $q->whereRaw('LOWER(first_name) LIKE ?', ['%'.$nameLower.'%']);
         });
 
         $query->when($request->filled('email'), function ($q) use ($request) {
@@ -135,7 +146,7 @@ class LeadController extends Controller
             if ($email === 'demo@gmail.com') {
                 $emailLower = strtolower($email);
 
-                return $q->where(function ($subQuery) use ($email, $emailLower) {
+                return $q->where(function ($subQuery) use ($emailLower) {
                     $subQuery->whereRaw('LOWER(email) = ?', [$emailLower])
                         ->orWhereRaw('LOWER(email) LIKE ?', ['demo_%@gmail.com']);
                 });
@@ -149,11 +160,11 @@ class LeadController extends Controller
             if ($phone === '4444444444') {
                 return $q->where(function ($phoneQuery) use ($phone) {
                     $phoneQuery->where('phone', $phone)
-                        ->orWhere('phone', 'LIKE', $phone . '_%');
+                        ->orWhere('phone', 'LIKE', $phone.'_%');
                 });
             }
 
-            return $q->where('phone', 'LIKE', '%' . $request->input('phone') . '%');
+            return $q->where('phone', 'LIKE', '%'.$request->input('phone').'%');
         });
 
         $query->when(! $request->boolean('include_inactive'), function ($q) use ($request) {
@@ -213,7 +224,7 @@ class LeadController extends Controller
     protected function staffRoleCanOpenLeadList(array $module_access): bool
     {
         $user = Auth::user();
-        if (! $user instanceof \App\Models\Staff) {
+        if (! $user instanceof Staff) {
             return false;
         }
 
@@ -285,7 +296,7 @@ class LeadController extends Controller
     protected function resolveLeadDateRange(Request $request): array
     {
         $quickRange = $request->input('quick_date_range');
-        if (!empty($quickRange)) {
+        if (! empty($quickRange)) {
             $range = $this->getLeadQuickDateRangeBounds($quickRange);
             if ($range[0] && $range[1]) {
                 return $range;
@@ -366,6 +377,7 @@ class LeadController extends Controller
         foreach ($formats as $format) {
             try {
                 $date = Carbon::createFromFormat($format, $value);
+
                 return $endOfDay ? $date->endOfDay() : $date->startOfDay();
             } catch (\Throwable $th) {
                 continue;
@@ -381,20 +393,20 @@ class LeadController extends Controller
      */
     public function detail(Request $request, $id = null)
     {
-        if (isset($id) && !empty($id)) {
+        if (isset($id) && ! empty($id)) {
             $id = $this->decodeString($id);
-            
-            if (!$id) {
+
+            if (! $id) {
                 return Redirect::to('/leads')->with('error', config('constants.decode_string'));
             }
 
             if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
                 return Redirect::to('/leads')->with('error', config('constants.unauthorized'));
             }
-            
+
             // Using Lead model with withArchived scope to include archived leads
             $fetchedData = Lead::withArchived()->with('assignedTo')->where('id', $id)->first();
-            
+
             if ($fetchedData) {
                 return view('crm.leads.detail', compact('fetchedData'));
             } else {
@@ -410,7 +422,7 @@ class LeadController extends Controller
      */
     public function create(Request $request)
     {
-        $countriesPhoneData = \App\Models\Country::getAllWithPhoneCodes()
+        $countriesPhoneData = Country::getAllWithPhoneCodes()
             ->map(static fn ($c) => [
                 'id' => $c->id,
                 'name' => $c->name,
@@ -437,60 +449,28 @@ class LeadController extends Controller
     {
         // Debug logging
         Log::info('Lead store method called');
-        Log::info('Request method: ' . $request->method());
-        Log::info('Request data: ' . json_encode($request->all()));
-        
+        Log::info('Request method: '.$request->method());
+        Log::info('Request data: '.json_encode($request->all()));
+
         if ($request->isMethod('post')) {
             $requestData = $request->all();
-            
+
             // Check if this is a company lead
-            $isCompany = $request->input('is_company') === 'yes' || 
-                         $request->input('is_company') === true || 
+            $isCompany = $request->input('is_company') === 'yes' ||
+                         $request->input('is_company') === true ||
                          $request->input('is_company') === 1;
-            
+
             // Extract phone and email (now only one of each)
             $primaryPhone = $requestData['phone'][0] ?? null;
             $primaryEmail = $requestData['email'][0] ?? null;
-            
-            Log::info('Primary phone: ' . $primaryPhone);
-            Log::info('Primary email: ' . $primaryEmail);
-            Log::info('Is company: ' . ($isCompany ? 'yes' : 'no'));
+
+            Log::info('Primary phone: '.$primaryPhone);
+            Log::info('Primary email: '.$primaryEmail);
+            Log::info('Is company: '.($isCompany ? 'yes' : 'no'));
 
             // For company leads: find existing person by phone/email and auto-associate as contact person
             if ($isCompany && (empty($requestData['contact_person_id']) || $requestData['contact_person_id'] === '')) {
-                $matchedPerson = null;
-                if ($primaryPhone) {
-                    $matchedPerson = Admin::where('phone', $primaryPhone)
-                        ->whereIn('type', ['client', 'lead'])
-                        ->where(function ($q) { $q->where('type', 'client')->orWhere('type', 'lead'); })
-                        ->where('is_company', false)
-                        ->first();
-                    if (!$matchedPerson) {
-                        $contact = ClientContact::where('phone', $primaryPhone)->first();
-                        if ($contact) {
-                            $matchedPerson = Admin::find($contact->client_id);
-                            if ($matchedPerson && (($matchedPerson->is_company ?? false) || !in_array($matchedPerson->type ?? '', ['client', 'lead']))) {
-                                $matchedPerson = null;
-                            }
-                        }
-                    }
-                }
-                if (!$matchedPerson && $primaryEmail) {
-                    $matchedPerson = Admin::where('email', $primaryEmail)
-                        ->whereIn('type', ['client', 'lead'])
-                        ->where(function ($q) { $q->where('type', 'client')->orWhere('type', 'lead'); })
-                        ->where('is_company', false)
-                        ->first();
-                    if (!$matchedPerson) {
-                        $clientEmail = ClientEmail::where('email', $primaryEmail)->first();
-                        if ($clientEmail) {
-                            $matchedPerson = Admin::find($clientEmail->client_id);
-                            if ($matchedPerson && (($matchedPerson->is_company ?? false) || !in_array($matchedPerson->type ?? '', ['client', 'lead']))) {
-                                $matchedPerson = null;
-                            }
-                        }
-                    }
-                }
+                $matchedPerson = Admin::findPersonalClientOrLeadByNormalizedContact($primaryPhone, $primaryEmail);
                 if ($matchedPerson) {
                     $request->merge([
                         'contact_person_id' => $matchedPerson->id,
@@ -498,7 +478,7 @@ class LeadController extends Controller
                         'contact_person_last_name' => $matchedPerson->last_name,
                     ]);
                     $requestData = $request->all();
-                    Log::info('Auto-associated contact person from phone/email: ' . $matchedPerson->id);
+                    Log::info('Auto-associated contact person from phone/email: '.$matchedPerson->id);
                 }
             }
 
@@ -517,7 +497,7 @@ class LeadController extends Controller
                             function ($attribute, $value, $fail) {
                                 $contactPerson = Admin::find($value);
                                 $isClientOrLead = in_array($contactPerson->type ?? '', ['client', 'lead']);
-                                if (!$contactPerson || !$isClientOrLead) {
+                                if (! $contactPerson || ! $isClientOrLead) {
                                     $fail('The selected contact person must be a client or lead.');
                                 }
                                 if ($contactPerson && $contactPerson->is_company) {
@@ -529,7 +509,7 @@ class LeadController extends Controller
                         'ABN_number' => [
                             'nullable',
                             function ($attribute, $value, $fail) {
-                                if (!empty($value)) {
+                                if (! empty($value)) {
                                     // Strip non-digits and validate
                                     $cleanAbn = preg_replace('/\D/', '', $value);
                                     if (strlen($cleanAbn) !== 11) {
@@ -541,7 +521,7 @@ class LeadController extends Controller
                         'ACN' => [
                             'nullable',
                             function ($attribute, $value, $fail) {
-                                if (!empty($value)) {
+                                if (! empty($value)) {
                                     // Strip non-digits and validate
                                     $cleanAcn = preg_replace('/\D/', '', $value);
                                     if (strlen($cleanAcn) !== 9) {
@@ -556,7 +536,7 @@ class LeadController extends Controller
                         'followup_date' => 'nullable|date',
                         'assigned_staff_id' => 'nullable|exists:staff,id',
                     ];
-                    
+
                     $validationMessages = [
                         'company_name.required' => 'Company name is required for company leads.',
                         'company_name.unique' => 'This company name is already registered.',
@@ -578,7 +558,7 @@ class LeadController extends Controller
                         'followup_date' => 'nullable|date',
                         'assigned_staff_id' => 'nullable|exists:staff,id',
                     ];
-                    
+
                     $validationMessages = [
                         'first_name.required' => 'First name is required for personal leads.',
                         'last_name.required' => 'Last name is required for personal leads.',
@@ -589,15 +569,13 @@ class LeadController extends Controller
                         'email.0.email' => 'Please enter a valid email address.',
                     ];
                 }
-                
+
                 $this->validate($request, $validationRules, $validationMessages);
                 Log::info('Validation passed');
-            } catch (\Illuminate\Validation\ValidationException $e) {
-                Log::error('Validation failed: ' . json_encode($e->errors()));
+            } catch (ValidationException $e) {
+                Log::error('Validation failed: '.json_encode($e->errors()));
                 throw $e; // Re-throw to maintain normal flow
             }
-            
-           
 
             // Handle special cases for duplicate email and phone (Option 2: Auto-modify with timestamp)
             // NOTE: For company leads, skip uniqueness check - allow creation and auto-associate with existing person
@@ -606,57 +584,29 @@ class LeadController extends Controller
             $emailModified = false;
             $errors = [];
 
-            if (!$isCompany) {
+            if (! $isCompany) {
                 // Validate uniqueness for phone number (personal leads only)
                 if ($primaryPhone) {
-                    $existingPhone = Admin::where('phone', $primaryPhone)->first();
-                    if ($existingPhone) {
-                        if ($primaryPhone === '4444444444') {
-                            $primaryPhone = $primaryPhone . '_' . $timestamp;
+                    if (Admin::phoneIsTaken($primaryPhone)) {
+                        if (Admin::normalizePhoneDigitsForUniqueness($primaryPhone) === '4444444444') {
+                            $primaryPhone = '4444444444_'.$timestamp;
                             $phoneModified = true;
-                            Log::info('Phone number modified to: ' . $primaryPhone);
+                            Log::info('Phone number modified to: '.$primaryPhone);
                         } else {
-                            $errors["phone.0"] = "This phone number is already registered.";
-                        }
-                    }
-                    if (!$phoneModified) {
-                        $existingContact = ClientContact::where('phone', $primaryPhone)->first();
-                        if ($existingContact) {
-                            if ($primaryPhone === '4444444444') {
-                                $primaryPhone = $primaryPhone . '_' . $timestamp;
-                                $phoneModified = true;
-                                Log::info('Phone number modified to: ' . $primaryPhone);
-                            } else {
-                                $errors["phone.0"] = "This phone number is already registered.";
-                            }
+                            $errors['phone.0'] = 'This phone number is already registered.';
                         }
                     }
                 }
 
                 // Validate uniqueness for email address (personal leads only)
                 if ($primaryEmail) {
-                    $existingEmail = Admin::where('email', $primaryEmail)->first();
-                    if ($existingEmail) {
-                        if ($primaryEmail === 'demo@gmail.com') {
-                            $emailParts = explode('@', $primaryEmail);
-                            $primaryEmail = ($emailParts[0] ?? 'demo') . '_' . $timestamp . '@' . ($emailParts[1] ?? 'gmail.com');
+                    if (Admin::emailIsTaken($primaryEmail)) {
+                        if (Admin::normalizeEmailForUniqueness($primaryEmail) === 'demo@gmail.com') {
+                            $primaryEmail = 'demo_'.$timestamp.'@gmail.com';
                             $emailModified = true;
-                            Log::info('Email address modified to: ' . $primaryEmail);
+                            Log::info('Email address modified to: '.$primaryEmail);
                         } else {
-                            $errors["email.0"] = "This email address is already registered.";
-                        }
-                    }
-                    if (!$emailModified) {
-                        $existingClientEmail = ClientEmail::where('email', $primaryEmail)->first();
-                        if ($existingClientEmail) {
-                            if ($primaryEmail === 'demo@gmail.com') {
-                                $emailParts = explode('@', $primaryEmail);
-                                $primaryEmail = ($emailParts[0] ?? 'demo') . '_' . $timestamp . '@' . ($emailParts[1] ?? 'gmail.com');
-                                $emailModified = true;
-                                Log::info('Email address modified to: ' . $primaryEmail);
-                            } else {
-                                $errors["email.0"] = "This email address is already registered.";
-                            }
+                            $errors['email.0'] = 'This email address is already registered.';
                         }
                     }
                 }
@@ -670,30 +620,28 @@ class LeadController extends Controller
             }
 
             // If there are any custom errors, return them
-            if (!empty($errors)) {
-                Log::warning('Custom validation errors: ' . json_encode($errors));
+            if (! empty($errors)) {
+                Log::warning('Custom validation errors: '.json_encode($errors));
+
                 return redirect()->back()
                     ->withInput()
                     ->withErrors($errors);
             }
-            
-            Log::info('Custom validation passed - proceeding to insert');
-            
 
+            Log::info('Custom validation passed - proceeding to insert');
 
             // Process dates with validation
             $dob = null;
-            if (!empty($requestData['dob'])) {
+            if (! empty($requestData['dob'])) {
                 $dobs = explode('/', $requestData['dob']);
                 if (count($dobs) === 3) {
-                    $dob = $dobs[2] . '-' . $dobs[1] . '-' . $dobs[0];
+                    $dob = $dobs[2].'-'.$dobs[1].'-'.$dobs[0];
                 }
             }
 
-
             // Use database transaction for data integrity
             DB::beginTransaction();
-            
+
             try {
                 // Generate client_counter and client_id using centralized service
                 // This prevents race conditions and duplicate references
@@ -703,16 +651,13 @@ class LeadController extends Controller
                 $client_id = $reference['client_id'];
                 $client_current_counter = $reference['client_counter'];
 
-
                 // For company leads with duplicate email: use placeholder for admin record (admins.email has unique constraint)
                 $adminEmail = $primaryEmail;
                 if ($isCompany && $primaryEmail) {
-                    $emailExists = Admin::where('email', $primaryEmail)->exists()
-                        || ClientEmail::where('email', $primaryEmail)->exists();
-                    if ($emailExists) {
+                    if (Admin::emailIsTaken($primaryEmail)) {
                         $companySlug = preg_replace('/[^a-z0-9]/i', '_', substr($requestData['company_name'] ?? 'company', 0, 50));
-                        $adminEmail = 'company_lead_' . $companySlug . '_' . $timestamp . '@lead.internal';
-                        Log::info('Company lead: using placeholder email for admin record: ' . $adminEmail);
+                        $adminEmail = 'company_lead_'.$companySlug.'_'.$timestamp.'@lead.internal';
+                        Log::info('Company lead: using placeholder email for admin record: '.$adminEmail);
                     }
                 }
 
@@ -747,19 +692,19 @@ class LeadController extends Controller
                     'is_archived' => 0, // Not archived
                     'is_deleted' => null, // Not deleted
                     'verified' => 0, // Not verified (required NOT NULL column)
-                    
+
                     // Client Portal fields (required NOT NULL columns, default 0 for new leads)
                     'cp_status' => 0, // Client portal status (NOT NULL, default 0 - inactive)
                     'cp_code_verify' => 0, // Client portal code verification (NOT NULL, default 0)
-                    
+
                     // EOI Qualification fields (required NOT NULL columns, default 0 for new leads)
                     'australian_study' => 0, // Australian study requirement (NOT NULL, default 0)
                     'specialist_education' => 0, // Specialist education qualification (NOT NULL, default 0)
                     'regional_study' => 0, // Regional study qualification (NOT NULL, default 0)
-                    
+
                     // Company flag
                     'is_company' => $isCompany ? 1 : 0,
-                    
+
                     // Conditional field assignment
                     ...($isCompany ? [
                         // For company leads, store contact person name in first_name/last_name
@@ -778,52 +723,51 @@ class LeadController extends Controller
                         'age' => $requestData['age'] ?? null,
                         'marital_status' => $requestData['marital_status'] ?? null,
                     ]),
-                    
+
                     // Contact information
                     'contact_type' => $requestData['contact_type_hidden'][0] ?? null,
                     'country_code' => PhoneHelper::formatForStorage($requestData['country_code'][0] ?? ''),
                     'phone' => $primaryPhone,
                     'email_type' => $requestData['email_type_hidden'][0] ?? null,
                     'email' => $adminEmail,
-                    
+
                     // Timestamps
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
 
-
                 Log::info('Attempting to insert lead into database');
-                Log::info('Admin data to insert: ' . json_encode($adminData));
-                
+                Log::info('Admin data to insert: '.json_encode($adminData));
+
                 try {
                     // Insert into admins table and get the ID
                     $adminId = DB::table('admins')->insertGetId($adminData);
-                    Log::info('Lead inserted successfully with ID: ' . $adminId);
-                    
+                    Log::info('Lead inserted successfully with ID: '.$adminId);
+
                     // Create an object to maintain compatibility with existing code
                     $admin = (object) array_merge($adminData, ['id' => $adminId]);
-                    
+
                     // Validate insert was successful
-                    if (!$admin->id) {
+                    if (! $admin->id) {
                         throw new \Exception('Failed to insert lead - no ID returned');
                     }
-                } catch (\Illuminate\Database\QueryException $queryException) {
+                } catch (QueryException $queryException) {
                     // Handle database-specific errors
-                    Log::error('Database query failed: ' . $queryException->getMessage());
-                    Log::error('SQL Error Code: ' . $queryException->getCode());
-                    Log::error('Failed data: ' . json_encode($adminData));
+                    Log::error('Database query failed: '.$queryException->getMessage());
+                    Log::error('SQL Error Code: '.$queryException->getCode());
+                    Log::error('Failed data: '.json_encode($adminData));
                     throw $queryException; // Re-throw to be caught by outer try-catch
                 } catch (\Exception $saveException) {
-                    Log::error('Insert operation failed: ' . $saveException->getMessage());
-                    Log::error('Insert exception details: ' . $saveException->getTraceAsString());
+                    Log::error('Insert operation failed: '.$saveException->getMessage());
+                    Log::error('Insert exception details: '.$saveException->getTraceAsString());
                     throw $saveException; // Re-throw to be caught by outer try-catch
                 }
-                
+
                 // Save phone number to client_contacts table
                 if ($primaryPhone) {
                     $contactType = $requestData['contact_type_hidden'][0] ?? 'Personal';
                     $countryCode = PhoneHelper::formatForStorage($requestData['country_code'][0] ?? '');
-                    
+
                     ClientContact::create([
                         'admin_id' => Auth::user()->id,
                         'client_id' => $admin->id,
@@ -835,11 +779,11 @@ class LeadController extends Controller
                         'updated_at' => now(),
                     ]);
                 }
-                
+
                 // Save email to client_emails table
                 if ($primaryEmail) {
                     $emailType = $requestData['email_type_hidden'][0] ?? 'Personal';
-                    
+
                     ClientEmail::create([
                         'admin_id' => Auth::user()->id,
                         'client_id' => $admin->id,
@@ -850,11 +794,11 @@ class LeadController extends Controller
                         'updated_at' => now(),
                     ]);
                 }
-                
+
                 // Create company record if this is a company lead
                 if ($isCompany) {
                     $hasTradingName = (int) ($requestData['has_trading_name'] ?? 0) === 1;
-                    $tradingNames = $hasTradingName && !empty($requestData['trading_names'])
+                    $tradingNames = $hasTradingName && ! empty($requestData['trading_names'])
                         ? array_values(array_filter(array_map('trim', (array) $requestData['trading_names'])))
                         : [];
                     $primaryIdx = min((int) ($requestData['trading_name_primary'] ?? 0), max(0, count($tradingNames) - 1));
@@ -867,20 +811,20 @@ class LeadController extends Controller
                         'company_name' => $requestData['company_name'],
                         'trading_name' => $primaryTradingName,
                         'has_trading_name' => $hasTradingName,
-                        'ABN_number' => isset($requestData['ABN_number']) && !empty($requestData['ABN_number'])
+                        'ABN_number' => isset($requestData['ABN_number']) && ! empty($requestData['ABN_number'])
                             ? preg_replace('/\D/', '', $requestData['ABN_number'])
                             : null,
-                        'ACN' => isset($requestData['ACN']) && !empty($requestData['ACN'])
+                        'ACN' => isset($requestData['ACN']) && ! empty($requestData['ACN'])
                             ? preg_replace('/\D/', '', $requestData['ACN'])
                             : null,
                         'company_type' => $leadCompanyType,
-                        'company_website' => !empty(trim($requestData['company_website'] ?? '')) ? $requestData['company_website'] : null,
+                        'company_website' => ! empty(trim($requestData['company_website'] ?? '')) ? $requestData['company_website'] : null,
                         'contact_person_id' => $requestData['contact_person_id'] ?? null,
                         'contact_person_position' => $requestData['contact_person_position'] ?? null,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
-                    if ($hasTradingName && !empty($tradingNames)) {
+                    if ($hasTradingName && ! empty($tradingNames)) {
                         foreach ($tradingNames as $idx => $name) {
                             if ($name !== '') {
                                 $company->tradingNames()->create([
@@ -891,40 +835,41 @@ class LeadController extends Controller
                             }
                         }
                     }
-                    Log::info('Company record created for admin ID: ' . $admin->id);
+                    Log::info('Company record created for admin ID: '.$admin->id);
                 }
 
                 $leadForNote = Lead::find($admin->id);
                 if ($leadForNote) {
                     app(LeadFollowUpNoteService::class)->syncNotesForLead($leadForNote, null);
                 }
-                
+
                 DB::commit();
                 Log::info('Transaction committed successfully');
-                
+
                 // Encode the client/lead ID for the URL
                 $encodedId = base64_encode(convert_uuencode($admin->id));
-                Log::info('Redirecting to edit page with encoded ID: ' . $encodedId);
-                
+                Log::info('Redirecting to edit page with encoded ID: '.$encodedId);
+
                 return redirect()->route('clients.edit', ['id' => $encodedId])
                     ->with('success', 'Lead added successfully');
             } catch (\Exception $e) {
                 DB::rollBack();
-                
-                Log::error('Lead creation failed: ' . $e->getMessage());
-                Log::error('Stack trace: ' . $e->getTraceAsString());
-                
+
+                Log::error('Lead creation failed: '.$e->getMessage());
+                Log::error('Stack trace: '.$e->getTraceAsString());
+
                 // Clean up uploaded file if exists
                 // No profile image to clean up
-                
+
                 return redirect()->back()
                     ->withInput()
-                    ->withErrors(['error' => 'Failed to create lead: ' . $e->getMessage()]);
+                    ->withErrors(['error' => 'Failed to create lead: '.$e->getMessage()]);
             }
         }
-        
+
         // If not POST, return error
-        Log::error('Invalid request method - not POST. Method was: ' . $request->method());
+        Log::error('Invalid request method - not POST. Method was: '.$request->method());
+
         return redirect()->route('leads.create')
             ->with('error', 'Invalid request method');
     }
@@ -941,45 +886,45 @@ class LeadController extends Controller
         }
 
         $id = $this->decodeString($id);
-        
-        if (!$id) {
+
+        if (! $id) {
             return Redirect::to('/leads')->with('error', config('constants.decode_string'));
         }
 
         if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
             return Redirect::to('/leads')->with('error', config('constants.unauthorized'));
         }
-        
+
         // Using Lead model - automatically handles filtering
         $fetchedData = Lead::with('assignedTo')->find($id);
-        
-        if (!$fetchedData) {
+
+        if (! $fetchedData) {
             return Redirect::to('/leads')->with('error', 'Lead not found');
         }
 
         // Get countries for dropdown
-        $countries = \App\Models\Country::getAllWithPhoneCodes();
-        
+        $countries = Country::getAllWithPhoneCodes();
+
         // Load contact data (required by edit form)
         $clientContacts = ClientContact::where('client_id', $id)->get() ?? collect();
         $emails = ClientEmail::where('client_id', $id)->get() ?? collect();
-        
+
         // Load other related data for the edit form
-        $visaCountries = \App\Models\ClientVisaCountry::where('client_id', $id)
+        $visaCountries = ClientVisaCountry::where('client_id', $id)
             ->with('matter:id,title,nick_name')
             ->get() ?? collect();
-        $clientPassports = \App\Models\ClientPassportInformation::where('client_id', $id)->get() ?? collect();
-        $clientAddresses = \App\Models\ClientAddress::where('client_id', $id)
+        $clientPassports = ClientPassportInformation::where('client_id', $id)->get() ?? collect();
+        $clientAddresses = ClientAddress::where('client_id', $id)
             ->orderedForDisplay()
             ->get() ?? collect();
-        $clientTravels = \App\Models\ClientTravelInformation::where('client_id', $id)
+        $clientTravels = ClientTravelInformation::where('client_id', $id)
             ->orderByRaw('travel_arrival_date DESC NULLS LAST, created_at DESC')
             ->get() ?? collect();
-        $visaTypes = \App\Models\Matter::where('title', 'not like', '%skill assessment%')
+        $visaTypes = Matter::where('title', 'not like', '%skill assessment%')
             ->where('status', 1)
             ->orderBy('title', 'ASC')
             ->get();
-        
+
         $assignableStaff = Staff::where('status', 1)->orderBy('first_name')->orderBy('last_name')->get();
         $leadStageLabels = [
             'new' => 'New',
@@ -1007,8 +952,8 @@ class LeadController extends Controller
         }
 
         $id = $this->decodeString($id);
-        
-        if (!$id) {
+
+        if (! $id) {
             return Redirect::to('/leads')->with('error', config('constants.decode_string'));
         }
 
@@ -1018,7 +963,7 @@ class LeadController extends Controller
 
         $requestData = $request->all();
         $requestData['id'] = $id; // Ensure ID is set for validation
-        
+
         // Validate basic fields only (NOT phone/email as they are arrays)
         $this->validate($request, [
             'first_name' => 'required|max:255',
@@ -1031,14 +976,14 @@ class LeadController extends Controller
         ]);
 
         // Custom validation for phone array
-        if (empty($requestData['phone']) || !array_filter($requestData['phone'])) {
+        if (empty($requestData['phone']) || ! array_filter($requestData['phone'])) {
             return redirect()->back()
                 ->withInput()
                 ->withErrors(['phone' => 'At least one phone number is required.']);
         }
 
         // Custom validation for email array
-        if (empty($requestData['email']) || !array_filter($requestData['email'])) {
+        if (empty($requestData['email']) || ! array_filter($requestData['email'])) {
             return redirect()->back()
                 ->withInput()
                 ->withErrors(['email' => 'At least one email address is required.']);
@@ -1051,38 +996,16 @@ class LeadController extends Controller
 
         // Check for duplicate phones (excluding current lead) - with universal number handling
         foreach ($requestData['phone'] as $index => $phone) {
-            if (!empty($phone)) {
-                // Check in admins table (all leads and clients)
-                $existingPhone = Admin::where('phone', $phone)
-                    ->where('id', '!=', $id)
-                    ->first();
-                if ($existingPhone) {
-                    // Special case: allow 4444444444 to be duplicated with timestamp
-                    if ($phone === '4444444444') {
-                        $requestData['phone'][$index] = $phone . '_' . $timestamp;
+            if (! empty($phone)) {
+                if (Admin::phoneIsTaken($phone, (int) $id)) {
+                    if (Admin::normalizePhoneDigitsForUniqueness($phone) === '4444444444') {
+                        $requestData['phone'][$index] = '4444444444_'.$timestamp;
                         $phoneModifiedFlags[$index] = true;
-                        Log::info('Phone number modified to: ' . $requestData['phone'][$index]);
+                        Log::info('Phone number modified to: '.$requestData['phone'][$index]);
                     } else {
                         return redirect()->back()
                             ->withInput()
                             ->withErrors(['phone' => "Phone number {$phone} is already registered."]);
-                    }
-                } else {
-                    // Check in client_contacts table
-                    $existingContact = ClientContact::where('phone', $phone)
-                        ->where('client_id', '!=', $id)
-                        ->first();
-                    if ($existingContact) {
-                        // Special case: allow 4444444444 to be duplicated with timestamp
-                        if ($phone === '4444444444') {
-                            $requestData['phone'][$index] = $phone . '_' . $timestamp;
-                            $phoneModifiedFlags[$index] = true;
-                            Log::info('Phone number modified to: ' . $requestData['phone'][$index]);
-                        } else {
-                            return redirect()->back()
-                                ->withInput()
-                                ->withErrors(['phone' => "Phone number {$phone} is already registered."]);
-                        }
                     }
                 }
             }
@@ -1090,44 +1013,16 @@ class LeadController extends Controller
 
         // Check for duplicate emails (excluding current lead) - with universal number handling
         foreach ($requestData['email'] as $index => $email) {
-            if (!empty($email)) {
-                // Check in admins table (all leads and clients)
-                $existingEmail = Admin::where('email', $email)
-                    ->where('id', '!=', $id)
-                    ->first();
-                if ($existingEmail) {
-                    // Special case: allow demo@gmail.com to be duplicated with timestamp
-                    if ($email === 'demo@gmail.com') {
-                        $emailParts = explode('@', $email);
-                        $localPart = $emailParts[0];
-                        $domainPart = $emailParts[1];
-                        $requestData['email'][$index] = $localPart . '_' . $timestamp . '@' . $domainPart;
+            if (! empty($email)) {
+                if (Admin::emailIsTaken($email, (int) $id)) {
+                    if (Admin::normalizeEmailForUniqueness($email) === 'demo@gmail.com') {
+                        $requestData['email'][$index] = 'demo_'.$timestamp.'@gmail.com';
                         $emailModifiedFlags[$index] = true;
-                        Log::info('Email address modified to: ' . $requestData['email'][$index]);
+                        Log::info('Email address modified to: '.$requestData['email'][$index]);
                     } else {
                         return redirect()->back()
                             ->withInput()
                             ->withErrors(['email' => "Email {$email} is already registered."]);
-                    }
-                } else {
-                    // Check in client_emails table
-                    $existingClientEmail = ClientEmail::where('email', $email)
-                        ->where('client_id', '!=', $id)
-                        ->first();
-                    if ($existingClientEmail) {
-                        // Special case: allow demo@gmail.com to be duplicated with timestamp
-                        if ($email === 'demo@gmail.com') {
-                            $emailParts = explode('@', $email);
-                            $localPart = $emailParts[0];
-                            $domainPart = $emailParts[1];
-                            $requestData['email'][$index] = $localPart . '_' . $timestamp . '@' . $domainPart;
-                            $emailModifiedFlags[$index] = true;
-                            Log::info('Email address modified to: ' . $requestData['email'][$index]);
-                        } else {
-                            return redirect()->back()
-                                ->withInput()
-                                ->withErrors(['email' => "Email {$email} is already registered."]);
-                        }
                     }
                 }
             }
@@ -1135,7 +1030,7 @@ class LeadController extends Controller
 
         if (isset($requestData['phone']) && is_array($requestData['phone'])) {
             foreach ($requestData['phone'] as $index => $phone) {
-                if (!empty($phone)) {
+                if (! empty($phone)) {
                     if (PhoneHelper::formatForStorage($requestData['country_code'][$index] ?? '') === '') {
                         return redirect()->back()
                             ->withInput()
@@ -1147,9 +1042,9 @@ class LeadController extends Controller
 
         // Find the lead by ID using Lead model
         $lead = Lead::find($id);
-        
+
         // Check if the lead exists
-        if (!$lead) {
+        if (! $lead) {
             return redirect()->back()->with('error', 'Lead not found.');
         }
 
@@ -1161,24 +1056,24 @@ class LeadController extends Controller
 
         // Process dates with validation
         $dob = null;
-        if (!empty($requestData['dob'])) {
+        if (! empty($requestData['dob'])) {
             $dobs = explode('/', $requestData['dob']);
             if (count($dobs) === 3) {
-                $dob = $dobs[2] . '-' . $dobs[1] . '-' . $dobs[0];
+                $dob = $dobs[2].'-'.$dobs[1].'-'.$dobs[0];
             }
         }
 
         $visa_expiry_date = null;
-        if (!empty($requestData['visa_expiry_date'])) {
+        if (! empty($requestData['visa_expiry_date'])) {
             $visa_expiry_dates = explode('/', $requestData['visa_expiry_date']);
             if (count($visa_expiry_dates) === 3) {
-                $visa_expiry_date = $visa_expiry_dates[2] . '-' . $visa_expiry_dates[1] . '-' . $visa_expiry_dates[0];
+                $visa_expiry_date = $visa_expiry_dates[2].'-'.$visa_expiry_dates[1].'-'.$visa_expiry_dates[0];
             }
         }
 
         // Use database transaction for data integrity
         DB::beginTransaction();
-        
+
         try {
             $previousLeadStatus = $lead->lead_status;
 
@@ -1193,16 +1088,16 @@ class LeadController extends Controller
             $lead->visa_type = $requestData['visa_type'] ?? null;
             $lead->visaExpiry = $visa_expiry_date;
             $lead->tagname = $requestData['tags_label'] ?? null;
-            
+
             // Extract LAST phone from array (following ClientPersonalDetailsController pattern)
             $lastPhone = null;
             $lastCountryCode = null;
             $lastContactType = null;
-            
+
             if (isset($requestData['phone']) && is_array($requestData['phone'])) {
                 $phoneCount = count($requestData['phone']);
                 for ($i = $phoneCount - 1; $i >= 0; $i--) {
-                    if (!empty($requestData['phone'][$i])) {
+                    if (! empty($requestData['phone'][$i])) {
                         $lastPhone = $requestData['phone'][$i];
                         $lastCountryCode = $requestData['country_code'][$i] ?? null;
                         $lastContactType = $requestData['contact_type_hidden'][$i] ?? null;
@@ -1210,22 +1105,22 @@ class LeadController extends Controller
                     }
                 }
             }
-            
+
             // Extract LAST email from array (following ClientPersonalDetailsController pattern)
             $lastEmail = null;
             $lastEmailType = null;
-            
+
             if (isset($requestData['email']) && is_array($requestData['email'])) {
                 $emailCount = count($requestData['email']);
                 for ($i = $emailCount - 1; $i >= 0; $i--) {
-                    if (!empty($requestData['email'][$i])) {
+                    if (! empty($requestData['email'][$i])) {
                         $lastEmail = $requestData['email'][$i];
                         $lastEmailType = $requestData['email_type_hidden'][$i] ?? null;
                         break;
                     }
                 }
             }
-            
+
             $lead->contact_type = $lastContactType;
             $lead->country_code = PhoneHelper::formatForStorage($lastCountryCode ?? '');
             $lead->phone = $lastPhone;
@@ -1279,17 +1174,17 @@ class LeadController extends Controller
             $lead->save();
 
             app(LeadFollowUpNoteService::class)->syncNotesForLead($lead, $previousLeadStatus);
-            
+
             // Update phone numbers in client_contacts table (following ClientPersonalDetailsController pattern)
             if (isset($requestData['contact_type_hidden']) && is_array($requestData['contact_type_hidden'])) {
                 $processedPhoneIds = [];
-                
+
                 foreach ($requestData['contact_type_hidden'] as $key => $contactType) {
                     $contactId = $requestData['contact_id'][$key] ?? null;
                     $phone = $requestData['phone'][$key] ?? null;
                     $countryCode = PhoneHelper::formatForStorage($requestData['country_code'][$key] ?? '');
-                    
-                    if (!empty($phone)) {
+
+                    if (! empty($phone)) {
                         if ($contactId) {
                             // Update existing contact
                             $existingContact = ClientContact::find($contactId);
@@ -1298,7 +1193,7 @@ class LeadController extends Controller
                                     'admin_id' => Auth::user()->id,
                                     'contact_type' => $contactType,
                                     'phone' => $phone,
-                                    'country_code' => $countryCode
+                                    'country_code' => $countryCode,
                                 ]);
                                 $processedPhoneIds[] = $existingContact->id;
                             }
@@ -1310,30 +1205,30 @@ class LeadController extends Controller
                                 'contact_type' => $contactType,
                                 'phone' => $phone,
                                 'country_code' => $countryCode,
-                                'is_verified' => false
+                                'is_verified' => false,
                             ]);
                             $processedPhoneIds[] = $newContact->id;
                         }
                     }
                 }
-                
+
                 // Delete contacts not in the processed list (user removed them)
-                if (!empty($processedPhoneIds)) {
+                if (! empty($processedPhoneIds)) {
                     ClientContact::where('client_id', $lead->id)
                         ->whereNotIn('id', $processedPhoneIds)
                         ->delete();
                 }
             }
-            
+
             // Update emails in client_emails table (following ClientPersonalDetailsController pattern)
             if (isset($requestData['email_type_hidden']) && is_array($requestData['email_type_hidden'])) {
                 $processedEmailIds = [];
-                
+
                 foreach ($requestData['email_type_hidden'] as $key => $emailType) {
                     $emailId = $requestData['email_id'][$key] ?? null;
                     $email = $requestData['email'][$key] ?? null;
-                    
-                    if (!empty($email)) {
+
+                    if (! empty($email)) {
                         if ($emailId) {
                             // Update existing email
                             $existingEmail = ClientEmail::find($emailId);
@@ -1341,7 +1236,7 @@ class LeadController extends Controller
                                 $existingEmail->update([
                                     'admin_id' => Auth::user()->id,
                                     'email_type' => $emailType,
-                                    'email' => $email
+                                    'email' => $email,
                                 ]);
                                 $processedEmailIds[] = $existingEmail->id;
                             }
@@ -1352,28 +1247,28 @@ class LeadController extends Controller
                                 'client_id' => $lead->id,
                                 'email_type' => $emailType,
                                 'email' => $email,
-                                'is_verified' => false
+                                'is_verified' => false,
                             ]);
                             $processedEmailIds[] = $newEmail->id;
                         }
                     }
                 }
-                
+
                 // Delete emails not in the processed list (user removed them)
-                if (!empty($processedEmailIds)) {
+                if (! empty($processedEmailIds)) {
                     ClientEmail::where('client_id', $lead->id)
                         ->whereNotIn('id', $processedEmailIds)
                         ->delete();
                 }
             }
-            
+
             DB::commit();
-            
+
             return redirect()->route('leads.edit', base64_encode(convert_uuencode($id)))
                 ->with('success', 'Lead updated successfully');
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', config('constants.server_error'));
@@ -1386,20 +1281,20 @@ class LeadController extends Controller
      */
     public function history(Request $request, $id = null)
     {
-        if (isset($id) && !empty($id)) {
+        if (isset($id) && ! empty($id)) {
             $id = $this->decodeString($id);
-            
-            if (!$id) {
+
+            if (! $id) {
                 return Redirect::to('/leads')->with('error', config('constants.decode_string'));
             }
 
             if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
                 return Redirect::to('/leads')->with('error', config('constants.unauthorized'));
             }
-            
+
             // Using Lead model with withArchived scope to include archived leads
             $fetchedData = Lead::withArchived()->where('id', $id)->first();
-            
+
             if ($fetchedData) {
                 return view('crm.leads.history', compact('fetchedData'));
             } else {
@@ -1416,33 +1311,18 @@ class LeadController extends Controller
      */
     public function is_email_unique(Request $request)
     {
-        $email = $request->input('email');
-        $excludeId = $request->input('id'); // Optional - for edit operations
-        
-        // Check in leads (admins table where type='lead')
-        $leadQuery = Lead::where('email', $email);
-        if ($excludeId) {
-            $leadQuery->where('id', '!=', $excludeId);
-        }
-        $lead_count = $leadQuery->count();
-        
-        // Check in clients (admins table where type='client')
-        $client_count = Admin::whereIn('type', ['client', 'lead'])
-            ->where('type', 'client')
-            ->where('email', $email)
-            ->when($excludeId, function($q) use ($excludeId) {
-                return $q->where('id', '!=', $excludeId);
-            })
-            ->count();
-        
-        $total_count = $lead_count + $client_count;
-        
-        $response = [
-            'status' => $total_count > 0 ? 1 : 0,
-            'message' => $total_count > 0 ? 'The email has already been taken.' : '',
-        ];
-        
-        return response()->json($response);
+        $email = (string) $request->input('email', '');
+        $excludeId = $request->input('id');
+
+        $taken = $email !== '' && Admin::emailIsTaken(
+            $email,
+            $excludeId !== null && $excludeId !== '' ? (int) $excludeId : null
+        );
+
+        return response()->json([
+            'status' => $taken ? 1 : 0,
+            'message' => $taken ? 'The email has already been taken.' : '',
+        ]);
     }
 
     /**
@@ -1451,33 +1331,18 @@ class LeadController extends Controller
      */
     public function is_contactno_unique(Request $request)
     {
-        $contact = $request->input('contact');
-        $excludeId = $request->input('id'); // Optional - for edit operations
-        
-        // Check in leads (admins table where type='lead')
-        $leadQuery = Lead::where('phone', 'LIKE', '%' . $contact . '%');
-        if ($excludeId) {
-            $leadQuery->where('id', '!=', $excludeId);
-        }
-        $lead_count = $leadQuery->count();
-        
-        // Check in clients (admins table where type='client')
-        $client_count = Admin::whereIn('type', ['client', 'lead'])
-            ->where('type', 'client')
-            ->where('phone', 'LIKE', '%' . $contact . '%')
-            ->when($excludeId, function($q) use ($excludeId) {
-                return $q->where('id', '!=', $excludeId);
-            })
-            ->count();
-        
-        $total_count = $lead_count + $client_count;
-        
-        $response = [
-            'status' => $total_count > 0 ? 1 : 0,
-            'message' => $total_count > 0 ? 'The phone has already been taken.' : '',
-        ];
-        
-        return response()->json($response);
+        $contact = (string) $request->input('contact', '');
+        $excludeId = $request->input('id');
+
+        $taken = $contact !== '' && Admin::phoneIsTaken(
+            $contact,
+            $excludeId !== null && $excludeId !== '' ? (int) $excludeId : null
+        );
+
+        return response()->json([
+            'status' => $taken ? 1 : 0,
+            'message' => $taken ? 'The phone has already been taken.' : '',
+        ]);
     }
 
     /**
@@ -1494,43 +1359,9 @@ class LeadController extends Controller
             return response()->json(['found' => false, 'person' => null]);
         }
 
-        $matchedPerson = null;
+        $matchedPerson = Admin::findPersonalClientOrLeadByNormalizedContact($phone, $email);
 
-        if ($phone) {
-            $matchedPerson = Admin::where('phone', $phone)
-                ->whereIn('type', ['client', 'lead'])
-                ->where(function ($q) { $q->where('type', 'client')->orWhere('type', 'lead'); })
-                ->where('is_company', false)
-                ->first();
-            if (!$matchedPerson) {
-                $contact = ClientContact::where('phone', $phone)->first();
-                if ($contact) {
-                    $person = Admin::find($contact->client_id);
-                    if ($person && !($person->is_company ?? false) && in_array($person->type ?? '', ['client', 'lead'])) {
-                        $matchedPerson = $person;
-                    }
-                }
-            }
-        }
-
-        if (!$matchedPerson && $email) {
-            $matchedPerson = Admin::where('email', $email)
-                ->whereIn('type', ['client', 'lead'])
-                ->where(function ($q) { $q->where('type', 'client')->orWhere('type', 'lead'); })
-                ->where('is_company', false)
-                ->first();
-            if (!$matchedPerson) {
-                $clientEmail = ClientEmail::where('email', $email)->first();
-                if ($clientEmail) {
-                    $person = Admin::find($clientEmail->client_id);
-                    if ($person && !($person->is_company ?? false) && in_array($person->type ?? '', ['client', 'lead'])) {
-                        $matchedPerson = $person;
-                    }
-                }
-            }
-        }
-
-        if (!$matchedPerson) {
+        if (! $matchedPerson) {
             return response()->json(['found' => false, 'person' => null]);
         }
 
@@ -1543,10 +1374,10 @@ class LeadController extends Controller
                 'email' => $matchedPerson->email,
                 'phone' => $matchedPerson->phone,
                 'client_id' => $matchedPerson->client_id ?? null,
-                'text' => trim(($matchedPerson->first_name ?? '') . ' ' . ($matchedPerson->last_name ?? ''))
-                    . ($matchedPerson->email ? " ({$matchedPerson->email})" : '')
-                    . ($matchedPerson->phone ? " - {$matchedPerson->phone}" : '')
-                    . (($matchedPerson->client_id ?? null) ? " - {$matchedPerson->client_id}" : ''),
+                'text' => trim(($matchedPerson->first_name ?? '').' '.($matchedPerson->last_name ?? ''))
+                    .($matchedPerson->email ? " ({$matchedPerson->email})" : '')
+                    .($matchedPerson->phone ? " - {$matchedPerson->phone}" : '')
+                    .(($matchedPerson->client_id ?? null) ? " - {$matchedPerson->client_id}" : ''),
             ],
         ]);
     }
@@ -1574,14 +1405,14 @@ class LeadController extends Controller
     {
         return response()->json([
             'status' => 0,
-            'message' => 'Followup functionality has been removed'
+            'message' => 'Followup functionality has been removed',
         ]);
     }
 
     /**
      * Decode string helper method - consistent with parent behavior
-     * 
-     * @param string|null $string
+     *
+     * @param  string|null  $string
      * @return string|false
      */
     public function decodeString($string = null)
@@ -1589,11 +1420,11 @@ class LeadController extends Controller
         if (empty($string)) {
             return false;
         }
-        
+
         if (base64_encode(base64_decode($string, true)) === $string) {
             return convert_uudecode(base64_decode($string));
         }
-        
+
         return false;
     }
 
@@ -1601,21 +1432,21 @@ class LeadController extends Controller
      * Archive a lead
      * Sets is_archived = 1 for the specified lead
      *
-     * @param Request $request
-     * @param string $id Encoded lead ID
-     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+     * @param  string  $id  Encoded lead ID
+     * @return RedirectResponse|JsonResponse
      */
     public function archive(Request $request, $id)
     {
         try {
             // Decode the lead ID
             $decodedId = $this->decodeString($id);
-            
-            if (!$decodedId) {
+
+            if (! $decodedId) {
                 $message = config('constants.decode_string') ?? 'Invalid lead ID.';
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 400);
                 }
+
                 return redirect()->route('leads.index')
                     ->with('error', $message);
             }
@@ -1625,32 +1456,35 @@ class LeadController extends Controller
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 403);
                 }
+
                 return redirect()->route('leads.index')
                     ->with('error', $message);
             }
-            
+
             // Find the lead (using withArchived to include archived leads)
             $lead = Lead::withArchived()->where('id', $decodedId)->first();
-            
-            if (!$lead) {
+
+            if (! $lead) {
                 $message = 'Lead not found.';
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 404);
                 }
+
                 return redirect()->route('leads.index')
                     ->with('error', $message);
             }
-            
+
             // Check if already archived
             if ($lead->is_archived == 1) {
                 $message = 'Lead is already archived.';
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 200);
                 }
+
                 return redirect()->route('leads.index')
                     ->with('info', $message);
             }
-            
+
             // Archive the lead
             $lead->archive();
 
@@ -1658,12 +1492,12 @@ class LeadController extends Controller
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json(['status' => 1, 'message' => $message], 200);
             }
-            
+
             return redirect()->route('leads.index')
                 ->with('success', $message);
-                
+
         } catch (\Exception $e) {
-            Log::error('Error archiving lead: ' . $e->getMessage());
+            Log::error('Error archiving lead: '.$e->getMessage());
             $message = 'An error occurred while archiving the lead. Please try again.';
 
             if ($request->ajax() || $request->wantsJson()) {
@@ -1679,20 +1513,20 @@ class LeadController extends Controller
      * Send a lead to Legal CRM instantly (send_to_legal_crm = 1 on success).
      * On API failure the lead stays unsynced so staff can click again to retry.
      *
-     * @param Request $request
-     * @param string $id Encoded lead ID
-     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+     * @param  string  $id  Encoded lead ID
+     * @return RedirectResponse|JsonResponse
      */
     public function sendToLegalCrm(Request $request, $id)
     {
         try {
             $decodedId = $this->decodeString($id);
 
-            if (!$decodedId) {
+            if (! $decodedId) {
                 $message = config('constants.decode_string') ?? 'Invalid lead ID.';
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 400);
                 }
+
                 return redirect()->route('leads.index')
                     ->with('error', $message);
             }
@@ -1702,17 +1536,19 @@ class LeadController extends Controller
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 403);
                 }
+
                 return redirect()->route('leads.index')
                     ->with('error', $message);
             }
 
             $lead = Lead::where('id', $decodedId)->where('is_archived', 0)->first();
 
-            if (!$lead) {
+            if (! $lead) {
                 $message = 'Lead not found.';
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 404);
                 }
+
                 return redirect()->route('leads.index')
                     ->with('error', $message);
             }
@@ -1734,6 +1570,7 @@ class LeadController extends Controller
                         'queued' => false,
                     ], 200);
                 }
+
                 return redirect()->route('leads.index')
                     ->with('info', $message);
             }
@@ -1829,7 +1666,7 @@ class LeadController extends Controller
                 'staff_id' => Auth::id(),
                 'encoded_id' => $id,
             ]);
-            Log::error('Error sending lead to Legal CRM: ' . $e->getMessage());
+            Log::error('Error sending lead to Legal CRM: '.$e->getMessage());
 
             $message = $e->getMessage();
             if ($message === '' || str_contains(strtolower($message), 'sqlstate')) {

@@ -1,18 +1,21 @@
 <?php
+
 namespace App\Models;
 
-use Illuminate\Notifications\Notifiable;
-use Kyslik\ColumnSortable\Sortable;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Laravel\Sanctum\HasApiTokens;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
+use Kyslik\ColumnSortable\Sortable;
+use Laravel\Sanctum\HasApiTokens;
 
 class Admin extends Authenticatable
 {
-    use Notifiable, Sortable, HasFactory, HasApiTokens; // Add HasApiTokens
+    use HasApiTokens, HasFactory, Notifiable, Sortable; // Add HasApiTokens
 
     /** Staff reminder on client/lead detail — never show modal again */
     public const GOOGLE_REVIEW_REMINDER_NOT_INTERESTED = 'not_interested';
@@ -20,15 +23,15 @@ class Admin extends Authenticatable
     /** Client has left a review — never show modal again */
     public const GOOGLE_REVIEW_REMINDER_REVIEW_RECEIVED = 'review_received';
 
-	// The authentication guard for admin
+    // The authentication guard for admin
     protected $guard = 'admin';
 
-	/**
-      * The attributes that are mass assignable.
-      *
-      * @var array
-	*/
-	protected $fillable = [
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [
         'id',
         // Core Identity
         'first_name', 'last_name', 'email', 'password',
@@ -73,16 +76,16 @@ class Admin extends Authenticatable
         'visa_type',
         'source',
         // Timestamps
-        'created_at', 'updated_at'
+        'created_at', 'updated_at',
     ];
 
-	/**
-      * The attributes that should be hidden for arrays.
-      *
-      * @var array
-	*/
+    /**
+     * The attributes that should be hidden for arrays.
+     *
+     * @var array
+     */
     protected $hidden = [
-        'password', 'remember_token', 'cp_random_code'
+        'password', 'remember_token', 'cp_random_code',
     ];
 
     protected $casts = [
@@ -93,7 +96,7 @@ class Admin extends Authenticatable
         'visa_expiry_verified_at' => 'datetime',
     ];
 
-	public $sortable = [
+    public $sortable = [
         'id',
         'client_id',
         'first_name',
@@ -101,7 +104,7 @@ class Admin extends Authenticatable
         'email',
         'status',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
     protected static function booted(): void
@@ -113,28 +116,27 @@ class Admin extends Authenticatable
         });
     }
 
-	public function countryData()
+    public function countryData()
     {
-        return $this->belongsTo('App\\Models\\Country','country');
+        return $this->belongsTo('App\\Models\\Country', 'country');
     }
 
-	// REMOVED: State model has been deleted
-	// public function stateData()
+    // REMOVED: State model has been deleted
+    // public function stateData()
     // {
     //     return $this->belongsTo('App\\Models\\State','state');
     // }
-	public function usertype()
+    public function usertype()
     {
         return $this->belongsTo('App\\Models\\UserRole', 'role', 'id');
     }
 
-
-	/**
+    /**
      * Get full name attribute
-    */
-	public function getFullNameAttribute(): string
+     */
+    public function getFullNameAttribute(): string
     {
-        return trim($this->first_name . ' ' . $this->last_name);
+        return trim($this->first_name.' '.$this->last_name);
     }
 
     /**
@@ -149,7 +151,7 @@ class Admin extends Authenticatable
      * Get age attribute - calculates from DOB on-the-fly
      * Falls back to stored age if DOB is not available
      * Always returns accurate age when DOB exists
-     * 
+     *
      * @return string|null
      */
     public function getAgeAttribute($value)
@@ -157,22 +159,23 @@ class Admin extends Authenticatable
         // If DOB exists, calculate age on-the-fly (always accurate)
         if ($this->dob && $this->dob !== null) {
             try {
-                $dobDate = \Carbon\Carbon::parse($this->dob);
-                $now = \Carbon\Carbon::now();
-                
+                $dobDate = Carbon::parse($this->dob);
+                $now = Carbon::now();
+
                 // Don't calculate for future dates
                 if ($dobDate->isFuture()) {
                     return $value; // Return stored value or null
                 }
-                
+
                 $diff = $now->diff($dobDate);
-                return $diff->y . ' years ' . $diff->m . ' months';
+
+                return $diff->y.' years '.$diff->m.' months';
             } catch (\Exception $e) {
                 // If calculation fails, return stored value
                 return $value;
             }
         }
-        
+
         // If no DOB, return stored age value (or null)
         return $value;
     }
@@ -194,7 +197,7 @@ class Admin extends Authenticatable
      */
     public function assignedClients(): HasMany
     {
-        return $this->hasMany(\App\Models\Admin::class, 'agent_id');
+        return $this->hasMany(Admin::class, 'agent_id');
     }
 
     /**
@@ -202,7 +205,7 @@ class Admin extends Authenticatable
      */
     public function createdDocuments(): HasMany
     {
-        return $this->hasMany(\App\Models\Document::class, 'created_by');
+        return $this->hasMany(Document::class, 'created_by');
     }
 
     /**
@@ -210,7 +213,7 @@ class Admin extends Authenticatable
      */
     public function documents(): HasMany
     {
-        return $this->hasMany(\App\Models\Document::class, 'created_by');
+        return $this->hasMany(Document::class, 'created_by');
     }
 
     /**
@@ -218,7 +221,7 @@ class Admin extends Authenticatable
      */
     public function dobVerifications(): HasMany
     {
-        return $this->hasMany(\App\Models\Admin::class, 'dob_verified_by');
+        return $this->hasMany(Admin::class, 'dob_verified_by');
     }
 
     /**
@@ -226,7 +229,7 @@ class Admin extends Authenticatable
      */
     public function phoneVerifications(): HasMany
     {
-        return $this->hasMany(\App\Models\Admin::class, 'phone_verified_by');
+        return $this->hasMany(Admin::class, 'phone_verified_by');
     }
 
     /**
@@ -234,7 +237,7 @@ class Admin extends Authenticatable
      */
     public function visaExpiryVerifications(): HasMany
     {
-        return $this->hasMany(\App\Models\Admin::class, 'visa_expiry_verified_by');
+        return $this->hasMany(Admin::class, 'visa_expiry_verified_by');
     }
 
     /**
@@ -251,7 +254,7 @@ class Admin extends Authenticatable
      */
     public function eoiReferences(): HasMany
     {
-        return $this->hasMany(\App\Models\ClientEoiReference::class, 'client_id');
+        return $this->hasMany(ClientEoiReference::class, 'client_id');
     }
 
     // ============================================================
@@ -264,7 +267,7 @@ class Admin extends Authenticatable
      */
     public function partner()
     {
-        return $this->hasOne(\App\Models\ClientSpouseDetail::class, 'client_id');
+        return $this->hasOne(ClientSpouseDetail::class, 'client_id');
     }
 
     /**
@@ -273,7 +276,7 @@ class Admin extends Authenticatable
      */
     public function testScores(): HasMany
     {
-        return $this->hasMany(\App\Models\ClientTestScore::class, 'client_id');
+        return $this->hasMany(ClientTestScore::class, 'client_id');
     }
 
     /**
@@ -282,7 +285,7 @@ class Admin extends Authenticatable
      */
     public function occupations(): HasMany
     {
-        return $this->hasMany(\App\Models\ClientOccupation::class, 'client_id');
+        return $this->hasMany(ClientOccupation::class, 'client_id');
     }
 
     /**
@@ -291,7 +294,7 @@ class Admin extends Authenticatable
      */
     public function qualifications(): HasMany
     {
-        return $this->hasMany(\App\Models\ClientQualification::class, 'client_id');
+        return $this->hasMany(ClientQualification::class, 'client_id');
     }
 
     /**
@@ -300,7 +303,7 @@ class Admin extends Authenticatable
      */
     public function experiences(): HasMany
     {
-        return $this->hasMany(\App\Models\ClientExperience::class, 'client_id');
+        return $this->hasMany(ClientExperience::class, 'client_id');
     }
 
     /**
@@ -309,7 +312,7 @@ class Admin extends Authenticatable
      */
     public function relationships(): HasMany
     {
-        return $this->hasMany(\App\Models\ClientRelationship::class, 'client_id');
+        return $this->hasMany(ClientRelationship::class, 'client_id');
     }
 
     // ============================================================
@@ -321,7 +324,7 @@ class Admin extends Authenticatable
      */
     public function clientMatters(): HasMany
     {
-        return $this->hasMany(\App\Models\ClientMatter::class, 'client_id');
+        return $this->hasMany(ClientMatter::class, 'client_id');
     }
 
     /**
@@ -345,7 +348,7 @@ class Admin extends Authenticatable
      */
     public function companyNominationsAsNominee(): HasMany
     {
-        return $this->hasMany(\App\Models\CompanyNomination::class, 'nominated_client_id', 'id')
+        return $this->hasMany(CompanyNomination::class, 'nominated_client_id', 'id')
             ->orderBy('sort_order');
     }
 
@@ -364,7 +367,7 @@ class Admin extends Authenticatable
     public static function promoteLeadWithActiveMatterToClient(int $adminId): bool
     {
         $admin = static::query()->whereKey($adminId)->first();
-        if (!$admin || $admin->type !== 'lead') {
+        if (! $admin || $admin->type !== 'lead') {
             return false;
         }
 
@@ -372,7 +375,7 @@ class Admin extends Authenticatable
             ->where('client_id', $adminId)
             ->where('matter_status', 1)
             ->exists();
-        if (!$hasActive) {
+        if (! $hasActive) {
             return false;
         }
 
@@ -395,12 +398,15 @@ class Admin extends Authenticatable
         if ($this->is_company && $this->company) {
             $companyName = $this->company->company_name ?? 'Unnamed Company';
             if ($this->company->contactPerson) {
-                $contactName = trim($this->company->contactPerson->first_name . ' ' . $this->company->contactPerson->last_name);
+                $contactName = trim($this->company->contactPerson->first_name.' '.$this->company->contactPerson->last_name);
+
                 return "{$companyName} (Contact: {$contactName})";
             }
+
             return $companyName;
         }
-        return trim($this->first_name . ' ' . $this->last_name);
+
+        return trim($this->first_name.' '.$this->last_name);
     }
 
     /**
@@ -411,7 +417,8 @@ class Admin extends Authenticatable
         if ($this->is_company && $this->company) {
             return $this->company->company_name ?? 'Unnamed Company';
         }
-        return trim($this->first_name . ' ' . $this->last_name);
+
+        return trim($this->first_name.' '.$this->last_name);
     }
 
     /**
@@ -441,6 +448,153 @@ class Admin extends Authenticatable
         $email = rtrim($email, '.,;:');
 
         return trim($email);
+    }
+
+    /**
+     * Lowercase + trimmed email for uniqueness comparisons.
+     */
+    public static function normalizeEmailForUniqueness(?string $email): string
+    {
+        return strtolower(self::sanitizeEmailAddress($email));
+    }
+
+    /**
+     * Digits-only phone for uniqueness (ignores spaces, dashes, and other separators).
+     */
+    public static function normalizePhoneDigitsForUniqueness(?string $phone): string
+    {
+        return preg_replace('/\D+/', '', (string) $phone) ?? '';
+    }
+
+    /**
+     * SQL expression that strips separators from a phone column (sqlite- and pgsql-safe).
+     */
+    public static function phoneDigitsSqlExpression(string $column): string
+    {
+        if (! in_array($column, ['phone'], true)) {
+            throw new \InvalidArgumentException('Unsupported phone column for uniqueness matching.');
+        }
+
+        $driver = DB::connection()->getDriverName();
+        if ($driver === 'pgsql') {
+            return "regexp_replace(COALESCE({$column}, ''), '[^0-9]', '', 'g')";
+        }
+
+        return "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE({$column}, ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', ''), '+', '')";
+    }
+
+    /**
+     * Whether this email is already stored on another client/lead (admins.email or client_emails).
+     */
+    public static function emailIsTaken(string $email, ?int $excludeAdminId = null): bool
+    {
+        $normalized = self::normalizeEmailForUniqueness($email);
+        if ($normalized === '') {
+            return false;
+        }
+
+        $admins = static::query()
+            ->whereRaw("LOWER(TRIM(COALESCE(email, ''))) = ?", [$normalized]);
+        if ($excludeAdminId !== null) {
+            $admins->where('id', '!=', $excludeAdminId);
+        }
+        if ($admins->exists()) {
+            return true;
+        }
+
+        $extras = ClientEmail::query()
+            ->whereRaw("LOWER(TRIM(COALESCE(email, ''))) = ?", [$normalized]);
+        if ($excludeAdminId !== null) {
+            $extras->where('client_id', '!=', $excludeAdminId);
+        }
+
+        return $extras->exists();
+    }
+
+    /**
+     * Whether this phone is already stored on another client/lead (admins.phone or client_contacts).
+     */
+    public static function phoneIsTaken(string $phone, ?int $excludeAdminId = null): bool
+    {
+        $digits = self::normalizePhoneDigitsForUniqueness($phone);
+        if ($digits === '') {
+            return false;
+        }
+
+        $expr = self::phoneDigitsSqlExpression('phone');
+
+        $admins = static::query()->whereRaw($expr.' = ?', [$digits]);
+        if ($excludeAdminId !== null) {
+            $admins->where('id', '!=', $excludeAdminId);
+        }
+        if ($admins->exists()) {
+            return true;
+        }
+
+        $contacts = ClientContact::query()->whereRaw($expr.' = ?', [$digits]);
+        if ($excludeAdminId !== null) {
+            $contacts->where('client_id', '!=', $excludeAdminId);
+        }
+
+        return $contacts->exists();
+    }
+
+    /**
+     * Find a personal client/lead by normalized phone, then email.
+     */
+    public static function findPersonalClientOrLeadByNormalizedContact(?string $phone, ?string $email): ?self
+    {
+        $phone = trim((string) $phone);
+        $email = trim((string) $email);
+
+        if ($phone !== '') {
+            $digits = self::normalizePhoneDigitsForUniqueness($phone);
+            if ($digits !== '') {
+                $expr = self::phoneDigitsSqlExpression('phone');
+                $person = static::query()
+                    ->whereIn('type', ['client', 'lead'])
+                    ->where('is_company', false)
+                    ->whereRaw($expr.' = ?', [$digits])
+                    ->first();
+                if ($person) {
+                    return $person;
+                }
+
+                $contact = ClientContact::query()->whereRaw($expr.' = ?', [$digits])->first();
+                if ($contact) {
+                    $person = static::query()->find($contact->client_id);
+                    if ($person && ! ($person->is_company ?? false) && in_array($person->type ?? '', ['client', 'lead'], true)) {
+                        return $person;
+                    }
+                }
+            }
+        }
+
+        if ($email !== '') {
+            $normalized = self::normalizeEmailForUniqueness($email);
+            if ($normalized !== '') {
+                $person = static::query()
+                    ->whereIn('type', ['client', 'lead'])
+                    ->where('is_company', false)
+                    ->whereRaw("LOWER(TRIM(COALESCE(email, ''))) = ?", [$normalized])
+                    ->first();
+                if ($person) {
+                    return $person;
+                }
+
+                $row = ClientEmail::query()
+                    ->whereRaw("LOWER(TRIM(COALESCE(email, ''))) = ?", [$normalized])
+                    ->first();
+                if ($row) {
+                    $person = static::query()->find($row->client_id);
+                    if ($person && ! ($person->is_company ?? false) && in_array($person->type ?? '', ['client', 'lead'], true)) {
+                        return $person;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -518,13 +672,13 @@ class Admin extends Authenticatable
             return null;
         }
 
-        $name = trim((string) (($this->first_name ?? '') . ' ' . ($this->last_name ?? '')));
+        $name = trim((string) (($this->first_name ?? '').' '.($this->last_name ?? '')));
 
         if ($this->isCompany()) {
             $this->loadMissing('company.contactPerson');
             $contact = $this->company?->contactPerson;
             if ($contact) {
-                $cpName = trim((string) (($contact->first_name ?? '') . ' ' . ($contact->last_name ?? '')));
+                $cpName = trim((string) (($contact->first_name ?? '').' '.($contact->last_name ?? '')));
                 if ($cpName !== '') {
                     $name = $cpName;
                 }
