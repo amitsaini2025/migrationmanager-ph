@@ -4,11 +4,11 @@ namespace App\Services\BansalAppointmentSync;
 
 use App\Models\Admin;
 use App\Models\ClientContact;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use App\Services\ClientReferenceService;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class ClientMatchingService
 {
@@ -21,75 +21,35 @@ class ClientMatchingService
         $phone = $appointmentData['phone'] ?? null;
         $fullName = $appointmentData['full_name'] ?? null;
 
-        if (!$email && !$phone) {
+        if (! $email && ! $phone) {
             Log::warning('Cannot match/create client without email or phone', [
-                'appointment_id' => $appointmentData['id'] ?? null
+                'appointment_id' => $appointmentData['id'] ?? null,
             ]);
+
             return null;
         }
 
-        // Try to find existing client
-        $client = $this->findClientByEmail($email);
+        $client = Admin::findClientOrLeadByNormalizedEmail($email);
         if ($client) {
             Log::info('Found existing client by email', [
                 'client_id' => $client->id,
-                'email' => $email
+                'email' => $email,
             ]);
+
             return $client;
         }
 
-        $client = $this->findClientByPhone($phone);
+        $client = Admin::findClientOrLeadByNormalizedPhone($phone);
         if ($client) {
             Log::info('Found existing client by phone', [
                 'client_id' => $client->id,
-                'phone' => $phone
+                'phone' => $phone,
             ]);
+
             return $client;
         }
 
-        // Create new client
         return $this->createNewClient($appointmentData);
-    }
-
-    /**
-     * Find client by email
-     */
-    protected function findClientByEmail(?string $email): ?Admin
-    {
-        if (empty($email)) {
-            return null;
-        }
-
-        return Admin::whereIn('type', ['client', 'lead'])
-            ->where('email', $email)
-            ->first();
-    }
-
-    /**
-     * Find client by phone
-     */
-    protected function findClientByPhone(?string $phone): ?Admin
-    {
-        if (empty($phone)) {
-            return null;
-        }
-
-        // Try exact match first
-        $client = Admin::whereIn('type', ['client', 'lead'])
-            ->where('phone', $phone)
-            ->first();
-
-        if ($client) {
-            return $client;
-        }
-
-        // Try phone in client_contacts table
-        $contact = ClientContact::where('phone', $phone)->first();
-        if ($contact) {
-            return Admin::whereIn('type', ['client', 'lead'])->find($contact->client_id);
-        }
-
-        return null;
     }
 
     /**
@@ -113,7 +73,7 @@ class ClientMatchingService
             $client_current_counter = $reference['client_counter'];
 
             // Create client
-            $client = new Admin();
+            $client = new Admin;
             $client->first_name = $firstName;
             $client->last_name = $lastName;
             $client->email = $appointmentData['email'] ?? null;
@@ -123,30 +83,30 @@ class ClientMatchingService
             $client->client_id = $client_id;
             $client->type = 'lead'; // Start as lead
             $client->source = 'Bansal Website';
-            
+
             // Required NOT NULL fields (matching LeadController pattern)
             $client->password = Hash::make('LEAD_PLACEHOLDER'); // Placeholder password (NOT NULL constraint, will be overwritten if client portal activated)
             $client->status = '1'; // Default status: 1 (Active)
             $client->verified = 0; // Not verified (required NOT NULL column)
-            
+
             // Client Portal fields (required NOT NULL columns, default 0 for new leads)
             $client->cp_status = 0; // Client portal status (NOT NULL, default 0 - inactive)
             $client->cp_code_verify = 0; // Client portal code verification (NOT NULL, default 0)
-            
+
             // EOI Qualification fields (required NOT NULL columns, default 0 for new leads)
             $client->australian_study = 0; // Australian study requirement (NOT NULL, default 0)
             $client->specialist_education = 0; // Specialist education qualification (NOT NULL, default 0)
             $client->regional_study = 0; // Regional study qualification (NOT NULL, default 0)
-            
+
             // Archive status (required NOT NULL column)
             $client->is_archived = 0; // Not archived
-            
+
             $client->created_at = now();
             $client->updated_at = now();
             $client->save();
 
             // Create client contact entry if phone exists
-            if (!empty($appointmentData['phone'])) {
+            if (! empty($appointmentData['phone'])) {
                 ClientContact::create([
                     'client_id' => $client->id,
                     'admin_id' => Auth::id() ?? config('app.system_user_id', 1), // System user for automated processes
@@ -164,7 +124,7 @@ class ClientMatchingService
             Log::info('Created new client from appointment', [
                 'client_id' => $client->id,
                 'client_code' => $client_id,
-                'email' => $client->email
+                'email' => $client->email,
             ]);
 
             return $client;
@@ -172,8 +132,9 @@ class ClientMatchingService
             DB::rollBack();
             Log::error('Failed to create client from appointment', [
                 'error' => $e->getMessage(),
-                'appointment_data' => $appointmentData
+                'appointment_data' => $appointmentData,
             ]);
+
             return null;
         }
     }
@@ -187,6 +148,7 @@ class ClientMatchingService
     protected function parseFullName(string $fullName): array
     {
         $parts = explode(' ', trim($fullName), 2);
+
         return [
             'first_name' => $parts[0] ?? 'Unknown',
             'last_name' => $parts[1] ?? null,
@@ -211,4 +173,3 @@ class ClientMatchingService
         return '+61';
     }
 }
-

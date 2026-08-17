@@ -540,6 +540,93 @@ class Admin extends Authenticatable
     }
 
     /**
+     * Find any client/lead by case-insensitive trimmed email (admins.email or client_emails).
+     */
+    public static function findClientOrLeadByNormalizedEmail(?string $email): ?self
+    {
+        $normalized = self::normalizeEmailForUniqueness($email);
+        if ($normalized === '') {
+            return null;
+        }
+
+        $person = static::query()
+            ->whereIn('type', ['client', 'lead'])
+            ->whereRaw("LOWER(TRIM(COALESCE(email, ''))) = ?", [$normalized])
+            ->first();
+        if ($person) {
+            return $person;
+        }
+
+        $row = ClientEmail::query()
+            ->whereRaw("LOWER(TRIM(COALESCE(email, ''))) = ?", [$normalized])
+            ->first();
+        if (! $row) {
+            return null;
+        }
+
+        $person = static::query()->find($row->client_id);
+        if ($person && in_array($person->type ?? '', ['client', 'lead'], true)) {
+            return $person;
+        }
+
+        return null;
+    }
+
+    /**
+     * Find any client/lead by digit phone, including common AU 04 / +61 variants.
+     */
+    public static function findClientOrLeadByNormalizedPhone(?string $phone): ?self
+    {
+        foreach (self::phoneDigitMatchVariants($phone) as $digits) {
+            $expr = self::phoneDigitsSqlExpression('phone');
+            $person = static::query()
+                ->whereIn('type', ['client', 'lead'])
+                ->whereRaw($expr.' = ?', [$digits])
+                ->first();
+            if ($person) {
+                return $person;
+            }
+
+            $contact = ClientContact::query()->whereRaw($expr.' = ?', [$digits])->first();
+            if ($contact) {
+                $person = static::query()->find($contact->client_id);
+                if ($person && in_array($person->type ?? '', ['client', 'lead'], true)) {
+                    return $person;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Digit strings to try when matching a phone (spaces/dashes stripped, plus AU 0/61 variants).
+     *
+     * @return array<int, string>
+     */
+    public static function phoneDigitMatchVariants(?string $phone): array
+    {
+        $digits = self::normalizePhoneDigitsForUniqueness($phone);
+        if ($digits === '') {
+            return [];
+        }
+
+        $variants = [$digits];
+        if (strlen($digits) === 10 && str_starts_with($digits, '0')) {
+            $variants[] = '61'.substr($digits, 1);
+        }
+        if (strlen($digits) === 11 && str_starts_with($digits, '61')) {
+            $variants[] = '0'.substr($digits, 2);
+        }
+        if (strlen($digits) === 9 && str_starts_with($digits, '4')) {
+            $variants[] = '61'.$digits;
+            $variants[] = '0'.$digits;
+        }
+
+        return array_values(array_unique($variants));
+    }
+
+    /**
      * Find a personal client/lead by normalized phone, then email.
      */
     public static function findPersonalClientOrLeadByNormalizedContact(?string $phone, ?string $email): ?self

@@ -2,35 +2,40 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Models\BookingAppointment;
+use App\Mail\AppointmentDetailedConfirmation;
+use App\Models\ActivitiesLog;
 use App\Models\Admin;
 use App\Models\AppointmentPayment;
+use App\Models\BookingAppointment;
 use App\Models\ClientContact;
 use App\Models\ClientEmail;
+use App\Services\BansalAppointmentSync\BansalApiClient;
+use App\Services\BansalAppointmentSync\BansalAppointmentRecoveryService;
+use App\Services\BansalAppointmentSync\ConsultantAssignmentService;
+use App\Services\ClientReferenceService;
+use App\Services\Payment\StripePaymentService;
+use App\Support\BansalSchedulingServiceType;
+use Carbon\Carbon;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Http\Client\RequestException;
-use Carbon\Carbon;
-use App\Services\BansalAppointmentSync\BansalApiClient;
-use App\Services\Payment\StripePaymentService;
-use App\Support\BansalSchedulingServiceType;
-use App\Mail\AppointmentDetailedConfirmation;
+use Illuminate\Validation\ValidationException;
 
 class ClientPortalAppointmentController extends BaseController
 {
     /**
      * Get appointment variable lists
-     * 
+     *
      * Returns all appointment-related options including locations, meeting types,
      * preferred languages, services, and service types.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
      */
     public function getAppointmentVariableLists(Request $request)
     {
@@ -44,7 +49,7 @@ class ClientPortalAppointmentController extends BaseController
                         'city' => 'Adelaide',
                         'state' => 'SA',
                         'postcode' => '5000',
-                        'full_address' => 'Unit 5, 55 Gawler Pl Adelaide SA 5000'
+                        'full_address' => 'Unit 5, 55 Gawler Pl Adelaide SA 5000',
                     ],
                     [
                         'id' => 2,
@@ -53,29 +58,29 @@ class ClientPortalAppointmentController extends BaseController
                         'city' => 'Melbourne',
                         'state' => 'VIC',
                         'postcode' => '3000',
-                        'full_address' => 'Level 8/278 Collins St Melbourne VIC 3000'
-                    ]
+                        'full_address' => 'Level 8/278 Collins St Melbourne VIC 3000',
+                    ],
                 ],
                 'meeting_type' => [
                     [
                         'id' => 1,
                         'name' => 'Phone Call',
                         'description' => 'Speak directly with our experts',
-                        'icon' => 'phone'
+                        'icon' => 'phone',
                     ],
                     [
                         'id' => 2,
                         'name' => 'In Person',
                         'description' => 'Visit our office',
-                        'icon' => 'building'
+                        'icon' => 'building',
                     ],
                     [
                         'id' => 3,
                         'name' => 'Video Call',
                         'description' => 'Online consultation',
                         'note' => 'Available for paid appointments only',
-                        'icon' => 'video'
-                    ]
+                        'icon' => 'video',
+                    ],
                 ],
                 'preferred_language' => [
                     [
@@ -83,72 +88,72 @@ class ClientPortalAppointmentController extends BaseController
                         'code' => 'en',
                         'name' => 'English',
                         'country_code' => 'AU',
-                        'country_flag' => '🇦🇺'
+                        'country_flag' => '🇦🇺',
                     ],
                     [
                         'id' => 2,
                         'code' => 'hi',
                         'name' => 'Hindi',
                         'country_code' => 'IN',
-                        'country_flag' => '🇮🇳'
+                        'country_flag' => '🇮🇳',
                     ],
                     [
                         'id' => 3,
                         'code' => 'pa',
                         'name' => 'Punjabi',
                         'country_code' => 'IN',
-                        'country_flag' => '🇮🇳'
-                    ]
+                        'country_flag' => '🇮🇳',
+                    ],
                 ],
                 'select_your_service' => [
                     [
                         'id' => 1,
-                        'name' => 'GSM Visas: 491, 190, 189, 191'
+                        'name' => 'GSM Visas: 491, 190, 189, 191',
                     ],
                     [
                         'id' => 9,
-                        'name' => 'EOI/ROI'
+                        'name' => 'EOI/ROI',
                     ],
                     [
                         'id' => 2,
-                        'name' => 'TR: 485 visa'
+                        'name' => 'TR: 485 visa',
                     ],
                     [
                         'id' => 10,
-                        'name' => 'Employer Sponsored Visas: 494, 482, 186, DAMA'
+                        'name' => 'Employer Sponsored Visas: 494, 482, 186, DAMA',
                     ],
                     [
                         'id' => 3,
-                        'name' => 'JRP/Skill Assessment'
+                        'name' => 'JRP/Skill Assessment',
                     ],
                     [
                         'id' => 4,
-                        'name' => 'Tourist Visa'
+                        'name' => 'Tourist Visa',
                     ],
                     [
                         'id' => 5,
-                        'name' => 'Education/Course Change/Student Visa/Student Dependent Visa (for education selection for Australian onshore clients only)'
+                        'name' => 'Education/Course Change/Student Visa/Student Dependent Visa (for education selection for Australian onshore clients only)',
                     ],
                     [
                         'id' => 6,
-                        'name' => 'Complex matters: ART, Protection visa, Federal Case'
+                        'name' => 'Complex matters: ART, Protection visa, Federal Case',
                     ],
                     [
                         'id' => 7,
-                        'name' => 'Visa Cancellation/ NOICC/ Visa refusals'
+                        'name' => 'Visa Cancellation/ NOICC/ Visa refusals',
                     ],
                     [
                         'id' => 11,
-                        'name' => 'Family Visas (Parent Visa, Partner Visa, Child Visa)'
+                        'name' => 'Family Visas (Parent Visa, Partner Visa, Child Visa)',
                     ],
                     [
                         'id' => 12,
-                        'name' => 'Citizenship'
+                        'name' => 'Citizenship',
                     ],
                     [
                         'id' => 8,
-                        'name' => 'Anyone who is outside Australia'
-                    ]
+                        'name' => 'Anyone who is outside Australia',
+                    ],
                 ],
                 'service_type' => [
                     [
@@ -161,15 +166,15 @@ class ClientPortalAppointmentController extends BaseController
                         'time_slots' => [
                             'start_time' => '10:45',
                             'end_time' => '16:00',
-                            'time_format' => 'AM/PM'
+                            'time_format' => 'AM/PM',
                         ],
                         'availability' => [
                             'days' => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-                            'time_slots' => '15-minute time slots'
+                            'time_slots' => '15-minute time slots',
                         ],
                         'description' => 'Perfect for initial inquiries: Quick assessment of your immigration situation, basic visa pathway guidance, and preliminary advice. Available for clients currently within Australia only. Includes initial case evaluation and next steps recommendation.',
                         'includes_video_call' => false,
-                        'available_for_overseas' => false
+                        'available_for_overseas' => false,
                     ],
                     [
                         'id' => 2,
@@ -181,15 +186,15 @@ class ClientPortalAppointmentController extends BaseController
                         'time_slots' => [
                             'start_time' => '09:00',
                             'end_time' => '17:00',
-                            'time_format' => 'AM/PM'
+                            'time_format' => 'AM/PM',
                         ],
                         'availability' => [
                             'days' => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-                            'time_slots' => '30-minute time slots'
+                            'time_slots' => '30-minute time slots',
                         ],
                         'description' => 'In-depth professional consultation: Comprehensive case analysis, detailed migration strategy, complex visa applications, ART appeals, visa cancellations, protection visas, and personalized action plans. Suitable for overseas applicants and complex cases.',
                         'includes_video_call' => true,
-                        'available_for_overseas' => true
+                        'available_for_overseas' => true,
                     ],
                     [
                         'id' => 3,
@@ -201,41 +206,40 @@ class ClientPortalAppointmentController extends BaseController
                         'time_slots' => [
                             'start_time' => '09:00',
                             'end_time' => '17:00',
-                            'time_format' => 'AM/PM'
+                            'time_format' => 'AM/PM',
                         ],
                         'availability' => [
                             'days' => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-                            'time_slots' => '30-minute time slots'
+                            'time_slots' => '30-minute time slots',
                         ],
                         'description' => 'Specialized consultation for overseas applicants: For applicants currently outside Australia or inquiring on behalf of someone overseas. Includes detailed assessment and personalized migration strategy.',
                         'includes_video_call' => true,
-                        'available_for_overseas' => true
-                    ]
-                ]
+                        'available_for_overseas' => true,
+                    ],
+                ],
             ];
 
             return $this->sendResponse($result, 'Appointment variable lists retrieved successfully');
 
         } catch (\Exception $e) {
-            return $this->sendError('An error occurred: ' . $e->getMessage(), [], 500);
+            return $this->sendError('An error occurred: '.$e->getMessage(), [], 500);
         }
     }
 
     /**
      * Get appointment list for authenticated client
-     * 
+     *
      * Returns paginated list of appointments for the authenticated client.
      * Supports filtering by status, date range, location, and enquiry type.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
      */
     public function getAppointmentList(Request $request)
     {
         try {
             $user = $request->user();
-            
-            if (!$user) {
+
+            if (! $user) {
                 return $this->sendError('Unauthenticated', [], 401);
             }
 
@@ -288,35 +292,35 @@ class ClientPortalAppointmentController extends BaseController
                     'last_page' => $appointments->lastPage(),
                     'from' => $appointments->firstItem(),
                     'to' => $appointments->lastItem(),
-                ]
+                ],
             ];
 
             return $this->sendResponse($result, 'Appointments retrieved successfully');
 
         } catch (\Exception $e) {
-            Log::error('Get Appointment List API Error: ' . $e->getMessage(), [
+            Log::error('Get Appointment List API Error: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred: '.$e->getMessage(), [], 500);
         }
     }
 
     /**
      * Get single appointment by ID
-     * 
+     *
      * Returns a single appointment details for the authenticated client.
-     * 
-     * @param Request $request
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @param  int  $id
+     * @return JsonResponse
      */
     public function getSingleAppointment(Request $request, $id)
     {
         try {
             $user = $request->user();
-            
-            if (!$user) {
+
+            if (! $user) {
                 return $this->sendError('Unauthenticated', [], 401);
             }
 
@@ -327,7 +331,7 @@ class ClientPortalAppointmentController extends BaseController
                 ->where('client_id', $clientId)
                 ->first();
 
-            if (!$appointment) {
+            if (! $appointment) {
                 return $this->sendError('Appointment not found', [], 404);
             }
 
@@ -336,25 +340,26 @@ class ClientPortalAppointmentController extends BaseController
             return $this->sendResponse($result, 'Appointment retrieved successfully');
 
         } catch (\Exception $e) {
-            Log::error('Get Single Appointment API Error: ' . $e->getMessage(), [
+            Log::error('Get Single Appointment API Error: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
                 'appointment_id' => $id ?? null,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred: '.$e->getMessage(), [], 500);
         }
     }
 
     /**
      * Format appointment data for API response
-     * 
-     * @param BookingAppointment $appointment
+     *
+     * @param  BookingAppointment  $appointment
      * @return array
      */
     private function formatAppointmentData($appointment)
     {
         // Map status to display format
-        $statusDisplay = match($appointment->status) {
+        $statusDisplay = match ($appointment->status) {
             'pending' => 'Pending',
             'confirmed' => 'Confirmed',
             'completed' => 'Completed',
@@ -365,7 +370,7 @@ class ClientPortalAppointmentController extends BaseController
         };
 
         // Map enquiry type to display format
-        $enquiryTypeDisplay = match($appointment->enquiry_type) {
+        $enquiryTypeDisplay = match ($appointment->enquiry_type) {
             'pr' => 'Permanent Residency',
             'tr' => 'Temporary Residency',
             'tourist' => 'Tourist Visa',
@@ -385,7 +390,7 @@ class ClientPortalAppointmentController extends BaseController
         };
 
         // Format meeting type
-        $meetingTypeDisplay = match($appointment->meeting_type) {
+        $meetingTypeDisplay = match ($appointment->meeting_type) {
             'in_person' => 'In Person',
             'phone' => 'Phone Call',
             'video' => 'Video Call',
@@ -413,9 +418,9 @@ class ClientPortalAppointmentController extends BaseController
             'status' => $appointment->status,
             'status_display' => $statusDisplay,
             'is_paid' => $appointment->is_paid ?? false,
-            'amount' => number_format((float)($appointment->amount ?? 0), 2, '.', ''),
-            'discount_amount' => number_format((float)($appointment->discount_amount ?? 0), 2, '.', ''),
-            'final_amount' => number_format((float)($appointment->final_amount ?? 0), 2, '.', ''),
+            'amount' => number_format((float) ($appointment->amount ?? 0), 2, '.', ''),
+            'discount_amount' => number_format((float) ($appointment->discount_amount ?? 0), 2, '.', ''),
+            'final_amount' => number_format((float) ($appointment->final_amount ?? 0), 2, '.', ''),
             'promo_code' => $appointment->promo_code,
             'assigned_admin' => $appointment->consultant ? [
                 'id' => $appointment->consultant->id,
@@ -434,24 +439,23 @@ class ClientPortalAppointmentController extends BaseController
 
     /**
      * Add new appointment
-     * 
+     *
      * Creates a new appointment for the authenticated client.
      * Uses the same logic as addAppointmentBook in ClientsController.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
      */
     public function addAppointment(Request $request)
     {
         try {
             $user = $request->user();
-            
-            if (!$user) {
+
+            if (! $user) {
                 return $this->sendError('Unauthenticated', [], 401);
             }
 
             $requestData = $request->all();
-            
+
             // Validate required fields
             $validator = Validator::make($requestData, [
                 'noe_id' => 'required|integer|in:1,2,3,4,5,6,7,8,9,10,11,12',
@@ -465,7 +469,7 @@ class ClientPortalAppointmentController extends BaseController
             ]);
 
             if ($validator->fails()) {
-                return $this->sendError('Validation failed: ' . $validator->errors()->first(), $validator->errors(), 422);
+                return $this->sendError('Validation failed: '.$validator->errors()->first(), $validator->errors(), 422);
             }
 
             if (in_array((int) $requestData['noe_id'], [6, 7], true) && (int) $requestData['service_id'] !== 2) {
@@ -478,21 +482,21 @@ class ClientPortalAppointmentController extends BaseController
 
             // Get client information - logged in user_id is the client_id
             $client = Admin::findOrFail($user->id);
-            
+
             // Get client_unique_id (which is the client_id field from admins table)
             $clientUniqueId = $client->client_id ?? null;
-            
+
             // Validate client has required fields
-            $clientName = trim($client->first_name . ' ' . ($client->last_name ?? ''));
+            $clientName = trim($client->first_name.' '.($client->last_name ?? ''));
             if (empty($clientName)) {
-                $clientName = $client->email ?? 'Client ' . $client->id;
+                $clientName = $client->email ?? 'Client '.$client->id;
             }
-            
+
             $clientEmail = $client->email ?? '';
             if (empty($clientEmail)) {
                 return $this->sendError('Client email is required. Please update client information first.', [], 422);
             }
-            
+
             // Map service_id from form to actual service_id
             // Form: 1=Free Consultation, 2=Comprehensive Migration Advice, 3=Overseas Applicant Enquiry
             // DB: 1=Paid, 2=Free, 3=Paid Overseas
@@ -540,12 +544,12 @@ class ClientPortalAppointmentController extends BaseController
             // Parse appointment time - handle different formats
             // Time can be in format "10:00 AM - 10:15 AM" or "10:00 AM" or "10:00:00"
             $timeStr = trim($requestData['appoint_time']);
-            
+
             // Extract start time if in range format (e.g., "10:00 AM - 10:15 AM")
             if (preg_match('/^([0-9]{1,2}:[0-9]{2}\s*(?:AM|PM)?)/i', $timeStr, $matches)) {
                 $timeStr = trim($matches[1]);
             }
-            
+
             // Parse time - handle 12-hour format with AM/PM
             try {
                 if (preg_match('/(AM|PM)/i', $timeStr)) {
@@ -555,38 +559,38 @@ class ClientPortalAppointmentController extends BaseController
                 } else {
                     // 24-hour format - extract just HH:MM
                     if (preg_match('/^(\d{1,2}):(\d{2})/', $timeStr, $timeMatches)) {
-                        $timeStr = $timeMatches[1] . ':' . $timeMatches[2];
+                        $timeStr = $timeMatches[1].':'.$timeMatches[2];
                     }
                 }
             } catch (\Exception $e) {
                 // If parsing fails, try to extract HH:MM format
                 if (preg_match('/^(\d{1,2}):(\d{2})/', $timeStr, $timeMatches)) {
-                    $timeStr = $timeMatches[1] . ':' . $timeMatches[2];
+                    $timeStr = $timeMatches[1].':'.$timeMatches[2];
                 } else {
-                    throw new \Exception('Invalid time format: ' . $requestData['appoint_time']);
+                    throw new \Exception('Invalid time format: '.$requestData['appoint_time']);
                 }
             }
 
             // Combine date and time
             $dateStr = $requestData['appoint_date'];
             $timezone = $requestData['timezone'] ?? 'Australia/Melbourne';
-            
+
             // Convert date from dd/mm/yyyy to Y-m-d format if needed
             if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateStr, $dateMatches)) {
                 // Date is in dd/mm/yyyy format, convert to Y-m-d
-                $dateStr = $dateMatches[3] . '-' . $dateMatches[2] . '-' . $dateMatches[1];
+                $dateStr = $dateMatches[3].'-'.$dateMatches[2].'-'.$dateMatches[1];
             }
-            
+
             try {
-                $appointmentDateTime = Carbon::createFromFormat('Y-m-d H:i', $dateStr . ' ' . $timeStr, $timezone)
+                $appointmentDateTime = Carbon::createFromFormat('Y-m-d H:i', $dateStr.' '.$timeStr, $timezone)
                     ->setTimezone(config('app.timezone', 'UTC'));
             } catch (\Exception $e) {
                 // Try alternative date format
                 try {
-                    $appointmentDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $dateStr . ' ' . $timeStr . ':00', $timezone)
+                    $appointmentDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $dateStr.' '.$timeStr.':00', $timezone)
                         ->setTimezone(config('app.timezone', 'UTC'));
                 } catch (\Exception $e2) {
-                    throw new \Exception('Invalid date/time format. Date: ' . $requestData['appoint_date'] . ', Time: ' . $timeStr . '. Error: ' . $e2->getMessage());
+                    throw new \Exception('Invalid date/time format. Date: '.$requestData['appoint_date'].', Time: '.$timeStr.'. Error: '.$e2->getMessage());
                 }
             }
 
@@ -614,7 +618,7 @@ class ClientPortalAppointmentController extends BaseController
             }
 
             // Use ConsultantAssignmentService to assign consultant
-            $consultantAssigner = app(\App\Services\BansalAppointmentSync\ConsultantAssignmentService::class);
+            $consultantAssigner = app(ConsultantAssignmentService::class);
             $specificServiceForCalendar = match ((int) $serviceId) {
                 1 => 'paid-consultation',
                 2 => 'consultation',
@@ -636,12 +640,12 @@ class ClientPortalAppointmentController extends BaseController
             $consultant = $consultantAssigner->assignConsultant($appointmentDataForConsultant);
 
             // Consultant is nullable, but log if not found
-            if (!$consultant) {
+            if (! $consultant) {
                 Log::warning('No consultant assigned for appointment', [
                     'noe_id' => $requestData['noe_id'],
                     'service_id' => $serviceId,
                     'location' => $location,
-                    'inperson_address' => $requestData['inperson_address']
+                    'inperson_address' => $requestData['inperson_address'],
                 ]);
             }
 
@@ -656,11 +660,11 @@ class ClientPortalAppointmentController extends BaseController
             // Prepare appointment data for Bansal API
             // Format appointment date and time separately as API expects
             $appointmentDateForApi = $appointmentDateTime->copy()->setTimezone($timezone)->format('Y-m-d');
-            
+
             // Format appointment time - API expects H:i format (without seconds) for validation
             // Extract the time from the parsed datetime in the original timezone
             $appointmentTimeForApi = $appointmentDateTime->copy()->setTimezone($timezone)->format('H:i');
-            
+
             // Format appointment time slot for display (e.g., "1:00 PM-1:15 PM")
             $appointmentTimeSlot = $requestData['appoint_time'];
 
@@ -696,11 +700,11 @@ class ClientPortalAppointmentController extends BaseController
             // Call Bansal API to create appointment and get real bansal_appointment_id
             $bansalAppointmentId = null;
             $bansalApiError = null;
-            
+
             try {
                 $bansalApiClient = app(BansalApiClient::class);
                 $bansalApiResponse = $bansalApiClient->createAppointment($bansalApiPayload);
-                
+
                 // Extract bansal_appointment_id from API response
                 if (isset($bansalApiResponse['data']['id'])) {
                     $bansalAppointmentId = (int) $bansalApiResponse['data']['id'];
@@ -709,13 +713,13 @@ class ClientPortalAppointmentController extends BaseController
                 } elseif (isset($bansalApiResponse['appointment_id'])) {
                     $bansalAppointmentId = (int) $bansalApiResponse['appointment_id'];
                 } else {
-                    throw new \Exception('Bansal API did not return appointment ID. Response: ' . json_encode($bansalApiResponse));
+                    throw new \Exception('Bansal API did not return appointment ID. Response: '.json_encode($bansalApiResponse));
                 }
-                
+
                 Log::info('Appointment created on Bansal website', [
                     'bansal_appointment_id' => $bansalAppointmentId,
                     'client_id' => $client->id,
-                    'client_email' => $clientEmail
+                    'client_email' => $clientEmail,
                 ]);
             } catch (\Exception $apiException) {
                 $bansalApiError = $apiException->getMessage();
@@ -724,9 +728,9 @@ class ClientPortalAppointmentController extends BaseController
                     'client_id' => $client->id,
                     'client_email' => $clientEmail,
                     'payload' => $bansalApiPayload,
-                    'trace' => $apiException->getTraceAsString()
+                    'trace' => $apiException->getTraceAsString(),
                 ]);
-                
+
                 // If API call fails, we'll still create the appointment locally
                 // but with a temporary ID that indicates it needs to be synced
                 // This ensures existing functionality doesn't break
@@ -739,16 +743,16 @@ class ClientPortalAppointmentController extends BaseController
                 // Generate temporary ID starting from 2000000 to distinguish from old system
                 // This will be replaced when API sync succeeds
                 $bansalAppointmentId = 2000000 + (time() % 900000) + mt_rand(1, 99999);
-                
+
                 // Ensure uniqueness
                 while (BookingAppointment::where('bansal_appointment_id', $bansalAppointmentId)->exists()) {
                     $bansalAppointmentId = 2000000 + (time() % 900000) + mt_rand(1, 99999);
                 }
-                
+
                 Log::warning('Using temporary bansal_appointment_id due to API failure', [
                     'temporary_id' => $bansalAppointmentId,
                     'api_error' => $bansalApiError,
-                    'client_id' => $client->id
+                    'client_id' => $client->id,
                 ]);
             }
 
@@ -756,16 +760,16 @@ class ClientPortalAppointmentController extends BaseController
             $appointment = BookingAppointment::create([
                 'bansal_appointment_id' => $bansalAppointmentId,
                 'order_hash' => null, // No payment for manually created appointments
-                
+
                 'client_id' => $client->id,
                 'consultant_id' => $consultant ? $consultant->id : null,
                 'assigned_by_admin_id' => null,
-                
+
                 'client_name' => $clientName,
                 'client_email' => $clientEmail,
                 'client_phone' => $client->phone ?? null,
                 'client_timezone' => $requestData['timezone'] ?? 'Australia/Melbourne',
-                
+
                 'appointment_datetime' => $appointmentDateTime,
                 'timeslot_full' => $requestData['appoint_time'], // Store as provided
                 'duration_minutes' => $durationMinutes,
@@ -773,34 +777,34 @@ class ClientPortalAppointmentController extends BaseController
                 'inperson_address' => $requestData['inperson_address'],
                 'meeting_type' => $meetingType,
                 'preferred_language' => $preferredLanguage,
-                
+
                 'service_id' => $serviceId,
                 'noe_id' => $requestData['noe_id'],
                 'enquiry_type' => $serviceTypeMapping['enquiry_type'],
                 'service_type' => $serviceTypeMapping['service_type'],
                 'enquiry_details' => $requestData['description'],
-                
+
                 // Determine status based on service type and payment status
                 // Case 1: Free appointment (serviceId == 2) -> status = 'confirmed'
                 // Case 2: Paid appointment (serviceId != 2) -> status = 'paid' if payment successful, 'pending' if payment failed
-                'status' => ($serviceId == 2) 
-                    ? 'confirmed' 
+                'status' => ($serviceId == 2)
+                    ? 'confirmed'
                     : (($requestData['payment_status'] ?? 'pending') === 'completed' ? 'paid' : 'pending'),
                 'confirmed_at' => ($serviceId == 2) ? now() : null, // Set confirmed_at for free appointments
                 'is_paid' => ($serviceId == 2) ? false : true, // Free service is not paid
                 'amount' => ($serviceId == 2) ? 0 : 150, // Set appropriate amounts
                 'final_amount' => ($serviceId == 2) ? 0 : 150,
                 'payment_status' => ($serviceId == 2) ? null : ($requestData['payment_status'] ?? 'pending'),
-                
+
                 // Boolean fields with default values
                 'confirmation_email_sent' => false,
                 'reminder_sms_sent' => false,
-                
+
                 // Sync status tracking
                 'sync_status' => $bansalApiError ? 'error' : 'synced',
                 'sync_error' => $bansalApiError,
                 'last_synced_at' => $bansalApiError ? null : now(),
-                
+
                 'user_id' => $client->id,
             ]);
 
@@ -808,31 +812,31 @@ class ClientPortalAppointmentController extends BaseController
             $result = $this->formatAppointmentData($appointment);
 
             // Send confirmation email for free appointments (service_id input = 1)
-            if ($serviceId == 2 && !empty($clientEmail)) {
+            if ($serviceId == 2 && ! empty($clientEmail)) {
                 try {
                     $emailDetails = [
-                        'client_name'          => $clientName,
+                        'client_name' => $clientName,
                         'appointment_datetime' => $appointment->appointment_datetime,
-                        'timeslot_full'        => $appointment->timeslot_full,
-                        'location'             => $appointment->location,
-                        'service_type'         => $appointment->service_type,
-                        'meeting_type'         => $appointment->meeting_type,
-                        'admin_notes'          => $appointment->admin_notes ?? null,
+                        'timeslot_full' => $appointment->timeslot_full,
+                        'location' => $appointment->location,
+                        'service_type' => $appointment->service_type,
+                        'meeting_type' => $appointment->meeting_type,
+                        'admin_notes' => $appointment->admin_notes ?? null,
                     ];
                     Mail::mailer('sendgrid')->to($clientEmail)->send(new AppointmentDetailedConfirmation($emailDetails));
                     $appointment->update([
-                        'confirmation_email_sent'    => true,
+                        'confirmation_email_sent' => true,
                         'confirmation_email_sent_at' => now(),
                     ]);
                     Log::info('Appointment confirmation email sent', [
                         'appointment_id' => $appointment->id,
-                        'email'          => $clientEmail,
+                        'email' => $clientEmail,
                     ]);
                 } catch (\Exception $mailEx) {
                     Log::error('Failed to send appointment confirmation email', [
                         'appointment_id' => $appointment->id,
-                        'email'          => $clientEmail,
-                        'error'          => $mailEx->getMessage(),
+                        'email' => $clientEmail,
+                        'error' => $mailEx->getMessage(),
                     ]);
                 }
             }
@@ -840,32 +844,33 @@ class ClientPortalAppointmentController extends BaseController
             // Prepare response message
             $successMessage = 'Appointment created successfully';
             if ($bansalApiError) {
-                $successMessage .= '. Note: Appointment created in CRM but could not be synced to Bansal website. Error: ' . $bansalApiError;
+                $successMessage .= '. Note: Appointment created in CRM but could not be synced to Bansal website. Error: '.$bansalApiError;
                 Log::warning('Appointment created locally but Bansal API sync failed', [
                     'appointment_id' => $appointment->id,
                     'bansal_appointment_id' => $bansalAppointmentId,
-                    'api_error' => $bansalApiError
+                    'api_error' => $bansalApiError,
                 ]);
             }
 
             return response()->json([
                 'success' => true,
                 'message' => $successMessage,
-                'bansal_synced' => !$bansalApiError,
+                'bansal_synced' => ! $bansalApiError,
                 'bansal_appointment_id' => $bansalAppointmentId,
                 'client_unique_id' => $clientUniqueId,
-                'data' => $result
+                'data' => $result,
             ], 201);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return $this->sendError('Validation failed', $e->errors(), 422);
         } catch (\Exception $e) {
-            Log::error('Add Appointment API Error: ' . $e->getMessage(), [
+            Log::error('Add Appointment API Error: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
                 'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred: '.$e->getMessage(), [], 500);
         }
     }
 
@@ -876,8 +881,7 @@ class ClientPortalAppointmentController extends BaseController
      * If email or phone matches existing client/lead, uses that client.
      * If no match, creates new lead in admins, client_emails, and client_contacts.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function addAppointmentWithoutLogin(Request $request)
     {
@@ -900,7 +904,7 @@ class ClientPortalAppointmentController extends BaseController
             ]);
 
             if ($validator->fails()) {
-                return $this->sendError('Validation failed: ' . $validator->errors()->first(), $validator->errors(), 422);
+                return $this->sendError('Validation failed: '.$validator->errors()->first(), $validator->errors(), 422);
             }
 
             if (in_array((int) $requestData['noe_id'], [6, 7], true) && (int) $requestData['service_id'] !== 2) {
@@ -918,14 +922,14 @@ class ClientPortalAppointmentController extends BaseController
             // Find or create client
             $client = $this->findOrCreateClientForPublicAppointment($email, $phone, $fullName);
 
-            if (!$client) {
+            if (! $client) {
                 return $this->sendError('Unable to find or create client. Please ensure email and phone are valid.', [], 422);
             }
 
             // Build client info for appointment logic (same structure as addAppointment)
-            $clientName = trim($client->first_name . ' ' . ($client->last_name ?? ''));
+            $clientName = trim($client->first_name.' '.($client->last_name ?? ''));
             if (empty($clientName)) {
-                $clientName = $client->email ?? 'Client ' . $client->id;
+                $clientName = $client->email ?? 'Client '.$client->id;
             }
 
             $clientEmail = $client->email ?? '';
@@ -978,13 +982,13 @@ class ClientPortalAppointmentController extends BaseController
                     $parsedTime = Carbon::createFromFormat('g:i A', $timeStr);
                     $timeStr = $parsedTime->format('H:i');
                 } elseif (preg_match('/^(\d{1,2}):(\d{2})/', $timeStr, $timeMatches)) {
-                    $timeStr = $timeMatches[1] . ':' . $timeMatches[2];
+                    $timeStr = $timeMatches[1].':'.$timeMatches[2];
                 }
             } catch (\Exception $e) {
                 if (preg_match('/^(\d{1,2}):(\d{2})/', $timeStr, $timeMatches)) {
-                    $timeStr = $timeMatches[1] . ':' . $timeMatches[2];
+                    $timeStr = $timeMatches[1].':'.$timeMatches[2];
                 } else {
-                    throw new \Exception('Invalid time format: ' . $requestData['appoint_time']);
+                    throw new \Exception('Invalid time format: '.$requestData['appoint_time']);
                 }
             }
 
@@ -992,17 +996,17 @@ class ClientPortalAppointmentController extends BaseController
             $dateStr = $requestData['appoint_date'];
             $timezone = $requestData['timezone'] ?? 'Australia/Melbourne';
             if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateStr, $dateMatches)) {
-                $dateStr = $dateMatches[3] . '-' . $dateMatches[2] . '-' . $dateMatches[1];
+                $dateStr = $dateMatches[3].'-'.$dateMatches[2].'-'.$dateMatches[1];
             }
             try {
-                $appointmentDateTime = Carbon::createFromFormat('Y-m-d H:i', $dateStr . ' ' . $timeStr, $timezone)
+                $appointmentDateTime = Carbon::createFromFormat('Y-m-d H:i', $dateStr.' '.$timeStr, $timezone)
                     ->setTimezone(config('app.timezone', 'UTC'));
             } catch (\Exception $e) {
                 try {
-                    $appointmentDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $dateStr . ' ' . $timeStr . ':00', $timezone)
+                    $appointmentDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $dateStr.' '.$timeStr.':00', $timezone)
                         ->setTimezone(config('app.timezone', 'UTC'));
                 } catch (\Exception $e2) {
-                    throw new \Exception('Invalid date/time format. Date: ' . $requestData['appoint_date'] . ', Time: ' . $timeStr . '. Error: ' . $e2->getMessage());
+                    throw new \Exception('Invalid date/time format. Date: '.$requestData['appoint_date'].', Time: '.$timeStr.'. Error: '.$e2->getMessage());
                 }
             }
 
@@ -1023,7 +1027,7 @@ class ClientPortalAppointmentController extends BaseController
             }
 
             // Assign consultant
-            $consultantAssigner = app(\App\Services\BansalAppointmentSync\ConsultantAssignmentService::class);
+            $consultantAssigner = app(ConsultantAssignmentService::class);
             $specificServiceForCalendar = match ((int) $serviceId) {
                 1 => 'paid-consultation',
                 2 => 'consultation',
@@ -1044,7 +1048,7 @@ class ClientPortalAppointmentController extends BaseController
             ];
             $consultant = $consultantAssigner->assignConsultant($appointmentDataForConsultant);
 
-            if (!$consultant) {
+            if (! $consultant) {
                 Log::warning('No consultant assigned for public appointment', [
                     'noe_id' => $requestData['noe_id'],
                     'service_id' => $serviceId,
@@ -1103,7 +1107,7 @@ class ClientPortalAppointmentController extends BaseController
                 } elseif (isset($bansalApiResponse['appointment_id'])) {
                     $bansalAppointmentId = (int) $bansalApiResponse['appointment_id'];
                 } else {
-                    throw new \Exception('Bansal API did not return appointment ID. Response: ' . json_encode($bansalApiResponse));
+                    throw new \Exception('Bansal API did not return appointment ID. Response: '.json_encode($bansalApiResponse));
                 }
 
                 Log::info('Public appointment created on Bansal website', [
@@ -1186,57 +1190,58 @@ class ClientPortalAppointmentController extends BaseController
             $result = $this->formatAppointmentData($appointment);
 
             // Send confirmation email for free appointments (service_id input = 1)
-            if ($serviceId == 2 && !empty($clientEmail)) {
+            if ($serviceId == 2 && ! empty($clientEmail)) {
                 try {
                     $emailDetails = [
-                        'client_name'          => $clientName,
+                        'client_name' => $clientName,
                         'appointment_datetime' => $appointment->appointment_datetime,
-                        'timeslot_full'        => $appointment->timeslot_full,
-                        'location'             => $appointment->location,
-                        'service_type'         => $appointment->service_type,
-                        'meeting_type'         => $appointment->meeting_type,
-                        'admin_notes'          => $appointment->admin_notes ?? null,
+                        'timeslot_full' => $appointment->timeslot_full,
+                        'location' => $appointment->location,
+                        'service_type' => $appointment->service_type,
+                        'meeting_type' => $appointment->meeting_type,
+                        'admin_notes' => $appointment->admin_notes ?? null,
                     ];
                     Mail::mailer('sendgrid')->to($clientEmail)->send(new AppointmentDetailedConfirmation($emailDetails));
                     $appointment->update([
-                        'confirmation_email_sent'    => true,
+                        'confirmation_email_sent' => true,
                         'confirmation_email_sent_at' => now(),
                     ]);
                     Log::info('Appointment confirmation email sent (without login)', [
                         'appointment_id' => $appointment->id,
-                        'email'          => $clientEmail,
+                        'email' => $clientEmail,
                     ]);
                 } catch (\Exception $mailEx) {
                     Log::error('Failed to send appointment confirmation email (without login)', [
                         'appointment_id' => $appointment->id,
-                        'email'          => $clientEmail,
-                        'error'          => $mailEx->getMessage(),
+                        'email' => $clientEmail,
+                        'error' => $mailEx->getMessage(),
                     ]);
                 }
             }
 
             $successMessage = 'Appointment created successfully';
             if ($bansalApiError) {
-                $successMessage .= '. Note: Appointment created in CRM but could not be synced to Bansal website. Error: ' . $bansalApiError;
+                $successMessage .= '. Note: Appointment created in CRM but could not be synced to Bansal website. Error: '.$bansalApiError;
             }
 
             return response()->json([
                 'success' => true,
                 'message' => $successMessage,
-                'bansal_synced' => !$bansalApiError,
+                'bansal_synced' => ! $bansalApiError,
                 'bansal_appointment_id' => $bansalAppointmentId,
                 'client_unique_id' => $clientUniqueId,
                 'data' => $result,
             ], 201);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return $this->sendError('Validation failed', $e->errors(), 422);
         } catch (\Exception $e) {
-            Log::error('Add Appointment Without Login API Error: ' . $e->getMessage(), [
+            Log::error('Add Appointment Without Login API Error: '.$e->getMessage(), [
                 'request_data' => $request->all(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred: '.$e->getMessage(), [], 500);
         }
     }
 
@@ -1246,42 +1251,20 @@ class ClientPortalAppointmentController extends BaseController
      */
     private function findOrCreateClientForPublicAppointment(string $email, string $phone, string $fullName): ?Admin
     {
-        // Try to find existing client by email
-        $client = Admin::whereIn('type', ['client', 'lead'])
-            ->whereRaw('LOWER(email) = ?', [$email])
-            ->first();
-
+        $client = Admin::findClientOrLeadByNormalizedEmail($email);
         if ($client) {
             Log::info('Found existing client by email for public appointment', ['client_id' => $client->id, 'email' => $email]);
+
             return $client;
         }
 
-        // Try to find existing client by phone (admins.phone)
-        $client = Admin::whereIn('type', ['client', 'lead'])
-            ->whereNotNull('phone')
-            ->get()
-            ->first(function ($admin) use ($phone) {
-                return $this->phonesMatch($admin->phone, $phone);
-            });
-
+        $client = Admin::findClientOrLeadByNormalizedPhone($phone);
         if ($client) {
-            Log::info('Found existing client by admins.phone for public appointment', ['client_id' => $client->id]);
+            Log::info('Found existing client by phone for public appointment', ['client_id' => $client->id]);
+
             return $client;
         }
 
-        // Try client_contacts table
-        $contacts = ClientContact::all();
-        foreach ($contacts as $contact) {
-            if ($this->phonesMatch($contact->phone, $phone)) {
-                $client = Admin::whereIn('type', ['client', 'lead'])->find($contact->client_id);
-                if ($client) {
-                    Log::info('Found existing client by client_contacts.phone for public appointment', ['client_id' => $client->id]);
-                    return $client;
-                }
-            }
-        }
-
-        // No match - create new lead
         return $this->createNewLeadForPublicAppointment($email, $phone, $fullName);
     }
 
@@ -1297,15 +1280,15 @@ class ClientPortalAppointmentController extends BaseController
             $firstName = $nameParts['first_name'];
             $lastName = $nameParts['last_name'];
 
-            $referenceService = app(\App\Services\ClientReferenceService::class);
+            $referenceService = app(ClientReferenceService::class);
             $reference = $referenceService->generateClientReference($firstName);
             $clientId = $reference['client_id'];
             $clientCounter = $reference['client_counter'];
 
             $countryCode = $this->extractCountryCodeFromPhone($phone);
-            $phoneForStorage = (str_starts_with($phone, '+') ? $phone : '+' . ltrim($phone, '0'));
+            $phoneForStorage = (str_starts_with($phone, '+') ? $phone : '+'.ltrim($phone, '0'));
 
-            $admin = new Admin();
+            $admin = new Admin;
             $admin->first_name = $firstName;
             $admin->last_name = $lastName;
             $admin->email = $email;
@@ -1369,6 +1352,7 @@ class ClientPortalAppointmentController extends BaseController
                 'email' => $email,
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return null;
         }
     }
@@ -1376,6 +1360,7 @@ class ClientPortalAppointmentController extends BaseController
     private function parseFullNameForPublicAppointment(string $fullName): array
     {
         $parts = explode(' ', trim($fullName), 2);
+
         return [
             'first_name' => $parts[0] ?? 'Unknown',
             'last_name' => $parts[1] ?? null,
@@ -1388,12 +1373,13 @@ class ClientPortalAppointmentController extends BaseController
             return null;
         }
         if (preg_match('/^\+(\d{1,3})/', $phone, $m)) {
-            return '+' . $m[1];
+            return '+'.$m[1];
         }
         $digits = preg_replace('/\D/', '', $phone);
         if (strlen($digits) >= 2 && substr($digits, 0, 2) === '61') {
             return '+61';
         }
+
         return '+61';
     }
 
@@ -1404,15 +1390,16 @@ class ClientPortalAppointmentController extends BaseController
         }
         $phone = trim($phone);
         if ($countryCode && preg_match('/\+?(\d+)/', $countryCode, $m)) {
-            $phone = $m[1] . preg_replace('/\D/', '', $phone);
+            $phone = $m[1].preg_replace('/\D/', '', $phone);
         } else {
             $phone = preg_replace('/\D/', '', $phone);
             if (strlen($phone) === 9 && $phone[0] === '4') {
-                $phone = '61' . $phone;
+                $phone = '61'.$phone;
             } elseif (strlen($phone) === 10 && $phone[0] === '0') {
-                $phone = '61' . substr($phone, 1);
+                $phone = '61'.substr($phone, 1);
             }
         }
+
         return $phone;
     }
 
@@ -1423,6 +1410,7 @@ class ClientPortalAppointmentController extends BaseController
         }
         $a = $this->normalizePhoneDigits($dbPhone);
         $b = $this->normalizePhoneDigits($inputPhone);
+
         return strlen($a) >= 8 && strlen($b) >= 8 && $a === $b;
     }
 
@@ -1434,28 +1422,28 @@ class ClientPortalAppointmentController extends BaseController
         }
         $digits = preg_replace('/\D/', '', $phone);
         if (strlen($digits) === 10 && $digits[0] === '0') {
-            return '61' . substr($digits, 1);
+            return '61'.substr($digits, 1);
         }
         if (strlen($digits) === 9 && $digits[0] === '4') {
-            return '61' . $digits;
+            return '61'.$digits;
         }
+
         return $digits;
     }
 
     /**
      * Map meeting type from various formats to database format
-     * 
-     * @param string $meetingType
+     *
+     * @param  string  $meetingType
      * @return string
      */
     /**
      * Get disabled dates from calendar
-     * 
+     *
      * Returns disabled dates array along with duration, start_time, end_time, and weeks
      * for the specified service type and location. Uses slot_overwrite=0 automatically.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
      */
     public function getDisabledDateFromCalendar(Request $request)
     {
@@ -1465,42 +1453,42 @@ class ClientPortalAppointmentController extends BaseController
             $enquiry_item = $request->input('enquiry_item'); // 1=>permanent-residency, 2=>temporary-residency, etc.
             $inperson_address = $request->input('inperson_address'); // 1=>Adelaide, 2=>melbourne
             $slot_overwrite = 0; // Always set to 0, not passed in input
-            
+
             // Validate required parameters
             if (empty($id) || empty($enquiry_item) || empty($inperson_address)) {
                 return $this->sendError('Missing required parameters: id, enquiry_item, and inperson_address are required', [], 422);
             }
-            
+
             Log::info('getDisabledDateFromCalendar called', [
                 'id' => $id,
                 'enquiry_item' => $enquiry_item,
                 'inperson_address' => $inperson_address,
-                'slot_overwrite' => $slot_overwrite
+                'slot_overwrite' => $slot_overwrite,
             ]);
-            
+
             // Map id to specific_service
             $specific_service_map = [
                 1 => 'consultation',
                 2 => 'paid-consultation',
-                3 => 'overseas-enquiry'
+                3 => 'overseas-enquiry',
             ];
             $specific_service = $specific_service_map[$id] ?? 'consultation';
 
             // Map inperson_address to location
             $location_map = [
                 1 => 'adelaide',
-                2 => 'melbourne'
+                2 => 'melbourne',
             ];
             $location = $location_map[$inperson_address] ?? 'adelaide';
 
             $service_type = BansalSchedulingServiceType::fromEnquiryItem($enquiry_item, $location);
-            
+
             // Prepare request data for external API
             $requestData = [
                 'specific_service' => $specific_service,
                 'service_type' => $service_type,
                 'location' => $location,
-                'slot_overwrite' => $slot_overwrite
+                'slot_overwrite' => $slot_overwrite,
             ];
             [$isPaid, $preferredLanguage] = BansalSchedulingServiceType::melbourneApiExtras(
                 $request,
@@ -1513,40 +1501,41 @@ class ClientPortalAppointmentController extends BaseController
             if ($preferredLanguage !== null) {
                 $requestData['preferred_language'] = $preferredLanguage;
             }
-            
+
             try {
                 // Get API configuration
                 $baseUrl = 'https://www.bansalimmigration.com.au/api/crm';
                 $apiToken = config('services.bansal_api.token');
                 $timeout = config('services.bansal_api.timeout', 30);
-                
+
                 if (empty($apiToken)) {
                     Log::error('Bansal API token not configured');
+
                     return $this->sendError('Bansal API token not configured. Set BANSAL_API_TOKEN in .env', [], 500);
                 }
-                
+
                 // Make API call to external Bansal API
                 $response = Http::timeout($timeout)
                     ->withToken($apiToken)
                     ->acceptJson()
                     ->post("{$baseUrl}/appointments/get-datetime-backend", $requestData);
-                
+
                 if ($response->failed()) {
                     Log::error('Bansal API get-datetime-backend Error', [
                         'method' => 'getDisabledDateFromCalendar',
                         'status' => $response->status(),
                         'body' => $response->body(),
-                        'request_data' => $requestData
+                        'request_data' => $requestData,
                     ]);
-                    
+
                     return $this->sendError('Failed to fetch datetime backend from external API', [
-                        'error' => $response->status() === 404 ? 'Endpoint not found' : 'API request failed'
+                        'error' => $response->status() === 404 ? 'Endpoint not found' : 'API request failed',
                     ], $response->status());
                 }
-                
+
                 $data = $response->json();
                 $disabledDates = $data['disabledatesarray'] ?? $data['disableddatesarray'] ?? [];
-                
+
                 // Format response to match expected output
                 $result = [
                     'success' => $data['success'] ?? true,
@@ -1554,59 +1543,59 @@ class ClientPortalAppointmentController extends BaseController
                     'duration' => $data['duration'] ?? 15,
                     'start_time' => $data['start_time'] ?? '10:45',
                     'end_time' => $data['end_time'] ?? '16:00',
-                    'weeks' => $data['weeks'] ?? []
+                    'weeks' => $data['weeks'] ?? [],
                 ];
-                
+
                 return $this->sendResponse($result, 'Disabled dates retrieved successfully');
-                
+
             } catch (RequestException $e) {
                 $response = $e->response;
                 $responseBody = $response?->json();
                 $message = null;
-                
+
                 if (is_array($responseBody)) {
                     $message = $responseBody['message']
                         ?? ($responseBody['error']['message'] ?? null);
                 }
-                
+
                 $message = $message ?: $response?->body() ?: $e->getMessage();
-                
+
                 Log::error('Bansal API get-datetime-backend Request Error', [
                     'method' => 'getDisabledDateFromCalendar',
                     'message' => $message,
                     'request_data' => $requestData,
-                    'exception' => $e->getMessage()
+                    'exception' => $e->getMessage(),
                 ]);
-                
-                return $this->sendError('API request failed: ' . $message, [], 500);
+
+                return $this->sendError('API request failed: '.$message, [], 500);
             } catch (\Exception $e) {
                 Log::error('Bansal API get-datetime-backend Exception', [
                     'method' => 'getDisabledDateFromCalendar',
                     'message' => $e->getMessage(),
                     'request_data' => $requestData,
-                    'trace' => $e->getTraceAsString()
+                    'trace' => $e->getTraceAsString(),
                 ]);
-                
-                return $this->sendError('An error occurred: ' . $e->getMessage(), [], 500);
+
+                return $this->sendError('An error occurred: '.$e->getMessage(), [], 500);
             }
-            
+
         } catch (\Exception $e) {
             Log::error('getDisabledDateFromCalendar Exception', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred: '.$e->getMessage(), [], 500);
         }
     }
 
     /**
      * Get disabled time slots for a specific date from calendar
-     * 
+     *
      * Returns disabled time slots array for the specified date, service type and location.
      * Uses slot_overwrite=0 automatically.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
      */
     public function getDisabledSlotsOfAnyDateFromCalendar(Request $request)
     {
@@ -1617,51 +1606,51 @@ class ClientPortalAppointmentController extends BaseController
             $inperson_address = $request->input('inperson_address'); // 1=>adelaide, 2=>melbourne
             $sel_date = $request->input('sel_date'); // Date in dd/mm/yyyy format
             $slot_overwrite = 0; // Always set to 0, not passed in input
-            
+
             // Validate required parameters
             if (empty($service_id) || empty($enquiry_item) || empty($inperson_address) || empty($sel_date)) {
                 return $this->sendError('Missing required parameters: service_id, enquiry_item, inperson_address, and sel_date are required', [], 422);
             }
-            
+
             // Validate date format (dd/mm/yyyy)
-            if (!preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $sel_date)) {
+            if (! preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $sel_date)) {
                 return $this->sendError('Invalid date format. Date must be in dd/mm/yyyy format', [], 422);
             }
-            
+
             Log::info('getDisabledSlotsOfAnyDateFromCalendar called', [
                 'service_id' => $service_id,
                 'enquiry_item' => $enquiry_item,
                 'inperson_address' => $inperson_address,
                 'sel_date' => $sel_date,
-                'slot_overwrite' => $slot_overwrite
+                'slot_overwrite' => $slot_overwrite,
             ]);
-            
+
             // Map service_id to specific_service
             $specific_service_map = [
                 1 => 'consultation',
                 2 => 'paid-consultation',
-                3 => 'overseas-enquiry'
+                3 => 'overseas-enquiry',
             ];
             $specific_service = $specific_service_map[$service_id] ?? 'consultation';
 
             // Map inperson_address to location
             $location_map = [
                 1 => 'adelaide',
-                2 => 'melbourne'
+                2 => 'melbourne',
             ];
             $location = $location_map[$inperson_address] ?? 'adelaide';
 
             $service_type = BansalSchedulingServiceType::fromEnquiryItem($enquiry_item, $location);
-            
+
             [$isPaid, $preferredLanguage] = BansalSchedulingServiceType::melbourneApiExtras(
                 $request,
                 $location,
                 (int) $service_id
             );
-            
+
             try {
                 // Use BansalApiClient to call the website API (same as getdisableddatetime)
-                $apiClient = new \App\Services\BansalAppointmentSync\BansalApiClient();
+                $apiClient = new BansalApiClient;
                 $response = $apiClient->getDisabledDateTime(
                     $specific_service,
                     $service_type,
@@ -1671,15 +1660,15 @@ class ClientPortalAppointmentController extends BaseController
                     $isPaid,
                     $preferredLanguage
                 );
-                
+
                 // Format response to match expected output
                 $result = [
                     'success' => $response['success'] ?? true,
-                    'disabledtimeslotes' => $response['disabledtimeslotes'] ?? []
+                    'disabledtimeslotes' => $response['disabledtimeslotes'] ?? [],
                 ];
-                
+
                 return $this->sendResponse($result, 'Disabled time slots retrieved successfully');
-                
+
             } catch (\Exception $e) {
                 Log::error('Bansal API get-disabled-datetime Exception', [
                     'method' => 'getDisabledSlotsOfAnyDateFromCalendar',
@@ -1689,39 +1678,39 @@ class ClientPortalAppointmentController extends BaseController
                     'inperson_address' => $inperson_address,
                     'sel_date' => $sel_date,
                     'slot_overwrite' => $slot_overwrite,
-                    'trace' => $e->getTraceAsString()
+                    'trace' => $e->getTraceAsString(),
                 ]);
-                
-                return $this->sendError('An error occurred: ' . $e->getMessage(), [
-                    'disabledtimeslotes' => []
+
+                return $this->sendError('An error occurred: '.$e->getMessage(), [
+                    'disabledtimeslotes' => [],
                 ], 500);
             }
-            
+
         } catch (\Exception $e) {
             Log::error('getDisabledSlotsOfAnyDateFromCalendar Exception', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred: '.$e->getMessage(), [], 500);
         }
     }
 
     /**
      * Update appointment status (Cancel or Complete only)
-     * 
+     *
      * Allows authenticated clients to update their appointment status.
      * Only supports 'cancel' and 'complete' status types for mobile app usage.
-     * 
-     * @param Request $request
-     * @param int $id Appointment ID
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @param  int  $id  Appointment ID
+     * @return JsonResponse
      */
     public function updateAppointmentStatus(Request $request, $id)
     {
         try {
             $user = $request->user();
-            
-            if (!$user) {
+
+            if (! $user) {
                 return $this->sendError('Unauthenticated', [], 401);
             }
 
@@ -1730,30 +1719,30 @@ class ClientPortalAppointmentController extends BaseController
                 ->where('client_id', $user->id)
                 ->first();
 
-            if (!$appointment) {
+            if (! $appointment) {
                 return $this->sendError('Appointment not found', [], 404);
             }
 
             // Validate request
             $validator = Validator::make($request->all(), [
                 'type' => 'required|in:cancel,complete',
-                'cancel_reason' => 'required_if:type,cancel|nullable|string|max:500'
+                'cancel_reason' => 'required_if:type,cancel|nullable|string|max:500',
             ]);
 
             if ($validator->fails()) {
-                return $this->sendError('Validation failed: ' . $validator->errors()->first(), $validator->errors(), 422);
+                return $this->sendError('Validation failed: '.$validator->errors()->first(), $validator->errors(), 422);
             }
 
             // Map 'cancel' to 'cancelled' and 'complete' to 'completed'
             $statusMap = [
                 'cancel' => 'cancelled',
-                'complete' => 'completed'
+                'complete' => 'completed',
             ];
             $newStatus = $statusMap[$request->type];
 
             // Check if appointment can be updated
             if (in_array($appointment->status, ['cancelled', 'completed'])) {
-                return $this->sendError('Cannot update appointment. Appointment is already ' . $appointment->status, [], 422);
+                return $this->sendError('Cannot update appointment. Appointment is already '.$appointment->status, [], 422);
             }
 
             $oldStatus = $appointment->status;
@@ -1775,7 +1764,7 @@ class ClientPortalAppointmentController extends BaseController
             // Sync with Bansal API if applicable
             $syncError = null;
             if ($appointment->bansal_appointment_id) {
-                $recoveryService = app(\App\Services\BansalAppointmentSync\BansalAppointmentRecoveryService::class);
+                $recoveryService = app(BansalAppointmentRecoveryService::class);
                 $result = $recoveryService->syncStatus(
                     $appointment,
                     $newStatus,
@@ -1796,7 +1785,7 @@ class ClientPortalAppointmentController extends BaseController
                     Log::info('Appointment status synced with Bansal API', [
                         'appointment_id' => $appointment->id,
                         'bansal_appointment_id' => $appointment->bansal_appointment_id,
-                        'status' => $newStatus
+                        'status' => $newStatus,
                     ]);
                 } else {
                     $syncError = $result['error'];
@@ -1823,12 +1812,12 @@ class ClientPortalAppointmentController extends BaseController
 
             // Log activity
             if ($appointment->client_id) {
-                $activityLog = new \App\Models\ActivitiesLog;
+                $activityLog = new ActivitiesLog;
                 $activityLog->client_id = $appointment->client_id;
                 $activityLog->created_by = $user->id;
                 $activityLog->subject = 'Appointment status updated via mobile app';
-                $activityLog->description = '<p><strong>Status changed:</strong> ' . ucfirst($oldStatus) . ' → ' . ucfirst($newStatus) . '</p>' .
-                                           ($request->cancel_reason ? '<p><strong>Cancellation Reason:</strong> ' . e($request->cancel_reason) . '</p>' : '');
+                $activityLog->description = '<p><strong>Status changed:</strong> '.ucfirst($oldStatus).' → '.ucfirst($newStatus).'</p>'.
+                                           ($request->cancel_reason ? '<p><strong>Cancellation Reason:</strong> '.e($request->cancel_reason).'</p>' : '');
                 $activityLog->task_status = 0;
                 $activityLog->pin = 0;
                 $activityLog->source = 'client_portal';
@@ -1837,7 +1826,7 @@ class ClientPortalAppointmentController extends BaseController
 
             $message = 'Appointment status updated successfully';
             if ($syncError) {
-                $message .= '. Note: Status updated locally but could not be synced to Bansal website. Error: ' . $syncError;
+                $message .= '. Note: Status updated locally but could not be synced to Bansal website. Error: '.$syncError;
             }
 
             return response()->json([
@@ -1848,37 +1837,37 @@ class ClientPortalAppointmentController extends BaseController
                     'status' => $newStatus,
                     'updated_at' => $appointment->updated_at->toIso8601String(),
                 ],
-                'bansal_synced' => !$syncError
+                'bansal_synced' => ! $syncError,
             ], 200);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return $this->sendError('Validation failed', $e->errors(), 422);
         } catch (\Exception $e) {
-            Log::error('Update Appointment Status API Error: ' . $e->getMessage(), [
+            Log::error('Update Appointment Status API Error: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
                 'appointment_id' => $id ?? null,
                 'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred: '.$e->getMessage(), [], 500);
         }
     }
 
     /**
      * Update Appointment (Reschedule)
-     * 
+     *
      * Allows authenticated clients to update their appointment date, time, meeting type, and preferred language.
      * Syncs with Bansal API if appointment has bansal_appointment_id.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
      */
     public function updateAppointment(Request $request)
     {
         try {
             $user = $request->user();
-            
-            if (!$user) {
+
+            if (! $user) {
                 return $this->sendError('Unauthenticated', [], 401);
             }
 
@@ -1900,7 +1889,7 @@ class ClientPortalAppointmentController extends BaseController
                 ->where('client_id', $user->id)
                 ->first();
 
-            if (!$appointment) {
+            if (! $appointment) {
                 return $this->sendError('Appointment not found or does not belong to you', [], 404);
             }
 
@@ -1911,18 +1900,18 @@ class ClientPortalAppointmentController extends BaseController
             $preferredLanguage = $preferredLanguageMap[(int) $request->preferred_language] ?? 'English';
 
             // Validate: Video meeting type is only allowed for paid appointments
-            if ($meetingTypeNormalized === 'video' && !$appointment->is_paid) {
+            if ($meetingTypeNormalized === 'video' && ! $appointment->is_paid) {
                 return $this->sendError('Video meeting type is only available for paid appointments', [], 422);
             }
 
             $oldDatetime = $appointment->appointment_datetime;
             $oldMeetingType = $appointment->meeting_type;
             $oldPreferredLanguage = $appointment->preferred_language ?? 'English';
-            
+
             try {
                 $newDatetime = Carbon::createFromFormat(
                     'Y-m-d H:i',
-                    $request->appointment_date . ' ' . $request->appointment_time,
+                    $request->appointment_date.' '.$request->appointment_time,
                     config('app.timezone')
                 );
             } catch (\Exception $e) {
@@ -1930,15 +1919,15 @@ class ClientPortalAppointmentController extends BaseController
             }
 
             // Check if anything has changed
-            $datetimeChanged = !$oldDatetime || !$oldDatetime->equalTo($newDatetime);
+            $datetimeChanged = ! $oldDatetime || ! $oldDatetime->equalTo($newDatetime);
             $meetingTypeChanged = $oldMeetingType !== $meetingTypeNormalized;
             $preferredLanguageChanged = $oldPreferredLanguage !== $preferredLanguage;
-            
-            if (!$datetimeChanged && !$meetingTypeChanged && !$preferredLanguageChanged) {
+
+            if (! $datetimeChanged && ! $meetingTypeChanged && ! $preferredLanguageChanged) {
                 return response()->json([
                     'success' => true,
                     'message' => 'No changes detected. Appointment details remain unchanged.',
-                    'data' => $this->formatAppointmentData($appointment)
+                    'data' => $this->formatAppointmentData($appointment),
                 ], 200);
             }
 
@@ -1947,11 +1936,11 @@ class ClientPortalAppointmentController extends BaseController
                 $appointment->appointment_datetime = $newDatetime;
                 $appointment->timeslot_full = $newDatetime->format('h:i A');
             }
-            
+
             if ($meetingTypeChanged) {
                 $appointment->meeting_type = $meetingTypeNormalized;
             }
-            
+
             if ($preferredLanguageChanged) {
                 $appointment->preferred_language = $preferredLanguage;
             }
@@ -1961,13 +1950,13 @@ class ClientPortalAppointmentController extends BaseController
             $apiSynced = false;
             $newBansalAppointmentId = null;
 
-            if (($datetimeChanged || $meetingTypeChanged || $preferredLanguageChanged) && !empty($appointment->bansal_appointment_id)) {
+            if (($datetimeChanged || $meetingTypeChanged || $preferredLanguageChanged) && ! empty($appointment->bansal_appointment_id)) {
                 $apiDate = $datetimeChanged ? $request->appointment_date : $appointment->appointment_datetime->format('Y-m-d');
                 $apiTime = $datetimeChanged ? $request->appointment_time : $appointment->appointment_datetime->format('H:i');
                 $apiMeetingType = $meetingTypeChanged ? $meetingTypeNormalized : ($appointment->meeting_type ?? 'in_person');
                 $apiPreferredLanguage = $preferredLanguageChanged ? $preferredLanguage : ($appointment->preferred_language ?? 'English');
 
-                $recoveryService = app(\App\Services\BansalAppointmentSync\BansalAppointmentRecoveryService::class);
+                $recoveryService = app(BansalAppointmentRecoveryService::class);
                 $result = $recoveryService->syncReschedule(
                     $appointment,
                     $apiDate,
@@ -1998,7 +1987,7 @@ class ClientPortalAppointmentController extends BaseController
                     $appointment->sync_error = null;
                 }
             }
-            
+
             $appointment->save();
 
             // Build success message
@@ -2012,12 +2001,12 @@ class ClientPortalAppointmentController extends BaseController
             if ($preferredLanguageChanged) {
                 $messageParts[] = 'preferred language';
             }
-            
-            $message = 'Appointment ' . implode(', ', $messageParts) . ' updated successfully.';
-            
+
+            $message = 'Appointment '.implode(', ', $messageParts).' updated successfully.';
+
             // Add warning if API sync failed
             if ($syncError) {
-                $message .= ' However, sync with website failed: ' . $syncError;
+                $message .= ' However, sync with website failed: '.$syncError;
             } elseif ($newBansalAppointmentId) {
                 $message .= ' Note: A new appointment was created on the website (previous appointment ID was invalid).';
             }
@@ -2028,7 +2017,7 @@ class ClientPortalAppointmentController extends BaseController
                 'datetime_changed' => $datetimeChanged,
                 'meeting_type_changed' => $meetingTypeChanged,
                 'preferred_language_changed' => $preferredLanguageChanged,
-                'bansal_synced' => $apiSynced
+                'bansal_synced' => $apiSynced,
             ]);
 
             return response()->json([
@@ -2036,18 +2025,19 @@ class ClientPortalAppointmentController extends BaseController
                 'message' => $message,
                 'data' => $this->formatAppointmentData($appointment),
                 'bansal_synced' => $apiSynced,
-                'sync_error' => $syncError
+                'sync_error' => $syncError,
             ], 200);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return $this->sendError('Validation failed', $e->errors(), 422);
         } catch (\Exception $e) {
-            Log::error('Update Appointment API Error: ' . $e->getMessage(), [
+            Log::error('Update Appointment API Error: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
                 'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred: '.$e->getMessage(), [], 500);
         }
     }
 
@@ -2064,16 +2054,16 @@ class ClientPortalAppointmentController extends BaseController
     ): ?int {
         try {
             // Map meeting_type from database format to API format
-            $meetingTypeForApi = match($meetingType) {
+            $meetingTypeForApi = match ($meetingType) {
                 'video' => 'video-call',
                 'in_person' => 'in-person',
                 'phone' => 'phone',
                 default => 'in-person'
             };
-            
+
             // Determine specific_service from enquiry_type or service_type
             $specificService = $this->determineSpecificService($appointment);
-            
+
             // Build payload for createAppointment API
             $payload = [
                 'full_name' => $appointment->client_name,
@@ -2081,7 +2071,7 @@ class ClientPortalAppointmentController extends BaseController
                 'phone' => $appointment->client_phone ?? '',
                 'appointment_date' => $appointmentDate,
                 'appointment_time' => $appointmentTime,
-                'appointment_datetime' => $appointmentDate . ' ' . $appointmentTime . ':00',
+                'appointment_datetime' => $appointmentDate.' '.$appointmentTime.':00',
                 'duration_minutes' => $appointment->duration_minutes ?? 15,
                 'location' => $appointment->location ?? 'melbourne',
                 'meeting_type' => $meetingTypeForApi,
@@ -2103,9 +2093,9 @@ class ClientPortalAppointmentController extends BaseController
                 'payment_status' => $appointment->payment_status ?? ($appointment->is_paid ? 'pending' : null),
                 'slot_overwrite' => 0,
             ];
-            
+
             $apiResponse = $bansalApiClient->createAppointment($payload);
-            
+
             if ($apiResponse['success'] ?? false) {
                 // Extract new bansal_appointment_id from response
                 if (isset($apiResponse['data']['id'])) {
@@ -2116,12 +2106,12 @@ class ClientPortalAppointmentController extends BaseController
                     return (int) $apiResponse['appointment_id'];
                 }
             }
-            
+
             Log::warning('Bansal API createAppointment returned success but no appointment ID', [
                 'appointment_id' => $appointment->id,
                 'response' => $apiResponse,
             ]);
-            
+
             return null;
         } catch (\Exception $e) {
             Log::warning('Failed to create appointment via API', [
@@ -2130,7 +2120,7 @@ class ClientPortalAppointmentController extends BaseController
                 'appointment_date' => $appointmentDate,
                 'appointment_time' => $appointmentTime,
             ]);
-            
+
             throw $e;
         }
     }
@@ -2143,7 +2133,7 @@ class ClientPortalAppointmentController extends BaseController
         // If enquiry_type exists, try to map it
         if ($appointment->enquiry_type) {
             $enquiryType = strtolower($appointment->enquiry_type);
-            
+
             // Map common enquiry types to specific_service
             if (strpos($enquiryType, 'overseas') !== false || $enquiryType === 'international') {
                 return 'overseas-enquiry';
@@ -2153,7 +2143,7 @@ class ClientPortalAppointmentController extends BaseController
                 return 'consultation';
             }
         }
-        
+
         // Default fallback based on is_paid
         return $appointment->is_paid ? 'paid-consultation' : 'consultation';
     }
@@ -2164,7 +2154,7 @@ class ClientPortalAppointmentController extends BaseController
         $normalized = strtolower(trim($meetingType));
         $normalized = str_replace([' ', '-'], '_', $normalized);
 
-        return match($normalized) {
+        return match ($normalized) {
             'in_person', 'inperson', 'in-person', 'in person', 'office', 'onsite' => 'in_person',
             'phone', 'telephone', 'call', 'phone_call' => 'phone',
             'video', 'videocall', 'video_call', 'video-call', 'zoom', 'online' => 'video',
@@ -2178,8 +2168,7 @@ class ClientPortalAppointmentController extends BaseController
      * DEPRECATED (Option C): Use POST /appointments/record-payment with payment_intent_id instead.
      * Frontend should create and confirm the PaymentIntent with Stripe, then call record-payment.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function processAppointmentPayment(Request $request)
     {
@@ -2347,15 +2336,14 @@ class ClientPortalAppointmentController extends BaseController
      * Record payment by PaymentIntent ID (Option C: frontend owns PaymentIntent, backend only records).
      * Call this after the frontend has created and confirmed the PaymentIntent with Stripe.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function recordAppointmentPayment(Request $request)
     {
         try {
             $user = $request->user();
 
-            if (!$user) {
+            if (! $user) {
                 return $this->sendError('Unauthenticated', [], 401);
             }
 
@@ -2365,18 +2353,18 @@ class ClientPortalAppointmentController extends BaseController
             ]);
 
             if ($validator->fails()) {
-                return $this->sendError('Validation failed: ' . $validator->errors()->first(), $validator->errors(), 422);
+                return $this->sendError('Validation failed: '.$validator->errors()->first(), $validator->errors(), 422);
             }
 
             $appointment = BookingAppointment::where('id', $request->appointment_id)
                 ->where('client_id', $user->id)
                 ->first();
 
-            if (!$appointment) {
+            if (! $appointment) {
                 return $this->sendError('Appointment not found or does not belong to you', [], 404);
             }
 
-            if (!in_array($appointment->service_id, [1, 3])) {
+            if (! in_array($appointment->service_id, [1, 3])) {
                 return $this->sendError('This appointment does not require payment', [], 422);
             }
 
@@ -2404,7 +2392,7 @@ class ClientPortalAppointmentController extends BaseController
                 $metadata
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 return $this->sendError($result['message'], $result['data'] ?? [], 422);
             }
 
@@ -2413,31 +2401,31 @@ class ClientPortalAppointmentController extends BaseController
             $appointment->refresh();
 
             // Send confirmation email on successful payment
-            if (!empty($appointment->client_email)) {
+            if (! empty($appointment->client_email)) {
                 try {
                     $emailDetails = [
-                        'client_name'          => $appointment->client_name,
+                        'client_name' => $appointment->client_name,
                         'appointment_datetime' => $appointment->appointment_datetime,
-                        'timeslot_full'        => $appointment->timeslot_full,
-                        'location'             => $appointment->location,
-                        'service_type'         => $appointment->service_type,
-                        'meeting_type'         => $appointment->meeting_type,
-                        'admin_notes'          => $appointment->admin_notes ?? null,
+                        'timeslot_full' => $appointment->timeslot_full,
+                        'location' => $appointment->location,
+                        'service_type' => $appointment->service_type,
+                        'meeting_type' => $appointment->meeting_type,
+                        'admin_notes' => $appointment->admin_notes ?? null,
                     ];
                     Mail::mailer('sendgrid')->to($appointment->client_email)->send(new AppointmentDetailedConfirmation($emailDetails));
                     $appointment->update([
-                        'confirmation_email_sent'    => true,
+                        'confirmation_email_sent' => true,
                         'confirmation_email_sent_at' => now(),
                     ]);
                     Log::info('Appointment confirmation email sent after payment', [
                         'appointment_id' => $appointment->id,
-                        'email'          => $appointment->client_email,
+                        'email' => $appointment->client_email,
                     ]);
                 } catch (\Exception $mailEx) {
                     Log::error('Failed to send appointment confirmation email after payment', [
                         'appointment_id' => $appointment->id,
-                        'email'          => $appointment->client_email,
-                        'error'          => $mailEx->getMessage(),
+                        'email' => $appointment->client_email,
+                        'error' => $mailEx->getMessage(),
                     ]);
                 }
             }
@@ -2462,18 +2450,19 @@ class ClientPortalAppointmentController extends BaseController
                     'paid_at' => $result['data']['paid_at'],
                     'appointment' => $this->formatAppointmentData($appointment),
                 ],
-                'bansal_synced' => !$syncError
+                'bansal_synced' => ! $syncError,
             ], 200);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return $this->sendError('Validation failed', $e->errors(), 422);
         } catch (\Exception $e) {
-            Log::error('Record Payment API Error: ' . $e->getMessage(), [
+            Log::error('Record Payment API Error: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
                 'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred while recording payment: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred while recording payment: '.$e->getMessage(), [], 500);
         }
     }
 
@@ -2486,10 +2475,7 @@ class ClientPortalAppointmentController extends BaseController
      * services.stripe.enforce_wallet_payment_verification is turned off to roll back to
      * the unverified behaviour for an older app.
      *
-     * @param BookingAppointment $appointment
-     * @param string $paymentIntentId
-     * @param string $paymentType gpay | applepay
-     * @param Request $request
+     * @param  string  $paymentType  gpay | applepay
      * @return array{success: bool, message: string, payment: AppointmentPayment|null}
      */
     private function recordWalletPayment(BookingAppointment $appointment, string $paymentIntentId, string $paymentType, Request $request): array
@@ -2502,7 +2488,7 @@ class ClientPortalAppointmentController extends BaseController
         if (preg_match('/^pi_[A-Za-z0-9_]+$/', $paymentIntentId)) {
             $result = app(StripePaymentService::class)->recordPaymentByIntent($appointment, $paymentIntentId, $metadata);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 return [
                     'success' => false,
                     'message' => $result['message'],
@@ -2601,15 +2587,14 @@ class ClientPortalAppointmentController extends BaseController
      * Same as recordAppointmentPayment plus:
      * - payment_type: gpay | applepay
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function recordAppointmentPaymentWallet(Request $request)
     {
         try {
             $user = $request->user();
 
-            if (!$user) {
+            if (! $user) {
                 return $this->sendError('Unauthenticated', [], 401);
             }
 
@@ -2620,18 +2605,18 @@ class ClientPortalAppointmentController extends BaseController
             ]);
 
             if ($validator->fails()) {
-                return $this->sendError('Validation failed: ' . $validator->errors()->first(), $validator->errors(), 422);
+                return $this->sendError('Validation failed: '.$validator->errors()->first(), $validator->errors(), 422);
             }
 
             $appointment = BookingAppointment::where('id', $request->appointment_id)
                 ->where('client_id', $user->id)
                 ->first();
 
-            if (!$appointment) {
+            if (! $appointment) {
                 return $this->sendError('Appointment not found or does not belong to you', [], 404);
             }
 
-            if (!in_array($appointment->service_id, [1, 3])) {
+            if (! in_array($appointment->service_id, [1, 3])) {
                 return $this->sendError('This appointment does not require payment', [], 422);
             }
 
@@ -2656,7 +2641,7 @@ class ClientPortalAppointmentController extends BaseController
                 $request
             );
 
-            if (!$walletResult['success']) {
+            if (! $walletResult['success']) {
                 return $this->sendError($walletResult['message'], [], 422);
             }
 
@@ -2667,32 +2652,32 @@ class ClientPortalAppointmentController extends BaseController
             $appointment->refresh();
 
             // Send confirmation email on successful payment
-            if (!empty($appointment->client_email)) {
+            if (! empty($appointment->client_email)) {
                 try {
                     $emailDetails = [
-                        'client_name'          => $appointment->client_name,
+                        'client_name' => $appointment->client_name,
                         'appointment_datetime' => $appointment->appointment_datetime,
-                        'timeslot_full'        => $appointment->timeslot_full,
-                        'location'             => $appointment->location,
-                        'service_type'         => $appointment->service_type,
-                        'meeting_type'         => $appointment->meeting_type,
-                        'admin_notes'          => $appointment->admin_notes ?? null,
+                        'timeslot_full' => $appointment->timeslot_full,
+                        'location' => $appointment->location,
+                        'service_type' => $appointment->service_type,
+                        'meeting_type' => $appointment->meeting_type,
+                        'admin_notes' => $appointment->admin_notes ?? null,
                     ];
                     Mail::mailer('sendgrid')->to($appointment->client_email)->send(new AppointmentDetailedConfirmation($emailDetails));
                     $appointment->update([
-                        'confirmation_email_sent'    => true,
+                        'confirmation_email_sent' => true,
                         'confirmation_email_sent_at' => now(),
                     ]);
                     Log::info('Appointment confirmation email sent after wallet payment', [
                         'appointment_id' => $appointment->id,
-                        'email'          => $appointment->client_email,
-                        'payment_type'   => $paymentType,
+                        'email' => $appointment->client_email,
+                        'payment_type' => $paymentType,
                     ]);
                 } catch (\Exception $mailEx) {
                     Log::error('Failed to send appointment confirmation email after wallet payment', [
                         'appointment_id' => $appointment->id,
-                        'email'          => $appointment->client_email,
-                        'error'          => $mailEx->getMessage(),
+                        'email' => $appointment->client_email,
+                        'error' => $mailEx->getMessage(),
                     ]);
                 }
             }
@@ -2718,17 +2703,18 @@ class ClientPortalAppointmentController extends BaseController
                     'paid_at' => $appointment->paid_at ? $appointment->paid_at->toIso8601String() : null,
                     'appointment' => $this->formatAppointmentData($appointment),
                 ],
-                'bansal_synced' => !$syncError
+                'bansal_synced' => ! $syncError,
             ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return $this->sendError('Validation failed', $e->errors(), 422);
         } catch (\Exception $e) {
-            Log::error('Record Payment Wallet API Error: ' . $e->getMessage(), [
+            Log::error('Record Payment Wallet API Error: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
                 'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred while recording payment: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred while recording payment: '.$e->getMessage(), [], 500);
         }
     }
 
@@ -2739,8 +2725,7 @@ class ClientPortalAppointmentController extends BaseController
      * Finds appointment by appointment_id and client via client_id.
      * No authentication required.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function recordAppointmentPaymentWithoutLogin(Request $request)
     {
@@ -2751,16 +2736,16 @@ class ClientPortalAppointmentController extends BaseController
             ]);
 
             if ($validator->fails()) {
-                return $this->sendError('Validation failed: ' . $validator->errors()->first(), $validator->errors(), 422);
+                return $this->sendError('Validation failed: '.$validator->errors()->first(), $validator->errors(), 422);
             }
 
             $appointment = BookingAppointment::find($request->appointment_id);
 
-            if (!$appointment) {
+            if (! $appointment) {
                 return $this->sendError('Appointment not found', [], 404);
             }
 
-            if (!in_array($appointment->service_id, [1, 3])) {
+            if (! in_array($appointment->service_id, [1, 3])) {
                 return $this->sendError('This appointment does not require payment', [], 422);
             }
 
@@ -2788,7 +2773,7 @@ class ClientPortalAppointmentController extends BaseController
                 $metadata
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 return $this->sendError($result['message'], $result['data'] ?? [], 422);
             }
 
@@ -2797,31 +2782,31 @@ class ClientPortalAppointmentController extends BaseController
             $appointment->refresh();
 
             // Send confirmation email on successful payment
-            if (!empty($appointment->client_email)) {
+            if (! empty($appointment->client_email)) {
                 try {
                     $emailDetails = [
-                        'client_name'          => $appointment->client_name,
+                        'client_name' => $appointment->client_name,
                         'appointment_datetime' => $appointment->appointment_datetime,
-                        'timeslot_full'        => $appointment->timeslot_full,
-                        'location'             => $appointment->location,
-                        'service_type'         => $appointment->service_type,
-                        'meeting_type'         => $appointment->meeting_type,
-                        'admin_notes'          => $appointment->admin_notes ?? null,
+                        'timeslot_full' => $appointment->timeslot_full,
+                        'location' => $appointment->location,
+                        'service_type' => $appointment->service_type,
+                        'meeting_type' => $appointment->meeting_type,
+                        'admin_notes' => $appointment->admin_notes ?? null,
                     ];
                     Mail::mailer('sendgrid')->to($appointment->client_email)->send(new AppointmentDetailedConfirmation($emailDetails));
                     $appointment->update([
-                        'confirmation_email_sent'    => true,
+                        'confirmation_email_sent' => true,
                         'confirmation_email_sent_at' => now(),
                     ]);
                     Log::info('Appointment confirmation email sent after payment (without login)', [
                         'appointment_id' => $appointment->id,
-                        'email'          => $appointment->client_email,
+                        'email' => $appointment->client_email,
                     ]);
                 } catch (\Exception $mailEx) {
                     Log::error('Failed to send appointment confirmation email after payment (without login)', [
                         'appointment_id' => $appointment->id,
-                        'email'          => $appointment->client_email,
-                        'error'          => $mailEx->getMessage(),
+                        'email' => $appointment->client_email,
+                        'error' => $mailEx->getMessage(),
                     ]);
                 }
             }
@@ -2846,17 +2831,18 @@ class ClientPortalAppointmentController extends BaseController
                     'paid_at' => $result['data']['paid_at'],
                     'appointment' => $this->formatAppointmentData($appointment),
                 ],
-                'bansal_synced' => !$syncError
+                'bansal_synced' => ! $syncError,
             ], 200);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return $this->sendError('Validation failed', $e->errors(), 422);
         } catch (\Exception $e) {
-            Log::error('Record Payment Without Login API Error: ' . $e->getMessage(), [
+            Log::error('Record Payment Without Login API Error: '.$e->getMessage(), [
                 'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred while recording payment: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred while recording payment: '.$e->getMessage(), [], 500);
         }
     }
 
@@ -2866,8 +2852,7 @@ class ClientPortalAppointmentController extends BaseController
      * Uses the same parameters as recordAppointmentPaymentWithoutLogin plus:
      * - payment_type: gpay | applepay
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function recordAppointmentPaymentWithoutLoginWallet(Request $request)
     {
@@ -2879,16 +2864,16 @@ class ClientPortalAppointmentController extends BaseController
             ]);
 
             if ($validator->fails()) {
-                return $this->sendError('Validation failed: ' . $validator->errors()->first(), $validator->errors(), 422);
+                return $this->sendError('Validation failed: '.$validator->errors()->first(), $validator->errors(), 422);
             }
 
             $appointment = BookingAppointment::find($request->appointment_id);
 
-            if (!$appointment) {
+            if (! $appointment) {
                 return $this->sendError('Appointment not found', [], 404);
             }
 
-            if (!in_array($appointment->service_id, [1, 3])) {
+            if (! in_array($appointment->service_id, [1, 3])) {
                 return $this->sendError('This appointment does not require payment', [], 422);
             }
 
@@ -2913,7 +2898,7 @@ class ClientPortalAppointmentController extends BaseController
                 $request
             );
 
-            if (!$walletResult['success']) {
+            if (! $walletResult['success']) {
                 return $this->sendError($walletResult['message'], [], 422);
             }
 
@@ -2924,32 +2909,32 @@ class ClientPortalAppointmentController extends BaseController
             $appointment->refresh();
 
             // Send confirmation email on successful payment
-            if (!empty($appointment->client_email)) {
+            if (! empty($appointment->client_email)) {
                 try {
                     $emailDetails = [
-                        'client_name'          => $appointment->client_name,
+                        'client_name' => $appointment->client_name,
                         'appointment_datetime' => $appointment->appointment_datetime,
-                        'timeslot_full'        => $appointment->timeslot_full,
-                        'location'             => $appointment->location,
-                        'service_type'         => $appointment->service_type,
-                        'meeting_type'         => $appointment->meeting_type,
-                        'admin_notes'          => $appointment->admin_notes ?? null,
+                        'timeslot_full' => $appointment->timeslot_full,
+                        'location' => $appointment->location,
+                        'service_type' => $appointment->service_type,
+                        'meeting_type' => $appointment->meeting_type,
+                        'admin_notes' => $appointment->admin_notes ?? null,
                     ];
                     Mail::mailer('sendgrid')->to($appointment->client_email)->send(new AppointmentDetailedConfirmation($emailDetails));
                     $appointment->update([
-                        'confirmation_email_sent'    => true,
+                        'confirmation_email_sent' => true,
                         'confirmation_email_sent_at' => now(),
                     ]);
                     Log::info('Appointment confirmation email sent after wallet payment (without login)', [
                         'appointment_id' => $appointment->id,
-                        'email'          => $appointment->client_email,
-                        'payment_type'   => $paymentType,
+                        'email' => $appointment->client_email,
+                        'payment_type' => $paymentType,
                     ]);
                 } catch (\Exception $mailEx) {
                     Log::error('Failed to send appointment confirmation email after wallet payment (without login)', [
                         'appointment_id' => $appointment->id,
-                        'email'          => $appointment->client_email,
-                        'error'          => $mailEx->getMessage(),
+                        'email' => $appointment->client_email,
+                        'error' => $mailEx->getMessage(),
                     ]);
                 }
             }
@@ -2975,34 +2960,34 @@ class ClientPortalAppointmentController extends BaseController
                     'paid_at' => $appointment->paid_at ? $appointment->paid_at->toIso8601String() : null,
                     'appointment' => $this->formatAppointmentData($appointment),
                 ],
-                'bansal_synced' => !$syncError
+                'bansal_synced' => ! $syncError,
             ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return $this->sendError('Validation failed', $e->errors(), 422);
         } catch (\Exception $e) {
-            Log::error('Record Payment Without Login Wallet API Error: ' . $e->getMessage(), [
+            Log::error('Record Payment Without Login Wallet API Error: '.$e->getMessage(), [
                 'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred while recording payment: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred while recording payment: '.$e->getMessage(), [], 500);
         }
     }
 
     /**
      * Get payment history for an appointment
-     * 
+     *
      * Returns all payment attempts for a specific appointment.
-     * 
-     * @param Request $request
-     * @param int $appointmentId
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @param  int  $appointmentId
+     * @return JsonResponse
      */
     public function getPaymentHistory(Request $request, $appointmentId)
     {
         try {
             $user = $request->user();
-            
-            if (!$user) {
+
+            if (! $user) {
                 return $this->sendError('Unauthenticated', [], 401);
             }
 
@@ -3011,7 +2996,7 @@ class ClientPortalAppointmentController extends BaseController
                 ->where('client_id', $user->id)
                 ->first();
 
-            if (!$appointment) {
+            if (! $appointment) {
                 return $this->sendError('Appointment not found', [], 404);
             }
 
@@ -3024,7 +3009,7 @@ class ClientPortalAppointmentController extends BaseController
                         'id' => $payment->id,
                         'transaction_id' => $payment->transaction_id,
                         'charge_id' => $payment->charge_id,
-                        'amount' => number_format((float)$payment->amount, 2, '.', ''),
+                        'amount' => number_format((float) $payment->amount, 2, '.', ''),
                         'currency' => $payment->currency,
                         'status' => $payment->status,
                         'payment_gateway' => $payment->payment_gateway,
@@ -3042,12 +3027,13 @@ class ClientPortalAppointmentController extends BaseController
             ], 'Payment history retrieved successfully');
 
         } catch (\Exception $e) {
-            Log::error('Get Payment History API Error: ' . $e->getMessage(), [
+            Log::error('Get Payment History API Error: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
                 'appointment_id' => $appointmentId ?? null,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->sendError('An error occurred: ' . $e->getMessage(), [], 500);
+
+            return $this->sendError('An error occurred: '.$e->getMessage(), [], 500);
         }
     }
 
@@ -3064,7 +3050,7 @@ class ClientPortalAppointmentController extends BaseController
         }
 
         try {
-            $recoveryService = app(\App\Services\BansalAppointmentSync\BansalAppointmentRecoveryService::class);
+            $recoveryService = app(BansalAppointmentRecoveryService::class);
             $result = $recoveryService->syncStatus($appointment, 'paid');
 
             if ($result['synced']) {

@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\Admin;
 use App\Models\ClientContact;
 use App\Models\ClientEmail;
+use App\Services\BansalAppointmentSync\ClientMatchingService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -112,6 +113,75 @@ class LeadContactUniquenessTest extends TestCase
 
         $this->assertNotNull($found);
         $this->assertSame($lead->id, $found->id);
+    }
+
+    public function test_appointment_match_reuses_email_ignoring_case_and_spaces(): void
+    {
+        $lead = Admin::factory()->create([
+            'type' => 'lead',
+            'email' => 'vipul@yahoo.co.in',
+            'phone' => '0499111222',
+            'is_company' => 0,
+        ]);
+
+        $found = Admin::findClientOrLeadByNormalizedEmail('  VIPUL@yahoo.co.in ');
+
+        $this->assertNotNull($found);
+        $this->assertSame($lead->id, $found->id);
+    }
+
+    public function test_appointment_match_reuses_extra_client_email(): void
+    {
+        $lead = Admin::factory()->create([
+            'type' => 'client',
+            'email' => 'primary.match@test.com',
+            'phone' => '0499111333',
+            'is_company' => 0,
+        ]);
+        ClientEmail::create([
+            'client_id' => $lead->id,
+            'email' => 'extra.match@test.com',
+        ]);
+
+        $found = Admin::findClientOrLeadByNormalizedEmail('EXTRA.match@test.com');
+
+        $this->assertNotNull($found);
+        $this->assertSame($lead->id, $found->id);
+    }
+
+    public function test_appointment_match_reuses_au_phone_variant(): void
+    {
+        $lead = Admin::factory()->create([
+            'type' => 'lead',
+            'email' => 'au.phone@test.com',
+            'phone' => '0412345678',
+            'is_company' => 0,
+        ]);
+
+        $found = Admin::findClientOrLeadByNormalizedPhone('+61 412 345 678');
+
+        $this->assertNotNull($found);
+        $this->assertSame($lead->id, $found->id);
+    }
+
+    public function test_bansal_sync_reuses_existing_lead_instead_of_creating(): void
+    {
+        $lead = Admin::factory()->create([
+            'type' => 'lead',
+            'email' => 'bansal.match@test.com',
+            'phone' => '0412000999',
+            'is_company' => 0,
+        ]);
+
+        $matched = app(ClientMatchingService::class)->findOrCreateClient([
+            'email' => 'BANSAL.match@test.com',
+            'phone' => '0412 000 888',
+            'full_name' => 'Someone Else',
+        ]);
+
+        $this->assertNotNull($matched);
+        $this->assertSame($lead->id, $matched->id);
+        $this->assertSame(1, Admin::whereIn('type', ['client', 'lead'])->count());
     }
 
     private function createUniquenessSchema(): void
