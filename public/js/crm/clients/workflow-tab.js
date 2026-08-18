@@ -971,11 +971,6 @@
             return;
         }
 
-        if (!confirm('Mark this checklist item as complete? This cannot be undone.')) {
-            checkbox.checked = false;
-            return;
-        }
-
         checkbox.disabled = true;
         checkbox.checked = true;
 
@@ -1060,7 +1055,7 @@
                 return;
             }
 
-            // Reset any native toggle; completion flow owns checked state after confirm
+            // Reset any native toggle; completion flow owns checked state after the request
             checkbox.checked = false;
             completeWorkflowChecklistItem(checkbox, scope);
         });
