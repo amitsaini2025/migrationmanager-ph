@@ -183,22 +183,16 @@ final class ClientDetailAccountTab
             }
         }
 
-        $documents = collect();
-        if ($docIds !== []) {
-            $documents = Document::query()
-                ->whereIn('id', array_unique($docIds))
-                ->get()
-                ->keyBy('id');
-        }
+        $documents = Document::query()
+            ->whereIn('id', array_unique($docIds))
+            ->get()
+            ->keyBy('id');
 
-        $matters = collect();
-        if ($matterIds !== []) {
-            $matters = ClientMatter::query()
-                ->select('id', 'client_unique_matter_no')
-                ->whereIn('id', array_unique($matterIds))
-                ->get()
-                ->keyBy('id');
-        }
+        $matters = ClientMatter::query()
+            ->select('id', 'client_unique_matter_no')
+            ->whereIn('id', array_unique($matterIds))
+            ->get()
+            ->keyBy('id');
 
         foreach ($rows as $row) {
             $docId = (int) ($row->uploaded_doc_id ?? 0);

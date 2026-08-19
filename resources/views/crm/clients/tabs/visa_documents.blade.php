@@ -1,11 +1,5 @@
            <!-- Visa Documents Tab (Matter-Specific) -->
-           <div class="tab-pane" id="visadocuments-tab"
-                @if(!empty($encodeId))
-                    data-visadocuments-url="{{ route('clients.detail.visa-documents-tab', array_filter([
-                        'client_id' => $encodeId,
-                        'client_unique_matter_ref_no' => $id1 ?? null,
-                    ], static fn ($v) => $v !== null && $v !== '')) }}"
-                @endif>
+           <div class="tab-pane" id="visadocuments-tab">
                 <div class="card full-width documentalls-container">
                     <?php
                     $client_selected_matter_id1 = null;
@@ -82,10 +76,6 @@
 
                     $canDeleteVisaDocCategory = \Illuminate\Support\Facades\Auth::check()
                         && in_array((int) (\Illuminate\Support\Facades\Auth::user()->role ?? 0), config('crm.visa_document_category_delete_role_ids', [1, 16]), true);
-
-                    if (! isset($visaDocumentsByFolder) || ! $visaDocumentsByFolder instanceof \Illuminate\Support\Collection) {
-                        $visaDocumentsByFolder = \App\Support\ClientDetailDocumentsTab::visaDocumentsByFolder((int) $fetchedData->id);
-                    }
 
                     ?>
 
@@ -176,7 +166,13 @@
                                             </thead>
                                             <tbody class="tdata migdocumnetlist1 migdocumnetlist_<?= $id ?>">
                                                 <?php
-                                                 $documents = \App\Support\ClientDetailDocumentsTab::documentsForFolder($visaDocumentsByFolder, $folderName);
+                                                 $documents = \App\Models\Document::with('signers')->where('client_id', $fetchedData->id)
+                                                    ->whereNull('not_used_doc')
+                                                    ->where('doc_type', 'visa')
+                                                    ->where('folder_name', $folderName)
+                                                    ->where('type', 'client')
+                                                    ->orderBy('created_at', 'DESC')
+                                                    ->get();
                                                  $parentDocs = $documents->filter(fn($d) => !str_ends_with($d->checklist ?? '', '_signed'));
                                                  $signedByParent = $documents->filter(fn($d) => str_ends_with($d->checklist ?? '', '_signed'))
                                                     ->groupBy(fn($d) => ($d->folder_name ?? '') . '|' . ($d->client_matter_id ?? '') . '|' . substr($d->checklist ?? '', 0, -7));
@@ -187,7 +183,7 @@
                                                 ?>
                                                 <?php foreach ($parentDocs as $visaKey => $fetch): ?>
                                                     <?php
-                                                    $admin = $fetch->staff;
+                                                    $admin = \App\Models\Staff::where('id', $fetch->user_id)->first();
                                                     $isForm956 = !empty($fetch->form956_id);
 
                                                     // Build file URL: once a file is uploaded to a Form 956 row, use it directly
@@ -317,6 +313,7 @@
                                                     $signedKey = ($fetch->folder_name ?? '') . '|' . ($fetch->client_matter_id ?? '') . '|' . ($fetch->checklist ?? '');
                                                     $signedDocs = $signedByParent->get($signedKey, collect());
                                                     foreach ($signedDocs as $signedDoc):
+                                                        $signedAdmin = \App\Models\Staff::where('id', $signedDoc->user_id)->first();
                                                         $signedIsForm956 = !empty($signedDoc->form956_id);
                                                         if ($signedIsForm956 && !empty($signedDoc->myfile)) {
                                                             $signedFileUrl = $signedDoc->myfile;
@@ -363,6 +360,7 @@
                                                 foreach ($orphanSignedKeys as $orphanKey):
                                                     $signedDocs = $signedByParent->get($orphanKey, collect());
                                                     foreach ($signedDocs as $signedDoc):
+                                                        $signedAdmin = \App\Models\Staff::where('id', $signedDoc->user_id)->first();
                                                         $signedIsForm956 = !empty($signedDoc->form956_id);
                                                         if ($signedIsForm956 && !empty($signedDoc->myfile)) {
                                                             $signedFileUrl = $signedDoc->myfile;
@@ -406,10 +404,18 @@
                                     </div>
 
                                     <div class="grid_data miggriddata" style="display:none;">
-                                        <?php foreach ($visaDocCatList as $gridCatVal):
-                                            $documents = \App\Support\ClientDetailDocumentsTab::documentsForFolder($visaDocumentsByFolder, $gridCatVal->id);
+                                        <?php foreach ($visaDocCatList as $catVal):
+                                            $id = $catVal->id;
+                                            $documents = \App\Models\Document::where('client_id', $fetchedData->id)
+                                                ->whereNull('not_used_doc')
+                                                ->where('doc_type', 'visa')
+                                                ->where('folder_name', $id)
+                                                ->where('type', 'client')
+                                                ->orderBy('updated_at', 'DESC')
+                                                ->get();
                                             foreach ($documents as $fetch):
                                                 if ($fetch->myfile):
+                                                    $admin = \App\Models\Staff::where('id', $fetch->user_id)->first();
                                                     ?>
                                                     <div class="grid_list" id="gid_<?= $fetch->id ?>">
                                                         <div class="grid_col">
@@ -995,23 +1001,17 @@
                     }
 
                     if (targetType === 'personal') {
-                        var finishVisaToPersonalMove = function() {
-                            if ($row.length) {
-                                $row.remove();
-                            }
-                            if ($sigBar.length) {
-                                $sigBar.remove();
-                            }
-                            if (!appendMovedVisaDocToPersonalCategory(docPayload, targetId, targetTitle, documentId)) {
-                                return false;
-                            }
-                            activatePersonalDocumentsCategory(targetId);
-                            return true;
-                        };
-                        if (typeof window.ensurePersonalDocumentsTabLoaded === 'function') {
-                            return window.ensurePersonalDocumentsTabLoaded().then(finishVisaToPersonalMove);
+                        if ($row.length) {
+                            $row.remove();
                         }
-                        return finishVisaToPersonalMove();
+                        if ($sigBar.length) {
+                            $sigBar.remove();
+                        }
+                        if (!appendMovedVisaDocToPersonalCategory(docPayload, targetId, targetTitle, documentId)) {
+                            return false;
+                        }
+                        activatePersonalDocumentsCategory(targetId);
+                        return true;
                     }
 
                     return false;
@@ -1153,31 +1153,21 @@
                 }
 
                 function activatePersonalDocumentsCategory(categoryId) {
-                    var apply = function() {
-                        if (typeof SidebarTabs !== 'undefined' && typeof SidebarTabs.activateTab === 'function') {
-                            SidebarTabs.activateTab('personaldocuments');
-                        } else {
-                            $('.client-nav-button').removeClass('active');
-                            $('.tab-pane').removeClass('active');
-                            $('.client-nav-button[data-tab="personaldocuments"]').addClass('active');
-                            $('#personaldocuments-tab').addClass('active');
-                            localStorage.setItem('activeTab', 'personaldocuments');
-                        }
-
-                        var $tab = $('#personaldocuments-tab');
-                        $tab.find('.subtab2-button').removeClass('active');
-                        $tab.find('.subtab2-pane').removeClass('active');
-                        $tab.find('.subtab2-button[data-subtab2="' + categoryId + '"]').addClass('active');
-                        $tab.find('[id="' + categoryId + '-subtab2"]').addClass('active');
-                    };
-
-                    if (typeof window.ensurePersonalDocumentsTabLoaded === 'function') {
-                        window.ensurePersonalDocumentsTabLoaded().then(apply).catch(function() {
-                            apply();
-                        });
-                        return;
+                    if (typeof SidebarTabs !== 'undefined' && typeof SidebarTabs.activateTab === 'function') {
+                        SidebarTabs.activateTab('personaldocuments');
+                    } else {
+                        $('.client-nav-button').removeClass('active');
+                        $('.tab-pane').removeClass('active');
+                        $('.client-nav-button[data-tab="personaldocuments"]').addClass('active');
+                        $('#personaldocuments-tab').addClass('active');
+                        localStorage.setItem('activeTab', 'personaldocuments');
                     }
-                    apply();
+
+                    var $tab = $('#personaldocuments-tab');
+                    $tab.find('.subtab2-button').removeClass('active');
+                    $tab.find('.subtab2-pane').removeClass('active');
+                    $tab.find('.subtab2-button[data-subtab2="' + categoryId + '"]').addClass('active');
+                    $tab.find('[id="' + categoryId + '-subtab2"]').addClass('active');
                 }
 
                 // Reset button state when modal is closed

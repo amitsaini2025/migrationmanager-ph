@@ -16,7 +16,7 @@
     <div class="workflow-v2">
         <div class="card full-width workflow-tab-container">
             <div class="workflow-v2-empty" data-workflow-lazy-placeholder>
-                @include('crm.clients.tabs.partials.lazy_loading', ['message' => 'Loading workflow…'])
+                Loading workflow&hellip;
             </div>
         </div>
     </div>

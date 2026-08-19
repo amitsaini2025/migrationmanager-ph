@@ -1,25 +1,23 @@
            <!-- Checklists Tab -->
            @php
-                if (! isset($checklistsTabPayload) || ! is_array($checklistsTabPayload)) {
-                    $checklistsTabPayload = \App\Support\ClientDetailChecklistsTab::build($fetchedData, $id1 ?? null);
+                $checklistCurrentMatterId = null;
+                $checklistCurrentMatterRef = null;
+                $checklistCurrentMatterNeedsCostAssignment = false;
+                if (($isMatterIdInUrl ?? false) && !empty($id1) && isset($fetchedData->id)) {
+                    $checklistCurrentMatter = \App\Models\ClientMatter::where('client_id', $fetchedData->id)
+                        ->where('client_unique_matter_no', $id1)
+                        ->where('matter_status', 1)
+                        ->first();
+                    if ($checklistCurrentMatter) {
+                        $checklistCurrentMatterId = $checklistCurrentMatter->id;
+                        $checklistCurrentMatterRef = $id1;
+                        $checklistCurrentMatterNeedsCostAssignment = ! \App\Models\CostAssignmentForm::where('client_id', $fetchedData->id)
+                            ->where('client_matter_id', $checklistCurrentMatterId)
+                            ->exists();
+                    }
                 }
-                $checklistCurrentMatterId = $checklistsTabPayload['checklistCurrentMatterId'];
-                $checklistCurrentMatterRef = $checklistsTabPayload['checklistCurrentMatterRef'];
-                $checklistCurrentMatterNeedsCostAssignment = $checklistsTabPayload['checklistCurrentMatterNeedsCostAssignment'];
-                $checklist_forms = $checklistsTabPayload['checklist_forms'];
-                $checklistMigrationAgents = $checklistsTabPayload['checklistMigrationAgents'];
-                $checklistPersonResponsibleStaff = $checklistsTabPayload['checklistPersonResponsibleStaff'];
-                $checklistPersonAssistingStaff = $checklistsTabPayload['checklistPersonAssistingStaff'];
-                $checklistOffices = $checklistsTabPayload['checklistOffices'];
-                $checklistMatterList = $checklistsTabPayload['checklistMatterList'];
            @endphp
            <div class="tab-pane" id="checklists-tab"
-                @if(!empty($encodeId))
-                    data-checklists-url="{{ route('clients.detail.checklists-tab', array_filter([
-                        'client_id' => $encodeId,
-                        'client_unique_matter_ref_no' => $id1 ?? null,
-                    ], static fn ($v) => $v !== null && $v !== '')) }}"
-                @endif
                 data-current-matter-id="{{ $checklistCurrentMatterId ?? '' }}"
                 data-current-matter-ref="{{ $checklistCurrentMatterRef ?? '' }}"
                 data-needs-cost-assignment="{{ $checklistCurrentMatterNeedsCostAssignment ? '1' : '0' }}">
@@ -51,7 +49,7 @@
                                                     <label for="checklist_migration_agent">Migration Agent <span class="span_req">*</span></label>
                                                     <select data-valid="required" class="form-control mm-select checklist-field" name="checklist_migration_agent" id="checklist_migration_agent">
                                                         <option value="">Select Migration Agent</option>
-                                                        @foreach($checklistMigrationAgents as $migAgntlist)
+                                                        @foreach(\App\Models\Staff::assignmentDropdownMigrationAgentsQuery()->get() as $migAgntlist)
                                                             <option value="{{$migAgntlist->id}}">{{@$migAgntlist->first_name}} {{@$migAgntlist->last_name}} ({{@$migAgntlist->email}})</option>
                                                         @endforeach
                                                     </select>
@@ -64,7 +62,7 @@
                                                     <label for="checklist_person_responsible">Person Responsible <span class="span_req">*</span></label>
                                                     <select data-valid="required" class="form-control mm-select checklist-field" name="checklist_person_responsible" id="checklist_person_responsible">
                                                         <option value="">Select Person Responsible</option>
-                                                        @foreach($checklistPersonResponsibleStaff as $perreslist)
+                                                        @foreach(\App\Models\Staff::assignmentDropdownPersonResponsibleQuery()->get() as $perreslist)
                                                             <option value="{{$perreslist->id}}">{{@$perreslist->first_name}} {{@$perreslist->last_name}} ({{@$perreslist->email}})</option>
                                                         @endforeach
                                                     </select>
@@ -77,7 +75,7 @@
                                                     <label for="checklist_person_assisting">Person Assisting <span class="span_req">*</span></label>
                                                     <select data-valid="required" class="form-control mm-select checklist-field" name="checklist_person_assisting" id="checklist_person_assisting">
                                                         <option value="">Select Person Assisting</option>
-                                                        @foreach($checklistPersonAssistingStaff as $perassislist)
+                                                        @foreach(\App\Models\Staff::assignmentDropdownPersonAssistingQuery()->get() as $perassislist)
                                                             <option value="{{$perassislist->id}}">{{@$perassislist->first_name}} {{@$perassislist->last_name}} ({{@$perassislist->email}})</option>
                                                         @endforeach
                                                     </select>
@@ -90,7 +88,7 @@
                                                     <label for="checklist_office">Handling Office <span class="span_req">*</span></label>
                                                     <select data-valid="required" class="form-control mm-select checklist-field" name="checklist_office" id="checklist_office">
                                                         <option value="">Select Office</option>
-                                                        @foreach($checklistOffices as $office)
+                                                        @foreach(\App\Models\Branch::orderBy('office_name')->get() as $office)
                                                             <option value="{{$office->id}}" {{ Auth::user()->office_id == $office->id ? 'selected' : '' }}>{{$office->office_name}}</option>
                                                         @endforeach
                                                     </select>
@@ -111,7 +109,12 @@
                                                     <label class="form-check-label">Or Select any option</label>
                                                     <select data-valid="required" class="form-control mm-select checklist-field" name="checklist_matter" id="checklist_matter_select">
                                                         <option value="">Select Matter</option>
-                                                        @foreach($checklistMatterList as $matterlist)
+                                                        @php
+                                                            $matterQuery = \App\Models\Matter::select('id','title')->where('status',1)
+                                                                ->forClientType((bool) (isset($fetchedData) && $fetchedData->is_company));
+                                                            $matterList = $matterQuery->get();
+                                                        @endphp
+                                                        @foreach($matterList as $matterlist)
                                                             <option value="{{$matterlist->id}}" data-matter-id="{{$matterlist->id}}">{{@$matterlist->title}}</option>
                                                         @endforeach
                                                     </select>
@@ -143,6 +146,15 @@
                                 </div>
                             @endif
                             <div id="checklists-list-container">
+                                <?php
+                                $checklist_forms = \App\Models\CostAssignmentForm::where('client_id', $fetchedData->id)
+                                    ->whereHas('clientMatter', function ($query) {
+                                        $query->where('matter_status', 1);
+                                    })
+                                    ->with(['client', 'agent', 'clientMatter'])
+                                    ->orderBy('created_at', 'DESC')
+                                    ->get();
+                                ?>
                                 @if($checklist_forms->isEmpty())
                                     <div class="alert alert-info" id="checklists-empty-state">
                                         @icon('fa-info-circle', ['class' => 'mr-2'])
@@ -194,7 +206,10 @@
                                                 );
                                                 
                                                 // Check if agreement document exists
-                                                $agreementDoc = $form->checklist_agreement_doc ?? null;
+                                                $agreementDoc = \App\Models\Document::where('client_matter_id', $form->client_matter_id)
+                                                    ->where('doc_type', 'agreement')
+                                                    ->latest()
+                                                    ->first();
                                             @endphp
                                             <div class="checklist-item-wrapper" data-id="{{ $form->id }}" data-client-matter-id="{{ $form->client_matter_id }}">
                                                 <div class="checklist-item-header" data-bs-toggle="collapse" data-bs-target="#checklist-detail-{{ $form->id }}">
@@ -428,6 +443,7 @@
                         </div>
                     </div>
                 </div>
+           </div>
 
 <style>
 /* Inline signature placement modal */
@@ -819,6 +835,7 @@
 }
 </style>
 
+@push('scripts')
 <script>
 (function($) {
     'use strict';
@@ -1690,4 +1707,4 @@
     });
 })(jQuery);
 </script>
-           </div>
+@endpush
