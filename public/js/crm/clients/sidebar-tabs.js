@@ -226,52 +226,16 @@
         // Filter content by matter
         switch(tabId) {
             case 'noteterm':
-                (typeof window.ensureNotesTabLoaded === 'function'
-                    ? window.ensureNotesTabLoaded()
-                    : Promise.resolve()
-                ).then(function() {
-                    ensureAllTabActive();
-                    if (typeof window.filterNotes === 'function') {
-                        window.filterNotes();
-                    } else {
-                        filterNotesByMatter(SidebarTabs.selectedMatter);
-                    }
-                }).catch(function(err) {
-                    console.error('[SidebarTabs] Failed to load Notes tab', err);
-                    ensureAllTabActive();
-                    if (typeof window.filterNotes === 'function') {
-                        window.filterNotes();
-                    } else {
-                        filterNotesByMatter(SidebarTabs.selectedMatter);
-                    }
-                });
+                ensureAllTabActive();
+                if (typeof window.filterNotes === 'function') {
+                    window.filterNotes();
+                } else {
+                    filterNotesByMatter(SidebarTabs.selectedMatter);
+                }
                 break;
             case 'visadocuments':
-                (typeof window.ensureVisaDocumentsTabLoaded === 'function'
-                    ? window.ensureVisaDocumentsTabLoaded()
-                    : Promise.resolve()
-                ).then(function() {
-                    filterVisaDocumentsByMatter(SidebarTabs.selectedMatter);
-                }).catch(function(err) {
-                    console.error('[SidebarTabs] Failed to load Visa Documents tab', err);
-                    filterVisaDocumentsByMatter(SidebarTabs.selectedMatter);
-                });
-                break;
-            case 'personaldocuments':
-                (typeof window.ensurePersonalDocumentsTabLoaded === 'function'
-                    ? window.ensurePersonalDocumentsTabLoaded()
-                    : Promise.resolve()
-                ).catch(function(err) {
-                    console.error('[SidebarTabs] Failed to load Personal Documents tab', err);
-                });
-                break;
-            case 'notuseddocuments':
-                (typeof window.ensureNotUsedDocumentsTabLoaded === 'function'
-                    ? window.ensureNotUsedDocumentsTabLoaded()
-                    : Promise.resolve()
-                ).catch(function(err) {
-                    console.error('[SidebarTabs] Failed to load Not Used Documents tab', err);
-                });
+                filterVisaDocumentsByMatter(SidebarTabs.selectedMatter);
+                // Form 956 PDF downloads on create only (detail-main.js); do not mass-download on tab open/reload
                 break;
             case 'nominationdocuments':
                 filterNominationDocumentsByMatter(SidebarTabs.selectedMatter);
@@ -292,14 +256,9 @@
                 });
                 break;
             case 'emails':
-                (typeof window.ensureEmailsTabLoaded === 'function'
-                    ? window.ensureEmailsTabLoaded()
-                    : (typeof window.loadEmails === 'function'
-                        ? Promise.resolve(window.loadEmails({ once: true }))
-                        : Promise.resolve())
-                ).catch(function(err) {
-                    console.error('[SidebarTabs] Failed to load Emails tab', err);
-                });
+                if (typeof window.loadEmails === 'function') {
+                    window.loadEmails({ forceReload: true });
+                }
                 break;
             case 'workflow':
                 (typeof window.ensureWorkflowTabLoaded === 'function'
@@ -314,22 +273,6 @@
                     }
                 }).catch(function(err) {
                     console.error('[SidebarTabs] Failed to load Workflow tab', err);
-                });
-                break;
-            case 'account':
-                (typeof window.ensureAccountTabLoaded === 'function'
-                    ? window.ensureAccountTabLoaded()
-                    : Promise.resolve()
-                ).catch(function(err) {
-                    console.error('[SidebarTabs] Failed to load Account tab', err);
-                });
-                break;
-            case 'checklists':
-                (typeof window.ensureChecklistsTabLoaded === 'function'
-                    ? window.ensureChecklistsTabLoaded()
-                    : Promise.resolve()
-                ).catch(function(err) {
-                    console.error('[SidebarTabs] Failed to load Checklists tab', err);
                 });
                 break;
         }
@@ -465,7 +408,7 @@
         // Check localStorage first (takes precedence for better UX when returning to page)
         const storedTab = localStorage.getItem('activeTab');
         // Deep-linked tabs in the URL must win over stale localStorage (e.g. /workflow, /client_portal).
-        const deepLinkTabs = ['workflow', 'client_portal', 'account', 'emails', 'checklists', 'eoiroi', 'visadocuments', 'personaldocuments', 'notuseddocuments', 'noteterm', 'activityfeed'];
+        const deepLinkTabs = ['workflow', 'client_portal', 'account', 'emails', 'checklists', 'eoiroi', 'visadocuments', 'personaldocuments', 'noteterm', 'activityfeed'];
         const urlTab = (activeTabFromUrl || '').toLowerCase();
         let tabId;
         if (urlTab && deepLinkTabs.indexOf(urlTab) !== -1) {
@@ -544,7 +487,6 @@
     window.SidebarTabs = {
         init: init,
         activateTab: activateTab,
-        bindNavButtons: setupTabClickHandlers,
         ensureAllTabActive: ensureAllTabActive,
         filterNotesByMatter: filterNotesByMatter,
         filterVisaDocumentsByMatter: filterVisaDocumentsByMatter,

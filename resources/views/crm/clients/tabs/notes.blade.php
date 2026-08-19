@@ -12,12 +12,6 @@
                 $showNotesScopeTabs = $matterNotesCount > 0 && $leadNotesCount > 0;
             @endphp
             <div class="tab-pane" id="noteterm-tab"
-                @if(!empty($encodeId))
-                    data-noteterm-url="{{ route('clients.detail.notes-tab', array_filter([
-                        'client_id' => $encodeId,
-                        'client_unique_matter_ref_no' => $id1 ?? null,
-                    ], static fn ($v) => $v !== null && $v !== '')) }}"
-                @endif
                 data-has-matter-notes="{{ $matterNotesCount > 0 ? '1' : '0' }}"
                 data-has-lead-notes="{{ $leadNotesCount > 0 ? '1' : '0' }}">
                 <div class="card full-width notes-container">

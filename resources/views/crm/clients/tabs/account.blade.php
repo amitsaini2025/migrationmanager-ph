@@ -1,22 +1,6 @@
            <!-- Account Tab -->
-           <div class="tab-pane" id="account-tab"
-                @if(!empty($encodeId))
-                    data-account-url="{{ route('clients.detail.account-tab', array_filter([
-                        'client_id' => $encodeId,
-                        'client_unique_matter_ref_no' => $id1 ?? null,
-                    ], static fn ($v) => $v !== null && $v !== '')) }}"
-                @endif>
-@php
-    if (! isset($accountTabPayload) || ! is_array($accountTabPayload)) {
-        $accountTabPayload = \App\Support\ClientDetailAccountTab::build($fetchedData, $id1 ?? null);
-    }
-    $client_selected_matter_id = $accountTabPayload['client_selected_matter_id'];
-    $calculated_balance = $accountTabPayload['calculated_balance'];
-    $receipts_lists = $accountTabPayload['receipts_lists'];
-    $latest_outstanding_balance = $accountTabPayload['latest_outstanding_balance'];
-    $receipts_lists_invoice = $accountTabPayload['receipts_lists_invoice'];
-    $receipts_lists_office = $accountTabPayload['receipts_lists_office'];
-@endphp
+           <div class="tab-pane" id="account-tab">
+<?php use Illuminate\Support\Facades\Storage; ?>
 
 <div class="card full-width">
     <div style="margin-bottom: 10px;">
@@ -43,6 +27,53 @@
                 <div class="balance-display">
                     <div class="balance-label">Current Funds Held</div>
                     <div class="balance-amount funds-held">
+                        <?php
+                        //echo $id1;
+                        $matter_cnt = \App\Models\ClientMatter::select('id')->where('client_id',$fetchedData->id)->where('matter_status',1)->count(); //dd($matter_cnt);
+                        if( isset($id1) && $id1 != "" || $matter_cnt >0 )
+                        {  //dd('ifff'.$fetchedData->id);
+                            //if client unique reference id is present in url
+                            if( isset($id1) && $id1 != "") {
+                                $matter_get_id = \App\Models\ClientMatter::select('id')->where('client_id',$fetchedData->id)->where('client_unique_matter_no',$id1)->first();
+                            } else {
+                                $matter_get_id = \App\Models\ClientMatter::select('id')->where('client_id', $fetchedData->id)->orderBy('id', 'desc')->first();
+                            }
+                            //dd($matter_get_id);
+                            if($matter_get_id )
+                            {
+                                $client_selected_matter_id = $matter_get_id->id;
+                            } else {
+                                $client_selected_matter_id = null;
+                            } //dd($client_selected_matter_id);
+                        }
+                        else
+                        {  //dd('elseee');
+                            $client_selected_matter_id = null;
+                        }
+                        // Calculate balance from scratch by summing deposits and withdrawals
+                        // Exclude voided fee transfers
+                        $ledger_entries = DB::table('account_client_receipts')
+                            ->select('deposit_amount', 'withdraw_amount', 'void_fee_transfer')
+                            ->where('client_id', $fetchedData->id)
+                            ->where(function($query) use ($client_selected_matter_id) {
+                                if ($client_selected_matter_id !== null) {
+                                    $query->where('client_matter_id', $client_selected_matter_id);
+                                } else {
+                                    $query->whereNull('client_matter_id');
+                                }
+                            })
+                            ->where('receipt_type', 1)
+                            ->get();
+                        
+                        $calculated_balance = 0;
+                        foreach($ledger_entries as $entry) {
+                            // Skip voided fee transfers
+                            if(isset($entry->void_fee_transfer) && $entry->void_fee_transfer == 1) {
+                                continue;
+                            }
+                            $calculated_balance += floatval($entry->deposit_amount) - floatval($entry->withdraw_amount);
+                        }
+                        ?>
                         {{ '$ ' . number_format($calculated_balance, 2) }}
 
                     </div>
@@ -67,6 +98,19 @@
                     </thead>
                     <tbody class="productitemList">
                         <?php
+                        $receipts_lists = DB::table('account_client_receipts')
+                            ->where(function($query) use ($client_selected_matter_id) {
+                                if ($client_selected_matter_id !== null) {
+                                    $query->where('client_matter_id', $client_selected_matter_id);
+                                } else {
+                                    $query->whereNull('client_matter_id');
+                                }
+                            })
+                            ->where('client_id',$fetchedData->id)
+                            ->where('receipt_type',1)
+                            ->orderBy('id', 'desc')
+                            ->get();
+                        //dd($receipts_lists);
                         if(!empty($receipts_lists) && count($receipts_lists)>0 )
                         {
                             foreach($receipts_lists as $rec_list=>$rec_val)
@@ -125,8 +169,24 @@
                                 
                                 <?php
                                 if(isset($rec_val->uploaded_doc_id) && $rec_val->uploaded_doc_id != ""){
-                                    $docUrl = $rec_val->account_inline_doc_url ?? null;
-                                    if($docUrl){ 
+                                    $client_doc_list = DB::table('documents')->select('myfile')->where('id',$rec_val->uploaded_doc_id)->first();
+                                    if($client_doc_list){ 
+                                        // Generate S3 URL from the stored filename
+                                        if (filter_var($client_doc_list->myfile, FILTER_VALIDATE_URL)) {
+                                            $docUrl = $client_doc_list->myfile;
+                                        } else {
+                                            $client_info = \App\Models\Admin::find($fetchedData->id);
+                                            $matter_info = \App\Models\ClientMatter::find($rec_val->client_matter_id);
+                                            $client_id = $client_info ? $client_info->client_id : '';
+                                            $matter_unique_id = $matter_info ? $matter_info->client_unique_matter_no : '';
+                                            
+                                            if($matter_unique_id) {
+                                                $filePath = $client_id.'/'.$matter_unique_id.'/accounts/'.$client_doc_list->myfile;
+                                            } else {
+                                                $filePath = $client_id.'/accounts/'.$client_doc_list->myfile;
+                                            }
+                                            $docUrl = Storage::disk('s3')->url($filePath);
+                                        }
                                         ?>
                                         <a target="_blank" title="See Attached Document" class="link-primary" href="<?php echo $docUrl;?>">@icon('fa-file-pdf')</a>
                                     <?php
@@ -164,8 +224,26 @@
                                         </a>
                                         <div class="dropdown-divider"></div>
                                         <?php if(!empty($rec_val->uploaded_doc_id)) { 
-                                            $docUrl = $rec_val->account_dropdown_doc_url ?? null;
-                                            if($docUrl) { 
+                                            $uploadedDoc = \App\Models\Document::find($rec_val->uploaded_doc_id);
+                                            if($uploadedDoc && !empty($uploadedDoc->myfile)) { 
+                                                // Generate S3 URL from the stored filename
+                                                if (filter_var($uploadedDoc->myfile, FILTER_VALIDATE_URL)) {
+                                                    // Already a full URL
+                                                    $docUrl = $uploadedDoc->myfile;
+                                                } else {
+                                                    // Just a filename - generate S3 URL
+                                                    $client_info = \App\Models\Admin::find($fetchedData->id);
+                                                    $matter_info = \App\Models\ClientMatter::find($rec_val->client_matter_id);
+                                                    $client_id = $client_info ? $client_info->client_id : '';
+                                                    $matter_unique_id = $matter_info ? $matter_info->client_unique_matter_no : '';
+                                                    
+                                                    if($matter_unique_id) {
+                                                        $filePath = $client_id.'/'.$matter_unique_id.'/accounts/'.$uploadedDoc->myfile;
+                                                    } else {
+                                                        $filePath = $client_id.'/accounts/'.$uploadedDoc->myfile;
+                                                    }
+                                                    $docUrl = Storage::disk('s3')->url($filePath);
+                                                }
                                                 ?>
                                         <a class="dropdown-item" href="<?php echo $docUrl; ?>" target="_blank">
                                             @icon('fa-file-alt') View Uploaded Receipt
@@ -248,6 +326,26 @@
                 <div class="balance-display">
                     <div class="balance-label">Outstanding Balance</div>
                     <div class="balance-amount outstanding outstanding-balance">
+                        <?php
+                        $latest_outstanding_balance = DB::table('account_client_receipts')
+                        ->where('client_id', $fetchedData->id)
+                        ->where(function($query) use ($client_selected_matter_id) {
+                            if ($client_selected_matter_id !== null) {
+                                $query->where('client_matter_id', $client_selected_matter_id);
+                            } else {
+                                $query->whereNull('client_matter_id');
+                            }
+                        })
+                        ->where('receipt_type', 3) // Invoice
+                        ->where(function ($query) {
+                            $query->whereIn('invoice_status', [0, 2])
+                                ->orWhere(function ($q) {
+                                    $q->where('invoice_status', 1)
+                                        ->where('balance_amount', '!=', 0);
+                                });
+                        })
+                        ->sum('balance_amount');
+                        ?>
                         {{ is_numeric($latest_outstanding_balance) ? '$ ' . number_format($latest_outstanding_balance, 2) : '$ 0.00' }}
 
                         <?php if ($latest_outstanding_balance < 0): ?>
@@ -275,6 +373,27 @@
                     </thead>
                     <tbody class="productitemList_invoice">
                         <?php
+                        // Use DISTINCT ON for PostgreSQL to get latest record per receipt_id
+                        if ($client_selected_matter_id !== null) {
+                            $receipts_lists_invoice = DB::select("
+                                SELECT DISTINCT ON (receipt_id) *
+                                FROM account_client_receipts
+                                WHERE client_matter_id = ? 
+                                AND client_id = ? 
+                                AND receipt_type = 3
+                                ORDER BY receipt_id, id DESC
+                            ", [$client_selected_matter_id, $fetchedData->id]);
+                        } else {
+                            $receipts_lists_invoice = DB::select("
+                                SELECT DISTINCT ON (receipt_id) *
+                                FROM account_client_receipts
+                                WHERE client_matter_id IS NULL 
+                                AND client_id = ? 
+                                AND receipt_type = 3
+                                ORDER BY receipt_id, id DESC
+                            ", [$fetchedData->id]);
+                        }
+                        
                         if(!empty($receipts_lists_invoice) && count($receipts_lists_invoice)>0 )
                         {
                             foreach($receipts_lists_invoice as $inc_list=>$inc_val)
@@ -332,10 +451,18 @@
                                                 <?php if($saveTypeLower === 'final') { ?>
                                                 <div class="dropdown-divider"></div>
                                                 <?php 
-                                                $hubdoc_sent = $inc_val->hubdoc_sent ?? null;
+                                                // Check if invoice has been sent to Hubdoc
+                                                $hubdoc_sent = DB::table('account_client_receipts')
+                                                    ->where('receipt_type', 3)
+                                                    ->where('receipt_id', $inc_val->receipt_id)
+                                                    ->value('hubdoc_sent');
                                                 
                                                 if($hubdoc_sent) {
-                                                    $hubdoc_sent_at = $inc_val->hubdoc_sent_at ?? null;
+                                                    // Already sent to Hubdoc
+                                                    $hubdoc_sent_at = DB::table('account_client_receipts')
+                                                        ->where('receipt_type', 3)
+                                                        ->where('receipt_id', $inc_val->receipt_id)
+                                                        ->value('hubdoc_sent_at');
                                                 ?>
                                                     <a class="dropdown-item send-to-hubdoc-btn" href="javascript:;" data-invoice-id="<?php echo $inc_val->receipt_id; ?>" data-hubdoc-sent="1" style="color: #28a745;">
                                                         @icon('fa-check') Already Sent to Hubdoc
@@ -354,8 +481,15 @@
                                                 <?php 
                                                 // Send to Client Portal: show only when Status = Pending (Unpaid = 0)
                                                 if($inc_val->invoice_status == 0) { 
-                                                    $client_app_sent = isset($inc_val->client_portal_sent) ? (int)$inc_val->client_portal_sent : 0;
-                                                    $client_app_sent_at = $inc_val->client_portal_sent_at ?? null;
+                                                    $client_app_sent = DB::table('account_client_receipts')
+                                                        ->where('receipt_type', 3)
+                                                        ->where('receipt_id', $inc_val->receipt_id)
+                                                        ->value('client_portal_sent');
+                                                    $client_app_sent = isset($client_app_sent) ? (int)$client_app_sent : 0;
+                                                    $client_app_sent_at = DB::table('account_client_receipts')
+                                                        ->where('receipt_type', 3)
+                                                        ->where('receipt_id', $inc_val->receipt_id)
+                                                        ->value('client_portal_sent_at');
                                                 ?>
                                                 <div class="dropdown-divider"></div>
                                                 <?php if($client_app_sent) { ?>
@@ -440,6 +574,21 @@
                     </thead>
                     <tbody class="productitemList_office">
                         <?php
+                        // Sort office receipts: unallocated (no invoice_no) at the top, then by ID descending
+                        $receipts_lists_office = DB::table('account_client_receipts')
+                            ->where(function($query) use ($client_selected_matter_id) {
+                                if ($client_selected_matter_id !== null) {
+                                    $query->where('client_matter_id', $client_selected_matter_id);
+                                } else {
+                                    $query->whereNull('client_matter_id');
+                                }
+                            })
+                            ->where('client_id',$fetchedData->id)
+                            ->where('receipt_type',2)
+                            ->orderByRaw("CASE WHEN invoice_no IS NULL OR invoice_no = '' THEN 0 ELSE 1 END")
+                            ->orderBy('id', 'desc')
+                            ->get();
+                        //dd($receipts_lists_office);
                         if(!empty($receipts_lists_office) && count($receipts_lists_office)>0 )
                         {
                             foreach($receipts_lists_office as $off_list=>$off_val)
@@ -467,8 +616,24 @@
                                     </span>
                                     <?php
                                     if(isset($off_val->uploaded_doc_id) && $off_val->uploaded_doc_id >0){
-                                        $docUrl = $off_val->account_inline_doc_url ?? null;
-                                        if($docUrl){ 
+                                        $office_doc_list = DB::table('documents')->select('myfile')->where('id',$off_val->uploaded_doc_id)->first();
+                                        if($office_doc_list){ 
+                                            // Generate S3 URL from the stored filename
+                                            if (filter_var($office_doc_list->myfile, FILTER_VALIDATE_URL)) {
+                                                $docUrl = $office_doc_list->myfile;
+                                            } else {
+                                                $client_info = \App\Models\Admin::find($fetchedData->id);
+                                                $matter_info = \App\Models\ClientMatter::find($off_val->client_matter_id);
+                                                $client_id = $client_info ? $client_info->client_id : '';
+                                                $matter_unique_id = $matter_info ? $matter_info->client_unique_matter_no : '';
+                                                
+                                                if($matter_unique_id) {
+                                                    $filePath = $client_id.'/'.$matter_unique_id.'/accounts/'.$office_doc_list->myfile;
+                                                } else {
+                                                    $filePath = $client_id.'/accounts/'.$office_doc_list->myfile;
+                                                }
+                                                $docUrl = Storage::disk('s3')->url($filePath);
+                                            }
                                             ?>
                                             <br/>
                                             <a title="See Attached Document" target="_blank" class="link-primary" href="<?php echo $docUrl;?>">@icon('fa-file-pdf') Document</a>
@@ -531,8 +696,24 @@
                                             <?php } ?>
                                             <div class="dropdown-divider"></div>
                                             <?php if(!empty($off_val->uploaded_doc_id)) { 
-                                                $docUrl = $off_val->account_dropdown_doc_url ?? null;
-                                                if($docUrl) { 
+                                                $uploadedDoc = \App\Models\Document::find($off_val->uploaded_doc_id);
+                                                if($uploadedDoc && !empty($uploadedDoc->myfile)) { 
+                                                    // Generate S3 URL from the stored filename
+                                                    if (filter_var($uploadedDoc->myfile, FILTER_VALIDATE_URL)) {
+                                                        $docUrl = $uploadedDoc->myfile;
+                                                    } else {
+                                                        $client_info = \App\Models\Admin::find($fetchedData->id);
+                                                        $matter_info = \App\Models\ClientMatter::find($off_val->client_matter_id);
+                                                        $client_id = $client_info ? $client_info->client_id : '';
+                                                        $matter_unique_id = $matter_info ? $matter_info->client_unique_matter_no : '';
+                                                        
+                                                        if($matter_unique_id) {
+                                                            $filePath = $client_id.'/'.$matter_unique_id.'/accounts/'.$uploadedDoc->myfile;
+                                                        } else {
+                                                            $filePath = $client_id.'/accounts/'.$uploadedDoc->myfile;
+                                                        }
+                                                        $docUrl = Storage::disk('s3')->url($filePath);
+                                                    }
                                                     ?>
                                             <a class="dropdown-item" href="<?php echo $docUrl; ?>" target="_blank">
                                                 @icon('fa-file-alt') View Uploaded Receipt

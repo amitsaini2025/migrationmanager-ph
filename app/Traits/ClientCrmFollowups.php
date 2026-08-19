@@ -35,10 +35,6 @@ use App\Services\MergeClientRecordsService;
 use App\Support\ActionTaskGroup;
 use App\Support\AppointmentActivityDescription;
 use App\Support\NoteDescriptionHtml;
-use App\Support\ClientDetailAccountTab;
-use App\Support\ClientDetailChecklistsTab;
-use App\Support\ClientDetailDocumentsTab;
-use App\Support\ClientDetailTabs;
 use App\Support\StaffClientVisibility;
 use App\Support\WorkflowAssignment;
 use App\Services\LegalCrm\LegalCrmApiClient;
@@ -4652,7 +4648,14 @@ trait ClientCrmFollowups
             // If $id1 holds a tab name rather than a matter reference (happens when the URL
             // only has two segments, e.g. /clients/detail/{client}/{tab}), move it to $tab
             // so that every downstream view receives a clean null $id1.
-            if ($id1 && ClientDetailTabs::isKnownSlug($id1)) {
+            $knownTabNames = [
+                'personaldetails', 'companydetails', 'activityfeed', 'noteterm', 'personaldocuments', 'visadocuments', 'nominationdocuments',
+                'eoiroi', 'emails', 'client_portal',
+                // Legacy removed tab slugs - keep as reserved so they are not treated as matter IDs
+                'formgenerations', 'formgenerationsl',
+                'workflow', 'checklists', 'account', 'notuseddocuments',
+            ];
+            if ($id1 && in_array(strtolower($id1), $knownTabNames)) {
                 if (empty($tab)) {
                     $tab = $id1;
                 }
@@ -4855,19 +4858,13 @@ trait ClientCrmFollowups
                 ];
                 $matterContext = $this->buildClientDetailMatterContext((int) $id, $id1, $validTabNames);
 
-                // Account, documents, and checklists load only via fragment actions
-                // (ClientDetailTabs::deferredFragmentSlugs). Do not query them here.
-
-                $clientNotes = null;
-                if (ClientDetailTabs::shouldEagerRender('noteterm', $activeTab)) {
-                    $clientNotes = Note::where('client_id', $id)
-                        ->whereNull('assigned_to')
-                        ->where('type', 'client')
-                        ->with('user')
-                        ->orderby('pin', 'DESC')
-                        ->orderBy('updated_at', 'DESC')
-                        ->get();
-                }
+                $clientNotes = Note::where('client_id', $id)
+                    ->whereNull('assigned_to')
+                    ->where('type', 'client')
+                    ->with('user')
+                    ->orderby('pin', 'DESC')
+                    ->orderBy('updated_at', 'DESC')
+                    ->get();
 
                 $personalDetailContacts = $clientContacts->filter(function ($contact) {
                     return ($contact->contact_type ?? '') !== 'Not In Use';
@@ -4914,7 +4911,12 @@ trait ClientCrmFollowups
         $encodeId = $client_id;
         $id = $this->decodeString($client_id);
 
-        if (ClientDetailTabs::isKnownSlug($client_unique_matter_ref_no)) {
+        $knownTabNames = [
+            'personaldetails', 'companydetails', 'activityfeed', 'noteterm', 'personaldocuments', 'visadocuments',
+            'nominationdocuments', 'eoiroi', 'emails', 'client_portal', 'formgenerations', 'formgenerationsl',
+            'workflow', 'checklists', 'account', 'notuseddocuments',
+        ];
+        if ($client_unique_matter_ref_no && in_array(strtolower((string) $client_unique_matter_ref_no), $knownTabNames, true)) {
             $client_unique_matter_ref_no = null;
         }
 
@@ -4948,7 +4950,12 @@ trait ClientCrmFollowups
         $encodeId = $client_id;
         $id = $this->decodeString($client_id);
 
-        if (ClientDetailTabs::isKnownSlug($client_unique_matter_ref_no)) {
+        $knownTabNames = [
+            'personaldetails', 'companydetails', 'activityfeed', 'noteterm', 'personaldocuments', 'visadocuments',
+            'nominationdocuments', 'eoiroi', 'emails', 'client_portal', 'formgenerations', 'formgenerationsl',
+            'workflow', 'checklists', 'account', 'notuseddocuments',
+        ];
+        if ($client_unique_matter_ref_no && in_array(strtolower((string) $client_unique_matter_ref_no), $knownTabNames, true)) {
             $client_unique_matter_ref_no = null;
         }
 
@@ -4993,215 +5000,6 @@ trait ClientCrmFollowups
             'clientOccupations' => $clientOccupations,
             'testScores' => $testScores,
         ]);
-    }
-
-    /**
-     * Lightweight HTML fragment for the Account tab only (lazy-load).
-     * Ledger/invoice/office-receipt queries run here, not on first client-detail paint.
-     */
-    public function accountTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
-    {
-        if (empty($client_id)) {
-            abort(404);
-        }
-
-        $encodeId = $client_id;
-        $id = $this->decodeString($client_id);
-
-        if (ClientDetailTabs::isKnownSlug($client_unique_matter_ref_no)) {
-            $client_unique_matter_ref_no = null;
-        }
-
-        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
-            abort(403);
-        }
-
-        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
-        if (! $fetchedData) {
-            abort(404);
-        }
-
-        return view('crm.clients.tabs.account', [
-            'fetchedData' => $fetchedData,
-            'encodeId' => $encodeId,
-            'id1' => $client_unique_matter_ref_no,
-            'activeTab' => 'account',
-            'accountTabPayload' => ClientDetailAccountTab::build($fetchedData, $client_unique_matter_ref_no),
-        ]);
-    }
-
-    /**
-     * Lightweight HTML fragment for the Checklists tab only (lazy-load).
-     * Staff dropdowns, cost-assignment forms, and matter context run here.
-     */
-    public function checklistsTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
-    {
-        if (empty($client_id)) {
-            abort(404);
-        }
-
-        $encodeId = $client_id;
-        $id = $this->decodeString($client_id);
-
-        if (ClientDetailTabs::isKnownSlug($client_unique_matter_ref_no)) {
-            $client_unique_matter_ref_no = null;
-        }
-
-        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
-            abort(403);
-        }
-
-        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
-        if (! $fetchedData) {
-            abort(404);
-        }
-
-        return view('crm.clients.tabs.checklists', [
-            'fetchedData' => $fetchedData,
-            'encodeId' => $encodeId,
-            'id1' => $client_unique_matter_ref_no,
-            'activeTab' => 'checklists',
-            'checklistsTabPayload' => ClientDetailChecklistsTab::build($fetchedData, $client_unique_matter_ref_no),
-        ]);
-    }
-
-    /**
-     * Lightweight HTML fragment for the Emails tab only (lazy-load).
-     * Shell is already light; this keeps ClientMatter lookup off first paint.
-     */
-    public function emailsTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
-    {
-        if (empty($client_id)) {
-            abort(404);
-        }
-
-        $encodeId = $client_id;
-        $id = $this->decodeString($client_id);
-
-        if (ClientDetailTabs::isKnownSlug($client_unique_matter_ref_no)) {
-            $client_unique_matter_ref_no = null;
-        }
-
-        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
-            abort(403);
-        }
-
-        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
-        if (! $fetchedData) {
-            abort(404);
-        }
-
-        return view('crm.clients.tabs.emails', [
-            'fetchedData' => $fetchedData,
-            'encodeId' => $encodeId,
-            'id1' => $client_unique_matter_ref_no,
-            'activeTab' => 'emails',
-        ]);
-    }
-
-    /**
-     * Lightweight HTML fragment for the Personal Documents tab only (lazy-load).
-     */
-    public function personalDocumentsTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
-    {
-        return $this->clientDetailDocumentTabFragment(
-            $client_id,
-            $client_unique_matter_ref_no,
-            'personaldocuments',
-            'crm.clients.tabs.personal_documents'
-        );
-    }
-
-    /**
-     * Lightweight HTML fragment for the Visa Documents tab only (lazy-load).
-     */
-    public function visaDocumentsTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
-    {
-        return $this->clientDetailDocumentTabFragment(
-            $client_id,
-            $client_unique_matter_ref_no,
-            'visadocuments',
-            'crm.clients.tabs.visa_documents'
-        );
-    }
-
-    /**
-     * Lightweight HTML fragment for the Not Used Documents tab only (lazy-load).
-     */
-    public function notUsedDocumentsTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
-    {
-        return $this->clientDetailDocumentTabFragment(
-            $client_id,
-            $client_unique_matter_ref_no,
-            'notuseddocuments',
-            'crm.clients.tabs.not_used_documents'
-        );
-    }
-
-    /**
-     * Lightweight HTML fragment for the Notes tab only (lazy-load).
-     * Pin, type pills, and matter filter stay in the notes Blade + notes.js.
-     */
-    public function notesTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
-    {
-        return $this->clientDetailDocumentTabFragment(
-            $client_id,
-            $client_unique_matter_ref_no,
-            'noteterm',
-            'crm.clients.tabs.notes'
-        );
-    }
-
-    /**
-     * Shared auth + view for client-detail document tab fragments.
-     */
-    protected function clientDetailDocumentTabFragment($client_id, $client_unique_matter_ref_no, string $activeTab, string $view)
-    {
-        if (empty($client_id)) {
-            abort(404);
-        }
-
-        $encodeId = $client_id;
-        $id = $this->decodeString($client_id);
-
-        if (ClientDetailTabs::isKnownSlug($client_unique_matter_ref_no)) {
-            $client_unique_matter_ref_no = null;
-        }
-
-        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
-            abort(403);
-        }
-
-        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
-        if (! $fetchedData) {
-            abort(404);
-        }
-
-        return view($view, array_merge([
-            'fetchedData' => $fetchedData,
-            'encodeId' => $encodeId,
-            'id1' => $client_unique_matter_ref_no,
-            'activeTab' => $activeTab,
-        ], $this->clientDetailDocumentTabPayload($activeTab, (int) $id)));
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function clientDetailDocumentTabPayload(string $activeTab, int $clientId): array
-    {
-        return match ($activeTab) {
-            'personaldocuments' => [
-                'personalDocumentsByFolder' => ClientDetailDocumentsTab::personalDocumentsByFolder($clientId),
-            ],
-            'visadocuments' => [
-                'visaDocumentsByFolder' => ClientDetailDocumentsTab::visaDocumentsByFolder($clientId),
-            ],
-            'notuseddocuments' => [
-                'notUsedDocuments' => ClientDetailDocumentsTab::notUsedDocuments($clientId),
-            ],
-            default => [],
-        };
     }
 
     protected function googleReviewCrmTemplateExists(): bool

@@ -1,11 +1,5 @@
            <!-- Personal Documents Tab (Client-Level) -->
-           <div class="tab-pane" id="personaldocuments-tab"
-                @if(!empty($encodeId))
-                    data-personaldocuments-url="{{ route('clients.detail.personal-documents-tab', array_filter([
-                        'client_id' => $encodeId,
-                        'client_unique_matter_ref_no' => $id1 ?? null,
-                    ], static fn ($v) => $v !== null && $v !== '')) }}"
-                @endif>
+           <div class="tab-pane" id="personaldocuments-tab">
                 <div class="card full-width documentalls-container">
                     <?php
                     $clientId = $fetchedData->id ?? null;
@@ -43,9 +37,6 @@
                         }
                     }
                     $firstPersDocCatId = optional($persDocCatList->first())->id;
-                    if (! isset($personalDocumentsByFolder) || ! $personalDocumentsByFolder instanceof \Illuminate\Support\Collection) {
-                        $personalDocumentsByFolder = \App\Support\ClientDetailDocumentsTab::personalDocumentsByFolder((int) $clientId);
-                    }
                     ?>
 
                     <!-- Personal Documents Content -->
@@ -139,7 +130,13 @@
                                             </thead>
                                             <tbody class="tdata persdocumnetlist documnetlist_<?= $id ?>">
                                                 <?php
-                                                $documents = \App\Support\ClientDetailDocumentsTab::documentsForFolder($personalDocumentsByFolder, $folderName);
+                                                $documents = \App\Models\Document::with('staff')->where('client_id', $clientId)
+                                                    ->whereNull('not_used_doc')
+                                                    ->where('doc_type', 'personal')
+                                                    ->where('folder_name', $folderName)
+                                                    ->where('type', 'client')
+                                                    ->orderBy('created_at', 'DESC')
+                                                    ->get();
                                                 ?>
                                                 <?php foreach ($documents as $docKey => $fetch): ?>
                                                     <?php
@@ -217,7 +214,7 @@
                                         </table>
                                     </div>
 
-                                    <div class="grid_data griddata_<?= $id ?>" style="display:none;">
+                                    <div class="grid_data griddata_<?= $id ?>">
                                         <?php foreach ($documents as $fetch): ?>
                                             <?php if ($fetch->myfile): ?>
                                                 <div class="grid_list" id="gid_<?= $fetch->id ?>">
@@ -740,8 +737,6 @@
                     
                     console.log('✅ Local drag-drop handlers attached');
                 }
-                
-                window.initPersonalDocDragDrop = initPersonalDocDragDrop;
                 
                 // CRITICAL: Initialize IMMEDIATELY (before detail-main.js loads)
                 // This ensures our handlers are attached first and can use stopImmediatePropagation()
@@ -1350,46 +1345,36 @@
                         $personalTab.find('#gid_' + documentId).remove();
                     }
 
-                    var continueMove = function() {
-                        var currentMatterId = $('#sel_matter_id_client_detail').val()
-                            || $('.general_matter_checkbox_client_detail:checked').val()
-                            || '';
-                        var $visaTab = $('#visadocuments-tab');
-                        var $visaCategoryPane = $visaTab.find('[id="' + categoryId + '-subtab6"]');
-                        var sameMatter = currentMatterId !== '' && String(currentMatterId) === String(matterId);
-
-                        if (sameMatter && $visaTab.length && $visaCategoryPane.length) {
-                            activateVisaTabAndCategory(categoryId, matterId);
-                            appendMovedPersonalDocToVisaCategory(docPayload, categoryId, matterId, categoryTitle);
-                            return true;
-                        }
-
-                        var encodeId = window.ClientDetailConfig && window.ClientDetailConfig.encodeId;
-                        var matterKey = uniqueMatterNo || matterId;
-                        if (!encodeId || !matterKey) {
-                            return false;
-                        }
-
-                        return softLoadVisaDocumentsForMatter(
-                            encodeId,
-                            matterKey,
-                            matterId,
-                            categoryId,
-                            documentId,
-                            docPayload,
-                            categoryTitle
-                        );
-                    };
-
                     var currentMatterId = $('#sel_matter_id_client_detail').val()
                         || $('.general_matter_checkbox_client_detail:checked').val()
                         || '';
+                    var $visaTab = $('#visadocuments-tab');
+                    var $visaCategoryPane = $visaTab.find('[id="' + categoryId + '-subtab6"]');
                     var sameMatter = currentMatterId !== '' && String(currentMatterId) === String(matterId);
-                    if (sameMatter && typeof window.ensureVisaDocumentsTabLoaded === 'function') {
-                        return window.ensureVisaDocumentsTabLoaded().then(continueMove);
+
+                    // Soft path: current page already has this matter's visa categories loaded.
+                    if (sameMatter && $visaTab.length && $visaCategoryPane.length) {
+                        activateVisaTabAndCategory(categoryId, matterId);
+                        appendMovedPersonalDocToVisaCategory(docPayload, categoryId, matterId, categoryTitle);
+                        return true;
                     }
 
-                    return continueMove();
+                    // Matter not loaded: soft-refresh Visa tab + update URL without full reload.
+                    var encodeId = window.ClientDetailConfig && window.ClientDetailConfig.encodeId;
+                    var matterKey = uniqueMatterNo || matterId;
+                    if (!encodeId || !matterKey) {
+                        return false;
+                    }
+
+                    return softLoadVisaDocumentsForMatter(
+                        encodeId,
+                        matterKey,
+                        matterId,
+                        categoryId,
+                        documentId,
+                        docPayload,
+                        categoryTitle
+                    );
                 }
 
                 function activateVisaTabAndCategory(categoryId, matterId) {
@@ -1494,9 +1479,7 @@
                         if (typeof window.adjustPreviewContainers === 'function') {
                             window.adjustPreviewContainers();
                         }
-                        if (typeof window.rebindClientDocumentTab === 'function') {
-                            window.rebindClientDocumentTab('visadocuments', $visaTab[0]);
-                        } else if (typeof window.initVisaDocDragDrop === 'function') {
+                        if (typeof window.initVisaDocDragDrop === 'function') {
                             window.initVisaDocDragDrop();
                         }
 
