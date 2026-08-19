@@ -273,20 +273,29 @@ use App\Http\Controllers\Controller;
             
             @include('crm.clients.tabs.activityfeed_tab')
             
-            @include('crm.clients.tabs.notes')
+            @if(($activeTab ?? '') === 'noteterm')
+                @include('crm.clients.tabs.notes')
+            @else
+                @include('crm.clients.tabs.notes_lazy')
+            @endif
             
-            @include('crm.clients.tabs.personal_documents')
+            {{-- Account / documents / checklists: always stub; data loads via fragment routes. --}}
+            @include('crm.clients.tabs.personal_documents_lazy')
             
             @if((isset($id1) && $id1 != "") || ($matter_cnt ?? 0) > 0)
-                @include('crm.clients.tabs.visa_documents')
+                @include('crm.clients.tabs.visa_documents_lazy')
                 
                 @if(isset($isEoiMatter) && $isEoiMatter)
                     @include('crm.clients.tabs.eoi_roi')
                 @endif
                 
-                @include('crm.clients.tabs.account')
-                @include('crm.clients.tabs.emails')
-                @include('crm.clients.tabs.checklists')
+                @include('crm.clients.tabs.account_lazy')
+                @if(($activeTab ?? '') === 'emails')
+                    @include('crm.clients.tabs.emails')
+                @else
+                    @include('crm.clients.tabs.emails_lazy')
+                @endif
+                @include('crm.clients.tabs.checklists_lazy')
                 @if(($activeTab ?? '') === 'workflow')
                     @include('crm.clients.tabs.workflow')
                 @else
@@ -298,10 +307,10 @@ use App\Http\Controllers\Controller;
                     @include('crm.clients.tabs.client_portal_lazy')
                 @endif
             @else
-                @include('crm.clients.tabs.checklists')
+                @include('crm.clients.tabs.checklists_lazy')
             @endif
             
-            @include('crm.clients.tabs.not_used_documents')
+            @include('crm.clients.tabs.not_used_documents_lazy')
             
             </div>
         </div>
@@ -1229,6 +1238,13 @@ $(document).ready(function() {
             getClientPortalDetail: '{{ URL::to("/client-portal/detail") }}',
             clientPortalTab: '{{ route("clients.detail.client-portal-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
             workflowTab: '{{ route("clients.detail.workflow-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+            accountTab: '{{ route("clients.detail.account-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+            checklistsTab: '{{ route("clients.detail.checklists-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+            emailsTab: '{{ route("clients.detail.emails-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+            personalDocumentsTab: '{{ route("clients.detail.personal-documents-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+            visaDocumentsTab: '{{ route("clients.detail.visa-documents-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+            notUsedDocumentsTab: '{{ route("clients.detail.not-used-documents-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+            notesTab: '{{ route("clients.detail.notes-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
             updateIntake: '{{ URL::to("/client-portal/updateintake") }}',
             updateExpectWin: '{{ URL::to("/client-portal/updateexpectwin") }}',
             updateDates: '{{ URL::to("/client-portal/updatedates") }}',
@@ -1554,6 +1570,11 @@ $(document).ready(function() {
 <script src="{{ URL::asset('js/crm/clients/modules/subtabs.js') }}"></script>
 <script src="{{ URL::asset('js/crm/clients/modules/ledger-dragdrop.js') }}"></script>
 <script src="{{ URL::asset('js/crm/clients/workflow-tab.js') }}?v={{ time() }}"></script>
+<script src="{{ URL::asset('js/crm/clients/account-tab.js') }}?v={{ file_exists(public_path('js/crm/clients/account-tab.js')) ? filemtime(public_path('js/crm/clients/account-tab.js')) : time() }}"></script>
+<script src="{{ URL::asset('js/crm/clients/checklists-tab.js') }}?v={{ file_exists(public_path('js/crm/clients/checklists-tab.js')) ? filemtime(public_path('js/crm/clients/checklists-tab.js')) : time() }}"></script>
+<script src="{{ URL::asset('js/crm/clients/emails-tab.js') }}?v={{ file_exists(public_path('js/crm/clients/emails-tab.js')) ? filemtime(public_path('js/crm/clients/emails-tab.js')) : time() }}"></script>
+<script src="{{ URL::asset('js/crm/clients/documents-tabs.js') }}?v={{ file_exists(public_path('js/crm/clients/documents-tabs.js')) ? filemtime(public_path('js/crm/clients/documents-tabs.js')) : time() }}"></script>
+<script src="{{ URL::asset('js/crm/clients/notes-tab.js') }}?v={{ file_exists(public_path('js/crm/clients/notes-tab.js')) ? filemtime(public_path('js/crm/clients/notes-tab.js')) : time() }}"></script>
 {{-- Main detail page JavaScript --}}
 <script src="{{ URL::asset('js/crm/clients/detail-main.js') }}?v={{ time() }}"></script>
 

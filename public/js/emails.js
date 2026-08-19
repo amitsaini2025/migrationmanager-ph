@@ -27,6 +27,7 @@
     const emailDetailCache = new Map();
     let readingPanePlaceholderDefaultHtml = null;
     let emailDetailLoadToken = 0;
+    let emailsListLoadedKey = null;
 
     function getAllowedUploadExtensionsLabel() {
         if (typeof window.crmEmailUploadExtensionsLabel === 'function') {
@@ -1263,10 +1264,26 @@
     // Email List Functionality
     // =========================================================================
 
+    function emailsListCacheKey() {
+        const clientId = getClientId();
+        if (!clientId) {
+            return '';
+        }
+        if (isLeadContext()) {
+            return 'lead:' + clientId;
+        }
+
+        return clientId + ':' + (getMatterId() || '');
+    }
+
     /**
-     * Initialize email list and load initial emails
+     * Initialize email list and load initial emails.
+     * Pass { once: true } to skip a refetch when this client+matter is already loaded.
+     * Pass { forceReload: true } to bypass that cache. Search, upload, and folder
+     * switches keep fetching (they call loadEmails() or loadEmailsFromServer()).
      */
-    window.loadEmails = function() {
+    window.loadEmails = function(options) {
+        options = options || {};
         const container = document.querySelector('.email-interface-container');
         if (!container) {
             return;
@@ -1276,6 +1293,10 @@
             return;
         }
         if (!isLead && !getMatterId()) {
+            return;
+        }
+        const cacheKey = emailsListCacheKey();
+        if (options.once === true && options.forceReload !== true && emailsListLoadedKey && emailsListLoadedKey === cacheKey) {
             return;
         }
         console.log('Loading emails...' + (isLead ? ' (lead context)' : ''));
@@ -1362,6 +1383,7 @@
 
             renderEmails(emails);
             updateEmailCounts(totalEmails);
+            emailsListLoadedKey = emailsListCacheKey();
 
             if (selectedEmailId && !emails.some(function(item) { return item.id === selectedEmailId; })) {
                 if (isOutlookLayout()) {

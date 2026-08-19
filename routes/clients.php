@@ -118,6 +118,13 @@ Route::get('/clients/removetag', [ClientsController::class, 'removetag']);
 Route::get('/clients/detail/{client_id}/{client_unique_matter_ref_no?}/{tab?}', [ClientsController::class, 'detail'])->name('clients.detail');
 Route::get('/clients/detail-workflow-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'workflowTab'])->name('clients.detail.workflow-tab');
 Route::get('/clients/detail-client-portal-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'clientPortalTab'])->name('clients.detail.client-portal-tab');
+Route::get('/clients/detail-account-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'accountTab'])->name('clients.detail.account-tab');
+Route::get('/clients/detail-checklists-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'checklistsTab'])->name('clients.detail.checklists-tab');
+Route::get('/clients/detail-emails-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'emailsTab'])->name('clients.detail.emails-tab');
+Route::get('/clients/detail-personal-documents-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'personalDocumentsTab'])->name('clients.detail.personal-documents-tab');
+Route::get('/clients/detail-visa-documents-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'visaDocumentsTab'])->name('clients.detail.visa-documents-tab');
+Route::get('/clients/detail-not-used-documents-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'notUsedDocumentsTab'])->name('clients.detail.not-used-documents-tab');
+Route::get('/clients/detail-notes-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'notesTab'])->name('clients.detail.notes-tab');
 Route::post('/clients/google-review-reminder', [ClientsController::class, 'updateGoogleReviewReminder'])->name('clients.google-review-reminder');
 Route::post('/clients/google-review-reminder/sms', [ClientsController::class, 'sendGoogleReviewReminderSms'])->name('clients.google-review-reminder.sms');
 

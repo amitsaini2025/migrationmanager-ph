@@ -197,26 +197,37 @@
     }
 
     function activateClientDocumentsTabAndCategory(tabId, categoryId, subtabAttr) {
-        if (!tabId) {
-            return;
-        }
-        if (typeof SidebarTabs !== 'undefined' && typeof SidebarTabs.activateTab === 'function') {
-            SidebarTabs.activateTab(tabId);
-        } else {
-            $('.client-nav-button').removeClass('active');
-            $('.tab-pane').removeClass('active');
-            $('.client-nav-button[data-tab="' + tabId + '"]').addClass('active');
-            $('#' + tabId + '-tab').addClass('active');
-            localStorage.setItem('activeTab', tabId);
-        }
-        if (!categoryId || !subtabAttr) {
-            return;
-        }
-        var $tab = $('#' + tabId + '-tab');
-        $tab.find('.' + subtabAttr + '-button').removeClass('active');
-        $tab.find('.' + subtabAttr + '-pane').removeClass('active');
-        $tab.find('.' + subtabAttr + '-button[data-' + subtabAttr + '="' + categoryId + '"]').addClass('active');
-        $tab.find('[id="' + categoryId + '-' + subtabAttr + '"]').addClass('active');
+        var apply = function() {
+            if (!tabId) {
+                return;
+            }
+            if (typeof SidebarTabs !== 'undefined' && typeof SidebarTabs.activateTab === 'function') {
+                SidebarTabs.activateTab(tabId);
+            } else {
+                $('.client-nav-button').removeClass('active');
+                $('.tab-pane').removeClass('active');
+                $('.client-nav-button[data-tab="' + tabId + '"]').addClass('active');
+                $('#' + tabId + '-tab').addClass('active');
+                localStorage.setItem('activeTab', tabId);
+            }
+            if (!categoryId || !subtabAttr) {
+                return;
+            }
+            var $tab = $('#' + tabId + '-tab');
+            $tab.find('.' + subtabAttr + '-button').removeClass('active');
+            $tab.find('.' + subtabAttr + '-pane').removeClass('active');
+            $tab.find('.' + subtabAttr + '-button[data-' + subtabAttr + '="' + categoryId + '"]').addClass('active');
+            $tab.find('[id="' + categoryId + '-' + subtabAttr + '"]').addClass('active');
+        };
+
+        var loader = (typeof window.ensureClientDetailDocumentTabLoaded === 'function')
+            ? window.ensureClientDetailDocumentTabLoaded(tabId)
+            : Promise.resolve();
+
+        Promise.resolve(loader).then(apply).catch(function(err) {
+            console.error('[Documents] Failed to load tab before category switch', err);
+            apply();
+        });
     }
 
     function restorePersonalDocRowFromNotUsed(doc, categoryId) {
@@ -345,42 +356,56 @@
         var doc = res.docInfo || null;
         var docType = res.doc_type || (doc && doc.doc_type) || '';
         var categoryId = doc && doc.folder_name ? doc.folder_name : '';
-        var restored = false;
+        var destTabId = docType === 'personal' ? 'personaldocuments' : (docType === 'visa' ? 'visadocuments' : '');
 
-        try {
-            if (docType === 'personal' && categoryId) {
-                restored = restorePersonalDocRowFromNotUsed(doc, categoryId);
-            } else if (docType === 'visa' && categoryId) {
-                restored = restoreVisaDocRowFromNotUsed(doc, categoryId);
+        var finishBackToDoc = function() {
+            var restored = false;
+
+            try {
+                if (docType === 'personal' && categoryId) {
+                    restored = restorePersonalDocRowFromNotUsed(doc, categoryId);
+                } else if (docType === 'visa' && categoryId) {
+                    restored = restoreVisaDocRowFromNotUsed(doc, categoryId);
+                }
+            } catch (restoreErr) {
+                console.warn('[BackToDoc] Soft restore failed', restoreErr);
+                restored = false;
             }
-        } catch (restoreErr) {
-            console.warn('[BackToDoc] Soft restore failed', restoreErr);
-            restored = false;
-        }
 
-        try {
-            if (docType === 'personal') {
-                activateClientDocumentsTabAndCategory('personaldocuments', categoryId, 'subtab2');
-            } else if (docType === 'visa') {
-                activateClientDocumentsTabAndCategory('visadocuments', categoryId, 'subtab6');
+            try {
+                if (docType === 'personal') {
+                    activateClientDocumentsTabAndCategory('personaldocuments', categoryId, 'subtab2');
+                } else if (docType === 'visa') {
+                    activateClientDocumentsTabAndCategory('visadocuments', categoryId, 'subtab6');
+                }
+                var $restoredRow = $('#id_' + res.doc_id);
+                if ($restoredRow.length && $restoredRow[0].scrollIntoView) {
+                    $restoredRow[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            } catch (navErr) {
+                console.warn('[BackToDoc] Soft tab switch failed; document was still restored on server', navErr);
             }
-            var $restoredRow = $('#id_' + res.doc_id);
-            if ($restoredRow.length && $restoredRow[0].scrollIntoView) {
-                $restoredRow[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+            if (typeof getallactivities === 'function') {
+                getallactivities();
             }
-        } catch (navErr) {
-            console.warn('[BackToDoc] Soft tab switch failed; document was still restored on server', navErr);
+
+            var docTypeLabel = docType === 'personal' ? 'Personal Documents' : (docType === 'visa' ? 'Visa Documents' : 'Documents');
+            showClientDocFeedback('success', 'Document moved back to ' + docTypeLabel + ' successfully.');
+            if (!restored) {
+                showClientDocFeedback('warning', 'If the document is not visible, refresh the page.');
+            }
+        };
+
+        if (destTabId && typeof window.ensureClientDetailDocumentTabLoaded === 'function') {
+            window.ensureClientDetailDocumentTabLoaded(destTabId).then(finishBackToDoc).catch(function(err) {
+                console.error('[BackToDoc] Failed to load destination tab', err);
+                finishBackToDoc();
+            });
+            return;
         }
 
-        if (typeof getallactivities === 'function') {
-            getallactivities();
-        }
-
-        var docTypeLabel = docType === 'personal' ? 'Personal Documents' : (docType === 'visa' ? 'Visa Documents' : 'Documents');
-        showClientDocFeedback('success', 'Document moved back to ' + docTypeLabel + ' successfully.');
-        if (!restored) {
-            showClientDocFeedback('warning', 'If the document is not visible, refresh the page.');
-        }
+        finishBackToDoc();
     }
 
     function clientDetailDocFilenameMessage() {
@@ -2574,16 +2599,38 @@ success: function(response) {
 
                 if( activeTab == 'noteterm' ) {
 
-                    if (typeof window.filterNotes === 'function') {
-                        window.filterNotes();
+                    var applyNotesMatterFilter = function() {
+                        if (typeof window.filterNotes === 'function') {
+                            window.filterNotes();
+                        }
+                    };
+
+                    if (typeof window.ensureNotesTabLoaded === 'function') {
+                        window.ensureNotesTabLoaded().then(applyNotesMatterFilter).catch(function(err) {
+                            console.error('[MatterChange] Failed to load Notes tab', err);
+                            applyNotesMatterFilter();
+                        });
+                    } else {
+                        applyNotesMatterFilter();
                     }
 
                 }
 
                 else if( activeTab == 'visadocuments') {
 
-                    if (typeof SidebarTabs !== 'undefined' && SidebarTabs.filterVisaDocumentsByMatter) {
-                        SidebarTabs.filterVisaDocumentsByMatter(selectedMatter);
+                    var applyVisaMatterFilter = function() {
+                        if (typeof SidebarTabs !== 'undefined' && SidebarTabs.filterVisaDocumentsByMatter) {
+                            SidebarTabs.filterVisaDocumentsByMatter(selectedMatter);
+                        }
+                    };
+
+                    if (typeof window.ensureVisaDocumentsTabLoaded === 'function') {
+                        window.ensureVisaDocumentsTabLoaded().then(applyVisaMatterFilter).catch(function(err) {
+                            console.error('[MatterChange] Failed to load Visa Documents tab', err);
+                            applyVisaMatterFilter();
+                        });
+                    } else {
+                        applyVisaMatterFilter();
                     }
 
                 }
@@ -2737,8 +2784,19 @@ success: function(response) {
 
             if( activeTab == 'noteterm' ) {
 
-                if (typeof window.filterNotes === 'function') {
-                    window.filterNotes();
+                var applyNotesMatterFilterOnChange = function() {
+                    if (typeof window.filterNotes === 'function') {
+                        window.filterNotes();
+                    }
+                };
+
+                if (typeof window.ensureNotesTabLoaded === 'function') {
+                    window.ensureNotesTabLoaded().then(applyNotesMatterFilterOnChange).catch(function(err) {
+                        console.error('[MatterChange] Failed to load Notes tab', err);
+                        applyNotesMatterFilterOnChange();
+                    });
+                } else {
+                    applyNotesMatterFilterOnChange();
                 }
 
             }
@@ -2771,8 +2829,19 @@ success: function(response) {
 
             else if (activeTab == 'visadocuments') {
 
-                if (typeof SidebarTabs !== 'undefined' && SidebarTabs.filterVisaDocumentsByMatter) {
-                    SidebarTabs.filterVisaDocumentsByMatter(selectedMatter);
+                var applyVisaMatterFilterOnChange = function() {
+                    if (typeof SidebarTabs !== 'undefined' && SidebarTabs.filterVisaDocumentsByMatter) {
+                        SidebarTabs.filterVisaDocumentsByMatter(selectedMatter);
+                    }
+                };
+
+                if (typeof window.ensureVisaDocumentsTabLoaded === 'function') {
+                    window.ensureVisaDocumentsTabLoaded().then(applyVisaMatterFilterOnChange).catch(function(err) {
+                        console.error('[MatterChange] Failed to load Visa Documents tab', err);
+                        applyVisaMatterFilterOnChange();
+                    });
+                } else {
+                    applyVisaMatterFilterOnChange();
                 }
 
             }

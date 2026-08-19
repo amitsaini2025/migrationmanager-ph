@@ -1,5 +1,11 @@
            <!-- Not Used Documents Tab (Shared - Client Level) -->
-           <div class="tab-pane" id="notuseddocuments-tab">
+           <div class="tab-pane" id="notuseddocuments-tab"
+                @if(!empty($encodeId))
+                    data-notuseddocuments-url="{{ route('clients.detail.not-used-documents-tab', array_filter([
+                        'client_id' => $encodeId,
+                        'client_unique_matter_ref_no' => $id1 ?? null,
+                    ], static fn ($v) => $v !== null && $v !== '')) }}"
+                @endif>
                 <div class="card full-width documentalls-container">
                     <div style="display: flex; gap: 20px; padding: 15px;">
                         <!-- Table Container -->
@@ -20,14 +26,10 @@
                                     </thead>
                                     <tbody class="tdata notuseddocumnetlist">
                                         <?php
-                                        $fetchd = \App\Models\Document::where('client_id', $fetchedData->id)
-                                        ->where('not_used_doc', 1)
-                                        ->where('type','client')
-                                        ->where(function($query) {
-                                            $query->orWhere('doc_type','personal')
-                                            ->orWhere('doc_type','visa')
-                                            ->orWhere('doc_type','nomination');
-                                        })->orderBy('type', 'DESC')->get();
+                                        if (! isset($notUsedDocuments) || ! $notUsedDocuments instanceof \Illuminate\Support\Collection) {
+                                            $notUsedDocuments = \App\Support\ClientDetailDocumentsTab::notUsedDocuments((int) $fetchedData->id);
+                                        }
+                                        $fetchd = $notUsedDocuments;
 
                                         $personalCategoryIds = $fetchd->where('doc_type', 'personal')->pluck('folder_name')->filter()->unique()->values();
                                         $visaCategoryIds = $fetchd->where('doc_type', 'visa')->pluck('folder_name')->filter()->unique()->values();
@@ -67,7 +69,7 @@
 
                                         foreach($fetchd as $notuseKey=>$fetch)
                                         {
-                                            $admin = \App\Models\Staff::where('id', $fetch->user_id)->first();
+                                            $admin = $fetch->staff;
 
                                             $categoryLabel = '';
                                             if ($fetch->doc_type === 'personal') {

@@ -15,7 +15,7 @@
      data-portal-url="{{ $portalTabFragmentUrl }}">
     <div class="card full-width client-portal-container">
         <div class="workflow-v2-empty" data-portal-lazy-placeholder>
-            Loading client portal&hellip;
+            @include('crm.clients.tabs.partials.lazy_loading', ['message' => 'Loading client portal…'])
         </div>
     </div>
 </div>
