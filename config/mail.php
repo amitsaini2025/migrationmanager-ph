@@ -111,4 +111,11 @@ return [
         'address' => env('NOREPLY_MAIL_FROM_ADDRESS', 'noreply@bansalimmigration.com.au'),
     ],
 
+    /*
+    | Admin / office copy for client self-service appointment actions.
+    */
+    'info' => [
+        'address' => env('MAIL_INFO_ADDRESS', env('MAIL_FROM_ADDRESS', 'info@bansalimmigration.com.au')),
+    ],
+
 ];

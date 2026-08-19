@@ -815,6 +815,7 @@ class ClientPortalAppointmentController extends BaseController
             if ($serviceId == 2 && ! empty($clientEmail)) {
                 try {
                     $emailDetails = [
+                        'appointment_id' => $appointment->id,
                         'client_name' => $clientName,
                         'appointment_datetime' => $appointment->appointment_datetime,
                         'timeslot_full' => $appointment->timeslot_full,
@@ -1193,6 +1194,7 @@ class ClientPortalAppointmentController extends BaseController
             if ($serviceId == 2 && ! empty($clientEmail)) {
                 try {
                     $emailDetails = [
+                        'appointment_id' => $appointment->id,
                         'client_name' => $clientName,
                         'appointment_datetime' => $appointment->appointment_datetime,
                         'timeslot_full' => $appointment->timeslot_full,
@@ -2404,6 +2406,7 @@ class ClientPortalAppointmentController extends BaseController
             if (! empty($appointment->client_email)) {
                 try {
                     $emailDetails = [
+                        'appointment_id' => $appointment->id,
                         'client_name' => $appointment->client_name,
                         'appointment_datetime' => $appointment->appointment_datetime,
                         'timeslot_full' => $appointment->timeslot_full,
@@ -2655,6 +2658,7 @@ class ClientPortalAppointmentController extends BaseController
             if (! empty($appointment->client_email)) {
                 try {
                     $emailDetails = [
+                        'appointment_id' => $appointment->id,
                         'client_name' => $appointment->client_name,
                         'appointment_datetime' => $appointment->appointment_datetime,
                         'timeslot_full' => $appointment->timeslot_full,
@@ -2785,6 +2789,7 @@ class ClientPortalAppointmentController extends BaseController
             if (! empty($appointment->client_email)) {
                 try {
                     $emailDetails = [
+                        'appointment_id' => $appointment->id,
                         'client_name' => $appointment->client_name,
                         'appointment_datetime' => $appointment->appointment_datetime,
                         'timeslot_full' => $appointment->timeslot_full,
@@ -2912,6 +2917,7 @@ class ClientPortalAppointmentController extends BaseController
             if (! empty($appointment->client_email)) {
                 try {
                     $emailDetails = [
+                        'appointment_id' => $appointment->id,
                         'client_name' => $appointment->client_name,
                         'appointment_datetime' => $appointment->appointment_datetime,
                         'timeslot_full' => $appointment->timeslot_full,

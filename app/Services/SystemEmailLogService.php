@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\EmailLog;
+use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Message;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Symfony\Component\Mime\Email as SymfonyEmail;
 
@@ -13,21 +15,22 @@ class SystemEmailLogService
 
     /** @var array<string, string> */
     public const CATEGORIES = [
-        'invoice'                  => 'Invoice',
-        'receipt'                  => 'Receipt',
-        'appointment'              => 'Appointment',
-        'appointment_reminder'     => 'Appointment Reminder',
+        'invoice' => 'Invoice',
+        'receipt' => 'Receipt',
+        'appointment' => 'Appointment',
+        'appointment_reminder' => 'Appointment Reminder',
         'appointment_cancellation' => 'Appointment Cancellation',
-        'appointment_reschedule'   => 'Appointment Reschedule',
-        'visa_reminder'            => 'Visa Expiry Reminder',
-        'signature'                => 'E-Signature',
-        'signature_reminder'       => 'Signature Reminder',
-        'eoi'                      => 'EOI/ROI Confirmation',
-        'portal'                   => 'Client Portal',
-        'hubdoc'                   => 'Hubdoc',
-        'verification'             => 'Email Verification',
-        'template'                 => 'Template Email',
-        'other'                    => 'Other',
+        'appointment_reschedule' => 'Appointment Reschedule',
+        'appointment_client_confirmed' => 'Appointment Client Confirmed',
+        'visa_reminder' => 'Visa Expiry Reminder',
+        'signature' => 'E-Signature',
+        'signature_reminder' => 'Signature Reminder',
+        'eoi' => 'EOI/ROI Confirmation',
+        'portal' => 'Client Portal',
+        'hubdoc' => 'Hubdoc',
+        'verification' => 'Email Verification',
+        'template' => 'Template Email',
+        'other' => 'Other',
     ];
 
     /**
@@ -51,18 +54,18 @@ class SystemEmailLogService
         $category = $this->normalizeCategory($data['category'] ?? 'other');
 
         return EmailLog::create([
-            'user_id'               => $data['user_id'] ?? null,
-            'from_mail'             => $data['from_mail'] ?? config('mail.from.address'),
-            'to_mail'               => is_string($data['to_mail']) ? $data['to_mail'] : $this->resolveRecipient($data['to_mail']),
-            'subject'               => $data['subject'] ?? null,
-            'message'               => $data['message'] ?? null,
-            'type'                  => $data['type'] ?? 'client',
-            'mail_type'             => 1,
-            'client_id'             => $data['client_id'] ?? null,
-            'client_matter_id'      => $data['client_matter_id'] ?? null,
-            'conversion_type'       => self::CONVERSION_TYPE,
+            'user_id' => $data['user_id'] ?? null,
+            'from_mail' => $data['from_mail'] ?? config('mail.from.address'),
+            'to_mail' => is_string($data['to_mail']) ? $data['to_mail'] : $this->resolveRecipient($data['to_mail']),
+            'subject' => $data['subject'] ?? null,
+            'message' => $data['message'] ?? null,
+            'type' => $data['type'] ?? 'client',
+            'mail_type' => 1,
+            'client_id' => $data['client_id'] ?? null,
+            'client_matter_id' => $data['client_matter_id'] ?? null,
+            'conversion_type' => self::CONVERSION_TYPE,
             'system_email_category' => $category,
-            'delivery_status'       => 'pending',
+            'delivery_status' => 'pending',
         ]);
     }
 
@@ -70,7 +73,7 @@ class SystemEmailLogService
     {
         $log->update([
             'delivery_status' => 'send_failed',
-            'status_reason'   => Str::limit($reason, 500),
+            'status_reason' => Str::limit($reason, 500),
         ]);
     }
 
@@ -82,6 +85,15 @@ class SystemEmailLogService
             ],
         ];
 
+        $existing = $message->getHeaders()->get('X-SMTPAPI');
+        if ($existing) {
+            $decoded = json_decode($existing->getBodyAsString(), true);
+            if (is_array($decoded)) {
+                $payload = array_replace_recursive($decoded, $payload);
+            }
+            $message->getHeaders()->remove('X-SMTPAPI');
+        }
+
         $message->getHeaders()->addTextHeader('X-SMTPAPI', json_encode($payload, JSON_UNESCAPED_UNICODE));
     }
 
@@ -90,7 +102,7 @@ class SystemEmailLogService
         $this->attachTrackingHeader($message->getSymfonyMessage(), $emailLogId);
     }
 
-    public function applyTrackingToMailable(\Illuminate\Mail\Mailable $mailable, int $emailLogId): \Illuminate\Mail\Mailable
+    public function applyTrackingToMailable(Mailable $mailable, int $emailLogId): Mailable
     {
         return $mailable->withSymfonyMessage(function (SymfonyEmail $message) use ($emailLogId) {
             $this->attachTrackingHeader($message, $emailLogId);
@@ -110,7 +122,7 @@ class SystemEmailLogService
      *     type?: ?string,
      * }  $meta
      */
-    public function logAndSendMailable(array $meta, \Illuminate\Mail\Mailable $mailable, mixed $to): void
+    public function logAndSendMailable(array $meta, Mailable $mailable, mixed $to): void
     {
         $meta['to_mail'] = is_string($meta['to_mail'] ?? null)
             ? $meta['to_mail']
@@ -119,7 +131,7 @@ class SystemEmailLogService
         $log = $this->createPending($meta);
 
         try {
-            \Illuminate\Support\Facades\Mail::mailer('sendgrid')
+            Mail::mailer('sendgrid')
                 ->to($to)
                 ->send($this->applyTrackingToMailable($mailable, $log->id));
         } catch (\Throwable $e) {

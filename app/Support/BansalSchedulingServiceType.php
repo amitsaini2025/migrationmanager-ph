@@ -132,4 +132,23 @@ class BansalSchedulingServiceType
 
         return [$isPaid, $lang];
     }
+
+    /**
+     * Same Melbourne extras as melbourneApiExtras(), without an HTTP request.
+     *
+     * @return array{0: bool|null, 1: string|null}
+     */
+    public static function melbourneApiExtrasFromValues(string $location, bool $isPaid, ?string $preferredLanguage): array
+    {
+        if (strtolower(trim($location)) !== 'melbourne') {
+            return [null, null];
+        }
+
+        $lang = trim((string) $preferredLanguage);
+        if ($lang === '') {
+            $lang = 'English';
+        }
+
+        return [$isPaid, $lang];
+    }
 }

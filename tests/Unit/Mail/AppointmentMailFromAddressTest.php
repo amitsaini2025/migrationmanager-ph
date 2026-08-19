@@ -3,6 +3,7 @@
 namespace Tests\Unit\Mail;
 
 use App\Mail\AppointmentCancellation;
+use App\Mail\AppointmentClientConfirmed;
 use App\Mail\AppointmentDetailedConfirmation;
 use App\Mail\AppointmentPaidPaymentLink;
 use App\Mail\AppointmentReminder;
@@ -51,6 +52,7 @@ class AppointmentMailFromAddressTest extends TestCase
             new AppointmentCancellation($details),
             new AppointmentReschedule($details),
             new AppointmentPaidPaymentLink($appointment, 'https://example.test/pay'),
+            new AppointmentClientConfirmed($details),
         ];
 
         foreach ($mailables as $mailable) {

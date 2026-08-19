@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Mail\Concerns\UsesAppointmentMailFrom;
+use App\Support\AppointmentMeetingTypeCopy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
@@ -66,6 +67,7 @@ class AppointmentCancellation extends Mailable
         $rescheduleMailtoHref = 'mailto:info@bansalimmigration.com.au?subject='.rawurlencode(
             'Reschedule Request – '.$clientName
         ).'&body='.rawurlencode($rescheduleBody);
+        $meetingType = (string) ($this->details['meeting_type'] ?? '');
 
         return new Content(
             view: 'emails.appointment-cancellation',
@@ -75,6 +77,10 @@ class AppointmentCancellation extends Mailable
                 'appointmentTime' => $this->details['timeslot_full'] ?? 'N/A',
                 'location' => ucfirst($locationKey),
                 'locationAddress' => $this->getLocationAddress($locationKey),
+                'serviceType' => filled($this->details['service_type'] ?? null)
+                    ? (string) $this->details['service_type']
+                    : 'N/A',
+                'meetingTypeLabel' => AppointmentMeetingTypeCopy::label($meetingType),
                 'locationPhone' => $locationPhone,
                 'callUsHref' => $callUsHref,
                 'rescheduleMailtoHref' => $rescheduleMailtoHref,

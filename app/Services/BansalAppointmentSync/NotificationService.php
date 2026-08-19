@@ -3,6 +3,7 @@
 namespace App\Services\BansalAppointmentSync;
 
 use App\Mail\AppointmentCancellation;
+use App\Mail\AppointmentClientConfirmed;
 use App\Mail\AppointmentDetailedConfirmation;
 use App\Mail\AppointmentPaidPaymentLink;
 use App\Mail\AppointmentReminder;
@@ -14,6 +15,7 @@ use App\Services\AppointmentPaymentLinkService;
 use App\Services\Sms\UnifiedSmsManager;
 use App\Services\SystemEmailLogService;
 use Carbon\Carbon;
+use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -101,15 +103,7 @@ class NotificationService
                 return true;
             }
 
-            $details = [
-                'client_name' => $appointment->client_name,
-                'appointment_datetime' => $appointment->appointment_datetime,
-                'timeslot_full' => $appointment->timeslot_full,
-                'location' => $appointment->location,
-                'meeting_type' => $appointment->meeting_type,
-                'service_type' => $appointment->service_type,
-                'admin_notes' => $appointment->admin_notes,
-            ];
+            $details = $this->confirmationDetails($appointment);
 
             $this->systemEmailLog->logAndSendMailable([
                 'category' => 'appointment',
@@ -143,24 +137,34 @@ class NotificationService
     /**
      * Send cancellation confirmation email to client
      */
-    public function sendCancellationConfirmationEmail(BookingAppointment $appointment, ?string $cancellationReason = null): bool
-    {
+    public function sendCancellationConfirmationEmail(
+        BookingAppointment $appointment,
+        ?string $cancellationReason = null,
+        bool $notifyAdmin = false
+    ): bool {
         try {
             $details = [
                 'client_name' => $appointment->client_name,
                 'appointment_datetime' => $appointment->appointment_datetime,
                 'timeslot_full' => $appointment->timeslot_full,
                 'location' => $appointment->location,
+                'meeting_type' => $appointment->meeting_type,
+                'service_type' => $appointment->service_type,
                 'cancellation_reason' => $cancellationReason,
             ];
 
-            $this->systemEmailLog->logAndSendMailable([
-                'category' => 'appointment_cancellation',
-                'from_mail' => config('mail.noreply.address'),
-                'to_mail' => $appointment->client_email,
-                'subject' => 'Appointment Cancellation - Bansal Immigration',
-                'client_id' => $appointment->client_id,
-            ], new AppointmentCancellation($details), $appointment->client_email);
+            $this->sendClientAndOptionalAdmin(
+                [
+                    'category' => 'appointment_cancellation',
+                    'from_mail' => config('mail.noreply.address'),
+                    'to_mail' => $appointment->client_email,
+                    'subject' => 'Appointment Cancellation - Bansal Immigration',
+                    'client_id' => $appointment->client_id,
+                ],
+                fn (): AppointmentCancellation => new AppointmentCancellation($details),
+                $appointment->client_email,
+                $notifyAdmin
+            );
 
             Log::info('Sent cancellation confirmation email', [
                 'appointment_id' => $appointment->id,
@@ -184,25 +188,35 @@ class NotificationService
      * @param  BookingAppointment  $appointment  The appointment with the NEW datetime already saved.
      * @param  Carbon|null  $oldDatetime  The previous appointment datetime.
      */
-    public function sendRescheduleEmail(BookingAppointment $appointment, ?Carbon $oldDatetime): bool
-    {
+    public function sendRescheduleEmail(
+        BookingAppointment $appointment,
+        ?Carbon $oldDatetime,
+        bool $notifyAdmin = false
+    ): bool {
         try {
             $details = [
+                'appointment_id' => $appointment->id,
                 'client_name' => $appointment->client_name,
                 'old_datetime' => $oldDatetime,
                 'appointment_datetime' => $appointment->appointment_datetime,
                 'timeslot_full' => $appointment->timeslot_full,
                 'location' => $appointment->location,
                 'meeting_type' => $appointment->meeting_type,
+                'service_type' => $appointment->service_type,
             ];
 
-            $this->systemEmailLog->logAndSendMailable([
-                'category' => 'appointment_reschedule',
-                'from_mail' => config('mail.noreply.address'),
-                'to_mail' => $appointment->client_email,
-                'subject' => 'Appointment Rescheduled - Bansal Immigration',
-                'client_id' => $appointment->client_id,
-            ], new AppointmentReschedule($details), $appointment->client_email);
+            $this->sendClientAndOptionalAdmin(
+                [
+                    'category' => 'appointment_reschedule',
+                    'from_mail' => config('mail.noreply.address'),
+                    'to_mail' => $appointment->client_email,
+                    'subject' => 'Appointment Rescheduled - Bansal Immigration',
+                    'client_id' => $appointment->client_id,
+                ],
+                fn (): AppointmentReschedule => new AppointmentReschedule($details),
+                $appointment->client_email,
+                $notifyAdmin
+            );
 
             Log::info('Sent reschedule confirmation email', [
                 'appointment_id' => $appointment->id,
@@ -214,6 +228,47 @@ class NotificationService
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to send reschedule email', [
+                'appointment_id' => $appointment->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Send client (and optional admin) email after the client confirms from the booking email.
+     */
+    public function sendClientConfirmedEmail(BookingAppointment $appointment, bool $notifyAdmin = false): bool
+    {
+        try {
+            if (empty($appointment->client_email)) {
+                return false;
+            }
+
+            $details = $this->confirmationDetails($appointment);
+
+            $this->sendClientAndOptionalAdmin(
+                [
+                    'category' => 'appointment_client_confirmed',
+                    'from_mail' => config('mail.noreply.address'),
+                    'to_mail' => $appointment->client_email,
+                    'subject' => 'Appointment Confirmed - Bansal Immigration',
+                    'client_id' => $appointment->client_id,
+                ],
+                fn (): AppointmentClientConfirmed => new AppointmentClientConfirmed($details),
+                $appointment->client_email,
+                $notifyAdmin
+            );
+
+            Log::info('Sent client appointment confirmation email', [
+                'appointment_id' => $appointment->id,
+                'email' => $appointment->client_email,
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to send client appointment confirmation email', [
                 'appointment_id' => $appointment->id,
                 'error' => $e->getMessage(),
             ]);
@@ -484,5 +539,74 @@ class NotificationService
         Log::info('Sent appointment reminders', $stats);
 
         return $stats;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function confirmationDetails(BookingAppointment $appointment): array
+    {
+        return [
+            'appointment_id' => $appointment->id,
+            'client_name' => $appointment->client_name,
+            'appointment_datetime' => $appointment->appointment_datetime,
+            'timeslot_full' => $appointment->timeslot_full,
+            'location' => $appointment->location,
+            'meeting_type' => $appointment->meeting_type,
+            'service_type' => $appointment->service_type,
+            'admin_notes' => $appointment->admin_notes,
+        ];
+    }
+
+    /**
+     * @param  array{category: string, from_mail?: ?string, to_mail: string, subject?: ?string, client_id?: ?int}  $meta
+     * @param  callable(): Mailable  $mailableFactory
+     */
+    protected function sendClientAndOptionalAdmin(
+        array $meta,
+        callable $mailableFactory,
+        string $clientEmail,
+        bool $notifyAdmin
+    ): void {
+        $this->systemEmailLog->logAndSendMailable($meta, $mailableFactory(), $clientEmail);
+
+        if (! $notifyAdmin) {
+            return;
+        }
+
+        $adminEmail = $this->infoEmailAddress();
+        if ($adminEmail === '' || strcasecmp($adminEmail, $clientEmail) === 0) {
+            return;
+        }
+
+        $adminMeta = $meta;
+        $adminMeta['to_mail'] = $adminEmail;
+        $adminMeta['type'] = 'admin';
+        $adminMeta['subject'] = '[Info] '.($meta['subject'] ?? 'Appointment update');
+        $adminMeta['from_mail'] = $this->noreplyFromAddress();
+
+        $adminMailable = $mailableFactory();
+        $adminMailable->from(
+            $this->noreplyFromAddress(),
+            (string) config('mail.from.name', 'Bansal Immigration')
+        );
+
+        $this->systemEmailLog->logAndSendMailable($adminMeta, $adminMailable, $adminEmail);
+    }
+
+    protected function noreplyFromAddress(): string
+    {
+        $address = config('mail.noreply.address', 'noreply@bansalimmigration.com.au');
+
+        return is_string($address) && trim($address) !== ''
+            ? trim($address)
+            : 'noreply@bansalimmigration.com.au';
+    }
+
+    protected function infoEmailAddress(): string
+    {
+        $address = config('mail.info.address', config('mail.from.address', 'info@bansalimmigration.com.au'));
+
+        return is_string($address) ? trim($address) : 'info@bansalimmigration.com.au';
     }
 }

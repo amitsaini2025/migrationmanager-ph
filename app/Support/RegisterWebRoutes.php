@@ -22,6 +22,7 @@ use App\Http\Controllers\CRM\ReportController;
 use App\Http\Controllers\CRM\ReverbMessagingLabController;
 use App\Http\Controllers\CRM\StaffLoginAnalyticsController;
 use App\Http\Controllers\ExceptionController;
+use App\Http\Controllers\Public\PublicAppointmentActionController;
 use App\Http\Controllers\Public\PublicAppointmentPaymentController;
 use App\Http\Controllers\Public\PublicLeadInquiryController;
 use App\Http\Controllers\Public\PublicPhoneCallController;
@@ -103,6 +104,33 @@ final class RegisterWebRoutes
             $this->router->get('/appointment/pay/{token}', [PublicAppointmentPaymentController::class, 'show'])->name('public.appointment.pay');
             $this->router->post('/appointment/pay/{token}/intent', [PublicAppointmentPaymentController::class, 'createIntent'])->name('public.appointment.pay.intent');
             $this->router->post('/appointment/pay/{token}/complete', [PublicAppointmentPaymentController::class, 'complete'])->name('public.appointment.pay.complete');
+        });
+
+        $this->router->middleware('throttle:20,1')->group(function () {
+            $this->router->get('/appointment/{appointment}/cancel', [PublicAppointmentActionController::class, 'showCancel'])
+                ->whereNumber('appointment')
+                ->name('public.appointment.cancel.show');
+            $this->router->post('/appointment/{appointment}/cancel', [PublicAppointmentActionController::class, 'cancel'])
+                ->whereNumber('appointment')
+                ->name('public.appointment.cancel.submit');
+            $this->router->get('/appointment/{appointment}/confirm', [PublicAppointmentActionController::class, 'showConfirm'])
+                ->whereNumber('appointment')
+                ->name('public.appointment.confirm.show');
+            $this->router->post('/appointment/{appointment}/confirm', [PublicAppointmentActionController::class, 'confirm'])
+                ->whereNumber('appointment')
+                ->name('public.appointment.confirm.submit');
+            $this->router->get('/appointment/{appointment}/reschedule', [PublicAppointmentActionController::class, 'showReschedule'])
+                ->whereNumber('appointment')
+                ->name('public.appointment.reschedule.show');
+            $this->router->post('/appointment/{appointment}/reschedule', [PublicAppointmentActionController::class, 'reschedule'])
+                ->whereNumber('appointment')
+                ->name('public.appointment.reschedule.submit');
+            $this->router->get('/appointment/{appointment}/reschedule/availability', [PublicAppointmentActionController::class, 'availability'])
+                ->whereNumber('appointment')
+                ->name('public.appointment.reschedule.availability');
+            $this->router->post('/appointment/{appointment}/reschedule/slots', [PublicAppointmentActionController::class, 'slots'])
+                ->whereNumber('appointment')
+                ->name('public.appointment.reschedule.slots');
         });
 
         // Cache clearing route - protected with authentication
