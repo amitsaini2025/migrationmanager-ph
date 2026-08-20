@@ -6,6 +6,7 @@ use App\Models\BookingAppointment;
 use App\Models\AppointmentSyncLog;
 use App\Models\ActivitiesLog;
 use App\Support\AppointmentActivityDescription;
+use App\Support\BansalAppointmentDatetimeSync;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -324,6 +325,24 @@ class AppointmentSyncService
             ?? null;
         if ($effectiveStatus === 'cancelled' && !empty($cancelReason) && empty($appointment->cancellation_reason)) {
             $updates['cancellation_reason'] = $cancelReason;
+        }
+
+        $incomingDatetime = BansalAppointmentDatetimeSync::parseIncoming($appointmentData);
+        $websiteUpdatedAt = BansalAppointmentDatetimeSync::parseTimestamp($appointmentData['updated_at'] ?? null);
+        $crmDatetime = $appointment->appointment_datetime
+            ? Carbon::parse($appointment->appointment_datetime)
+            : null;
+        $crmLastSyncedAt = BansalAppointmentDatetimeSync::parseTimestamp($appointment->last_synced_at);
+
+        if ($incomingDatetime && BansalAppointmentDatetimeSync::shouldApply(
+            $incomingDatetime,
+            $crmDatetime,
+            $websiteUpdatedAt,
+            $crmLastSyncedAt
+        )) {
+            $duration = (int) ($appointment->duration_minutes ?: ($appointmentData['duration_minutes'] ?? 30));
+            $updates['appointment_datetime'] = $incomingDatetime;
+            $updates['timeslot_full'] = BansalAppointmentDatetimeSync::timeslotFull($incomingDatetime, $duration);
         }
 
         if ($updates === []) {
