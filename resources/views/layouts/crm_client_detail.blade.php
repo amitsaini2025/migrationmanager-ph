@@ -2861,6 +2861,7 @@
     </div>
 
     @include('crm.partials.cross-access-modal', ['crossAccessLeadBase' => url('/history')])
+    <script src="{{ asset('js/components/task-description-mentions.js') }}?v={{ @filemtime(public_path('js/components/task-description-mentions.js')) ?: time() }}"></script>
     @stack('scripts')
     
     {{-- Define updateNotificationBell before Vite so it's available when Echo/client_portal receive events --}}

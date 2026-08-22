@@ -74,7 +74,7 @@
                         <label class="simple-form-label">
                             @icon('align-left', ['class' => 'text-primary']) Task Description
                         </label>
-                        <textarea class="simple-form-control simple-textarea" id="dashboard_assignnote" name="description" placeholder="Enter task description..." rows="4"></textarea>
+                        <textarea class="simple-form-control simple-textarea js-staff-mentions" id="dashboard_assignnote" name="description" placeholder="Enter task description... (type @ to tag staff)" rows="4"></textarea>
                         <span class="custom-error note_error" role="alert" style="display: none;"></span>
                     </div>
 

@@ -690,7 +690,7 @@
                                 <div class="input-group-prepend">
                                     <span class="input-group-text">@icon('fa-align-left')</span>
                                 </div>
-                                <textarea id="assignnote" class="form-control enhanced-textarea" placeholder="Enter a note..."></textarea>
+                                <textarea id="assignnote" class="form-control enhanced-textarea js-staff-mentions" placeholder="Enter a note... (type @ to tag staff)"></textarea>
                             </div>
                         </div>
                     </div>

@@ -1315,7 +1315,7 @@ $(function () {
                 '</div>' +
                 '<div class="form-group form-group-full-width">' +
                     '<label class="control-label">' + (typeof crmIconLegacy === 'function' ? crmIconLegacy('fa fa-comment') : '<i class="fa fa-comment"></i>') + ' Task Description</label>' +
-                    '<textarea id="assignnote" class="form-control" rows="3" placeholder="Enter task description...">' + safeNote + '</textarea>' +
+                    '<textarea id="assignnote" class="form-control js-staff-mentions" rows="3" placeholder="Enter task description... (type @ to tag staff)">' + safeNote + '</textarea>' +
                     '<div id="note-error" class="error-message"></div>' +
                 '</div>' +
                 '<div class="form-group form-group-full-width">' +

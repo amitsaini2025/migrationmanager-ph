@@ -42,7 +42,7 @@
         </div>
         <div class="form-group form-group-full-width">
             <label class="control-label">@icon('message-circle', ['class' => 'icon-sm']) Task Description</label>
-            <textarea id="assignnote" class="form-control" rows="3" placeholder="Enter task description..."></textarea>
+            <textarea id="assignnote" class="form-control js-staff-mentions" rows="3" placeholder="Enter task description... (type @ to tag staff)"></textarea>
             <div id="note-error" class="error-message"></div>
         </div>
         <input id="task_group" name="task_group" type="hidden" value="Personal Action">
