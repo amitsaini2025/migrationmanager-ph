@@ -3,7 +3,9 @@ namespace App\Http\Controllers\CRM;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardRequest;
+use App\Models\Staff;
 use App\Services\DashboardService;
+use App\Services\StaffPersonalCalendarFeedService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -12,10 +14,15 @@ class DashboardController extends Controller
 {
     protected DashboardService $dashboardService;
 
-    public function __construct(DashboardService $dashboardService)
-    {
+    protected StaffPersonalCalendarFeedService $personalCalendarFeed;
+
+    public function __construct(
+        DashboardService $dashboardService,
+        StaffPersonalCalendarFeedService $personalCalendarFeed
+    ) {
         $this->middleware('auth:admin');
         $this->dashboardService = $dashboardService;
+        $this->personalCalendarFeed = $personalCalendarFeed;
     }
 
     /**
@@ -24,8 +31,38 @@ class DashboardController extends Controller
     public function index(DashboardRequest $request)
     {
         $dashboardData = $this->dashboardService->getDashboardData($request);
-        
+
+        $dashboardData['calendarTypes'] = $this->personalCalendarFeed->calendarTypeOptions();
+        $dashboardData['defaultCalendarType'] = StaffPersonalCalendarFeedService::DEFAULT_TYPE;
+        $dashboardData['calendarStats'] = ['today' => 0, 'this_week' => 0, 'upcoming' => 0];
+
         return view('crm.dashboard-optimized', $dashboardData);
+    }
+
+    /**
+     * JSON feed for dashboard appointment calendar.
+     * Lazy-loaded — does not run on the initial dashboard HTML request.
+     */
+    public function calendarEvents(Request $request)
+    {
+        $staff = Auth::user();
+        if (! $staff instanceof Staff) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $type = $this->personalCalendarFeed->normalizeCalendarType($request->input('type'));
+        $rows = $this->personalCalendarFeed->appointmentsForType($type, $request);
+        $events = array_map(
+            fn (array $row) => $this->personalCalendarFeed->toFullCalendarEvent($row),
+            $rows
+        );
+
+        return response()->json([
+            'success' => true,
+            'type' => $type,
+            'data' => $events,
+            'stats' => $this->personalCalendarFeed->statsForType($type),
+        ]);
     }
 
     /**

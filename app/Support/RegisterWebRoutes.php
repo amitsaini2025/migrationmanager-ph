@@ -181,6 +181,7 @@ final class RegisterWebRoutes
 
             /* ---------- Dashboard Routes ---------- */
             $this->router->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+            $this->router->get('/dashboard/calendar-events', [DashboardController::class, 'calendarEvents'])->name('dashboard.calendar-events');
             $this->router->get('/dashboard/matters-fragment', [DashboardController::class, 'mattersFragment'])->name('dashboard.matters-fragment');
             $this->router->get('/dashboard/cases-fragment', [DashboardController::class, 'casesFragment'])->name('dashboard.cases-fragment');
             $this->router->post('/dashboard/column-preferences', [DashboardController::class, 'saveColumnPreferences'])->name('dashboard.column-preferences');

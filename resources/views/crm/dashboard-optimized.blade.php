@@ -40,6 +40,13 @@
             />
         </section>
 
+        <x-dashboard.staff-calendar
+            :stats="$calendarStats ?? ['today' => 0, 'this_week' => 0, 'upcoming' => 0]"
+            :timezone="config('app.timezone')"
+            :calendar-types="$calendarTypes ?? []"
+            :default-type="$defaultCalendarType ?? 'paid'"
+        />
+
         @include('crm.partials.access-approvals-dashboard')
 
         {{-- Priority Focus Section --}}
@@ -183,6 +190,7 @@
 @push('styles')
 @once
 <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
+<link rel="stylesheet" href="{{ asset('css/dashboard-calendar.css') }}?v={{ @filemtime(public_path('css/dashboard-calendar.css')) ?: time() }}">
 <style>
 .dashboard-matters-fragment--loading {
     opacity: 0.55;
@@ -973,6 +981,7 @@
     // Define dashboard routes and data before loading the main script
     window.dashboardRoutes = {
         dashboard: "{{ route('dashboard') }}",
+        calendarEvents: "{{ route('dashboard.calendar-events') }}",
         mattersFragment: "{{ route('dashboard.matters-fragment') }}",
         casesFragment: "{{ route('dashboard.cases-fragment') }}",
         columnPreferences: "{{ route('dashboard.column-preferences') }}",
@@ -992,6 +1001,7 @@
     }
 </script>
 <script src="{{ asset('js/dashboard-optimized.js') }}"></script>
+<script src="{{ asset('js/dashboard-calendar.js') }}?v={{ @filemtime(public_path('js/dashboard-calendar.js')) ?: time() }}"></script>
 <script>
 $(function () {
     function getDashboardAddTaskPopoverHtml() {
