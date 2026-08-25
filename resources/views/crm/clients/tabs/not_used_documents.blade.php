@@ -1,12 +1,30 @@
            <!-- Not Used Documents Tab (Shared - Client Level) -->
-           <div class="tab-pane" id="notuseddocuments-tab">
+           @php
+                $notUsedDocumentsTabFragmentUrl = ! empty($encodeId)
+                    ? route('clients.detail.notuseddocuments-tab', array_filter([
+                        'client_id' => $encodeId,
+                        'client_unique_matter_ref_no' => $id1 ?? null,
+                    ], static function ($value) {
+                        return $value !== null && $value !== '';
+                    }))
+                    : '';
+           @endphp
+           <div class="tab-pane" id="notuseddocuments-tab"
+                @if($notUsedDocumentsTabFragmentUrl !== '') data-notuseddocuments-url="{{ $notUsedDocumentsTabFragmentUrl }}" @endif>
                 <div class="card full-width documentalls-container">
                     <div style="display: flex; gap: 20px; padding: 15px;">
                         <!-- Table Container -->
                         <div style="flex: 1; min-width: 0;">
                             <div class="subtab-header" style="margin-bottom: 15px;">
-                                <h3>@icon('fa-folder') Not Used Documents</h3>
-                                <p style="color: #374151;">Documents marked as "Not Used" from both Personal and Visa document tabs are shown here.</p>
+                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                    <div>
+                                        <h3>@icon('fa-folder') Not Used Documents</h3>
+                                        <p style="color: #374151; margin-bottom: 0;">Documents marked as "Not Used" from both Personal and Visa document tabs are shown here.</p>
+                                    </div>
+                                    <button type="button" class="btn btn-secondary client-nav-button client-nav-button--inline" data-tab="personaldocuments">
+                                        @icon('fa-folder') Personal Documents
+                                    </button>
+                                </div>
                             </div>
                             <div style="overflow: auto; max-height: calc(100vh - 250px);">
                                 <table class="checklist-table" style="width: 100%;">
@@ -20,14 +38,7 @@
                                     </thead>
                                     <tbody class="tdata notuseddocumnetlist">
                                         <?php
-                                        $fetchd = \App\Models\Document::where('client_id', $fetchedData->id)
-                                        ->where('not_used_doc', 1)
-                                        ->where('type','client')
-                                        ->where(function($query) {
-                                            $query->orWhere('doc_type','personal')
-                                            ->orWhere('doc_type','visa')
-                                            ->orWhere('doc_type','nomination');
-                                        })->orderBy('type', 'DESC')->get();
+                                        $fetchd = \App\Support\ClientDetailDocumentsTab::notUsedDocuments((int) $fetchedData->id);
 
                                         $personalCategoryIds = $fetchd->where('doc_type', 'personal')->pluck('folder_name')->filter()->unique()->values();
                                         $visaCategoryIds = $fetchd->where('doc_type', 'visa')->pluck('folder_name')->filter()->unique()->values();
@@ -67,7 +78,7 @@
 
                                         foreach($fetchd as $notuseKey=>$fetch)
                                         {
-                                            $admin = \App\Models\Staff::where('id', $fetch->user_id)->first();
+                                            $admin = $fetch->staff;
 
                                             $categoryLabel = '';
                                             if ($fetch->doc_type === 'personal') {
@@ -119,7 +130,15 @@
                                                     if( isset($fetch->file_name) && $fetch->file_name !=""){ 
                                                         $fileUrl = isset($fetch->myfile_key) && $fetch->myfile_key != "" ? $fetch->myfile : 'https://'.env('AWS_BUCKET').'.s3.'. env('AWS_DEFAULT_REGION') . '.amazonaws.com/'.$fetchedData->client_id.'/'.$fetch->doc_type.'/'.$fetch->myfile;
                                                     ?>
-                                                        <div data-id="{{$fetch->id}}" data-name="<?php echo $fetch->file_name; ?>" class="doc-row" title="Uploaded by: <?php echo ($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>" oncontextmenu="showNotUsedFileContextMenu(event, <?= $fetch->id ?>, '<?= htmlspecialchars($fetch->getPreviewFileExtension()) ?>', '<?= $fileUrl ?>', '<?= $fetch->doc_type ?>', '<?= $fetch->status ?? 'draft' ?>'); return false;">
+                                                        <div data-id="{{$fetch->id}}"
+                                                             data-name="<?php echo $fetch->file_name; ?>"
+                                                             data-file-ext="<?= htmlspecialchars($fetch->getPreviewFileExtension(), ENT_QUOTES, 'UTF-8') ?>"
+                                                             data-file-url="<?= htmlspecialchars($fileUrl, ENT_QUOTES, 'UTF-8') ?>"
+                                                             data-doc-type="<?= htmlspecialchars((string) $fetch->doc_type, ENT_QUOTES, 'UTF-8') ?>"
+                                                             data-file-status="<?= htmlspecialchars((string) ($fetch->status ?? 'draft'), ENT_QUOTES, 'UTF-8') ?>"
+                                                             class="doc-row"
+                                                             title="Uploaded by: <?php echo ($admin->first_name ?? 'NA'); ?> on <?php echo date('d/m/Y H:i', strtotime($fetch->created_at)); ?>"
+                                                             oncontextmenu="showNotUsedFileContextMenu(event, <?= (int) $fetch->id ?>, this.getAttribute('data-file-ext'), this.getAttribute('data-file-url'), this.getAttribute('data-doc-type'), this.getAttribute('data-file-status')); return false;">
                                                             <?php if( isset($fetch->myfile_key) && $fetch->myfile_key != ""){ //For new file upload ?>
                                                                 <a href="javascript:void(0);" onclick="previewFile('<?php echo $fetch->getPreviewFileExtension();?>','<?php echo $fetch->myfile; ?>','preview-container-notuseddocumnetlist')">
                                                                     {!! \App\Helpers\IconHelper::fromLegacy('fas fa-file-image') !!} <span><?php echo $fetch->getFilenameWithExtensionForDisplay(); ?></span>
@@ -161,6 +180,9 @@
             </div>
 
             <!-- Custom Context Menu for Not Used Documents -->
+            {{-- Handlers live on window from notuseddocuments-tab.js (always loaded).
+                 Do not redefine them here: lazy inject wraps this script in an IIFE and
+                 a second currentNotUsedContextFile would break Preview/Delete/Back To Document. --}}
             <div id="notUsedFileContextMenu" class="context-menu" style="display: none; position: fixed; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10000; min-width: 180px;">
                 <div class="context-menu-item" onclick="handleNotUsedContextAction('preview')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
                     @icon('fa-eye', ['style' => 'margin-right: 8px;']) Preview
@@ -173,89 +195,8 @@
                 </div>
             </div>
 
-            <script>
-                let currentNotUsedContextFile = null;
-                let currentNotUsedContextData = {};
-
-                function showNotUsedFileContextMenu(event, fileId, fileType, fileUrl, docType, fileStatus) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    currentNotUsedContextFile = fileId;
-                    currentNotUsedContextData = {
-                        fileId: fileId,
-                        fileType: fileType,
-                        fileUrl: fileUrl,
-                        docType: docType,
-                        fileStatus: fileStatus
-                    };
-
-                    const menu = document.getElementById('notUsedFileContextMenu');
-                    
-                    // Position menu at cursor (position: fixed uses viewport coordinates)
-                    const MENU_WIDTH = 180;
-                    const MENU_HEIGHT = 120;
-                    const viewportWidth = window.innerWidth;
-                    const viewportHeight = window.innerHeight;
-                    const offset = 5;
-
-                    let menuLeft = event.clientX + offset;
-                    let menuTop = event.clientY + offset;
-
-                    if (menuLeft + MENU_WIDTH > viewportWidth) {
-                        menuLeft = event.clientX - MENU_WIDTH - offset;
-                    }
-                    if (menuTop + MENU_HEIGHT > viewportHeight) {
-                        menuTop = event.clientY - MENU_HEIGHT - offset;
-                    }
-                    menuLeft = Math.max(offset, menuLeft);
-                    menuTop = Math.max(offset, menuTop);
-
-                    menu.style.left = menuLeft + 'px';
-                    menu.style.top = menuTop + 'px';
-
-                    menu.style.display = 'block';
-
-                    // Hide menu when clicking elsewhere
-                    setTimeout(() => {
-                        document.addEventListener('click', hideNotUsedContextMenu);
-                    }, 100);
-                }
-
-                function hideNotUsedContextMenu() {
-                    const menu = document.getElementById('notUsedFileContextMenu');
-                    menu.style.display = 'none';
-                    document.removeEventListener('click', hideNotUsedContextMenu);
-                }
-
-                function handleNotUsedContextAction(action) {
-                    if (!currentNotUsedContextFile) return;
-
-                    hideNotUsedContextMenu();
-
-                    switch(action) {
-                        case 'preview':
-                            window.open(currentNotUsedContextData.fileUrl, '_blank');
-                            break;
-                        case 'delete':
-                            $('.deletenote[data-id="' + currentNotUsedContextFile + '"]').click();
-                            break;
-                        case 'back-to-doc':
-                            $('.backtodoc[data-id="' + currentNotUsedContextFile + '"]').click();
-                            break;
-                    }
-                }
-
-                // Hide context menu on escape key
-                document.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape') {
-                        hideNotUsedContextMenu();
-                    }
-                });
-            </script>
-
             <style>
-                .context-menu-item:hover {
+                #notUsedFileContextMenu .context-menu-item:hover {
                     background-color: #f8f9fa;
                 }
             </style>

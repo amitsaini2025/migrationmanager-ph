@@ -56,11 +56,17 @@
 
     /**
      * Setup tab click handlers
+     * @param {Element|jQuery|Document|null} root Limit to nav buttons under this root (after lazy inject).
      */
-    function setupTabClickHandlers() {
+    function setupTabClickHandlers(root) {
         // IMPORTANT: Attach handlers DIRECTLY to each button element
         // This ensures our handler runs BEFORE any delegated handlers that might stop propagation
-        $('.client-nav-button').each(function() {
+        var $scope = root ? $(root) : $(document);
+        var $buttons = root
+            ? $scope.find('.client-nav-button').addBack('.client-nav-button')
+            : $('.client-nav-button');
+
+        $buttons.each(function() {
             const $button = $(this);
             const tabId = $button.data('tab');
             
@@ -82,6 +88,13 @@
                 return false;
             });
         });
+    }
+
+    /**
+     * Re-bind inline client-nav-button jumps (e.g. Personal ↔ Not Used) after a tab inject.
+     */
+    function bindNavButtons(root) {
+        setupTabClickHandlers(root || document);
     }
 
     /**
@@ -226,16 +239,44 @@
         // Filter content by matter
         switch(tabId) {
             case 'noteterm':
-                ensureAllTabActive();
-                if (typeof window.filterNotes === 'function') {
-                    window.filterNotes();
-                } else {
-                    filterNotesByMatter(SidebarTabs.selectedMatter);
-                }
+                (typeof window.ensureNotesTabLoaded === 'function'
+                    ? window.ensureNotesTabLoaded()
+                    : Promise.resolve()
+                ).then(function() {
+                    ensureAllTabActive();
+                    if (typeof window.filterNotes === 'function') {
+                        window.filterNotes();
+                    } else {
+                        filterNotesByMatter(SidebarTabs.selectedMatter);
+                    }
+                }).catch(function(err) {
+                    console.error('[SidebarTabs] Failed to load Notes tab', err);
+                });
                 break;
             case 'visadocuments':
-                filterVisaDocumentsByMatter(SidebarTabs.selectedMatter);
+                (typeof window.ensureVisaDocumentsTabLoaded === 'function'
+                    ? window.ensureVisaDocumentsTabLoaded()
+                    : Promise.resolve()
+                ).then(function() {
+                    filterVisaDocumentsByMatter(SidebarTabs.selectedMatter);
+                }).catch(function(err) {
+                    console.error('[SidebarTabs] Failed to load Visa Documents tab', err);
+                });
                 // Form 956 PDF downloads on create only (detail-main.js); do not mass-download on tab open/reload
+                break;
+            case 'personaldocuments':
+                if (typeof window.ensurePersonalDocumentsTabLoaded === 'function') {
+                    window.ensurePersonalDocumentsTabLoaded().catch(function(err) {
+                        console.error('[SidebarTabs] Failed to load Personal Documents tab', err);
+                    });
+                }
+                break;
+            case 'notuseddocuments':
+                if (typeof window.ensureNotUsedDocumentsTabLoaded === 'function') {
+                    window.ensureNotUsedDocumentsTabLoaded().catch(function(err) {
+                        console.error('[SidebarTabs] Failed to load Not Used Documents tab', err);
+                    });
+                }
                 break;
             case 'nominationdocuments':
                 filterNominationDocumentsByMatter(SidebarTabs.selectedMatter);
@@ -256,8 +297,13 @@
                 });
                 break;
             case 'emails':
-                if (typeof window.loadEmails === 'function') {
-                    window.loadEmails({ forceReload: true });
+                if (typeof window.ensureEmailsTabLoaded === 'function') {
+                    window.ensureEmailsTabLoaded().catch(function(err) {
+                        console.error('[SidebarTabs] Failed to load Emails tab', err);
+                    });
+                } else if (typeof window.loadEmails === 'function') {
+                    // Company / pages without emails-tab.js: load once, then cache
+                    window.loadEmails();
                 }
                 break;
             case 'workflow':
@@ -274,6 +320,20 @@
                 }).catch(function(err) {
                     console.error('[SidebarTabs] Failed to load Workflow tab', err);
                 });
+                break;
+            case 'account':
+                if (typeof window.ensureAccountTabLoaded === 'function') {
+                    window.ensureAccountTabLoaded().catch(function(err) {
+                        console.error('[SidebarTabs] Failed to load Account tab', err);
+                    });
+                }
+                break;
+            case 'checklists':
+                if (typeof window.ensureChecklistsTabLoaded === 'function') {
+                    window.ensureChecklistsTabLoaded().catch(function(err) {
+                        console.error('[SidebarTabs] Failed to load Checklists tab', err);
+                    });
+                }
                 break;
         }
     }
@@ -488,6 +548,7 @@
         init: init,
         activateTab: activateTab,
         ensureAllTabActive: ensureAllTabActive,
+        bindNavButtons: bindNavButtons,
         filterNotesByMatter: filterNotesByMatter,
         filterVisaDocumentsByMatter: filterVisaDocumentsByMatter,
         filterNominationDocumentsByMatter: filterNominationDocumentsByMatter,

@@ -2,93 +2,73 @@
 
 namespace App\Traits;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-
-use App\Models\Admin;
-use App\Models\Staff;
-use App\Models\Company;
-use App\Models\Lead;
 use App\Models\ActivitiesLog;
-use Illuminate\Support\Facades\Auth;
-use App\Helpers\PhoneHelper;
-use App\Helpers\IconHelper;
-use App\Models\CheckinLog;
-use App\Models\Note;
-use App\Models\BookingAppointment;
-use App\Models\AccountClientReceipt;
-
-use App\Models\Matter;
-use App\Models\ClientMatter;
+use App\Models\Admin;
 use App\Models\Branch;
-
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Facades\Mail;
-use App\Services\ClientReferenceService;
-use App\Services\MergeClientRecordsService;
-use App\Support\ActionTaskGroup;
-use App\Support\AppointmentActivityDescription;
-use App\Support\NoteDescriptionHtml;
-use App\Support\StaffClientVisibility;
-use App\Support\WorkflowAssignment;
-use App\Services\LegalCrm\LegalCrmApiClient;
-
-use DateTime;
-use DateTimeZone;
-
+use App\Models\CheckinLog;
 use App\Models\ClientAddress;
 use App\Models\ClientContact;
 use App\Models\ClientEmail;
-use App\Models\ClientQualification;
 use App\Models\ClientExperience;
-use App\Models\ClientTestScore;
-use App\Models\ClientVisaCountry;
+use App\Models\ClientMatter;
 use App\Models\ClientOccupation;
-use App\Models\ClientSpouseDetail;
-use App\Models\AppointmentConsultant;
-use App\Support\BansalSchedulingServiceType;
-
-use App\Models\ClientPoint;
-use Carbon\Carbon;
-use Illuminate\Validation\Rule;
-
-use Illuminate\Support\Facades\Validator;
-use GuzzleHttp\Client;
-
 use App\Models\ClientPassportInformation;
-use App\Models\ClientTravelInformation;
-use App\Models\ClientCharacter;
+use App\Models\ClientPoint;
+use App\Models\ClientQualification;
 use App\Models\ClientRelationship;
+use App\Models\ClientSpouseDetail;
+use App\Models\ClientTestScore;
+use App\Models\ClientTravelInformation;
+use App\Models\ClientVisaCountry;
+use App\Models\Company;
+use App\Models\Document;
+use App\Models\EmailLog;
+use App\Models\EmailLogAttachment;
 use App\Models\EmailTemplate;
+use App\Models\Lead;
+use App\Models\Matter;
+use App\Models\Note;
+use App\Models\Notification;
 use App\Models\SmsTemplate;
-
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
-
-use App\Models\Form956;
-use PhpOffice\PhpWord\Settings;
-use PhpOffice\PhpWord\TemplateProcessor;
-use App\Models\CostAssignmentForm;
-use App\Models\PersonalDocumentType;
-use App\Models\VisaDocumentType;
-use App\Models\ClientEoiReference;
-use PhpOffice\PhpWord\IOFactory;
-use PhpOffice\PhpWord\PhpWord;
-use App\Mail\HubdocInvoiceMail;
-use App\Services\MatterEmailBodyCleanupService;
-use App\Services\EmailLogListService;
-use App\Services\Sms\UnifiedSmsManager;
-use App\Services\BansalAppointmentSync\BansalApiClient;
+use App\Models\Staff;
+use App\Models\Tag;
+use App\Services\ClientEditService;
 use App\Services\ClientExportService;
-use App\Services\ClientLeadListExportService;
-use App\Services\FCMService;
 use App\Services\ClientImportService;
+use App\Services\ClientLeadListExportService;
+use App\Services\EmailLogListService;
+use App\Services\FCMService;
+use App\Services\LegalCrm\LegalCrmApiClient;
+use App\Services\MatterEmailBodyCleanupService;
+use App\Services\Sms\UnifiedSmsManager;
+use App\Support\ActionTaskGroup;
+use App\Support\ClientDetailAccountTab;
+use App\Support\ClientDetailChecklistsTab;
+use App\Support\ClientDetailTabs;
+use App\Support\NoteDescriptionHtml;
+use App\Support\StaffClientVisibility;
+use App\Support\WorkflowAssignment;
+use App\Support\WorkflowStageChecklistSync;
+use Carbon\Carbon;
+use GuzzleHttp\Client;
+use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * ClientsController CRM list, detail, search, activity, email, merge, and action methods.
@@ -97,182 +77,186 @@ use App\Services\ClientImportService;
  */
 trait ClientCrmFollowups
 {
+    public function activities(Request $request)
+    {
+        // Bypass all output buffering
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
 
-	public function activities(Request $request){ 
-		// Bypass all output buffering
-		while (ob_get_level()) {
-			ob_end_clean();
-		}
-		
-		// Start fresh output buffer
-		ob_start();
-		
-		// Force error reporting off
-		@ini_set('display_errors', '0');
-		@error_reporting(0);
-		
-		// Initialize response with default error state
-		$response = [
-			'status' => false,
-			'message' => 'An error occurred while fetching activities'
-		];
+        // Start fresh output buffer
+        ob_start();
 
-		try {
-			// Validate request has id parameter
-			if (!$request->has('id') || empty($request->id)) {
-				$response['message'] = 'Client ID is required';
-				header('Content-Type: application/json');
-				echo json_encode($response);
-				ob_end_flush();
-				exit;
-			}
+        // Force error reporting off
+        @ini_set('display_errors', '0');
+        @error_reporting(0);
 
-			// Check if client exists - role must be integer for PostgreSQL compatibility
-			$clientExists = Admin::whereIn('type', ['client', 'lead'])->where('id', $request->id)->exists();
-			
-			if($clientExists && ! StaffClientVisibility::canAccessClientOrLead((int) $request->id, Auth::user())){
-				$response['message'] = config('constants.unauthorized');
-				header('Content-Type: application/json');
-				echo json_encode($response);
-				ob_end_flush();
-				exit;
-			}
-			
-			if($clientExists){
-				$perPage = min(max((int) $request->input('per_page', 40), 1), 100);
-				$page = max((int) $request->input('page', 1), 1);
-				$staffSearch = trim((string) ($request->input('staff', $request->input('user', ''))));
-				$keywordSearch = trim((string) $request->input('keyword', ''));
+        // Initialize response with default error state
+        $response = [
+            'status' => false,
+            'message' => 'An error occurred while fetching activities',
+        ];
 
-				$query = ActivitiesLog::where('client_id', $request->id)
-					->with('staff');
+        try {
+            // Validate request has id parameter
+            if (! $request->has('id') || empty($request->id)) {
+                $response['message'] = 'Client ID is required';
+                header('Content-Type: application/json');
+                echo json_encode($response);
+                ob_end_flush();
+                exit;
+            }
 
-				if ($staffSearch !== '') {
-					$query->whereHas('staff', function ($staffQuery) use ($staffSearch) {
-						$staffSearchLower = strtolower($staffSearch);
-						$staffQuery->whereRaw('LOWER(first_name) LIKE ?', ['%'.$staffSearchLower.'%']);
-					});
-				}
+            // Check if client exists - role must be integer for PostgreSQL compatibility
+            $clientExists = Admin::whereIn('type', ['client', 'lead'])->where('id', $request->id)->exists();
 
-				if ($keywordSearch !== '') {
-					$query->where(function ($keywordQuery) use ($keywordSearch) {
-						$keywordQuery->where('description', 'like', '%'.$keywordSearch.'%')
-							->orWhere('subject', 'like', '%'.$keywordSearch.'%');
-					});
-				}
+            if ($clientExists && ! StaffClientVisibility::canAccessClientOrLead((int) $request->id, Auth::user())) {
+                $response['message'] = config('constants.unauthorized');
+                header('Content-Type: application/json');
+                echo json_encode($response);
+                ob_end_flush();
+                exit;
+            }
 
-				$activities = (clone $query)
-					->orderby('created_at', 'DESC')
-					->skip(($page - 1) * $perPage)
-					->take($perPage + 1)
-					->get();
+            if ($clientExists) {
+                $perPage = min(max((int) $request->input('per_page', 40), 1), 100);
+                $page = max((int) $request->input('page', 1), 1);
+                $staffSearch = trim((string) ($request->input('staff', $request->input('user', ''))));
+                $keywordSearch = trim((string) $request->input('keyword', ''));
 
-				$hasMore = $activities->count() > $perPage;
-				if ($hasMore) {
-					$activities = $activities->take($perPage);
-				}
-				
-				$data = array();
-				
-				foreach($activities as $activit){
-					$admin = $activit->staff;
-					$fullName = $admin ? trim(($admin->first_name ?? '') . ' ' . ($admin->last_name ?? '')) : 'Unknown';
-					if (empty(trim($fullName))) $fullName = $admin ? $admin->first_name : 'Unknown';
-					$subjectWithoutStaffPrefix = ActivitiesLog::displaySubjectWithoutStaffPrefix(
-						$activit->activity_type ?? null,
-						$activit->subject ?? null
-					);
-					$data[] = array(
-						'activity_id' => $activit->id,
-						'subject' => $activit->subject ?? '',
-						'subject_without_staff_prefix' => $subjectWithoutStaffPrefix,
-						'createdname' => $admin ? substr($admin->first_name, 0, 1) : '?',
-						'name' => $fullName,
-						'message' => NoteDescriptionHtml::forDisplay($activit->description ?? ''),
-						'date' => date('d M Y, H:i A', strtotime($activit->created_at)),
-						'created_at_ymd' => $activit->created_at ? \Carbon\Carbon::parse($activit->created_at)->format('Y-m-d') : '',
-						'followup_date' => ActivitiesLog::formatFollowupDateForDisplay($activit->followup_date),
-						'task_group' => $activit->task_group ?? '',
-						'pin' => $activit->pin ?? 0,
-						'activity_type' => $activit->activity_type
-					);
-				}
+                $query = ActivitiesLog::where('client_id', $request->id)
+                    ->with('staff');
 
-				$response['status'] 	= 	true;
-				$response['data']	=	$data;
-				$response['page'] = $page;
-				$response['per_page'] = $perPage;
-				$response['has_more'] = $hasMore;
-				unset($response['message']); // Remove error message on success
-			}else{
-				$response['status'] 	= 	false;
-				$response['message']	=	'Client not found';
-			}
-		} catch (\Exception $e) {
-			Log::error('Error fetching activities (Exception): ' . $e->getMessage(), [
-				'client_id' => $request->id ?? 'N/A',
-				'file' => $e->getFile(),
-				'line' => $e->getLine(),
-				'trace' => $e->getTraceAsString()
-			]);
-			$response['status'] = false;
-			$response['message'] = 'Exception: ' . $e->getMessage();
-		} catch (\Throwable $e) {
-			// Catch fatal errors
-			Log::error('Fatal error fetching activities (Throwable): ' . $e->getMessage(), [
-				'client_id' => $request->id ?? 'N/A',
-				'file' => $e->getFile(),
-				'line' => $e->getLine(),
-				'trace' => $e->getTraceAsString()
-			]);
-			$response['status'] = false;
-			$response['message'] = 'Fatal: ' . $e->getMessage();
-		}
+                if ($staffSearch !== '') {
+                    $query->whereHas('staff', function ($staffQuery) use ($staffSearch) {
+                        $staffSearchLower = strtolower($staffSearch);
+                        $staffQuery->whereRaw('LOWER(first_name) LIKE ?', ['%'.$staffSearchLower.'%']);
+                    });
+                }
 
-		// Ensure JSON response is always returned
-		header('Content-Type: application/json');
-		$jsonOutput = json_encode($response);
-		echo $jsonOutput;
-		ob_end_flush();
-		exit;
-	}
+                if ($keywordSearch !== '') {
+                    $query->where(function ($keywordQuery) use ($keywordSearch) {
+                        $keywordQuery->where('description', 'like', '%'.$keywordSearch.'%')
+                            ->orWhere('subject', 'like', '%'.$keywordSearch.'%');
+                    });
+                }
 
-	public function updateclientstatus(Request $request){
-		if(Admin::whereIn('type', ['client', 'lead'])->where('id', $request->id)->exists()){
-			if (! StaffClientVisibility::canAccessClientOrLead((int) $request->id, Auth::user())) {
-				$response['status'] = false;
-				$response['message'] = config('constants.unauthorized');
-				echo json_encode($response);
-				return;
-			}
-			// rating column dropped Phase 4 - no-op
-			$response['status'] 	= 	true;
-			$response['message']	=	'You\'ve successfully updated your client\'s information.';
-		}else{
-			$response['status'] 	= 	false;
-			$response['message']	=	'Please try again';
-		}
-		echo json_encode($response);
-	}
+                $activities = (clone $query)
+                    ->orderby('created_at', 'DESC')
+                    ->skip(($page - 1) * $perPage)
+                    ->take($perPage + 1)
+                    ->get();
 
-	public function uploadmail(Request $request){
-		$requestData 		= 	$request->all();
-        $obj				= 	new \App\Models\EmailLog;
-		$obj->user_id		=	Auth::user()->id;
-		$obj->from_mail 	=  $requestData['from'];
-		$obj->to_mail 		=  $requestData['to'];
-		$obj->subject		=  $requestData['subject'];
-		$obj->message		=  $requestData['message'];
-		$obj->mail_type		=  1;
-		$obj->client_id		=  @$requestData['client_id'];
-		$saved				=	$obj->save();
-		if(!$saved) {
+                $hasMore = $activities->count() > $perPage;
+                if ($hasMore) {
+                    $activities = $activities->take($perPage);
+                }
+
+                $data = [];
+
+                foreach ($activities as $activit) {
+                    $admin = $activit->staff;
+                    $fullName = $admin ? trim(($admin->first_name ?? '').' '.($admin->last_name ?? '')) : 'Unknown';
+                    if (empty(trim($fullName))) {
+                        $fullName = $admin ? $admin->first_name : 'Unknown';
+                    }
+                    $subjectWithoutStaffPrefix = ActivitiesLog::displaySubjectWithoutStaffPrefix(
+                        $activit->activity_type ?? null,
+                        $activit->subject ?? null
+                    );
+                    $data[] = [
+                        'activity_id' => $activit->id,
+                        'subject' => $activit->subject ?? '',
+                        'subject_without_staff_prefix' => $subjectWithoutStaffPrefix,
+                        'createdname' => $admin ? substr($admin->first_name, 0, 1) : '?',
+                        'name' => $fullName,
+                        'message' => NoteDescriptionHtml::forDisplay($activit->description ?? ''),
+                        'date' => date('d M Y, H:i A', strtotime($activit->created_at)),
+                        'created_at_ymd' => $activit->created_at ? Carbon::parse($activit->created_at)->format('Y-m-d') : '',
+                        'followup_date' => ActivitiesLog::formatFollowupDateForDisplay($activit->followup_date),
+                        'task_group' => $activit->task_group ?? '',
+                        'pin' => $activit->pin ?? 0,
+                        'activity_type' => $activit->activity_type,
+                    ];
+                }
+
+                $response['status'] = true;
+                $response['data'] = $data;
+                $response['page'] = $page;
+                $response['per_page'] = $perPage;
+                $response['has_more'] = $hasMore;
+                unset($response['message']); // Remove error message on success
+            } else {
+                $response['status'] = false;
+                $response['message'] = 'Client not found';
+            }
+        } catch (\Exception $e) {
+            Log::error('Error fetching activities (Exception): '.$e->getMessage(), [
+                'client_id' => $request->id ?? 'N/A',
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $response['status'] = false;
+            $response['message'] = 'Exception: '.$e->getMessage();
+        } catch (\Throwable $e) {
+            // Catch fatal errors
+            Log::error('Fatal error fetching activities (Throwable): '.$e->getMessage(), [
+                'client_id' => $request->id ?? 'N/A',
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $response['status'] = false;
+            $response['message'] = 'Fatal: '.$e->getMessage();
+        }
+
+        // Ensure JSON response is always returned
+        header('Content-Type: application/json');
+        $jsonOutput = json_encode($response);
+        echo $jsonOutput;
+        ob_end_flush();
+        exit;
+    }
+
+    public function updateclientstatus(Request $request)
+    {
+        if (Admin::whereIn('type', ['client', 'lead'])->where('id', $request->id)->exists()) {
+            if (! StaffClientVisibility::canAccessClientOrLead((int) $request->id, Auth::user())) {
+                $response['status'] = false;
+                $response['message'] = config('constants.unauthorized');
+                echo json_encode($response);
+
+                return;
+            }
+            // rating column dropped Phase 4 - no-op
+            $response['status'] = true;
+            $response['message'] = 'You\'ve successfully updated your client\'s information.';
+        } else {
+            $response['status'] = false;
+            $response['message'] = 'Please try again';
+        }
+        echo json_encode($response);
+    }
+
+    public function uploadmail(Request $request)
+    {
+        $requestData = $request->all();
+        $obj = new EmailLog;
+        $obj->user_id = Auth::user()->id;
+        $obj->from_mail = $requestData['from'];
+        $obj->to_mail = $requestData['to'];
+        $obj->subject = $requestData['subject'];
+        $obj->message = $requestData['message'];
+        $obj->mail_type = 1;
+        $obj->client_id = @$requestData['client_id'];
+        $saved = $obj->save();
+        if (! $saved) {
             return redirect()->back()->with('error', config('constants.server_error'));
         } else {
             return redirect()->back()->with('success', 'Email uploaded Successfully');
         }
-	}
-
+    }
 
     /*public function merge_records(Request $request){
         if(isset($request->merge_record_ids) && $request->merge_record_ids != ""){
@@ -351,7 +335,7 @@ trait ClientCrmFollowups
 
                 if($saved2){
                     $response['status'] 	= 	true;
-				    $response['message']	=	'You have successfully merged records.';
+                    $response['message']	=	'You have successfully merged records.';
                 }else{
                     $response['status'] 	= 	false;
                     $response['message']	=	'Please try again';
@@ -361,16 +345,18 @@ trait ClientCrmFollowups
         }
     }*/
 
-    public function merge_records(Request $request){
-        $response = array();
-        $response['status'] 	= 	false;
-        $response['message']	=	'Please try again';
+    public function merge_records(Request $request)
+    {
+        $response = [];
+        $response['status'] = false;
+        $response['message'] = 'Please try again';
 
         $mergeFrom = (int) $request->input('merge_from');
         $mergeInto = (int) $request->input('merge_into');
 
         if ($mergeFrom <= 0 || $mergeInto <= 0 || $mergeFrom === $mergeInto) {
             $response['message'] = 'Please select two different records to merge.';
+
             return response()->json($response);
         }
 
@@ -385,24 +371,25 @@ trait ClientCrmFollowups
         $intoRecord = Admin::query()->where('id', $mergeInto)->whereNull('is_deleted')->first();
         if (! $fromRecord || ! $intoRecord) {
             $response['message'] = 'One or both records were not found.';
+
             return response()->json($response);
         }
 
-        if(
-            ( isset($request->merge_from) && $request->merge_from != "" )
-            && ( isset($request->merge_into) && $request->merge_into != "" )
-        ){
+        if (
+            (isset($request->merge_from) && $request->merge_from != '')
+            && (isset($request->merge_into) && $request->merge_into != '')
+        ) {
             DB::beginTransaction();
 
             try {
-            $this->mergeClientRecords->move($mergeFrom, $mergeInto);
+                $this->mergeClientRecords->move($mergeFrom, $mergeInto);
 
-            // Survivor is merge_into; retire merge_from (the record being merged away).
-            DB::table('admins')->where('id', $mergeFrom)->update( array('is_deleted'=>1) );
+                // Survivor is merge_into; retire merge_from (the record being merged away).
+                DB::table('admins')->where('id', $mergeFrom)->update(['is_deleted' => 1]);
 
-            DB::commit();
-            $response['status'] 	= 	true;
-            $response['message']	=	'You have successfully merged records.';
+                DB::commit();
+                $response['status'] = true;
+                $response['message'] = 'You have successfully merged records.';
             } catch (\Throwable $e) {
                 DB::rollBack();
                 Log::error('merge_records failed', [
@@ -410,10 +397,11 @@ trait ClientCrmFollowups
                     'merge_into' => $mergeInto,
                     'error' => $e->getMessage(),
                 ]);
-                $response['status'] 	= 	false;
-                $response['message']	=	'Merge failed. Please try again.';
+                $response['status'] = false;
+                $response['message'] = 'Merge failed. Please try again.';
             }
         }
+
         return response()->json($response);
     }
 
@@ -491,136 +479,137 @@ trait ClientCrmFollowups
         return response()->json(['results' => $results]);
     }
 
-    //address_auto_populate
-    public function address_auto_populate(Request $request){
+    // address_auto_populate
+    public function address_auto_populate(Request $request)
+    {
         $address = $request->address;
-        if( isset($address) && $address != ""){
-            $result = app('geocoder')->geocode($address)->get(); //dd($result[0]);
+        if (isset($address) && $address != '') {
+            $result = app('geocoder')->geocode($address)->get(); // dd($result[0]);
             $postalCode = $result[0]->getPostalCode();
             $locality = $result[0]->getLocality();
-            if( !empty($result) ){
-                $response['status'] 	= 	1;
-                $response['postal_code'] = 	$postalCode;
-                $response['locality'] 	= 	$locality;
-                $response['message']	=	"address is success.";
+            if (! empty($result)) {
+                $response['status'] = 1;
+                $response['postal_code'] = $postalCode;
+                $response['locality'] = $locality;
+                $response['message'] = 'address is success.';
             } else {
-                $response['status'] 	= 	0;
-                $response['postal_code'] = 	"";
-                $response['locality']    = 	"";
-                $response['message']	=	"address is wrong.";
+                $response['status'] = 0;
+                $response['postal_code'] = '';
+                $response['locality'] = '';
+                $response['message'] = 'address is wrong.';
             }
             echo json_encode($response);
         }
     }
 
-    //not picked call button click
-    public function notpickedcall(Request $request){
-        $data = $request->all(); //dd($data);
+    // not picked call button click
+    public function notpickedcall(Request $request)
+    {
+        $data = $request->all(); // dd($data);
         $response = [
             'status' => false,
             'message' => 'Please try again',
             'not_picked_call' => $data['not_picked_call'] ?? null,
         ];
-        //Get client phone and send message via UnifiedSmsManager
-        $clientInfo = Admin::select('id','country_code','phone')->where('id', $data['id'])->first();//dd($clientInfo);
-        
+        // Get client phone and send message via UnifiedSmsManager
+        $clientInfo = Admin::select('id', 'country_code', 'phone')->where('id', $data['id'])->first(); // dd($clientInfo);
+
         $smsResult = null;
         if ($clientInfo) {
             $message = $data['message'];
-            $clientPhone = $clientInfo->country_code."".$clientInfo->phone;
-            
+            $clientPhone = $clientInfo->country_code.''.$clientInfo->phone;
+
             // Use UnifiedSmsManager with proper context (auto-creates activity log)
             $smsResult = $this->smsManager->sendSms($clientPhone, $message, 'notification', [
-                'client_id' => $data['id']
+                'client_id' => $data['id'],
             ]);
         }
-        
+
         $recExist = Admin::where('id', $data['id'])->update(['not_picked_call' => $data['not_picked_call']]);
-        if($recExist){
-            if($data['not_picked_call'] == 1){ //if checked true
+        if ($recExist) {
+            if ($data['not_picked_call'] == 1) { // if checked true
                 // Activity log is now automatically created by UnifiedSmsManager
                 // No need to manually create it here
-                
-                $response['status'] 	= 	true;
-                $response['message']	=	$smsResult && $smsResult['success'] 
-                    ? 'Call not picked. SMS sent successfully!' 
+
+                $response['status'] = true;
+                $response['message'] = $smsResult && $smsResult['success']
+                    ? 'Call not picked. SMS sent successfully!'
                     : 'Call not picked. SMS failed to send.';
-                $response['not_picked_call'] 	= 	$data['not_picked_call'];
-            }
-            else if($data['not_picked_call'] == 0){
-                $response['status'] 	= 	true;
-                $response['message']	=	'You have updated call not picked bit. Please try again';
-                $response['not_picked_call'] 	= 	$data['not_picked_call'];
+                $response['not_picked_call'] = $data['not_picked_call'];
+            } elseif ($data['not_picked_call'] == 0) {
+                $response['status'] = true;
+                $response['message'] = 'You have updated call not picked bit. Please try again';
+                $response['not_picked_call'] = $data['not_picked_call'];
             }
         } else {
-            $response['status'] 	= 	false;
-            $response['message']	=	'Please try again';
-            $response['not_picked_call'] 	= 	$data['not_picked_call'];
+            $response['status'] = false;
+            $response['message'] = 'Please try again';
+            $response['not_picked_call'] = $data['not_picked_call'];
         }
         echo json_encode($response);
     }
 
-    public function deleteactivitylog(Request $request){
-		$activitylogid = $request->activitylogid; //dd($activitylogid);
-		if(\App\Models\ActivitiesLog::where('id',$activitylogid)->exists()){
-			$data = \App\Models\ActivitiesLog::select('client_id','subject','description')->where('id',$activitylogid)->first();
-			$res = DB::table('activities_logs')->where('id', @$activitylogid)->delete();
-			if($res){
-				$response['status'] 	= 	true;
-			    $response['data']	=	$data;
-			}else{
-				$response['status'] 	= 	false;
-			    $response['message']	=	'Please try again';
-			}
-		}else{
-			$response['status'] 	= 	false;
-			$response['message']	=	'Please try again';
-		}
-		echo json_encode($response);
-	}
+    public function deleteactivitylog(Request $request)
+    {
+        $activitylogid = $request->activitylogid; // dd($activitylogid);
+        if (ActivitiesLog::where('id', $activitylogid)->exists()) {
+            $data = ActivitiesLog::select('client_id', 'subject', 'description')->where('id', $activitylogid)->first();
+            $res = DB::table('activities_logs')->where('id', @$activitylogid)->delete();
+            if ($res) {
+                $response['status'] = true;
+                $response['data'] = $data;
+            } else {
+                $response['status'] = false;
+                $response['message'] = 'Please try again';
+            }
+        } else {
+            $response['status'] = false;
+            $response['message'] = 'Please try again';
+        }
+        echo json_encode($response);
+    }
 
-    public function pinactivitylog(Request $request){
-		$requestData = $request->all();
-        if(\App\Models\ActivitiesLog::where('id',$requestData['activity_id'])->exists()){
-			$activity = \App\Models\ActivitiesLog::where('id',$requestData['activity_id'])->first();
-			if($activity->pin == 0){
-				$obj = \App\Models\ActivitiesLog::find($activity->id);
-				$obj->pin = 1;
-				$saved = $obj->save();
-			}else{
-				$obj = \App\Models\ActivitiesLog::find($activity->id);
-				$obj->pin = 0;
-				$saved = $obj->save();
-			}
-			$response['status'] 	= 	true;
-			$response['message']	=	'Pin Option added successfully';
-		}else{
-			$response['status'] 	= 	false;
-			$response['message']	=	'Record not found';
-		}
-		echo json_encode($response);
-	}
+    public function pinactivitylog(Request $request)
+    {
+        $requestData = $request->all();
+        if (ActivitiesLog::where('id', $requestData['activity_id'])->exists()) {
+            $activity = ActivitiesLog::where('id', $requestData['activity_id'])->first();
+            if ($activity->pin == 0) {
+                $obj = ActivitiesLog::find($activity->id);
+                $obj->pin = 1;
+                $saved = $obj->save();
+            } else {
+                $obj = ActivitiesLog::find($activity->id);
+                $obj->pin = 0;
+                $saved = $obj->save();
+            }
+            $response['status'] = true;
+            $response['message'] = 'Pin Option added successfully';
+        } else {
+            $response['status'] = false;
+            $response['message'] = 'Record not found';
+        }
+        echo json_encode($response);
+    }
 
-    //Fetch all contact list of any client at create note popup
+    // Fetch all contact list of any client at create note popup
 
-
-
-    //Re-assign inbox email
-    public function reassiginboxemail(Request $request) {
-		$requestData = $request->all(); //dd($requestData);
-		$uploaded_doc_id = $requestData['uploaded_doc_id'];
-        if( \App\Models\Document::where('id', '=', $uploaded_doc_id)->exists() )
-		{
-            //Get existing document info
-            $document_info = \App\Models\Document::select('id','file_name','filetype','myfile','client_id')->where('id', '=', $uploaded_doc_id)->first();
+    // Re-assign inbox email
+    public function reassiginboxemail(Request $request)
+    {
+        $requestData = $request->all(); // dd($requestData);
+        $uploaded_doc_id = $requestData['uploaded_doc_id'];
+        if (Document::where('id', '=', $uploaded_doc_id)->exists()) {
+            // Get existing document info
+            $document_info = Document::select('id', 'file_name', 'filetype', 'myfile', 'client_id')->where('id', '=', $uploaded_doc_id)->first();
             $source_doc_client_id = $document_info['client_id'];
             $source_doc_myfile = $document_info['myfile'];
 
-            $source_doc_admin_info = \App\Models\Admin::select('client_id')->where('id', '=', $source_doc_client_id)->first();
+            $source_doc_admin_info = Admin::select('client_id')->where('id', '=', $source_doc_client_id)->first();
             $source_doc_client_unique_id = $source_doc_admin_info['client_id'];
 
             $dest_assign_client_id = $requestData['reassign_client_id'];
-            $dest_doc_admin_info = \App\Models\Admin::select('client_id')->where('id', '=', $dest_assign_client_id)->first();
+            $dest_doc_admin_info = Admin::select('client_id')->where('id', '=', $dest_assign_client_id)->first();
             $dest_doc_client_unique_id = $dest_doc_admin_info['client_id'];
 
             // Define the source and destination paths
@@ -633,33 +622,33 @@ trait ClientCrmFollowups
                     // Use the copy method to copy the file within S3
                     Storage::disk('s3')->copy($sourcePath, $destinationPath);
                     Storage::disk('s3')->delete($sourcePath);
-                    //echo "File copied successfully.";
+                    // echo "File copied successfully.";
                 } else {
-                    //echo "Source file does not exist.";
+                    // echo "Source file does not exist.";
                 }
             } catch (\Exception $e) {
                 // Handle errors here
-                echo "Error: " . $e->getMessage();
+                echo 'Error: '.$e->getMessage();
             }
 
-            //Update document with client id and matter id
-            $upd_doc_info = \App\Models\Document::find($uploaded_doc_id);
+            // Update document with client id and matter id
+            $upd_doc_info = Document::find($uploaded_doc_id);
             $upd_doc_info->client_id = $requestData['reassign_client_id'];
             $upd_doc_info->user_id = Auth::user()->id;
             $upd_doc_info->client_matter_id = $requestData['reassign_client_matter_id'];
             $saved_doc_info = $upd_doc_info->save();
-            if($saved_doc_info){
-                //Update email_logs table with client id and matter id
+            if ($saved_doc_info) {
+                // Update email_logs table with client id and matter id
                 $id = $requestData['memail_id'];
-                $email_log_info = \App\Models\EmailLog::find($id);
+                $email_log_info = EmailLog::find($id);
                 $email_log_info->client_id = $requestData['reassign_client_id'];
                 $email_log_info->user_id = Auth::user()->id;
                 $email_log_info->client_matter_id = $requestData['reassign_client_matter_id'];
                 $saved_mail_report_info = $email_log_info->save();
-                if($saved_mail_report_info){
-                    $client_matter_info = \App\Models\ClientMatter::select('client_unique_matter_no')->where('id', '=', $requestData['reassign_client_matter_id'])->first();
+                if ($saved_mail_report_info) {
+                    $client_matter_info = ClientMatter::select('client_unique_matter_no')->where('id', '=', $requestData['reassign_client_matter_id'])->first();
                     $subject = 'Inbox Email Re-assign';
-                    $objs = new \App\Models\ActivitiesLog;
+                    $objs = new ActivitiesLog;
                     $objs->client_id = $requestData['reassign_client_id'];
                     $objs->created_by = Auth::user()->id;
                     $objs->description = $dest_doc_client_unique_id.'-'.$client_matter_info['client_unique_matter_no'];
@@ -669,39 +658,39 @@ trait ClientCrmFollowups
                     $objs->save();
                 }
 
-                //Update date in client matter table
-                if( isset( $requestData['reassign_client_matter_id'] ) && $requestData['reassign_client_matter_id'] != ""){
-                    $obj1 = \App\Models\ClientMatter::find($requestData['reassign_client_matter_id']);
+                // Update date in client matter table
+                if (isset($requestData['reassign_client_matter_id']) && $requestData['reassign_client_matter_id'] != '') {
+                    $obj1 = ClientMatter::find($requestData['reassign_client_matter_id']);
                     $obj1->updated_at = date('Y-m-d H:i:s');
                     $obj1->save();
                 }
             }
-            if(!$saved_mail_report_info) {
+            if (! $saved_mail_report_info) {
                 return redirect()->back()->with('error', config('constants.server_error'));
             } else {
                 return redirect()->back()->with('success', 'Inbox email re-assigned successfully');
             }
         } else {
             return redirect()->back()->with('error', config('constants.server_error'));
-		}
+        }
     }
 
-    //Re-assign sent email
-    public function reassigsentemail(Request $request) {
-		$requestData = $request->all(); //dd($requestData);
-		$uploaded_doc_id = $requestData['uploaded_doc_id'];
-        if( \App\Models\Document::where('id', '=', $uploaded_doc_id)->exists() )
-		{
-            //Get existing document info
-            $document_info = \App\Models\Document::select('id','file_name','filetype','myfile','client_id')->where('id', '=', $uploaded_doc_id)->first();
+    // Re-assign sent email
+    public function reassigsentemail(Request $request)
+    {
+        $requestData = $request->all(); // dd($requestData);
+        $uploaded_doc_id = $requestData['uploaded_doc_id'];
+        if (Document::where('id', '=', $uploaded_doc_id)->exists()) {
+            // Get existing document info
+            $document_info = Document::select('id', 'file_name', 'filetype', 'myfile', 'client_id')->where('id', '=', $uploaded_doc_id)->first();
             $source_doc_client_id = $document_info['client_id'];
             $source_doc_myfile = $document_info['myfile'];
 
-            $source_doc_admin_info = \App\Models\Admin::select('client_id')->where('id', '=', $source_doc_client_id)->first();
+            $source_doc_admin_info = Admin::select('client_id')->where('id', '=', $source_doc_client_id)->first();
             $source_doc_client_unique_id = $source_doc_admin_info['client_id'];
 
             $dest_assign_client_id = $requestData['reassign_sent_client_id'];
-            $dest_doc_admin_info = \App\Models\Admin::select('client_id')->where('id', '=', $dest_assign_client_id)->first();
+            $dest_doc_admin_info = Admin::select('client_id')->where('id', '=', $dest_assign_client_id)->first();
             $dest_doc_client_unique_id = $dest_doc_admin_info['client_id'];
 
             // Define the source and destination paths
@@ -714,33 +703,33 @@ trait ClientCrmFollowups
                     // Use the copy method to copy the file within S3
                     Storage::disk('s3')->copy($sourcePath, $destinationPath);
                     Storage::disk('s3')->delete($sourcePath);
-                    //echo "File copied successfully.";
+                    // echo "File copied successfully.";
                 } else {
-                    //echo "Source file does not exist.";
+                    // echo "Source file does not exist.";
                 }
             } catch (\Exception $e) {
                 // Handle errors here
-                echo "Error: " . $e->getMessage();
+                echo 'Error: '.$e->getMessage();
             }
 
-            //Update document with client id and matter id
-            $upd_doc_info = \App\Models\Document::find($uploaded_doc_id);
+            // Update document with client id and matter id
+            $upd_doc_info = Document::find($uploaded_doc_id);
             $upd_doc_info->client_id = $requestData['reassign_sent_client_id'];
             $upd_doc_info->user_id = Auth::user()->id;
             $upd_doc_info->client_matter_id = $requestData['reassign_sent_client_matter_id'];
             $saved_doc_info = $upd_doc_info->save();
-            if($saved_doc_info){
-                //Update email_logs table with client id and matter id
+            if ($saved_doc_info) {
+                // Update email_logs table with client id and matter id
                 $id = $requestData['memail_id'];
-                $email_log_info = \App\Models\EmailLog::find($id);
+                $email_log_info = EmailLog::find($id);
                 $email_log_info->client_id = $requestData['reassign_sent_client_id'];
                 $email_log_info->user_id = Auth::user()->id;
                 $email_log_info->client_matter_id = $requestData['reassign_sent_client_matter_id'];
                 $saved_mail_report_info = $email_log_info->save();
-                if($saved_mail_report_info){
-                    $client_matter_info = \App\Models\ClientMatter::select('client_unique_matter_no')->where('id', '=', $requestData['reassign_sent_client_matter_id'])->first();
+                if ($saved_mail_report_info) {
+                    $client_matter_info = ClientMatter::select('client_unique_matter_no')->where('id', '=', $requestData['reassign_sent_client_matter_id'])->first();
                     $subject = 'Sent Email Re-assign';
-                    $objs = new \App\Models\ActivitiesLog;
+                    $objs = new ActivitiesLog;
                     $objs->client_id = $requestData['reassign_sent_client_id'];
                     $objs->created_by = Auth::user()->id;
                     $objs->description = $dest_doc_client_unique_id.'-'.$client_matter_info['client_unique_matter_no'];
@@ -750,48 +739,47 @@ trait ClientCrmFollowups
                     $objs->save();
                 }
 
-                //Update date in client matter table
-                if( isset($requestData['reassign_sent_client_matter_id']) && $requestData['reassign_sent_client_matter_id'] != ""){
-                    $obj1 = \App\Models\ClientMatter::find($requestData['reassign_sent_client_matter_id']);
+                // Update date in client matter table
+                if (isset($requestData['reassign_sent_client_matter_id']) && $requestData['reassign_sent_client_matter_id'] != '') {
+                    $obj1 = ClientMatter::find($requestData['reassign_sent_client_matter_id']);
                     $obj1->updated_at = date('Y-m-d H:i:s');
                     $obj1->save();
                 }
             }
-            if(!$saved_mail_report_info) {
+            if (! $saved_mail_report_info) {
                 return redirect()->back()->with('error', config('constants.server_error'));
             } else {
                 return redirect()->back()->with('success', 'Sent email re-assigned successfully');
             }
         } else {
             return redirect()->back()->with('error', config('constants.server_error'));
-		}
+        }
     }
 
-    //Fetch selected client all matters at assign email to client popup
-    public function listAllMattersWRTSelClient(Request $request){ //dd($request->all());
-        if( ClientMatter::where('client_id', $request->client_id)->exists()){
-            //Fetch All client matters
-            $clientMatetrs = ClientMatter::join('matters', 'client_matters.sel_matter_id', '=', 'matters.id')
-            ->select('client_matters.id', 'matters.title','client_matters.client_unique_matter_no')
+    // Fetch selected client all matters at assign email to client popup
+    public function listAllMattersWRTSelClient(Request $request) // dd($request->all());
+    {if (ClientMatter::where('client_id', $request->client_id)->exists()) {
+        // Fetch All client matters
+        $clientMatetrs = ClientMatter::join('matters', 'client_matters.sel_matter_id', '=', 'matters.id')
+            ->select('client_matters.id', 'matters.title', 'client_matters.client_unique_matter_no')
             ->where('client_id', $request->client_id)
-            ->get(); //dd($clientMatetrs);
-            if( !empty($clientMatetrs) && count($clientMatetrs)>0 ){
-                $response['status'] 	= 	true;
-                $response['message']	=	'Client matter is successfully fetched.';
-                $response['clientMatetrs']	=	$clientMatetrs;
-            } else {
-                $response['status'] 	= 	false;
-                $response['message']	=	'Please try again';
-                $response['clientMatetrs']	=	array();
-            }
+            ->get(); // dd($clientMatetrs);
+        if (! empty($clientMatetrs) && count($clientMatetrs) > 0) {
+            $response['status'] = true;
+            $response['message'] = 'Client matter is successfully fetched.';
+            $response['clientMatetrs'] = $clientMatetrs;
         } else {
-            $response['status'] 	= 	false;
-            $response['message']	=	'Please try again';
-            $response['clientMatetrs']	=	array();
+            $response['status'] = false;
+            $response['message'] = 'Please try again';
+            $response['clientMatetrs'] = [];
         }
+    } else {
+        $response['status'] = false;
+        $response['message'] = 'Please try again';
+        $response['clientMatetrs'] = [];
+    }
         echo json_encode($response);
-	}
-
+    }
 
     public function checkEmail(Request $request)
     {
@@ -824,30 +812,30 @@ trait ClientCrmFollowups
         }
     }
 
-    //mail preview click update mail_is_read bit
-    public function updatemailreadbit(Request $request){ //dd($request->all());
-        if( \App\Models\EmailLog::where('id', $request->mail_report_id)->exists()){
-            $emailLogInfo = \App\Models\EmailLog::select('mail_is_read')->where('id', $request->mail_report_id)->first();
-            //dd($emailLogInfo);
-            if( $emailLogInfo ){
-                $email_log_info = \App\Models\EmailLog::find($request->mail_report_id);
-                $email_log_info->mail_is_read = 1;
-                $email_log_info->save();
+    // mail preview click update mail_is_read bit
+    public function updatemailreadbit(Request $request) // dd($request->all());
+    {if (EmailLog::where('id', $request->mail_report_id)->exists()) {
+        $emailLogInfo = EmailLog::select('mail_is_read')->where('id', $request->mail_report_id)->first();
+        // dd($emailLogInfo);
+        if ($emailLogInfo) {
+            $email_log_info = EmailLog::find($request->mail_report_id);
+            $email_log_info->mail_is_read = 1;
+            $email_log_info->save();
 
-                $response['status'] 	= 	true;
-                $response['message']	=	'Mail is successfully updated';
-            } else {
-                $response['status'] 	= 	false;
-                $response['message']	=	'Please try again';
-            }
+            $response['status'] = true;
+            $response['message'] = 'Mail is successfully updated';
         } else {
-            $response['status'] 	= 	false;
-            $response['message']	=	'Please try again';
+            $response['status'] = false;
+            $response['message'] = 'Please try again';
         }
+    } else {
+        $response['status'] = false;
+        $response['message'] = 'Please try again';
+    }
         echo json_encode($response);
-	}
+    }
 
-    //chatgpt enhance message
+    // chatgpt enhance message
     public function enhanceMessage(Request $request)
     {
         $request->validate([
@@ -861,12 +849,12 @@ trait ClientCrmFollowups
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => 'You are a professional email writer. Rewrite the following content in a more professional and polished manner:'
+                            'content' => 'You are a professional email writer. Rewrite the following content in a more professional and polished manner:',
                         ],
                         [
                             'role' => 'user',
-                            'content' => $request->message
-                        ]
+                            'content' => $request->message,
+                        ],
                     ],
                     'temperature' => 0.7,
                     'max_tokens' => 500,
@@ -878,7 +866,7 @@ trait ClientCrmFollowups
 
             return response()->json(['enhanced_message' => $enhancedMessage]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to enhance message: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Failed to enhance message: '.$e->getMessage()], 500);
         }
     }
 
@@ -893,16 +881,16 @@ trait ClientCrmFollowups
             $label_id = $request->input('label_id');
             $sort = $request->input('sort', 'date');
 
-            if (!$client_matter_id) {
+            if (! $client_matter_id) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Matter ID is required'
+                    'message' => 'Matter ID is required',
                 ], 400);
             }
 
             $listService = app(EmailLogListService::class);
 
-            $query = \App\Models\EmailLog::where('client_matter_id', $client_matter_id)
+            $query = EmailLog::where('client_matter_id', $client_matter_id)
                 ->where('type', 'client')
                 ->where('mail_type', 1)
                 ->where('conversion_type', 'conversion_email_fetch')
@@ -915,7 +903,7 @@ trait ClientCrmFollowups
                 } elseif ($status == 2) {
                     $query->where(function ($q) {
                         $q->where('mail_is_read', 0)
-                          ->orWhereNull('mail_is_read');
+                            ->orWhereNull('mail_is_read');
                     });
                 }
             }
@@ -923,13 +911,13 @@ trait ClientCrmFollowups
             if ($search !== null && $search !== '') {
                 $query->where(function ($q) use ($search) {
                     $q->where('subject', 'LIKE', "%{$search}%")
-                      ->orWhere('message', 'LIKE', "%{$search}%")
-                      ->orWhere('from_mail', 'LIKE', "%{$search}%")
-                      ->orWhere('to_mail', 'LIKE', "%{$search}%");
+                        ->orWhere('message', 'LIKE', "%{$search}%")
+                        ->orWhere('from_mail', 'LIKE', "%{$search}%")
+                        ->orWhere('to_mail', 'LIKE', "%{$search}%");
                 });
             }
 
-            if (!empty($label_id)) {
+            if (! empty($label_id)) {
                 $query->whereHas('labels', function ($q) use ($label_id) {
                     $q->where('email_labels.id', $label_id);
                 });
@@ -949,11 +937,11 @@ trait ClientCrmFollowups
                 EmailLogListService::API_JSON_FLAGS
             );
         } catch (\Exception $e) {
-            Log::error('Error in filterEmails: ' . $e->getMessage());
+            Log::error('Error in filterEmails: '.$e->getMessage());
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'An error occurred while fetching emails: ' . $e->getMessage(),
+                'message' => 'An error occurred while fetching emails: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -964,8 +952,8 @@ trait ClientCrmFollowups
     public function getEmailLogDetail($id)
     {
         try {
-            $email = \App\Models\EmailLog::with(['labels', 'attachments'])->find($id);
-            if (!$email) {
+            $email = EmailLog::with(['labels', 'attachments'])->find($id);
+            if (! $email) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Email not found',
@@ -986,7 +974,7 @@ trait ClientCrmFollowups
                 EmailLogListService::API_JSON_FLAGS
             );
         } catch (\Exception $e) {
-            Log::error('Error in getEmailLogDetail: ' . $e->getMessage(), [
+            Log::error('Error in getEmailLogDetail: '.$e->getMessage(), [
                 'email_log_id' => $id,
             ]);
 
@@ -1018,7 +1006,7 @@ trait ClientCrmFollowups
         }
 
         $matter = ClientMatter::find($matterId);
-        if (!$matter) {
+        if (! $matter) {
             return response()->json([
                 'status' => false,
                 'message' => 'Client matter not found.',
@@ -1027,7 +1015,7 @@ trait ClientCrmFollowups
 
         $service = app(MatterEmailBodyCleanupService::class);
 
-        if (!$service->matterHasBodyContentInDatabase($matterId)) {
+        if (! $service->matterHasBodyContentInDatabase($matterId)) {
             return response()->json([
                 'status' => false,
                 'already_archived' => true,
@@ -1054,7 +1042,7 @@ trait ClientCrmFollowups
 
             return response()->json([
                 'status' => false,
-                'message' => 'Failed to send email bodies to S3: ' . $e->getMessage(),
+                'message' => 'Failed to send email bodies to S3: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1065,8 +1053,8 @@ trait ClientCrmFollowups
     public function viewArchivedEmailBody($id)
     {
         try {
-            $emailLog = \App\Models\EmailLog::find($id);
-            if (!$emailLog) {
+            $emailLog = EmailLog::find($id);
+            if (! $emailLog) {
                 abort(404, 'Email not found.');
             }
 
@@ -1091,7 +1079,7 @@ trait ClientCrmFollowups
                 'Content-Type' => 'text/html; charset=UTF-8',
                 'X-Content-Type-Options' => 'nosniff',
             ]);
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+        } catch (HttpException $e) {
             throw $e;
         } catch (\Throwable $e) {
             Log::error('Failed to view archived email body', [
@@ -1111,12 +1099,12 @@ trait ClientCrmFollowups
     public function deleteEmailLog(Request $request, $id)
     {
         $allowedRoles = config('crm.email_log_delete_role_ids', [1, 12, 16]);
-        if (!is_array($allowedRoles) || count($allowedRoles) === 0) {
+        if (! is_array($allowedRoles) || count($allowedRoles) === 0) {
             $allowedRoles = [1, 12, 16];
         }
         $allowedRoles = array_map('intval', $allowedRoles);
 
-        if (!in_array((int) Auth::user()->role, $allowedRoles, true)) {
+        if (! in_array((int) Auth::user()->role, $allowedRoles, true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized: Your role cannot delete emails.',
@@ -1124,8 +1112,8 @@ trait ClientCrmFollowups
         }
 
         try {
-            $emailLog = \App\Models\EmailLog::find($id);
-            if (!$emailLog) {
+            $emailLog = EmailLog::find($id);
+            if (! $emailLog) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Email not found.',
@@ -1152,10 +1140,10 @@ trait ClientCrmFollowups
 
             $logClientId = (int) ($emailLog->client_id ?? 0);
             $logMatterId = $emailLog->client_matter_id;
-            $attachmentCount = \App\Models\EmailLogAttachment::where('email_log_id', $id)->count();
+            $attachmentCount = EmailLogAttachment::where('email_log_id', $id)->count();
 
             $matterRef = null;
-            if (!empty($logMatterId)) {
+            if (! empty($logMatterId)) {
                 $matterRef = DB::table('client_matters')
                     ->where('id', $logMatterId)
                     ->value('client_unique_matter_no');
@@ -1174,15 +1162,15 @@ trait ClientCrmFollowups
 
             DB::transaction(function () use ($id, $logClientId, $logMatterId, $matterRef, $staffId, $attachmentCount, $snapshot) {
                 DB::table('email_label_email_log')->where('email_log_id', $id)->delete();
-                \App\Models\EmailLogAttachment::where('email_log_id', $id)->delete();
+                EmailLogAttachment::where('email_log_id', $id)->delete();
 
-                $deletedRows = \App\Models\EmailLog::where('id', $id)->delete();
+                $deletedRows = EmailLog::where('id', $id)->delete();
                 if ($deletedRows !== 1) {
                     throw new \RuntimeException('Email log could not be deleted.');
                 }
 
-                if ($logClientId <= 0 || !$staffId) {
-                    if ($logClientId > 0 && !$staffId) {
+                if ($logClientId <= 0 || ! $staffId) {
+                    if ($logClientId > 0 && ! $staffId) {
                         Log::warning('Email log deleted without activity log: no authenticated staff id', [
                             'email_log_id' => $id,
                             'client_id' => $logClientId,
@@ -1210,7 +1198,7 @@ trait ClientCrmFollowups
                     'pin' => 0,
                     'source' => 'crm_emails',
                 ];
-                if (!empty($logMatterId)) {
+                if (! empty($logMatterId)) {
                     $activityAttrs['use_for'] = 'matter';
                 }
                 ActivitiesLog::create($activityAttrs);
@@ -1221,19 +1209,19 @@ trait ClientCrmFollowups
                 'message' => 'Email deleted successfully.',
             ]);
         } catch (\Exception $e) {
-            Log::error('Error deleting email log: ' . $e->getMessage());
+            Log::error('Error deleting email log: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete email: ' . $e->getMessage(),
+                'message' => 'Failed to delete email: '.$e->getMessage(),
             ], 500);
         }
     }
 
-        //Filter Sent emails
+    // Filter Sent emails
     public function filterSentEmails(Request $request)
     {
-        try
-		{
+        try {
             $client_id = $request->input('client_id');
             $client_matter_id = $request->input('client_matter_id'); // NEW: Filter by matter
             $type = $request->input('type');
@@ -1242,17 +1230,17 @@ trait ClientCrmFollowups
             $sort = $request->input('sort', 'date');
 
             // Validate input
-            if (!$client_matter_id) {
+            if (! $client_matter_id) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Matter ID is required'
+                    'message' => 'Matter ID is required',
                 ], 400);
             }
 
             $listService = app(EmailLogListService::class);
 
             // Base query for sent mail - FILTER BY MATTER ID instead of client_id
-            $query = \App\Models\EmailLog::where('client_matter_id', $client_matter_id)
+            $query = EmailLog::where('client_matter_id', $client_matter_id)
                 ->where('type', 'client')
                 ->where('mail_type', 1)
                 ->forCrmSentMailbox()
@@ -1283,7 +1271,7 @@ trait ClientCrmFollowups
                 } elseif ($status == 2) {
                     $query->where(function ($q) {
                         $q->where('mail_is_read', 0)
-                          ->orWhereNull('mail_is_read');
+                            ->orWhereNull('mail_is_read');
                     });
                 }
             }
@@ -1292,9 +1280,9 @@ trait ClientCrmFollowups
             if ($search !== '') {
                 $query->where(function ($q) use ($search) {
                     $q->where('subject', 'LIKE', "%{$search}%")
-                      ->orWhere('message', 'LIKE', "%{$search}%")
-                      ->orWhere('from_mail', 'LIKE', "%{$search}%")
-                      ->orWhere('to_mail', 'LIKE', "%{$search}%");
+                        ->orWhere('message', 'LIKE', "%{$search}%")
+                        ->orWhere('from_mail', 'LIKE', "%{$search}%")
+                        ->orWhere('to_mail', 'LIKE', "%{$search}%");
                 });
             }
 
@@ -1311,18 +1299,18 @@ trait ClientCrmFollowups
                 [],
                 EmailLogListService::API_JSON_FLAGS
             );
-		} catch (\Exception $e) {
-			Log::error('Error in filterSentEmails: ' . $e->getMessage(), [
-				'request' => $request->all(),
-				'trace' => $e->getTraceAsString()
-			]);
+        } catch (\Exception $e) {
+            Log::error('Error in filterSentEmails: '.$e->getMessage(), [
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
-			return response()->json([
-				'status' => 'error',
-				'message' => 'An error occurred while fetching emails'
-			], 500);
-		}
-	}
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while fetching emails',
+            ], 500);
+        }
+    }
 
     /**
      * Filter emails for a lead (no matter context).
@@ -1337,16 +1325,16 @@ trait ClientCrmFollowups
             $label_id = $request->input('label_id');
             $sort = $request->input('sort', 'date');
 
-            if (!$client_id) {
+            if (! $client_id) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Lead ID is required'
+                    'message' => 'Lead ID is required',
                 ], 400);
             }
 
             $listService = app(EmailLogListService::class);
 
-            $query = \App\Models\EmailLog::where('client_id', $client_id)
+            $query = EmailLog::where('client_id', $client_id)
                 ->where('type', 'lead')
                 ->where('mail_type', 1)
                 ->where(function ($q) {
@@ -1371,13 +1359,13 @@ trait ClientCrmFollowups
             if ($search !== null && $search !== '') {
                 $query->where(function ($q) use ($search) {
                     $q->where('subject', 'LIKE', "%{$search}%")
-                      ->orWhere('message', 'LIKE', "%{$search}%")
-                      ->orWhere('from_mail', 'LIKE', "%{$search}%")
-                      ->orWhere('to_mail', 'LIKE', "%{$search}%");
+                        ->orWhere('message', 'LIKE', "%{$search}%")
+                        ->orWhere('from_mail', 'LIKE', "%{$search}%")
+                        ->orWhere('to_mail', 'LIKE', "%{$search}%");
                 });
             }
 
-            if (!empty($label_id)) {
+            if (! empty($label_id)) {
                 $query->whereHas('labels', function ($q) use ($label_id) {
                     $q->where('email_labels.id', $label_id);
                 });
@@ -1398,7 +1386,8 @@ trait ClientCrmFollowups
                 EmailLogListService::API_JSON_FLAGS
             );
         } catch (\Exception $e) {
-            Log::error('Error in filterLeadEmails: ' . $e->getMessage());
+            Log::error('Error in filterLeadEmails: '.$e->getMessage());
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'An error occurred while fetching lead emails',
@@ -1406,7 +1395,7 @@ trait ClientCrmFollowups
         }
     }
 
-     //Seach Client Relationship
+    // Seach Client Relationship
 
     // OLD HTTP DOWNLOAD METHOD - COMMENTED OUT
     // public function download_document(Request $request)
@@ -1417,7 +1406,7 @@ trait ClientCrmFollowups
     //     if (!$fileUrl) {
     //         return abort(400, 'Missing file URL');
     //     }
-      
+
     //     // Increase execution time for large files
     //     set_time_limit(900);
 
@@ -1433,40 +1422,38 @@ trait ClientCrmFollowups
     //         ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     // }
 
-    
- 
+    // Convert activity to note
+    public function convertActivityToNote(Request $request)
+    {
+        try {
+            // Validate request
+            $request->validate([
+                'activity_id' => 'required|integer',
+                'client_id' => 'required|integer',
+                'client_matter_id' => 'required|integer',
+                'note_type' => 'required|string',
+            ]);
 
-    //Convert activity to note
-	public function convertActivityToNote(Request $request){
-		try {
-			// Validate request
-			$request->validate([
-				'activity_id' => 'required|integer',
-				'client_id' => 'required|integer',
-				'client_matter_id' => 'required|integer',
-				'note_type' => 'required|string'
-			]);
+            // Get the activity details
+            $activity = ActivitiesLog::find($request->activity_id);
+            if (! $activity) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Activity not found',
+                ]);
+            }
 
-			// Get the activity details
-			$activity = \App\Models\ActivitiesLog::find($request->activity_id);
-			if (!$activity) {
-				return response()->json([
-					'success' => false,
-					'message' => 'Activity not found'
-				]);
-			}
+            // Check if client matter exists
+            $clientMatter = ClientMatter::find($request->client_matter_id);
+            if (! $clientMatter) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Client matter not found',
+                ]);
+            }
 
-			// Check if client matter exists
-			$clientMatter = \App\Models\ClientMatter::find($request->client_matter_id);
-			if (!$clientMatter) {
-				return response()->json([
-					'success' => false,
-					'message' => 'Client matter not found'
-				]);
-			}
-
-			// Create new note
-            $note = new \App\Models\Note;
+            // Create new note
+            $note = new Note;
             $note->client_id = $request->client_id;
             $note->user_id = Auth::user()->id;
             $note->title = 'Matter Discussion';
@@ -1475,90 +1462,92 @@ trait ClientCrmFollowups
             $note->type = 'client';
             $note->task_group = $request->note_type;
             $note->status = 1;
-			
-			$saved = $note->save();
 
-			if ($saved) {
-				// Create activity log for the conversion
-				$activityLog = new \App\Models\ActivitiesLog;
-				$activityLog->client_id = $request->client_id;
-				$activityLog->created_by = Auth::user()->id;
-				$activityLog->description = '<span class="text-semi-bold">Activity Converted to Note</span><p>Activity "' . $activity->subject . '" has been converted to a note.</p>';
-				$activityLog->subject = 'converted activity to note';
-				$activityLog->task_status = 0;
-				$activityLog->pin = 0;
-				$activityLog->save();
+            $saved = $note->save();
 
-				// Update client matter timestamp
-				$clientMatter->updated_at = date('Y-m-d H:i:s');
-				$clientMatter->save();
+            if ($saved) {
+                // Create activity log for the conversion
+                $activityLog = new ActivitiesLog;
+                $activityLog->client_id = $request->client_id;
+                $activityLog->created_by = Auth::user()->id;
+                $activityLog->description = '<span class="text-semi-bold">Activity Converted to Note</span><p>Activity "'.$activity->subject.'" has been converted to a note.</p>';
+                $activityLog->subject = 'converted activity to note';
+                $activityLog->task_status = 0;
+                $activityLog->pin = 0;
+                $activityLog->save();
 
-				return response()->json([
-					'success' => true,
-					'message' => 'Activity successfully converted to note'
-				]);
-			} else {
-				return response()->json([
-					'success' => false,
-					'message' => 'Failed to save note'
-				]);
-			}
+                // Update client matter timestamp
+                $clientMatter->updated_at = date('Y-m-d H:i:s');
+                $clientMatter->save();
 
-		} catch (\Exception $e) {
-			Log::error('Error converting activity to note: ' . $e->getMessage());
-			return response()->json([
-				'success' => false,
-				'message' => 'An error occurred while converting activity to note'
-			]);
-		}
-	}
-	
-	//Get client matters for activity conversion
-	public function getClientMatters($clientId){
-		try {
-			$clientMatters = DB::table('client_matters')
-				->leftJoin('matters', 'client_matters.sel_matter_id', '=', 'matters.id')
-				->select('client_matters.id', 'client_matters.client_unique_matter_no', 'matters.title', 'client_matters.sel_matter_id')
-				->where('client_matters.matter_status', 1)
-				->where('client_matters.client_id', $clientId)
-				->orderBy('client_matters.id', 'desc')
-				->get();
-			
-			$matters = [];
-			foreach($clientMatters as $matter){
-				// If sel_matter_id is 1 or title is null, use "General Matter"
-				$matterName = 'General Matter';
-				if ($matter->sel_matter_id != 1 && !empty($matter->title)) {
-					$matterName = $matter->title;
-				}
-				
-				$displayName = $matterName . ' - ' . $matter->client_unique_matter_no;
-				$matters[] = [
-					'id' => $matter->id,
-					'display_name' => $displayName,
-					'client_unique_matter_no' => $matter->client_unique_matter_no
-				];
-			}
-			
-			return response()->json([
-				'success' => true,
-				'matters' => $matters
-			]);
-			
-		} catch (\Exception $e) {
-			Log::error('Error fetching client matters: ' . $e->getMessage());
-			return response()->json([
-				'success' => false,
-				'message' => 'An error occurred while fetching client matters'
-			]);
-		}
-	}
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Activity successfully converted to note',
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to save note',
+                ]);
+            }
 
+        } catch (\Exception $e) {
+            Log::error('Error converting activity to note: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while converting activity to note',
+            ]);
+        }
+    }
+
+    // Get client matters for activity conversion
+    public function getClientMatters($clientId)
+    {
+        try {
+            $clientMatters = DB::table('client_matters')
+                ->leftJoin('matters', 'client_matters.sel_matter_id', '=', 'matters.id')
+                ->select('client_matters.id', 'client_matters.client_unique_matter_no', 'matters.title', 'client_matters.sel_matter_id')
+                ->where('client_matters.matter_status', 1)
+                ->where('client_matters.client_id', $clientId)
+                ->orderBy('client_matters.id', 'desc')
+                ->get();
+
+            $matters = [];
+            foreach ($clientMatters as $matter) {
+                // If sel_matter_id is 1 or title is null, use "General Matter"
+                $matterName = 'General Matter';
+                if ($matter->sel_matter_id != 1 && ! empty($matter->title)) {
+                    $matterName = $matter->title;
+                }
+
+                $displayName = $matterName.' - '.$matter->client_unique_matter_no;
+                $matters[] = [
+                    'id' => $matter->id,
+                    'display_name' => $displayName,
+                    'client_unique_matter_no' => $matter->client_unique_matter_no,
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'matters' => $matters,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching client matters: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while fetching client matters',
+            ]);
+        }
+    }
 
     /**
      * Decode string helper method - consistent with other controllers
-     * 
-     * @param string|null $string
+     *
+     * @param  string|null  $string
      * @return string|false
      */
     public function decodeString($string = null)
@@ -1566,11 +1555,11 @@ trait ClientCrmFollowups
         if (empty($string)) {
             return false;
         }
-        
+
         if (base64_encode(base64_decode($string, true)) === $string) {
             return convert_uudecode(base64_decode($string));
         }
-        
+
         return false;
     }
 
@@ -1583,19 +1572,20 @@ trait ClientCrmFollowups
     /**
      * Change client type (lead to client conversion)
      */
-    public function changetype(Request $request,$id = Null, $slug = Null){
+    public function changetype(Request $request, $id = null, $slug = null)
+    {
         Log::info('ConvertLeadToClient: changetype called', ['id_raw' => $id, 'slug' => $slug, 'query' => $request->query()]);
-        if(isset($id) && !empty($id)) {
+        if (isset($id) && ! empty($id)) {
             $id = $this->decodeString($id);
             Log::info('ConvertLeadToClient: decoded id', ['decoded_id' => $id]);
-            if(Admin::where('id', '=', $id)->whereIn('type', ['client', 'lead'])->exists()) {
+            if (Admin::where('id', '=', $id)->whereIn('type', ['client', 'lead'])->exists()) {
                 $obj = Admin::find($id);
                 $client_type = $obj->type;
                 Log::info('ConvertLeadToClient: admin found', ['admin_id' => $id, 'client_type' => $client_type]);
                 if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
                     return Redirect::to('/clients')->with('error', config('constants.unauthorized'));
                 }
-                if($slug == 'client') {
+                if ($slug == 'client') {
                     $formClientId = $request->input('client_id');
                     $formUserId = $request->input('user_id');
                     $formMatterId = $request->input('matter_id');
@@ -1608,6 +1598,7 @@ trait ClientCrmFollowups
                     // Cross-check: form client_id must match the URL-encoded id
                     if ((int) ($formClientId ?? 0) !== (int) $id) {
                         Log::warning('ConvertLeadToClient: client_id mismatch', ['url_id' => $id, 'form_client_id' => $formClientId]);
+
                         return Redirect::to('/clients/detail/'.base64_encode(convert_uuencode(@$id)))->with('error', 'Invalid request.');
                     }
                     $matterIdChangetype = (int) ($formMatterId ?? 0);
@@ -1620,7 +1611,7 @@ trait ClientCrmFollowups
                     $saved = $obj->save();
                     Log::info('ConvertLeadToClient: admin type updated to client', ['saved' => $saved]);
 
-                    $matter = new ClientMatter();
+                    $matter = new ClientMatter;
                     $matter->user_id = $formUserId;
                     $matter->client_id = (int) $id;
                     $matter->office_id = $formOfficeId ?? optional(Auth::user())->office_id ?? null;
@@ -1636,14 +1627,14 @@ trait ClientCrmFollowups
                         'migration_agent' => $formMigrationAgent,
                     ]);
 
-                    $client_matters_cnt_per_client = DB::table('client_matters')->select('id')->where('sel_matter_id',$formMatterId)->where('client_id',(int) $id)->count();
-                    $client_matters_current_no = $client_matters_cnt_per_client+1;
-                    if($formMatterId == 1) {
+                    $client_matters_cnt_per_client = DB::table('client_matters')->select('id')->where('sel_matter_id', $formMatterId)->where('client_id', (int) $id)->count();
+                    $client_matters_current_no = $client_matters_cnt_per_client + 1;
+                    if ($formMatterId == 1) {
                         $matter->client_unique_matter_no = 'GN_'.$client_matters_current_no;
                     } else {
                         $matterInfo = Matter::select('nick_name')->where('id', '=', $formMatterId)->first();
                         $prefix = ($matterInfo && $matterInfo->nick_name) ? $matterInfo->nick_name : 'Matter';
-                        $matter->client_unique_matter_no = $prefix."_".$client_matters_current_no;
+                        $matter->client_unique_matter_no = $prefix.'_'.$client_matters_current_no;
                     }
                     Log::info('ConvertLeadToClient: client_unique_matter_no', ['client_unique_matter_no' => $matter->client_unique_matter_no]);
 
@@ -1654,25 +1645,25 @@ trait ClientCrmFollowups
                     $matter->workflow_stage_id = $firstStageId;
                     $matter->matter_status = 1; // Active by default
                     $matter->save();
-                    \App\Support\WorkflowStageChecklistSync::ensureSeededForMatter($matter);
+                    WorkflowStageChecklistSync::ensureSeededForMatter($matter);
                     Log::info('ConvertLeadToClient: matter saved', ['matter_id' => $matter->id]);
 
-                    if($client_type == 'lead'){
-                        $activity = new \App\Models\ActivitiesLog;
+                    if ($client_type == 'lead') {
+                        $activity = new ActivitiesLog;
                         $activity->client_id = $formClientId;
                         $activity->created_by = Auth::user()->id;
-                        $activity->subject = 'Lead converted to client. Matter '.$matter->client_unique_matter_no. ' created';
-                        $activity->description = 'Lead converted to client. Matter '.$matter->client_unique_matter_no. ' created';
+                        $activity->subject = 'Lead converted to client. Matter '.$matter->client_unique_matter_no.' created';
+                        $activity->description = 'Lead converted to client. Matter '.$matter->client_unique_matter_no.' created';
                         $activity->task_status = 0;
                         $activity->pin = 0;
                         $activity->save();
 
-                        $msg = 'Lead converted to client. Matter '.$matter->client_unique_matter_no. ' created';
+                        $msg = 'Lead converted to client. Matter '.$matter->client_unique_matter_no.' created';
 
                         // When cp_status=2 (approval pending), send push + in-app notification to client
                         if ((int) ($obj->cp_status ?? 0) === 2) {
-                            $notificationMessage = 'Lead converted to client. Matter ' . $matter->client_unique_matter_no . ' created.';
-                            $path = '/clients/detail/' . base64_encode(convert_uuencode($formClientId)) . '/' . $matter->client_unique_matter_no . '/client_portal';
+                            $notificationMessage = 'Lead converted to client. Matter '.$matter->client_unique_matter_no.' created.';
+                            $path = '/clients/detail/'.base64_encode(convert_uuencode($formClientId)).'/'.$matter->client_unique_matter_no.'/client_portal';
                             DB::table('notifications')->insert([
                                 'sender_id' => Auth::user()->id,
                                 'receiver_id' => $formClientId,
@@ -1687,7 +1678,7 @@ trait ClientCrmFollowups
                                 'seen' => 0,
                             ]);
                             try {
-                                $fcmService = new FCMService();
+                                $fcmService = new FCMService;
                                 $fcmService->sendToUser($formClientId, 'Lead converted to client', $notificationMessage, [
                                     'type' => 'lead_converted_to_client',
                                     'client_matter_id' => (string) $matter->id,
@@ -1704,23 +1695,24 @@ trait ClientCrmFollowups
                             $obj->cp_status = 1;
                             $obj->save();
                         }
-                    }  else if($client_type == 'client'){
-                        $activity = new \App\Models\ActivitiesLog;
+                    } elseif ($client_type == 'client') {
+                        $activity = new ActivitiesLog;
                         $activity->client_id = $formClientId;
                         $activity->created_by = Auth::user()->id;
-                        $activity->subject = 'Matter '.$matter->client_unique_matter_no. ' created';
-                        $activity->description = 'Matter '.$matter->client_unique_matter_no. ' created';
+                        $activity->subject = 'Matter '.$matter->client_unique_matter_no.' created';
+                        $activity->description = 'Matter '.$matter->client_unique_matter_no.' created';
                         $activity->task_status = 0;
                         $activity->pin = 0;
                         $activity->save();
 
-                        $msg = 'Matter '.$matter->client_unique_matter_no. ' created';
+                        $msg = 'Matter '.$matter->client_unique_matter_no.' created';
                     }
                     // Redirect with matter number in URL
                     $redirectUrl = '/clients/detail/'.base64_encode(convert_uuencode(@$id)).'/'.$matter->client_unique_matter_no;
                     Log::info('ConvertLeadToClient: success, redirecting', ['redirect_url' => $redirectUrl]);
+
                     return Redirect::to($redirectUrl)->with('success', $msg);
-                } else if($slug == 'lead' ) {
+                } elseif ($slug == 'lead') {
                     $activeMatters = ClientMatter::where('client_id', (int) $id)->where('matter_status', 1)->count();
                     if ($activeMatters > 0) {
                         Log::info('ConvertLeadToClient: blocked revert to lead — active matters', ['admin_id' => $id, 'active_matters' => $activeMatters]);
@@ -1731,21 +1723,24 @@ trait ClientCrmFollowups
                         );
                     }
                     $obj->type = $slug;
-                    $obj->user_id = "";
+                    $obj->user_id = '';
                     $saved = $obj->save();
                     Log::info('ConvertLeadToClient: reverted to lead');
                 }
                 Log::info('ConvertLeadToClient: redirecting to detail (slug was '.$slug.')');
+
                 return Redirect::to('/clients/detail/'.base64_encode(convert_uuencode(@$id)))->with('success', 'Record Updated successfully');
             } else {
                 Log::warning('ConvertLeadToClient: admin not found or wrong type', ['id' => $id]);
+
                 return Redirect::to('/clients')->with('error', 'Clients Not Exist');
             }
         } else {
-                Log::warning('ConvertLeadToClient: missing or empty id', ['id' => $id]);
-                return Redirect::to('/clients')->with('error', config('constants.unauthorized'));
-            }
-	}
+            Log::warning('ConvertLeadToClient: missing or empty id', ['id' => $id]);
+
+            return Redirect::to('/clients')->with('error', config('constants.unauthorized'));
+        }
+    }
 
     /**
      * Convert lead to client only (no new matter - for leads who already have matters from cost assignment)
@@ -1757,14 +1752,14 @@ trait ClientCrmFollowups
             return redirect()->back()->with('error', 'Client ID is required.');
         }
         $obj = Admin::where('id', $clientId)->whereIn('type', ['client', 'lead'])->first();
-        if (!$obj || $obj->type !== 'lead') {
+        if (! $obj || $obj->type !== 'lead') {
             return redirect()->back()->with('error', 'Only leads can be converted.');
         }
         $obj->type = 'client';
         $obj->user_id = $request->input('user_id', Auth::user()->id);
         $obj->save();
 
-        $activity = new \App\Models\ActivitiesLog;
+        $activity = new ActivitiesLog;
         $activity->client_id = $clientId;
         $activity->created_by = Auth::user()->id;
         $activity->subject = 'Lead converted to client';
@@ -1773,16 +1768,16 @@ trait ClientCrmFollowups
         $activity->pin = 0;
         $activity->save();
 
-        $firstMatter = \App\Models\ClientMatter::where('client_id', $clientId)->where('matter_status', 1)->orderBy('id')->first();
-        $redirectUrl = '/clients/detail/' . base64_encode(convert_uuencode($clientId));
+        $firstMatter = ClientMatter::where('client_id', $clientId)->where('matter_status', 1)->orderBy('id')->first();
+        $redirectUrl = '/clients/detail/'.base64_encode(convert_uuencode($clientId));
         if ($firstMatter) {
-            $redirectUrl .= '/' . $firstMatter->client_unique_matter_no;
+            $redirectUrl .= '/'.$firstMatter->client_unique_matter_no;
         }
 
         // When cp_status=2 (approval pending), send push + in-app notification to client
         if ((int) ($obj->cp_status ?? 0) === 2) {
             $notificationMessage = 'Lead converted to client.';
-            $path = $redirectUrl . '/client_portal';
+            $path = $redirectUrl.'/client_portal';
             DB::table('notifications')->insert([
                 'sender_id' => Auth::user()->id,
                 'receiver_id' => $clientId,
@@ -1797,7 +1792,7 @@ trait ClientCrmFollowups
                 'seen' => 0,
             ]);
             try {
-                $fcmService = new FCMService();
+                $fcmService = new FCMService;
                 $fcmService->sendToUser($clientId, 'Lead converted to client', $notificationMessage, [
                     'type' => 'lead_converted_to_client',
                     'client_matter_id' => $firstMatter ? (string) $firstMatter->id : '',
@@ -1822,60 +1817,59 @@ trait ClientCrmFollowups
      * Handles the "Assign Staff" popup functionality
      * Supports both single and multiple assignees
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function actionStore(Request $request)
     {
         try {
             $requestData = $request->all();
-            
+
             // Validate required fields
             if (empty($requestData['client_id'])) {
-                echo json_encode(array('success' => false, 'message' => 'Client ID is required'));
+                echo json_encode(['success' => false, 'message' => 'Client ID is required']);
                 exit;
             }
-            
+
             // Decode the client ID
             $clientId = $this->decodeString($requestData['client_id']);
-            
+
             // Validate decoded client ID
             if ($clientId === false || empty($clientId)) {
-                echo json_encode(array('success' => false, 'message' => 'Invalid client ID'));
+                echo json_encode(['success' => false, 'message' => 'Invalid client ID']);
                 exit;
             }
-            
+
             // Handle rem_cat - ensure it exists and is an array (PostgreSQL migration pattern)
             $remCat = $requestData['rem_cat'] ?? [];
-            if (!is_array($remCat)) {
+            if (! is_array($remCat)) {
                 // If it's a single value, convert to array
-                $remCat = !empty($remCat) ? [$remCat] : [];
+                $remCat = ! empty($remCat) ? [$remCat] : [];
             }
-            
+
             // Validate that at least one assignee is selected
             if (empty($remCat)) {
-                echo json_encode(array('success' => false, 'message' => 'At least one assignee must be selected'));
+                echo json_encode(['success' => false, 'message' => 'At least one assignee must be selected']);
                 exit;
             }
 
             $targetClient = $this->findClientOrLeadForAction((int) $clientId);
             if (! $targetClient) {
-                echo json_encode(array('success' => false, 'message' => 'Client or lead not found'));
+                echo json_encode(['success' => false, 'message' => 'Client or lead not found']);
                 exit;
             }
             if (! StaffClientVisibility::canAccessClientOrLead((int) $clientId, Auth::user())) {
-                echo json_encode(array('success' => false, 'message' => config('constants.unauthorized')));
+                echo json_encode(['success' => false, 'message' => config('constants.unauthorized')]);
                 exit;
             }
             $clientLabel = $this->actionClientDisplayName($targetClient);
-            
+
             // Get the next unique ID for this action
-            $actionUniqueId = 'group_' . uniqid('', true);
+            $actionUniqueId = 'group_'.uniqid('', true);
 
             // Loop through each assignee and create an action
             foreach ($remCat as $assigneeId) {
                 // Create a new action for each assignee
-                $action = new \App\Models\Note;
+                $action = new Note;
                 $action->client_id = $clientId;
                 $action->user_id = Auth::user()->id;
                 $action->description = $requestData['description'] ?? '';
@@ -1883,7 +1877,7 @@ trait ClientCrmFollowups
 
                 // Set the title for the current assignee
                 $assigneeName = $this->getAssigneeName($assigneeId);
-                $defaultTitle = ($clientLabel !== '' ? $clientLabel . ': ' : '') . 'Assigned to ' . $assigneeName;
+                $defaultTitle = ($clientLabel !== '' ? $clientLabel.': ' : '').'Assigned to '.$assigneeName;
                 $action->title = ! empty($requestData['remindersubject']) ? $requestData['remindersubject'] : $defaultTitle;
 
                 // PostgreSQL NOT NULL constraints - must set these fields (Notes Table pattern)
@@ -1905,10 +1899,10 @@ trait ClientCrmFollowups
                     if ($requestData['note_deadline_checkbox'] == 1) {
                         $action->note_deadline = $requestData['note_deadline'] ?? null;
                     } else {
-                        $action->note_deadline = NULL;
+                        $action->note_deadline = null;
                     }
                 } else {
-                    $action->note_deadline = NULL;
+                    $action->note_deadline = null;
                 }
 
                 $saved = $action->save();
@@ -1921,15 +1915,15 @@ trait ClientCrmFollowups
                     }
 
                     // Create a notification for the current assignee
-                    $o = new \App\Models\Notification;
+                    $o = new Notification;
                     $o->sender_id = Auth::user()->id;
                     $o->receiver_id = $assigneeId;
                     $o->module_id = $clientId;
-                    $o->url = URL::to('/clients/detail/' . $requestData['client_id']);
+                    $o->url = URL::to('/clients/detail/'.$requestData['client_id']);
                     $o->notification_type = 'client';
                     $o->receiver_status = 0; // Unread
                     $o->seen = 0; // Not seen
-                    
+
                     $actionDateTime = $requestData['followup_datetime'] ?? now();
                     try {
                         if (is_numeric($actionDateTime)) {
@@ -1941,10 +1935,10 @@ trait ClientCrmFollowups
                     } catch (\Exception $dateEx) {
                         $formattedDate = date('d/M/Y h:i A');
                     }
-                    
+
                     $itemLabel = ActionTaskGroup::isFollowUp($action->task_group) ? 'Followup' : 'Action';
-                    $o->message = ($clientLabel !== '' ? $itemLabel . ' for ' . $clientLabel . '. ' : '')
-                        . 'Assigned by ' . Auth::user()->first_name . ' ' . Auth::user()->last_name . ' on ' . $formattedDate;
+                    $o->message = ($clientLabel !== '' ? $itemLabel.' for '.$clientLabel.'. ' : '')
+                        .'Assigned by '.Auth::user()->first_name.' '.Auth::user()->last_name.' on '.$formattedDate;
                     $o->save();
 
                     // Log the activity for the current assignee
@@ -1952,14 +1946,14 @@ trait ClientCrmFollowups
                     $objs->client_id = $clientId;
                     $objs->created_by = Auth::user()->id;
                     $objs->subject = ActionTaskGroup::assignActivitySubject($assigneeName, $action->task_group);
-                    $objs->description = '<span class="text-semi-bold">' . ($requestData['remindersubject'] ?? '') . '</span><p>' . ($requestData['description'] ?? '') . '</p>';
+                    $objs->description = '<span class="text-semi-bold">'.($requestData['remindersubject'] ?? '').'</span><p>'.($requestData['description'] ?? '').'</p>';
                     $objs->task_status = 0;
                     $objs->pin = 0;
 
                     if (Auth::user()->id != $assigneeId) {
                         $objs->use_for = $assigneeId;
                     } else {
-                        $objs->use_for = "";
+                        $objs->use_for = '';
                     }
 
                     $objs->followup_date = $requestData['followup_datetime'] ?? null;
@@ -1967,16 +1961,16 @@ trait ClientCrmFollowups
                     $objs->save();
                 }
             }
-            
-            echo json_encode(array('success' => true, 'message' => 'successfully saved', 'clientID' => $requestData['client_id']));
+
+            echo json_encode(['success' => true, 'message' => 'successfully saved', 'clientID' => $requestData['client_id']]);
             exit;
-            
+
         } catch (\Exception $e) {
-            Log::error('Error in actionStore: ' . $e->getMessage(), [
+            Log::error('Error in actionStore: '.$e->getMessage(), [
                 'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            echo json_encode(array('success' => false, 'message' => 'Error saving action. Please try again.'));
+            echo json_encode(['success' => false, 'message' => 'Error saving action. Please try again.']);
             exit;
         }
     }
@@ -1984,8 +1978,9 @@ trait ClientCrmFollowups
     // Helper function to get assignee name
     protected function getAssigneeName($assigneeId)
     {
-        $staff = \App\Models\Staff::find($assigneeId);
-        return $staff ? $staff->first_name . ' ' . $staff->last_name : 'Unknown Assignee';
+        $staff = Staff::find($assigneeId);
+
+        return $staff ? $staff->first_name.' '.$staff->last_name : 'Unknown Assignee';
     }
 
     /**
@@ -2003,7 +1998,7 @@ trait ClientCrmFollowups
     {
         $label = trim($client->company_name_or_personal_name);
         if ($label === '') {
-            $label = trim(($client->first_name ?? '') . ' ' . ($client->last_name ?? ''));
+            $label = trim(($client->first_name ?? '').' '.($client->last_name ?? ''));
         }
 
         return $label;
@@ -2013,8 +2008,7 @@ trait ClientCrmFollowups
      * Save tags for a client
      * Handles the tag assignment functionality from the client detail modal
      *
-     * @param Request $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function save_tag(Request $request)
     {
@@ -2031,48 +2025,49 @@ trait ClientCrmFollowups
             $isAjax = $request->ajax() || $request->wantsJson();
 
             // Find the client
-            $client = \App\Models\Admin::where('id', $clientId)
+            $client = Admin::where('id', $clientId)
                 ->whereIn('type', ['client', 'lead'])
                 ->first();
 
-            if (!$client) {
+            if (! $client) {
                 if ($isAjax) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Client not found',
                     ], 404);
                 }
+
                 return redirect()->back()->with('error', 'Client not found');
             }
 
             // Process tags - create new ones if they don't exist, get IDs for existing ones
             $tagIds = [];
-            if (!empty($tags) && is_array($tags)) {
+            if (! empty($tags) && is_array($tags)) {
                 foreach ($tags as $tagValue) {
-                    if (!empty($tagValue)) {
+                    if (! empty($tagValue)) {
                         // Check if tag exists by name first
-                        $existingTag = \App\Models\Tag::where('name', $tagValue)->first();
-                        
+                        $existingTag = Tag::where('name', $tagValue)->first();
+
                         if ($existingTag) {
                             // Tag exists, use its ID
                             $tagIds[] = $existingTag->id;
                         } else {
                             // Check if it's an ID (numeric)
                             if (is_numeric($tagValue)) {
-                                $tagById = \App\Models\Tag::find($tagValue);
+                                $tagById = Tag::find($tagValue);
                                 if ($tagById) {
                                     $tagIds[] = $tagById->id;
                                 }
                             } else {
                                 // Create new tag (as normal or red based on create_new_as_red flag)
-                                $newTag = new \App\Models\Tag();
+                                $newTag = new Tag;
                                 $newTag->name = $tagValue;
                                 $newTag->created_by = Auth::id();
                                 if ($createNewAsRed) {
-                                    $newTag->tag_type = \App\Models\Tag::TYPE_RED;
+                                    $newTag->tag_type = Tag::TYPE_RED;
                                     $newTag->is_hidden = true;
                                 } else {
-                                    $newTag->tag_type = \App\Models\Tag::TYPE_NORMAL;
+                                    $newTag->tag_type = Tag::TYPE_NORMAL;
                                     $newTag->is_hidden = false;
                                 }
                                 $newTag->save();
@@ -2089,11 +2084,11 @@ trait ClientCrmFollowups
 
             $normalTags = [];
             $redTags = [];
-            if (!empty($tagIds)) {
-                $savedTags = \App\Models\Tag::whereIn('id', $tagIds)->get()->keyBy('id');
+            if (! empty($tagIds)) {
+                $savedTags = Tag::whereIn('id', $tagIds)->get()->keyBy('id');
                 foreach ($tagIds as $tagId) {
                     $tag = $savedTags[$tagId] ?? null;
-                    if (!$tag) {
+                    if (! $tag) {
                         continue;
                     }
                     $tagPayload = [
@@ -2101,7 +2096,7 @@ trait ClientCrmFollowups
                         'name' => $tag->name,
                         'tag_type' => $tag->tag_type,
                     ];
-                    if ($tag->tag_type === \App\Models\Tag::TYPE_RED) {
+                    if ($tag->tag_type === Tag::TYPE_RED) {
                         $redTags[] = $tagPayload;
                     } else {
                         $normalTags[] = $tagPayload;
@@ -2123,16 +2118,17 @@ trait ClientCrmFollowups
 
             return redirect()->back()->with('success', 'Tags saved successfully');
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Error saving tags: ' . $e->getMessage());
+            Log::error('Error saving tags: '.$e->getMessage());
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'An error occurred while saving tags',
                 ], 500);
             }
+
             return redirect()->back()->with('error', 'An error occurred while saving tags');
         }
     }
@@ -2145,12 +2141,12 @@ trait ClientCrmFollowups
     {
         try {
             $requestData = $request->all();
-            
+
             // Decode the client ID - handle empty/null for personal actions
             $clientId = null;
             $encodedClientId = null;
-            
-            if (!empty($requestData['client_id'])) {
+
+            if (! empty($requestData['client_id'])) {
                 // Extract just the encoded part (format: "ENCODED/Matter/NO" or "ENCODED/Client")
                 $clientIdParts = explode('/', $requestData['client_id']);
                 $encodedClientId = $clientIdParts[0];
@@ -2162,7 +2158,7 @@ trait ClientCrmFollowups
             }
 
             // Generate unique action ID
-            $actionUniqueId = 'group_' . uniqid('', true);
+            $actionUniqueId = 'group_'.uniqid('', true);
 
             $clientLabel = '';
             $targetClient = null;
@@ -2183,7 +2179,7 @@ trait ClientCrmFollowups
             // Loop through each assignee and create an action
             foreach ($assignees as $assigneeId) {
                 // Create a new action for each assignee
-                $action = new \App\Models\Note;
+                $action = new Note;
                 $action->client_id = $clientId;
                 $action->user_id = Auth::user()->id;
                 $action->description = @$requestData['description'];
@@ -2195,8 +2191,8 @@ trait ClientCrmFollowups
                 $action->status = '0'; // Not completed
                 $action->pin = 0; // Required field - default to not pinned
                 $assigneeName = $this->getAssigneeName($assigneeId);
-                $action->title = ($clientLabel !== '' ? $clientLabel . ': ' : '') . 'Assigned to ' . $assigneeName;
-                
+                $action->title = ($clientLabel !== '' ? $clientLabel.': ' : '').'Assigned to '.$assigneeName;
+
                 if (isset($requestData['followup_datetime']) && $requestData['followup_datetime'] != '') {
                     $action->action_date = @$requestData['followup_datetime'];
                 }
@@ -2205,19 +2201,19 @@ trait ClientCrmFollowups
 
                 if ($saved) {
                     // Create a notification for the assignee
-                    $notification = new \App\Models\Notification;
+                    $notification = new Notification;
                     $notification->sender_id = Auth::user()->id;
                     $notification->receiver_id = $assigneeId;
                     $notification->module_id = $clientId;
-                    
+
                     // Set URL based on whether client exists
-                    if (!empty($requestData['client_id'])) {
-                        $notification->url = URL::to('/clients/detail/' . $requestData['client_id']);
+                    if (! empty($requestData['client_id'])) {
+                        $notification->url = URL::to('/clients/detail/'.$requestData['client_id']);
                     } else {
                         $notification->url = URL::to('/action');
                     }
-                    
-                    $notification->message = ($clientLabel !== '' ? 'Action for ' . $clientLabel . '. ' : '') . 'Assigned to you';
+
+                    $notification->message = ($clientLabel !== '' ? 'Action for '.$clientLabel.'. ' : '').'Assigned to you';
                     $notification->seen = 0;
                     $notification->save();
                 }
@@ -2225,11 +2221,12 @@ trait ClientCrmFollowups
 
             return response()->json(['success' => true, 'message' => 'Action created successfully']);
         } catch (\Exception $e) {
-            Log::error('Error in storePersonalAction: ' . $e->getMessage(), [
+            Log::error('Error in storePersonalAction: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
+                'request_data' => $request->all(),
             ]);
-            return response()->json(['success' => false, 'message' => 'Error creating action: ' . $e->getMessage()], 500);
+
+            return response()->json(['success' => false, 'message' => 'Error creating action: '.$e->getMessage()], 500);
         }
     }
 
@@ -2252,7 +2249,7 @@ trait ClientCrmFollowups
 
         try {
             // Find the existing action
-            $action = \App\Models\Note::findOrFail($validated['note_id']);
+            $action = Note::findOrFail($validated['note_id']);
 
             if ((int) $action->is_action !== 1 || (string) $action->type !== 'client') {
                 return response()->json(['success' => false, 'message' => 'Invalid task'], 400);
@@ -2266,11 +2263,11 @@ trait ClientCrmFollowups
             if (! $action->canBeModifiedBy($staff)) {
                 return response()->json(['success' => false, 'message' => config('constants.unauthorized')], 403);
             }
-            
+
             // Decode the client ID - handle empty/null for personal actions
             $clientId = null;
             $clientLabel = '';
-            if (!empty($requestData['client_id'])) {
+            if (! empty($requestData['client_id'])) {
                 // Extract just the encoded part (format: "ENCODED/Matter/NO" or "ENCODED/Client")
                 $clientIdParts = explode('/', $requestData['client_id']);
                 $encodedClientId = $clientIdParts[0];
@@ -2299,7 +2296,7 @@ trait ClientCrmFollowups
                 }
                 $clientLabel = $this->actionClientDisplayName($targetForAction);
             }
-            
+
             $originalAssigneeId = (int) $action->assigned_to;
 
             // Update action fields
@@ -2312,30 +2309,30 @@ trait ClientCrmFollowups
             if ((int) $action->assigned_to !== $originalAssigneeId) {
                 $action->user_id = Auth::user()->id;
             }
-            
+
             if (isset($requestData['followup_datetime']) && $requestData['followup_datetime'] != '') {
                 $action->action_date = @$requestData['followup_datetime'];
             }
-            
+
             $action->save();
 
             // Create notification for the assignee if changed
             if ((int) $action->assigned_to !== $originalAssigneeId) {
-                $notification = new \App\Models\Notification;
+                $notification = new Notification;
                 $notification->sender_id = Auth::user()->id;
                 $notification->receiver_id = $action->assigned_to;
                 $notification->module_id = $clientId;
 
                 if ($clientId !== null) {
-                    $clientPath = !empty($requestData['client_id'])
+                    $clientPath = ! empty($requestData['client_id'])
                         ? $requestData['client_id']
                         : base64_encode(convert_uuencode($clientId));
-                    $notification->url = URL::to('/clients/detail/' . $clientPath);
+                    $notification->url = URL::to('/clients/detail/'.$clientPath);
                 } else {
                     $notification->url = URL::to('/action');
                 }
-                
-                $notification->message = ($clientLabel !== '' ? 'Action for ' . $clientLabel . '. ' : '') . 'Updated — reassigned to you';
+
+                $notification->message = ($clientLabel !== '' ? 'Action for '.$clientLabel.'. ' : '').'Updated — reassigned to you';
                 $notification->seen = 0;
                 $notification->save();
             }
@@ -2346,8 +2343,8 @@ trait ClientCrmFollowups
                 $activityLog = new ActivitiesLog;
                 $activityLog->client_id = $clientId;
                 $activityLog->created_by = Auth::user()->id;
-                $activityLog->subject = 'Updated action for ' . $assigneeName;
-                $activityLog->description = '<span class="text-semi-bold">' . ($action->task_group ?? '') . '</span><p>' . ($action->description ?? '') . '</p>';
+                $activityLog->subject = 'Updated action for '.$assigneeName;
+                $activityLog->description = '<span class="text-semi-bold">'.($action->task_group ?? '').'</span><p>'.($action->description ?? '').'</p>';
                 $activityLog->task_status = $action->status === '1' ? 1 : 0;
                 $activityLog->pin = 0;
                 if (Auth::user()->id != $action->assigned_to) {
@@ -2362,7 +2359,7 @@ trait ClientCrmFollowups
 
             return response()->json(['success' => true, 'message' => 'Action updated successfully']);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error updating action: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Error updating action: '.$e->getMessage()], 500);
         }
     }
 
@@ -2374,11 +2371,11 @@ trait ClientCrmFollowups
     {
         try {
             $requestData = $request->all();
-            
+
             // Decode the client ID - handle empty/null for personal actions
             $clientId = null;
             $clientLabel = '';
-            if (!empty($requestData['client_id'])) {
+            if (! empty($requestData['client_id'])) {
                 // Extract just the encoded part (format: "ENCODED/Matter/NO" or "ENCODED/Client")
                 $clientIdParts = explode('/', $requestData['client_id']);
                 $encodedClientId = $clientIdParts[0];
@@ -2398,10 +2395,10 @@ trait ClientCrmFollowups
             }
 
             // Generate unique action ID
-            $actionUniqueId = 'group_' . uniqid('', true);
+            $actionUniqueId = 'group_'.uniqid('', true);
 
             // Create a new action
-            $action = new \App\Models\Note;
+            $action = new Note;
             $action->client_id = $clientId;
             $action->user_id = Auth::user()->id;
             $action->description = @$requestData['description'];
@@ -2413,8 +2410,8 @@ trait ClientCrmFollowups
             $action->status = '0'; // Not completed
             $action->pin = 0; // Required field - default to not pinned
             $assigneeName = $this->getAssigneeName($action->assigned_to);
-            $action->title = ($clientLabel !== '' ? $clientLabel . ': ' : '') . 'Assigned to ' . $assigneeName;
-            
+            $action->title = ($clientLabel !== '' ? $clientLabel.': ' : '').'Assigned to '.$assigneeName;
+
             if (isset($requestData['followup_datetime']) && $requestData['followup_datetime'] != '') {
                 $action->action_date = @$requestData['followup_datetime'];
             }
@@ -2423,36 +2420,37 @@ trait ClientCrmFollowups
 
             if ($saved) {
                 // Create a notification for the assignee
-                $notification = new \App\Models\Notification;
+                $notification = new Notification;
                 $notification->sender_id = Auth::user()->id;
                 $notification->receiver_id = $action->assigned_to;
                 $notification->module_id = $clientId;
-                
+
                 // Set URL based on whether client exists
-                if (!empty($requestData['client_id'])) {
-                    $notification->url = URL::to('/clients/detail/' . $requestData['client_id']);
+                if (! empty($requestData['client_id'])) {
+                    $notification->url = URL::to('/clients/detail/'.$requestData['client_id']);
                 } else {
                     $notification->url = URL::to('/action');
                 }
-                
-                $notification->message = ($clientLabel !== '' ? 'Action for ' . $clientLabel . '. ' : '') . 'Assigned to you';
+
+                $notification->message = ($clientLabel !== '' ? 'Action for '.$clientLabel.'. ' : '').'Assigned to you';
                 $notification->seen = 0;
                 $notification->save();
             }
 
             return response()->json(['success' => true, 'message' => 'Action created successfully']);
         } catch (\Exception $e) {
-            Log::error('Error in reassignAction: ' . $e->getMessage(), [
+            Log::error('Error in reassignAction: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
+                'request_data' => $request->all(),
             ]);
-            return response()->json(['success' => false, 'message' => 'Error creating action: ' . $e->getMessage()], 500);
+
+            return response()->json(['success' => false, 'message' => 'Error creating action: '.$e->getMessage()], 500);
         }
     }
 
     /**
      * Test Python Accounting Processing
-     * 
+     *
      * This is a test endpoint to experiment with Python-based accounting processing
      * Can be used to test data export, analytics, report generation, etc.
      */
@@ -2462,32 +2460,32 @@ trait ClientCrmFollowups
             $clientId = $request->input('client_id');
             $matterId = $request->input('matter_id');
             $processingType = $request->input('processing_type', 'analytics'); // analytics, export, report
-            
+
             // Get accounting data
             $clientReceipts = DB::table('account_client_receipts')
                 ->where('client_id', $clientId)
                 ->where('client_matter_id', $matterId)
                 ->get();
-            
+
             $startTime = microtime(true);
-            
+
             // Prepare data for Python service
             $accountingData = [
                 'client_id' => $clientId,
                 'matter_id' => $matterId,
                 'receipts' => $clientReceipts->toArray(),
-                'processing_type' => $processingType
+                'processing_type' => $processingType,
             ];
-            
+
             // TODO: Call Python service for processing
             // Example:
             // $pythonService = app(\App\Services\PythonService::class);
             // $result = $pythonService->processAccountingData($accountingData);
-            
+
             // For now, return mock response
             $endTime = microtime(true);
             $processingTime = ($endTime - $startTime) * 1000; // Convert to milliseconds
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Test completed successfully',
@@ -2498,16 +2496,16 @@ trait ClientCrmFollowups
                     'php_processing' => true,
                     'python_service_available' => false, // Will be true when Python service is integrated
                 ],
-                'note' => 'This is a test endpoint. Integrate with Python service for actual processing.'
+                'note' => 'This is a test endpoint. Integrate with Python service for actual processing.',
             ]);
-            
+
         } catch (\Exception $e) {
-            Log::error('Test Python Accounting Error: ' . $e->getMessage());
-            
+            Log::error('Test Python Accounting Error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error during test processing',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -2523,24 +2521,24 @@ trait ClientCrmFollowups
                 'matter_id' => 'required|exists:client_matters,id',
                 'office_id' => 'required|exists:branches,id',
             ]);
-            
+
             $matter = ClientMatter::findOrFail($request->matter_id);
             $oldOffice = $matter->office ? $matter->office->office_name : 'None';
             $newOffice = Branch::findOrFail($request->office_id);
-            
+
             // Update matter
             $matter->office_id = $request->office_id;
             $matter->save();
-            
+
             // Log activity
-            $activitySubject = $oldOffice === 'None' 
+            $activitySubject = $oldOffice === 'None'
                 ? "assigned matter to {$newOffice->office_name} office"
                 : "changed matter office from {$oldOffice} to {$newOffice->office_name}";
-            
-            if (!empty($request->notes)) {
+
+            if (! empty($request->notes)) {
                 $activitySubject .= " - Notes: {$request->notes}";
             }
-            
+
             $activityLog = new ActivitiesLog;
             $activityLog->client_id = $matter->client_id;
             $activityLog->created_by = Auth::id();
@@ -2548,43 +2546,42 @@ trait ClientCrmFollowups
             $activityLog->task_status = 0;
             $activityLog->pin = 0;
             $activityLog->save();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Office assigned successfully',
                 'office_name' => $newOffice->office_name,
-                'office_id' => $newOffice->id
+                'office_id' => $newOffice->id,
             ]);
-            
-        } catch (\Illuminate\Validation\ValidationException $e) {
+
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation error: ' . implode(', ', $e->errors())
+                'message' => 'Validation error: '.implode(', ', $e->errors()),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Error updating matter office: ' . $e->getMessage());
-            
+            Log::error('Error updating matter office: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to assign office: ' . $e->getMessage()
+                'message' => 'Failed to assign office: '.$e->getMessage(),
             ], 500);
         }
     }
 
-
     /**
      * Export client data to JSON file
-     * 
-     * @param string $id Encoded client ID
-     * @return \Illuminate\Http\Response
+     *
+     * @param  string  $id  Encoded client ID
+     * @return Response
      */
     public function export($id)
     {
         try {
             // Decode the client ID
             $clientId = $this->decodeString($id);
-            
-            if (!$clientId) {
+
+            if (! $clientId) {
                 return redirect()->route('clients.index')
                     ->with('error', 'Invalid client ID.');
             }
@@ -2594,7 +2591,7 @@ trait ClientCrmFollowups
                 ->whereIn('type', ['client', 'lead'])
                 ->first();
 
-            if (!$client) {
+            if (! $client) {
                 return redirect()->route('clients.index')
                     ->with('error', 'Client not found.');
             }
@@ -2609,30 +2606,29 @@ trait ClientCrmFollowups
             $exportData = $exportService->exportClient($clientId);
 
             // Generate filename
-            $filename = 'client_export_' . ($client->client_id ?? $clientId) . '_' . date('Y-m-d_His') . '.json';
+            $filename = 'client_export_'.($client->client_id ?? $clientId).'_'.date('Y-m-d_His').'.json';
 
             // Return JSON file download
             return response()->json($exportData, 200, [
                 'Content-Type' => 'application/json',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         } catch (\Exception $e) {
-            Log::error('Client export error: ' . $e->getMessage(), [
+            Log::error('Client export error: '.$e->getMessage(), [
                 'client_id' => $id,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return redirect()->route('clients.index')
-                ->with('error', 'Failed to export client data: ' . $e->getMessage());
+                ->with('error', 'Failed to export client data: '.$e->getMessage());
         }
     }
 
     /**
      * Import client data from JSON file
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\RedirectResponse
+     *
+     * @return RedirectResponse
      */
     public function import(Request $request)
     {
@@ -2659,12 +2655,12 @@ trait ClientCrmFollowups
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 return redirect()->back()
-                    ->withErrors(['import_file' => 'Invalid JSON file: ' . json_last_error_msg()])
+                    ->withErrors(['import_file' => 'Invalid JSON file: '.json_last_error_msg()])
                     ->withInput();
             }
 
             // Validate import data structure
-            if (!isset($importData['client'])) {
+            if (! isset($importData['client'])) {
                 return redirect()->back()
                     ->withErrors(['import_file' => 'Invalid import file format: missing lead/client data'])
                     ->withInput();
@@ -2691,7 +2687,8 @@ trait ClientCrmFollowups
             $result = $importService->importClient($importData, $skipDuplicates);
 
             if ($result['success']) {
-                $message = 'Lead imported successfully. Lead ID: ' . ($result['client_id_reference'] ?? '');
+                $message = 'Lead imported successfully. Lead ID: '.($result['client_id_reference'] ?? '');
+
                 return redirect()->route('leads.index')
                     ->with('success', $message);
             } else {
@@ -2700,17 +2697,17 @@ trait ClientCrmFollowups
                     ->withInput();
             }
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return redirect()->back()
                 ->withErrors($e->validator)
                 ->withInput();
         } catch (\Exception $e) {
-            Log::error('Lead import error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            Log::error('Lead import error: '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return redirect()->back()
-                ->withErrors(['import_file' => 'Failed to import lead: ' . $e->getMessage()])
+                ->withErrors(['import_file' => 'Failed to import lead: '.$e->getMessage()])
                 ->withInput();
         }
     }
@@ -2718,52 +2715,52 @@ trait ClientCrmFollowups
     /**
      * Search for contact persons (clients/leads) by email, phone, name, or client ID
      * Used for company contact person selection
-     * 
+     *
      * Search priority: Phone and Email are primary search fields
      */
     public function searchContactPerson(Request $request)
     {
         $query = $request->input('q', '');
         $excludeId = $request->input('exclude_id'); // Exclude current lead/client being edited
-        
+
         if (strlen($query) < 2) {
             return response()->json(['results' => []]);
         }
-        
+
         // Use ILIKE for PostgreSQL, LIKE for MySQL
         $likeOperator = DB::getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
-        
-        $results = Admin::where(function($q) use ($query, $likeOperator) {
-                // Primary search: Phone and Email (as per requirement)
-                $q->where('phone', $likeOperator, "%{$query}%")
-                  ->orWhere('email', $likeOperator, "%{$query}%")
-                  // Secondary search: Name and Client ID
-                  ->orWhere('first_name', $likeOperator, "%{$query}%")
-                  ->orWhere('last_name', $likeOperator, "%{$query}%")
-                  ->orWhere('client_id', $likeOperator, "%{$query}%");
-                
-                // For PostgreSQL, use CONCAT with ILIKE
-                if (DB::getDriverName() === 'pgsql') {
-                    $q->orWhereRaw("CONCAT(first_name, ' ', last_name) ILIKE ?", ["%{$query}%"]);
-                } else {
-                    // For MySQL, use CONCAT with LIKE
-                    $q->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$query}%"]);
-                }
-            })
+
+        $results = Admin::where(function ($q) use ($query, $likeOperator) {
+            // Primary search: Phone and Email (as per requirement)
+            $q->where('phone', $likeOperator, "%{$query}%")
+                ->orWhere('email', $likeOperator, "%{$query}%")
+              // Secondary search: Name and Client ID
+                ->orWhere('first_name', $likeOperator, "%{$query}%")
+                ->orWhere('last_name', $likeOperator, "%{$query}%")
+                ->orWhere('client_id', $likeOperator, "%{$query}%");
+
+            // For PostgreSQL, use CONCAT with ILIKE
+            if (DB::getDriverName() === 'pgsql') {
+                $q->orWhereRaw("CONCAT(first_name, ' ', last_name) ILIKE ?", ["%{$query}%"]);
+            } else {
+                // For MySQL, use CONCAT with LIKE
+                $q->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$query}%"]);
+            }
+        })
             ->whereIn('type', ['client', 'lead'])
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->where('type', 'client')
-                  ->orWhere('type', 'lead');
+                    ->orWhere('type', 'lead');
             })
             ->where('is_company', false) // Exclude companies from being contact persons
-            ->when($excludeId, function($q) use ($excludeId) {
+            ->when($excludeId, function ($q) use ($excludeId) {
                 $q->where('id', '!=', $excludeId);
             })
             ->select('id', 'first_name', 'last_name', 'email', 'phone', 'client_id', 'type')
             ->limit(20)
             ->get()
-            ->map(function($person) {
-                $fullName = trim($person->first_name . ' ' . $person->last_name);
+            ->map(function ($person) {
+                $fullName = trim($person->first_name.' '.$person->last_name);
                 // Show phone and email in display text
                 $displayText = "{$fullName}";
                 if ($person->email) {
@@ -2773,7 +2770,7 @@ trait ClientCrmFollowups
                     $displayText .= " - {$person->phone}";
                 }
                 $displayText .= " - {$person->client_id}";
-                
+
                 return [
                     'id' => $person->id,
                     'text' => $displayText,
@@ -2782,10 +2779,10 @@ trait ClientCrmFollowups
                     'email' => $person->email,
                     'phone' => $person->phone,
                     'client_id' => $person->client_id,
-                    'type' => $person->type
+                    'type' => $person->type,
                 ];
             });
-        
+
         return response()->json(['results' => $results]);
     }
 
@@ -2810,49 +2807,49 @@ trait ClientCrmFollowups
 
         $lines = [];
         $lines[] = '<p>Removed an email from the CRM Emails tab.</p>';
-        $lines[] = '<p><strong>Email log ID:</strong> ' . $h((string) $emailLogId) . '</p>';
+        $lines[] = '<p><strong>Email log ID:</strong> '.$h((string) $emailLogId).'</p>';
 
         if ($matterReference !== null && $matterReference !== '') {
-            $lines[] = '<p><strong>Matter:</strong> ' . $h($matterReference) . '</p>';
+            $lines[] = '<p><strong>Matter:</strong> '.$h($matterReference).'</p>';
         } elseif ($matterInternalId !== null && $matterInternalId > 0) {
-            $lines[] = '<p><strong>Matter ID:</strong> ' . $h((string) $matterInternalId) . '</p>';
+            $lines[] = '<p><strong>Matter ID:</strong> '.$h((string) $matterInternalId).'</p>';
         }
 
         if ($recordLabel !== '') {
-            $lines[] = '<p><strong>Record:</strong> ' . $h($recordLabel) . '</p>';
+            $lines[] = '<p><strong>Record:</strong> '.$h($recordLabel).'</p>';
         }
 
         if ($direction !== '') {
-            $lines[] = '<p><strong>Direction:</strong> ' . $h($direction) . '</p>';
+            $lines[] = '<p><strong>Direction:</strong> '.$h($direction).'</p>';
         }
 
         if ($attachmentCount > 0) {
-            $lines[] = '<p><strong>Attachments removed:</strong> ' . $h((string) $attachmentCount) . '</p>';
+            $lines[] = '<p><strong>Attachments removed:</strong> '.$h((string) $attachmentCount).'</p>';
         }
 
-        $lines[] = '<p><strong>Subject:</strong> ' . $h($displaySubject) . '</p>';
+        $lines[] = '<p><strong>Subject:</strong> '.$h($displaySubject).'</p>';
 
         if (($snapshot['from_mail'] ?? '') !== '') {
-            $lines[] = '<p><strong>From:</strong> ' . $h($snapshot['from_mail']) . '</p>';
+            $lines[] = '<p><strong>From:</strong> '.$h($snapshot['from_mail']).'</p>';
         }
         if (($snapshot['to_mail'] ?? '') !== '') {
-            $lines[] = '<p><strong>To:</strong> ' . $h($snapshot['to_mail']) . '</p>';
+            $lines[] = '<p><strong>To:</strong> '.$h($snapshot['to_mail']).'</p>';
         }
 
         $ccLine = $this->formatEmailLogCcForActivityDescription($snapshot['cc'] ?? null);
         if ($ccLine !== null && $ccLine !== '') {
             $maxLen = 600;
             if (strlen($ccLine) > $maxLen) {
-                $ccLine = substr($ccLine, 0, $maxLen) . '…';
+                $ccLine = substr($ccLine, 0, $maxLen).'…';
             }
-            $lines[] = '<p><strong>CC:</strong> ' . $h($ccLine) . '</p>';
+            $lines[] = '<p><strong>CC:</strong> '.$h($ccLine).'</p>';
         }
 
         return implode('', $lines);
     }
 
     /**
-     * @param mixed $mailType Raw mail_type from email_logs (string or int depending on source)
+     * @param  mixed  $mailType  Raw mail_type from email_logs (string or int depending on source)
      */
     protected function humanizeEmailLogMailType($mailType): string
     {
@@ -2904,7 +2901,6 @@ trait ClientCrmFollowups
 
         return $trimmed;
     }
-
 
     public function getallclients(Request $request)
     {
@@ -2977,9 +2973,9 @@ trait ClientCrmFollowups
                 foreach ($matterResults as $result) {
                     $displayName = ($result->is_company && $result->company_name)
                         ? $result->company_name
-                        : trim(($result->first_name ?? '') . ' ' . ($result->last_name ?? ''));
+                        : trim(($result->first_name ?? '').' '.($result->last_name ?? ''));
                     $rawResults[] = [
-                        'id' => base64_encode(convert_uuencode($result->client_id)) . '/Matter/' . $result->client_unique_matter_no,
+                        'id' => base64_encode(convert_uuencode($result->client_id)).'/Matter/'.$result->client_unique_matter_no,
                         'name' => $displayName,
                         'email' => $result->email,
                         'status' => $result->is_archived ? 'Archived' : $result->type,
@@ -2995,56 +2991,56 @@ trait ClientCrmFollowups
         // 2. Matter references (department / other / unique matter no)
         $matterMatches = collect();
         if (! $isClientReferenceSearch) {
-        $matterMatches = DB::table('client_matters')
-            ->join('admins', 'client_matters.client_id', '=', 'admins.id')
-            ->leftJoin('companies', 'companies.admin_id', '=', 'admins.id')
-            ->whereIn('admins.type', ['client', 'lead'])
-            ->whereNull('admins.is_deleted')
-            ->where('admins.is_archived', 0)
-            ->where('client_matters.matter_status', 1)
-            ->tap(function ($q) {
-                StaffClientVisibility::applyExcludeSuperAdminOnlyLockedClientsOnAdminJoin($q, 'admins');
-            })
-            ->where(function ($query) use ($squery, $squeryLower, $useMatterFt, $mysqlFtPhrase) {
-                if ($useMatterFt) {
-                    $query->where(function ($matterFtQuery) use ($mysqlFtPhrase, $squery, $squeryLower) {
-                        $matterFtQuery->whereRaw(
-                            'MATCH(client_matters.department_reference, client_matters.other_reference, client_matters.client_unique_matter_no) AGAINST (? IN BOOLEAN MODE)',
-                            [$mysqlFtPhrase]
-                        )
-                            ->orWhere('client_matters.department_reference', 'LIKE', "%{$squery}%")
+            $matterMatches = DB::table('client_matters')
+                ->join('admins', 'client_matters.client_id', '=', 'admins.id')
+                ->leftJoin('companies', 'companies.admin_id', '=', 'admins.id')
+                ->whereIn('admins.type', ['client', 'lead'])
+                ->whereNull('admins.is_deleted')
+                ->where('admins.is_archived', 0)
+                ->where('client_matters.matter_status', 1)
+                ->tap(function ($q) {
+                    StaffClientVisibility::applyExcludeSuperAdminOnlyLockedClientsOnAdminJoin($q, 'admins');
+                })
+                ->where(function ($query) use ($squery, $squeryLower, $useMatterFt, $mysqlFtPhrase) {
+                    if ($useMatterFt) {
+                        $query->where(function ($matterFtQuery) use ($mysqlFtPhrase, $squery, $squeryLower) {
+                            $matterFtQuery->whereRaw(
+                                'MATCH(client_matters.department_reference, client_matters.other_reference, client_matters.client_unique_matter_no) AGAINST (? IN BOOLEAN MODE)',
+                                [$mysqlFtPhrase]
+                            )
+                                ->orWhere('client_matters.department_reference', 'LIKE', "%{$squery}%")
+                                ->orWhere('client_matters.other_reference', 'LIKE', "%{$squery}%")
+                                ->orWhereRaw('LOWER(client_matters.client_unique_matter_no) LIKE ?', ["%{$squeryLower}%"]);
+                        });
+                    } else {
+                        $query->where('client_matters.department_reference', 'LIKE', "%{$squery}%")
                             ->orWhere('client_matters.other_reference', 'LIKE', "%{$squery}%")
-                            ->orWhereRaw('LOWER(client_matters.client_unique_matter_no) LIKE ?', ["%{$squeryLower}%"]);
-                    });
-                } else {
-                    $query->where('client_matters.department_reference', 'LIKE', "%{$squery}%")
-                        ->orWhere('client_matters.other_reference', 'LIKE', "%{$squery}%")
-                        ->orWhere('client_matters.client_unique_matter_no', 'LIKE', "%{$squery}%");
-                }
-            })
-            ->select(
-                'admins.id as client_id',
-                'admins.client_id as client_reference',
-                'admins.first_name',
-                'admins.last_name',
-                'admins.is_company',
-                'admins.email',
-                'admins.is_archived',
-                'admins.type',
-                'companies.company_name',
-                'client_matters.client_unique_matter_no'
-            )
-            ->orderByDesc('client_matters.id')
-            ->limit($lim)
-            ->get();
+                            ->orWhere('client_matters.client_unique_matter_no', 'LIKE', "%{$squery}%");
+                    }
+                })
+                ->select(
+                    'admins.id as client_id',
+                    'admins.client_id as client_reference',
+                    'admins.first_name',
+                    'admins.last_name',
+                    'admins.is_company',
+                    'admins.email',
+                    'admins.is_archived',
+                    'admins.type',
+                    'companies.company_name',
+                    'client_matters.client_unique_matter_no'
+                )
+                ->orderByDesc('client_matters.id')
+                ->limit($lim)
+                ->get();
         }
 
         foreach ($matterMatches as $matter) {
             $displayName = ($matter->is_company && $matter->company_name)
                 ? $matter->company_name
-                : trim(($matter->first_name ?? '') . ' ' . ($matter->last_name ?? ''));
+                : trim(($matter->first_name ?? '').' '.($matter->last_name ?? ''));
             $rawResults[] = [
-                'id' => base64_encode(convert_uuencode($matter->client_id)) . '/Matter/' . $matter->client_unique_matter_no,
+                'id' => base64_encode(convert_uuencode($matter->client_id)).'/Matter/'.$matter->client_unique_matter_no,
                 'name' => $displayName,
                 'email' => $matter->email,
                 'status' => $matter->is_archived ? 'Archived' : $matter->type,
@@ -3060,7 +3056,7 @@ trait ClientCrmFollowups
         if (strstr($squery, '/')) {
             $dob = explode('/', $squery);
             if (! empty($dob) && is_array($dob)) {
-                $d = $dob[2] . '/' . $dob[1] . '/' . $dob[0];
+                $d = $dob[2].'/'.$dob[1].'/'.$dob[0];
             }
         }
 
@@ -3077,78 +3073,78 @@ trait ClientCrmFollowups
             });
         } else {
             $clientsQuery
-            ->leftJoin('client_contacts', function ($join) use ($squery, $squeryLower, $isUniversalPhone) {
-                $join->on('client_contacts.client_id', '=', 'admins.id');
-                if ($isUniversalPhone) {
-                    $join->where(function ($phoneQuery) use ($squery, $squeryLower) {
-                        $phoneQuery->whereRaw('LOWER(client_contacts.phone) LIKE ?', ["%{$squeryLower}%"])
-                            ->orWhereRaw('LOWER(client_contacts.phone) LIKE ?', ["%{$squery}_%"]);
-                    });
-                } else {
-                    $join->whereRaw('LOWER(client_contacts.phone) LIKE ?', ["%{$squeryLower}%"]);
-                }
-            })
-            ->leftJoin('client_emails', function ($join) use ($squery, $squeryLower, $isUniversalEmail) {
-                $join->on('client_emails.client_id', '=', 'admins.id');
-                if ($isUniversalEmail) {
-                    $join->where(function ($emailQuery) use ($squeryLower) {
-                        $emailQuery->whereRaw('LOWER(client_emails.email) LIKE ?', ["%{$squeryLower}%"])
-                            ->orWhereRaw('LOWER(client_emails.email) LIKE ?', ['demo_%@gmail.com']);
-                    });
-                } else {
-                    $join->whereRaw('LOWER(client_emails.email) LIKE ?', ["%{$squeryLower}%"]);
-                }
-            })
-            ->where(function ($query) use ($squery, $squeryLower, $d, $isUniversalEmail, $isUniversalPhone, $useAdminFt, $mysqlFtPhrase) {
-                if ($isUniversalEmail) {
-                    $query->where(function ($emailSubQuery) use ($squeryLower) {
-                        $emailSubQuery->whereRaw('LOWER(admins.email) LIKE ?', ["%{$squeryLower}%"])
-                            ->orWhereRaw('LOWER(admins.email) LIKE ?', ['demo_%@gmail.com']);
-                    });
-                } elseif ($useAdminFt) {
-                    // FULLTEXT misses alphanumeric client refs (e.g. VIPL2400001); keep LIKE fallback.
-                    $query->where(function ($adminFtQuery) use ($mysqlFtPhrase, $squeryLower) {
-                        $adminFtQuery->whereRaw(
-                            'MATCH(admins.first_name, admins.last_name, admins.email, admins.client_id) AGAINST (? IN BOOLEAN MODE)',
-                            [$mysqlFtPhrase]
-                        )
+                ->leftJoin('client_contacts', function ($join) use ($squery, $squeryLower, $isUniversalPhone) {
+                    $join->on('client_contacts.client_id', '=', 'admins.id');
+                    if ($isUniversalPhone) {
+                        $join->where(function ($phoneQuery) use ($squery, $squeryLower) {
+                            $phoneQuery->whereRaw('LOWER(client_contacts.phone) LIKE ?', ["%{$squeryLower}%"])
+                                ->orWhereRaw('LOWER(client_contacts.phone) LIKE ?', ["%{$squery}_%"]);
+                        });
+                    } else {
+                        $join->whereRaw('LOWER(client_contacts.phone) LIKE ?', ["%{$squeryLower}%"]);
+                    }
+                })
+                ->leftJoin('client_emails', function ($join) use ($squeryLower, $isUniversalEmail) {
+                    $join->on('client_emails.client_id', '=', 'admins.id');
+                    if ($isUniversalEmail) {
+                        $join->where(function ($emailQuery) use ($squeryLower) {
+                            $emailQuery->whereRaw('LOWER(client_emails.email) LIKE ?', ["%{$squeryLower}%"])
+                                ->orWhereRaw('LOWER(client_emails.email) LIKE ?', ['demo_%@gmail.com']);
+                        });
+                    } else {
+                        $join->whereRaw('LOWER(client_emails.email) LIKE ?', ["%{$squeryLower}%"]);
+                    }
+                })
+                ->where(function ($query) use ($squery, $squeryLower, $d, $isUniversalEmail, $isUniversalPhone, $useAdminFt, $mysqlFtPhrase) {
+                    if ($isUniversalEmail) {
+                        $query->where(function ($emailSubQuery) use ($squeryLower) {
+                            $emailSubQuery->whereRaw('LOWER(admins.email) LIKE ?', ["%{$squeryLower}%"])
+                                ->orWhereRaw('LOWER(admins.email) LIKE ?', ['demo_%@gmail.com']);
+                        });
+                    } elseif ($useAdminFt) {
+                        // FULLTEXT misses alphanumeric client refs (e.g. VIPL2400001); keep LIKE fallback.
+                        $query->where(function ($adminFtQuery) use ($mysqlFtPhrase, $squeryLower) {
+                            $adminFtQuery->whereRaw(
+                                'MATCH(admins.first_name, admins.last_name, admins.email, admins.client_id) AGAINST (? IN BOOLEAN MODE)',
+                                [$mysqlFtPhrase]
+                            )
+                                ->orWhereRaw('LOWER(admins.client_id) LIKE ?', ["%{$squeryLower}%"]);
+                        });
+                    } else {
+                        $query->whereRaw('LOWER(admins.email) LIKE ?', ["%{$squeryLower}%"]);
+                    }
+
+                    if ($isUniversalEmail) {
+                        $query->orWhereRaw('LOWER(admins.first_name) LIKE ?', ["%{$squeryLower}%"])
+                            ->orWhereRaw('LOWER(admins.last_name) LIKE ?', ["%{$squeryLower}%"])
                             ->orWhereRaw('LOWER(admins.client_id) LIKE ?', ["%{$squeryLower}%"]);
+                    } elseif (! $useAdminFt) {
+                        $query->orWhereRaw('LOWER(admins.first_name) LIKE ?', ["%{$squeryLower}%"])
+                            ->orWhereRaw('LOWER(admins.last_name) LIKE ?', ["%{$squeryLower}%"])
+                            ->orWhereRaw('LOWER(admins.client_id) LIKE ?', ["%{$squeryLower}%"]);
+                    }
+
+                    $query->orWhereHas('company', function ($q) use ($squeryLower) {
+                        $q->whereRaw('LOWER(company_name) LIKE ?', ["%{$squeryLower}%"]);
                     });
-                } else {
-                    $query->whereRaw('LOWER(admins.email) LIKE ?', ["%{$squeryLower}%"]);
-                }
 
-                if ($isUniversalEmail) {
-                    $query->orWhereRaw('LOWER(admins.first_name) LIKE ?', ["%{$squeryLower}%"])
-                        ->orWhereRaw('LOWER(admins.last_name) LIKE ?', ["%{$squeryLower}%"])
-                        ->orWhereRaw('LOWER(admins.client_id) LIKE ?', ["%{$squeryLower}%"]);
-                } elseif (! $useAdminFt) {
-                    $query->orWhereRaw('LOWER(admins.first_name) LIKE ?', ["%{$squeryLower}%"])
-                        ->orWhereRaw('LOWER(admins.last_name) LIKE ?', ["%{$squeryLower}%"])
-                        ->orWhereRaw('LOWER(admins.client_id) LIKE ?', ["%{$squeryLower}%"]);
-                }
+                    if ($isUniversalPhone) {
+                        $query->orWhere(function ($phoneSubQuery) use ($squery, $squeryLower) {
+                            $phoneSubQuery->whereRaw('LOWER(admins.phone) LIKE ?', ["%{$squeryLower}%"])
+                                ->orWhereRaw('LOWER(admins.phone) LIKE ?', ["%{$squery}_%"]);
+                        });
+                    } else {
+                        $query->orWhereRaw('LOWER(admins.phone) LIKE ?', ["%{$squeryLower}%"]);
+                    }
 
-                $query->orWhereHas('company', function ($q) use ($squeryLower) {
-                    $q->whereRaw('LOWER(company_name) LIKE ?', ["%{$squeryLower}%"]);
+                    $query->orWhereRaw("LOWER(COALESCE(admins.first_name, '') || ' ' || COALESCE(admins.last_name, '')) LIKE ?", ["%{$squeryLower}%"])
+                        ->orWhereNotNull('client_contacts.client_id')
+                        ->orWhereNotNull('client_emails.client_id');
+
+                    if ($d != '') {
+                        $query->orWhere('admins.dob', '=', $d);
+                    }
                 });
-
-                if ($isUniversalPhone) {
-                    $query->orWhere(function ($phoneSubQuery) use ($squery, $squeryLower) {
-                        $phoneSubQuery->whereRaw('LOWER(admins.phone) LIKE ?', ["%{$squeryLower}%"])
-                            ->orWhereRaw('LOWER(admins.phone) LIKE ?', ["%{$squery}_%"]);
-                    });
-                } else {
-                    $query->orWhereRaw('LOWER(admins.phone) LIKE ?', ["%{$squeryLower}%"]);
-                }
-
-                $query->orWhereRaw("LOWER(COALESCE(admins.first_name, '') || ' ' || COALESCE(admins.last_name, '')) LIKE ?", ["%{$squeryLower}%"])
-                    ->orWhereNotNull('client_contacts.client_id')
-                    ->orWhereNotNull('client_emails.client_id');
-
-                if ($d != '') {
-                    $query->orWhere('admins.dob', '=', $d);
-                }
-            });
         }
 
         $clientsQuery->tap(function ($q) {
@@ -3236,18 +3232,18 @@ trait ClientCrmFollowups
                     : null;
 
                 $resultFinalId = $latestMatterNo
-                    ? base64_encode(convert_uuencode($client->id)) . '/Matter/' . $latestMatterNo
-                    : base64_encode(convert_uuencode($client->id)) . '/Client';
+                    ? base64_encode(convert_uuencode($client->id)).'/Matter/'.$latestMatterNo
+                    : base64_encode(convert_uuencode($client->id)).'/Client';
 
                 $displayName = $client->company_name_or_personal_name;
                 if ($client->is_company && $client->company?->contactPerson) {
                     $cp = $client->company->contactPerson;
                     $cpBits = array_filter([
                         trim((string) ($cp->client_id ?? '')),
-                        trim(($cp->first_name ?? '') . ' ' . ($cp->last_name ?? '')),
+                        trim(($cp->first_name ?? '').' '.($cp->last_name ?? '')),
                     ]);
                     if ($cpBits !== []) {
-                        $displayName .= ' — ' . implode(' ', $cpBits);
+                        $displayName .= ' — '.implode(' ', $cpBits);
                     }
                 }
 
@@ -3393,7 +3389,7 @@ trait ClientCrmFollowups
             return true;
         }
 
-        $fullName = strtolower(trim(($admin->first_name ?? '') . ' ' . ($admin->last_name ?? '')));
+        $fullName = strtolower(trim(($admin->first_name ?? '').' '.($admin->last_name ?? '')));
         if ($fullName !== '' && Str::contains($fullName, $squeryLower)) {
             return true;
         }
@@ -3427,8 +3423,6 @@ trait ClientCrmFollowups
         return false;
     }
 
-
-
     /**
      * Default "not picked call" SMS body from sms_templates (alias not_picked_call), with client name filled in.
      */
@@ -3451,42 +3445,42 @@ trait ClientCrmFollowups
         return "Hi {$first},\n\nWe tried reaching you but couldn't connect. Please call us at 0396021330 or let us know a suitable time.\n\nPlease do not reply via SMS.\n\nBansal Immigration";
     }
 
-	/**
+    /**
      * All Vendors.
      *
-     * @return \Illuminate\Http\Response
-    */
+     * @return Response
+     */
     public function index(Request $request)
-	{
-		// Check authorization using trait
-		if ($this->hasModuleAccess('20')) {
-		    $query = $this->getBaseClientQuery();
+    {
+        // Check authorization using trait
+        if ($this->hasModuleAccess('20')) {
+            $query = $this->getBaseClientQuery();
             $totalData = $query->count();
-            
+
             // Apply filters using trait
             $query = $this->applyClientFilters($query, $request);
 
             $allowedPerPage = [10, 20, 50, 100, 200];
             $perPage = (int) $request->get('per_page', 20);
-            if (!in_array($perPage, $allowedPerPage, true)) {
+            if (! in_array($perPage, $allowedPerPage, true)) {
                 $perPage = 20;
             }
-            
+
             $lists = $query->sortable(['id' => 'desc'])
                 ->paginate($perPage)
                 ->appends($request->except('page'));
-		} else {
-		    $query = $this->getEmptyClientQuery();
+        } else {
+            $query = $this->getEmptyClientQuery();
             $allowedPerPage = [10, 20, 50, 100, 200];
             $perPage = (int) $request->get('per_page', 20);
-            if (!in_array($perPage, $allowedPerPage, true)) {
+            if (! in_array($perPage, $allowedPerPage, true)) {
                 $perPage = 20;
             }
-		    $lists = $query->sortable(['id' => 'desc'])->paginate($perPage);
-		    $totalData = 0;
-		}
-		
-		return view('crm.clients.index', compact(['lists', 'totalData', 'perPage']));
+            $lists = $query->sortable(['id' => 'desc'])->paginate($perPage);
+            $totalData = 0;
+        }
+
+        return view('crm.clients.index', compact(['lists', 'totalData', 'perPage']));
     }
 
     /**
@@ -3519,32 +3513,32 @@ trait ClientCrmFollowups
             $sortDirection = $request->get('direction', 'desc');
 
             $query = DB::table('client_matters as cm')
-            ->join('admins as ad', 'cm.client_id', '=', 'ad.id')
-            ->join('matters as ma', 'ma.id', '=', 'cm.sel_matter_id')
-            ->leftJoin('workflow_stages as ws', 'cm.workflow_stage_id', '=', 'ws.id')
-            ->select('cm.*', 'ad.client_id as client_unique_id','ad.first_name','ad.last_name','ad.email','ma.title','ma.nick_name','ad.dob')
-            ->where('cm.matter_status', '=', '1')
-            ->where('ad.is_archived', '=', '0')
-            ->whereIn('ad.type', ['client', 'lead'])
-            ->whereNull('ad.is_deleted')
-            ->where(function ($q) {
-                $closedStages = ['file closed', 'withdrawn', 'refund', 'discontinued'];
-                $q->whereNull('ws.name')
-                    ->orWhereRaw('LOWER(TRIM(ws.name)) NOT IN (' . implode(',', array_fill(0, count($closedStages), '?')) . ')', $closedStages);
-            });
+                ->join('admins as ad', 'cm.client_id', '=', 'ad.id')
+                ->join('matters as ma', 'ma.id', '=', 'cm.sel_matter_id')
+                ->leftJoin('workflow_stages as ws', 'cm.workflow_stage_id', '=', 'ws.id')
+                ->select('cm.*', 'ad.client_id as client_unique_id', 'ad.first_name', 'ad.last_name', 'ad.email', 'ma.title', 'ma.nick_name', 'ad.dob')
+                ->where('cm.matter_status', '=', '1')
+                ->where('ad.is_archived', '=', '0')
+                ->whereIn('ad.type', ['client', 'lead'])
+                ->whereNull('ad.is_deleted')
+                ->where(function ($q) {
+                    $closedStages = ['file closed', 'withdrawn', 'refund', 'discontinued'];
+                    $q->whereNull('ws.name')
+                        ->orWhereRaw('LOWER(TRIM(ws.name)) NOT IN ('.implode(',', array_fill(0, count($closedStages), '?')).')', $closedStages);
+                });
             StaffClientVisibility::applyExcludeSuperAdminOnlyLockedClientsOnAdminJoin($query, 'ad');
             StaffClientVisibility::restrictMatterListToAllocatedClients($query, 'cm', 'ad');
 
             if ($request->has('sel_matter_id')) {
                 $sel_matter_id = $request->input('sel_matter_id');
-                if(trim($sel_matter_id) != '') {
+                if (trim($sel_matter_id) != '') {
                     $query->where('cm.sel_matter_id', '=', $sel_matter_id);
                 }
             }
 
             if ($request->has('client_id')) {
                 $client_id = $request->input('client_id');
-                if(trim($client_id) != '') {
+                if (trim($client_id) != '') {
                     $query->where('ad.client_id', '=', $client_id);
                 }
             }
@@ -3554,9 +3548,9 @@ trait ClientCrmFollowups
                 if ($name != '') {
                     $nameLower = strtolower($name);
                     $query->where(function ($q) use ($nameLower) {
-                        $q->whereRaw('LOWER(ad.first_name) LIKE ?', ['%' . $nameLower . '%'])
-                          ->orWhereRaw('LOWER(ad.last_name) LIKE ?', ['%' . $nameLower . '%'])
-                          ->orWhereRaw("LOWER(COALESCE(ad.first_name, '') || ' ' || COALESCE(ad.last_name, '')) LIKE ?", ['%' . $nameLower . '%']);
+                        $q->whereRaw('LOWER(ad.first_name) LIKE ?', ['%'.$nameLower.'%'])
+                            ->orWhereRaw('LOWER(ad.last_name) LIKE ?', ['%'.$nameLower.'%'])
+                            ->orWhereRaw("LOWER(COALESCE(ad.first_name, '') || ' ' || COALESCE(ad.last_name, '')) LIKE ?", ['%'.$nameLower.'%']);
                     });
                 }
             }
@@ -3596,11 +3590,11 @@ trait ClientCrmFollowups
 
             $allowedPerPage = [10, 20, 50, 100, 200];
             $perPage = (int) $request->get('per_page', 20);
-            if (!in_array($perPage, $allowedPerPage, true)) {
+            if (! in_array($perPage, $allowedPerPage, true)) {
                 $perPage = 20;
             }
 
-            $teamMembers = \App\Models\Staff::query()
+            $teamMembers = Staff::query()
                 ->orderBy('first_name', 'asc')
                 ->select('id', 'first_name', 'last_name')
                 ->get();
@@ -3611,30 +3605,31 @@ trait ClientCrmFollowups
             $sortDirection = $request->get('direction', 'desc');
 
             $query = DB::table('client_matters as cm')
-            ->join('admins as ad', 'cm.client_id', '=', 'ad.id')
-            ->join('matters as ma', 'ma.id', '=', 'cm.sel_matter_id')
-            ->leftJoin('workflow_stages as ws', 'cm.workflow_stage_id', '=', 'ws.id')
-            ->select('cm.*', 'ad.client_id as client_unique_id','ad.first_name','ad.last_name','ad.email','ma.title','ma.nick_name','ad.dob')
-            ->where('cm.matter_status', '=', '1')
-            ->where('ad.is_archived', '=', '0')
-            ->whereIn('ad.type', ['client', 'lead'])
-            ->whereNull('ad.is_deleted')
-            ->where(function ($q) {
-                $closedStages = ['file closed', 'withdrawn', 'refund', 'discontinued'];
-                $q->whereNull('ws.name')
-                    ->orWhereRaw('LOWER(TRIM(ws.name)) NOT IN (' . implode(',', array_fill(0, count($closedStages), '?')) . ')', $closedStages);
-            });
+                ->join('admins as ad', 'cm.client_id', '=', 'ad.id')
+                ->join('matters as ma', 'ma.id', '=', 'cm.sel_matter_id')
+                ->leftJoin('workflow_stages as ws', 'cm.workflow_stage_id', '=', 'ws.id')
+                ->select('cm.*', 'ad.client_id as client_unique_id', 'ad.first_name', 'ad.last_name', 'ad.email', 'ma.title', 'ma.nick_name', 'ad.dob')
+                ->where('cm.matter_status', '=', '1')
+                ->where('ad.is_archived', '=', '0')
+                ->whereIn('ad.type', ['client', 'lead'])
+                ->whereNull('ad.is_deleted')
+                ->where(function ($q) {
+                    $closedStages = ['file closed', 'withdrawn', 'refund', 'discontinued'];
+                    $q->whereNull('ws.name')
+                        ->orWhereRaw('LOWER(TRIM(ws.name)) NOT IN ('.implode(',', array_fill(0, count($closedStages), '?')).')', $closedStages);
+                });
             StaffClientVisibility::applyExcludeSuperAdminOnlyLockedClientsOnAdminJoin($query, 'ad');
             $query->orderBy($sortField, $sortDirection);
             $allowedPerPage = [10, 20, 50, 100, 200];
             $perPage = (int) $request->get('per_page', 20);
-            if (!in_array($perPage, $allowedPerPage, true)) {
+            if (! in_array($perPage, $allowedPerPage, true)) {
                 $perPage = 20;
             }
             $totalData = 0;
             $lists = $query->paginate($perPage);
         }
-        //dd( $lists);
+
+        // dd( $lists);
         return view('crm.clients.clientsmatterslist', compact(['lists', 'totalData', 'teamMembers', 'perPage']));
     }
 
@@ -3661,7 +3656,7 @@ trait ClientCrmFollowups
                 ->whereNull('ad.is_deleted')
                 ->where(function ($q) use ($closedStages) {
                     $q->where('cm.matter_status', '=', '0')
-                        ->orWhereRaw('LOWER(TRIM(ws.name)) IN (' . implode(',', array_fill(0, count($closedStages), '?')) . ')', $closedStages);
+                        ->orWhereRaw('LOWER(TRIM(ws.name)) IN ('.implode(',', array_fill(0, count($closedStages), '?')).')', $closedStages);
                 });
             StaffClientVisibility::applyExcludeSuperAdminOnlyLockedClientsOnAdminJoin($query, 'ad');
             StaffClientVisibility::restrictMatterListToAllocatedClients($query, 'cm', 'ad');
@@ -3685,9 +3680,9 @@ trait ClientCrmFollowups
                 if ($name != '') {
                     $nameLower = strtolower($name);
                     $query->where(function ($q) use ($nameLower) {
-                        $q->whereRaw('LOWER(ad.first_name) LIKE ?', ['%' . $nameLower . '%'])
-                            ->orWhereRaw('LOWER(ad.last_name) LIKE ?', ['%' . $nameLower . '%'])
-                            ->orWhereRaw("LOWER(COALESCE(ad.first_name, '') || ' ' || COALESCE(ad.last_name, '')) LIKE ?", ['%' . $nameLower . '%']);
+                        $q->whereRaw('LOWER(ad.first_name) LIKE ?', ['%'.$nameLower.'%'])
+                            ->orWhereRaw('LOWER(ad.last_name) LIKE ?', ['%'.$nameLower.'%'])
+                            ->orWhereRaw("LOWER(COALESCE(ad.first_name, '') || ' ' || COALESCE(ad.last_name, '')) LIKE ?", ['%'.$nameLower.'%']);
                     });
                 }
             }
@@ -3724,11 +3719,11 @@ trait ClientCrmFollowups
 
             $allowedPerPage = [10, 20, 50, 100, 200];
             $perPage = (int) $request->get('per_page', 20);
-            if (!in_array($perPage, $allowedPerPage, true)) {
+            if (! in_array($perPage, $allowedPerPage, true)) {
                 $perPage = 20;
             }
 
-            $teamMembers = \App\Models\Staff::query()
+            $teamMembers = Staff::query()
                 ->orderBy('first_name', 'asc')
                 ->select('id', 'first_name', 'last_name')
                 ->get();
@@ -3748,13 +3743,13 @@ trait ClientCrmFollowups
                 ->whereNull('ad.is_deleted')
                 ->where(function ($q) use ($closedStages) {
                     $q->where('cm.matter_status', '=', '0')
-                        ->orWhereRaw('LOWER(TRIM(ws.name)) IN (' . implode(',', array_fill(0, count($closedStages), '?')) . ')', $closedStages);
+                        ->orWhereRaw('LOWER(TRIM(ws.name)) IN ('.implode(',', array_fill(0, count($closedStages), '?')).')', $closedStages);
                 });
             StaffClientVisibility::applyExcludeSuperAdminOnlyLockedClientsOnAdminJoin($query, 'ad');
             $query->orderBy($sortField, $sortDirection);
             $allowedPerPage = [10, 20, 50, 100, 200];
             $perPage = (int) $request->get('per_page', 20);
-            if (!in_array($perPage, $allowedPerPage, true)) {
+            if (! in_array($perPage, $allowedPerPage, true)) {
                 $perPage = 20;
             }
             $totalData = 0;
@@ -3767,7 +3762,7 @@ trait ClientCrmFollowups
     public function insights(Request $request)
     {
         // Restrict to admin and super admin only (roles 1, 12)
-        if (!in_array(Auth::user()->role ?? 0, [1, 12])) {
+        if (! in_array(Auth::user()->role ?? 0, [1, 12])) {
             return redirect()->back()->with('error', 'Only admin and super admin can view insights.');
         }
 
@@ -3792,6 +3787,7 @@ trait ClientCrmFollowups
             ->get()
             ->map(function ($row) {
                 $row->label = ((int) $row->status === 1) ? 'Active' : 'Inactive';
+
                 return $row;
             });
 
@@ -3910,7 +3906,7 @@ trait ClientCrmFollowups
 
             if ($request->has('client_id')) {
                 $client_id = $request->input('client_id');
-                if(trim($client_id) != '') {
+                if (trim($client_id) != '') {
                     $query->where('client_id', '=', $client_id);
                 }
             }
@@ -3920,17 +3916,17 @@ trait ClientCrmFollowups
                 if ($name != '') {
                     $nameLower = strtolower($name);
                     $query->where(function ($q) use ($nameLower) {
-                        $q->whereRaw('LOWER(first_name) LIKE ?', ['%' . $nameLower . '%'])
-                          ->orWhereRaw('LOWER(last_name) LIKE ?', ['%' . $nameLower . '%'])
-                          ->orWhereRaw("LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE ?", ['%' . $nameLower . '%']);
+                        $q->whereRaw('LOWER(first_name) LIKE ?', ['%'.$nameLower.'%'])
+                            ->orWhereRaw('LOWER(last_name) LIKE ?', ['%'.$nameLower.'%'])
+                            ->orWhereRaw("LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE ?", ['%'.$nameLower.'%']);
                     });
                 }
             }
 
             if ($request->has('email')) {
                 $email = $request->input('email');
-                if(trim($email) != '') {
-                    $query->where('email', 'LIKE', '%' . $email . '%');
+                if (trim($email) != '') {
+                    $query->where('email', 'LIKE', '%'.$email.'%');
                 }
             }
 
@@ -3940,19 +3936,20 @@ trait ClientCrmFollowups
             $lists = $query->sortable(['id' => 'desc'])->paginate(20);
             $totalData = 0;
         }
-        
+
         return view('crm.clients.clientsemaillist', compact(['lists', 'totalData']));
     }
 
     public function archived(Request $request)
-	{
-		$query 		= Admin::where('is_archived', '=', '1')
+    {
+        $query = Admin::where('is_archived', '=', '1')
             ->whereIn('type', ['client', 'lead'])
             ->with('archivedByStaff');
         StaffClientVisibility::restrictAdminEloquentQuery($query);
         $query = $this->applyArchivedListFilters($query, $request);
-        $totalData 	= $query->count();
-        $lists		= $query->sortable(['id' => 'desc'])->paginate(20)->appends($request->except('page'));
+        $totalData = $query->count();
+        $lists = $query->sortable(['id' => 'desc'])->paginate(20)->appends($request->except('page'));
+
         return view('crm.archived.index', compact(['lists', 'totalData']));
     }
 
@@ -3960,35 +3957,36 @@ trait ClientCrmFollowups
      * Archive a client
      * Sets is_archived = 1, archived_by = current staff user, archived_on = now
      *
-     * @param Request $request
-     * @param string $id Encoded client ID
-     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+     * @param  string  $id  Encoded client ID
+     * @return RedirectResponse|JsonResponse
      */
     public function archive(Request $request, $id)
     {
         try {
             // Decode the client ID
             $decodedId = convert_uudecode(base64_decode($id));
-            
-            if (!is_numeric($decodedId)) {
+
+            if (! is_numeric($decodedId)) {
                 $message = 'Invalid client ID.';
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 400);
                 }
+
                 return redirect()->route('clients.index')
                     ->with('error', $message);
             }
-            
+
             // Find the client
             $client = Admin::where('id', $decodedId)
                 ->whereIn('type', ['client', 'lead'])
                 ->first();
-            
-            if (!$client) {
+
+            if (! $client) {
                 $message = 'Client not found.';
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 404);
                 }
+
                 return redirect()->route('clients.index')
                     ->with('error', $message);
             }
@@ -3998,20 +3996,22 @@ trait ClientCrmFollowups
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 403);
                 }
+
                 return redirect()->route('clients.index')
                     ->with('error', $message);
             }
-            
+
             // Check if already archived
             if ($client->is_archived == 1) {
                 $message = 'Client is already archived.';
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 200);
                 }
+
                 return redirect()->route('clients.index')
                     ->with('info', $message);
             }
-            
+
             // Archive the client (archived_by stores staff.id — admin guard uses staff provider)
             $client->is_archived = 1;
             $client->archived_by = Auth::guard('admin')->id();
@@ -4022,12 +4022,12 @@ trait ClientCrmFollowups
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json(['status' => 1, 'message' => $message], 200);
             }
-            
+
             return redirect()->route('clients.index')
                 ->with('success', $message);
-                
+
         } catch (\Exception $e) {
-            Log::error('Error archiving client: ' . $e->getMessage());
+            Log::error('Error archiving client: '.$e->getMessage());
             $message = 'An error occurred while archiving the client. Please try again.';
 
             if ($request->ajax() || $request->wantsJson()) {
@@ -4044,9 +4044,8 @@ trait ClientCrmFollowups
      * On success sets send_to_legal_crm = 1; on failure leaves 0 so staff can retry.
      * If the person already exists in Legal CRM, returns a clear already-synced message.
      *
-     * @param Request $request
-     * @param string $id Encoded client ID
-     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+     * @param  string  $id  Encoded client ID
+     * @return RedirectResponse|JsonResponse
      */
     public function sendToLegalCrm(Request $request, $id)
     {
@@ -4058,6 +4057,7 @@ trait ClientCrmFollowups
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 400);
                 }
+
                 return redirect()->route('clients.index')->with('error', $message);
             }
 
@@ -4066,6 +4066,7 @@ trait ClientCrmFollowups
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 403);
                 }
+
                 return redirect()->route('clients.index')->with('error', $message);
             }
 
@@ -4080,6 +4081,7 @@ trait ClientCrmFollowups
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 404);
                 }
+
                 return redirect()->route('clients.index')->with('error', $message);
             }
 
@@ -4100,6 +4102,7 @@ trait ClientCrmFollowups
                         'queued' => false,
                     ], 200);
                 }
+
                 return redirect()->route('clients.index')->with('info', $message);
             }
 
@@ -4203,9 +4206,8 @@ trait ClientCrmFollowups
      * Unarchive a client
      * Sets is_archived = 0 for the specified client
      *
-     * @param Request $request
-     * @param int $id Client ID
-     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+     * @param  int  $id  Client ID
+     * @return RedirectResponse|JsonResponse
      */
     public function unarchive(Request $request, $id)
     {
@@ -4214,12 +4216,13 @@ trait ClientCrmFollowups
             $client = Admin::where('id', $id)
                 ->whereIn('type', ['client', 'lead'])
                 ->first();
-            
-            if (!$client) {
+
+            if (! $client) {
                 $message = 'Client not found.';
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 404);
                 }
+
                 return redirect()->route('clients.archived')
                     ->with('error', $message);
             }
@@ -4229,54 +4232,57 @@ trait ClientCrmFollowups
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 403);
                 }
+
                 return redirect()->route('clients.archived')
                     ->with('error', $message);
             }
-            
+
             // Check if already unarchived
             if ($client->is_archived == 0) {
                 $message = 'Client is already unarchived.';
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['status' => 0, 'message' => $message], 200);
                 }
+
                 return redirect()->route('clients.archived')
                     ->with('info', $message);
             }
-            
+
             // Unarchive the client and clear archive metadata
             $client->is_archived = 0;
             $client->archived_by = null;
             $client->archived_on = null;
             $client->save();
-            
+
             $message = 'Client has been unarchived successfully.';
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json(['status' => 1, 'message' => $message], 200);
             }
-            
+
             return redirect()->route('clients.archived')
                 ->with('success', $message);
-                
+
         } catch (\Exception $e) {
-            Log::error('Error unarchiving client: ' . $e->getMessage());
+            Log::error('Error unarchiving client: '.$e->getMessage());
             $message = 'An error occurred while unarchiving the client. Please try again.';
-            
+
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json(['status' => 0, 'message' => $message], 500);
             }
-            
+
             return redirect()->route('clients.archived')
                 ->with('error', $message);
         }
     }
 
-	public function downloadpdf(Request $request, $id = NULL){
-	    $fetchd = \App\Models\Document::where('id',$id)->first();
-        if (!$fetchd || empty($fetchd->myfile)) {
+    public function downloadpdf(Request $request, $id = null)
+    {
+        $fetchd = Document::where('id', $id)->first();
+        if (! $fetchd || empty($fetchd->myfile)) {
             abort(404, 'Document not found.');
         }
         $admin = DB::table('admins')->select('client_id')->where('id', $fetchd->client_id)->first();
-        if (!$admin) {
+        if (! $admin) {
             abort(404, 'Client not found.');
         }
         // When myfile is already a full S3 URL (modern docs with myfile_key), use it directly
@@ -4290,7 +4296,7 @@ trait ClientCrmFollowups
             } else {
                 $filePath = $admin->client_id.'/'.$fetchd->doc_type.'/'.$fileName;
             }
-            /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+            /** @var FilesystemAdapter $disk */
             $disk = Storage::disk('s3');
             $imageUrl = $disk->url($filePath);
         }
@@ -4317,25 +4323,25 @@ trait ClientCrmFollowups
         }
 
         // Check authorization (assumed to be handled elsewhere)
-        if (isset($id) && !empty($id)) {
+        if (isset($id) && ! empty($id)) {
             $id = $this->decodeString($id);
             if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
                 return Redirect::to('/clients')->with('error', config('constants.unauthorized'));
             }
             if (Admin::where('id', '=', $id)->whereIn('type', ['client', 'lead'])->exists()) {
                 $fetchedData = Admin::with('company.contactPerson')->find($id);
-                
+
                 // Route to appropriate edit page
                 if ($fetchedData && $fetchedData->is_company) {
                     // Use service to get all data with optimized queries (prevents N+1)
-                    $data = app(\App\Services\ClientEditService::class)->getClientEditData($id);
-                    
+                    $data = app(ClientEditService::class)->getClientEditData($id);
+
                     // Use separate company edit page
                     return view('crm.clients.company_edit', $data);
                 } else {
                     // Use service to get all data with optimized queries (prevents N+1)
-                    $data = app(\App\Services\ClientEditService::class)->getClientEditData($id);
-                    
+                    $data = app(ClientEditService::class)->getClientEditData($id);
+
                     return view('crm.clients.edit', $data);
                 }
             } else {
@@ -4355,15 +4361,15 @@ trait ClientCrmFollowups
         try {
             $requestData = $request->all();
             $clientId = $requestData['client_id'] ?? null;
-            
-            if (!$clientId) {
+
+            if (! $clientId) {
                 return redirect()->back()->withErrors(['error' => 'Client ID is required'])->withInput();
             }
 
             // Verify client exists
             $client = Admin::find($clientId);
             $isClient = in_array($client->type ?? '', ['client', 'lead']);
-            if (!$client || !$isClient) {
+            if (! $client || ! $isClient) {
                 return redirect()->back()->withErrors(['error' => 'Client not found'])->withInput();
             }
 
@@ -4373,24 +4379,24 @@ trait ClientCrmFollowups
                 ->delete();
 
             // Process TOEFL scores
-            if (!empty($requestData['band_score_1_1']) || !empty($requestData['band_score_2_1']) || 
-                !empty($requestData['band_score_3_1']) || !empty($requestData['band_score_4_1']) || 
-                !empty($requestData['score_1'])) {
-                
+            if (! empty($requestData['band_score_1_1']) || ! empty($requestData['band_score_2_1']) ||
+                ! empty($requestData['band_score_3_1']) || ! empty($requestData['band_score_4_1']) ||
+                ! empty($requestData['score_1'])) {
+
                 $testDate = $requestData['band_score_5_1'] ?? null;
                 $formattedDate = null;
-                if (!empty($testDate)) {
+                if (! empty($testDate)) {
                     try {
-                        $dateObj = \Carbon\Carbon::createFromFormat('d/m/Y', $testDate);
+                        $dateObj = Carbon::createFromFormat('d/m/Y', $testDate);
                         $formattedDate = $dateObj->format('Y-m-d');
                     } catch (\Exception $e) {
                         // Invalid date format, skip
                     }
                 }
 
-                if (!empty($requestData['band_score_1_1']) || !empty($requestData['band_score_2_1']) || 
-                    !empty($requestData['band_score_3_1']) || !empty($requestData['band_score_4_1']) || 
-                    !empty($requestData['score_1'])) {
+                if (! empty($requestData['band_score_1_1']) || ! empty($requestData['band_score_2_1']) ||
+                    ! empty($requestData['band_score_3_1']) || ! empty($requestData['band_score_4_1']) ||
+                    ! empty($requestData['score_1'])) {
                     ClientTestScore::create([
                         'admin_id' => Auth::user()->id,
                         'client_id' => $clientId,
@@ -4401,30 +4407,30 @@ trait ClientCrmFollowups
                         'speaking' => $requestData['band_score_4_1'] ?? null,
                         'overall_score' => $requestData['score_1'] ?? null,
                         'test_date' => $formattedDate,
-                        'relevant_test' => 1
+                        'relevant_test' => 1,
                     ]);
                 }
             }
 
             // Process IELTS scores
-            if (!empty($requestData['band_score_5_2']) || !empty($requestData['band_score_6_2']) || 
-                !empty($requestData['band_score_7_2']) || !empty($requestData['band_score_8_2']) || 
-                !empty($requestData['score_2'])) {
-                
+            if (! empty($requestData['band_score_5_2']) || ! empty($requestData['band_score_6_2']) ||
+                ! empty($requestData['band_score_7_2']) || ! empty($requestData['band_score_8_2']) ||
+                ! empty($requestData['score_2'])) {
+
                 $testDate = $requestData['band_score_6_1'] ?? null;
                 $formattedDate = null;
-                if (!empty($testDate)) {
+                if (! empty($testDate)) {
                     try {
-                        $dateObj = \Carbon\Carbon::createFromFormat('d/m/Y', $testDate);
+                        $dateObj = Carbon::createFromFormat('d/m/Y', $testDate);
                         $formattedDate = $dateObj->format('Y-m-d');
                     } catch (\Exception $e) {
                         // Invalid date format, skip
                     }
                 }
 
-                if (!empty($requestData['band_score_5_2']) || !empty($requestData['band_score_6_2']) || 
-                    !empty($requestData['band_score_7_2']) || !empty($requestData['band_score_8_2']) || 
-                    !empty($requestData['score_2'])) {
+                if (! empty($requestData['band_score_5_2']) || ! empty($requestData['band_score_6_2']) ||
+                    ! empty($requestData['band_score_7_2']) || ! empty($requestData['band_score_8_2']) ||
+                    ! empty($requestData['score_2'])) {
                     ClientTestScore::create([
                         'admin_id' => Auth::user()->id,
                         'client_id' => $clientId,
@@ -4435,30 +4441,30 @@ trait ClientCrmFollowups
                         'speaking' => $requestData['band_score_8_2'] ?? null,
                         'overall_score' => $requestData['score_2'] ?? null,
                         'test_date' => $formattedDate,
-                        'relevant_test' => 1
+                        'relevant_test' => 1,
                     ]);
                 }
             }
 
             // Process PTE scores
-            if (!empty($requestData['band_score_9_3']) || !empty($requestData['band_score_10_3']) || 
-                !empty($requestData['band_score_11_3']) || !empty($requestData['band_score_12_3']) || 
-                !empty($requestData['score_3'])) {
-                
+            if (! empty($requestData['band_score_9_3']) || ! empty($requestData['band_score_10_3']) ||
+                ! empty($requestData['band_score_11_3']) || ! empty($requestData['band_score_12_3']) ||
+                ! empty($requestData['score_3'])) {
+
                 $testDate = $requestData['band_score_7_1'] ?? null;
                 $formattedDate = null;
-                if (!empty($testDate)) {
+                if (! empty($testDate)) {
                     try {
-                        $dateObj = \Carbon\Carbon::createFromFormat('d/m/Y', $testDate);
+                        $dateObj = Carbon::createFromFormat('d/m/Y', $testDate);
                         $formattedDate = $dateObj->format('Y-m-d');
                     } catch (\Exception $e) {
                         // Invalid date format, skip
                     }
                 }
 
-                if (!empty($requestData['band_score_9_3']) || !empty($requestData['band_score_10_3']) || 
-                    !empty($requestData['band_score_11_3']) || !empty($requestData['band_score_12_3']) || 
-                    !empty($requestData['score_3'])) {
+                if (! empty($requestData['band_score_9_3']) || ! empty($requestData['band_score_10_3']) ||
+                    ! empty($requestData['band_score_11_3']) || ! empty($requestData['band_score_12_3']) ||
+                    ! empty($requestData['score_3'])) {
                     ClientTestScore::create([
                         'admin_id' => Auth::user()->id,
                         'client_id' => $clientId,
@@ -4469,14 +4475,14 @@ trait ClientCrmFollowups
                         'speaking' => $requestData['band_score_12_3'] ?? null,
                         'overall_score' => $requestData['score_3'] ?? null,
                         'test_date' => $formattedDate,
-                        'relevant_test' => 1
+                        'relevant_test' => 1,
                     ]);
                 }
             }
 
             return redirect()->back()->with('success', 'Test scores updated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->withErrors(['error' => 'Error updating test scores: ' . $e->getMessage()])->withInput();
+            return redirect()->back()->withErrors(['error' => 'Error updating test scores: '.$e->getMessage()])->withInput();
         }
     }
 
@@ -4523,6 +4529,7 @@ trait ClientCrmFollowups
                     if ($a->client_unique_matter_no != $matterRefNo && $b->client_unique_matter_no == $matterRefNo) {
                         return 1;
                     }
+
                     return 0;
                 });
                 $urlMatter = ClientMatter::select('id')
@@ -4620,7 +4627,7 @@ trait ClientCrmFollowups
         ];
     }
 
-    public function detail(Request $request, $id = NULL, $id1 = NULL, $tab = NULL)
+    public function detail(Request $request, $id = null, $id1 = null, $tab = null)
     {
         $clientDetailQueryCount = 0;
         $clientDetailQueryTimeMs = 0.0;
@@ -4634,28 +4641,21 @@ trait ClientCrmFollowups
         }
 
         if (isset($request->t)) {
-            if (\App\Models\Notification::where('id', $request->t)->exists()) {
-                $ovv = \App\Models\Notification::find($request->t);
+            if (Notification::where('id', $request->t)->exists()) {
+                $ovv = Notification::find($request->t);
                 $ovv->receiver_status = 1;
                 $ovv->save();
             }
         }
 
-        if (isset($id) && !empty($id)) {
+        if (isset($id) && ! empty($id)) {
             $encodeId = $id;
             $id = $this->decodeString($id);
 
             // If $id1 holds a tab name rather than a matter reference (happens when the URL
             // only has two segments, e.g. /clients/detail/{client}/{tab}), move it to $tab
             // so that every downstream view receives a clean null $id1.
-            $knownTabNames = [
-                'personaldetails', 'companydetails', 'activityfeed', 'noteterm', 'personaldocuments', 'visadocuments', 'nominationdocuments',
-                'eoiroi', 'emails', 'client_portal',
-                // Legacy removed tab slugs - keep as reserved so they are not treated as matter IDs
-                'formgenerations', 'formgenerationsl',
-                'workflow', 'checklists', 'account', 'notuseddocuments',
-            ];
-            if ($id1 && in_array(strtolower($id1), $knownTabNames)) {
+            if ($id1 && ClientDetailTabs::isKnownSlug((string) $id1)) {
                 if (empty($tab)) {
                     $tab = $id1;
                 }
@@ -4668,13 +4668,13 @@ trait ClientCrmFollowups
                 ->first(['id', 'type', 'first_name', 'last_name', 'client_id']);
 
             if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
-                $displayName = trim((string) (($targetRecord->first_name ?? '') . ' ' . ($targetRecord->last_name ?? '')));
+                $displayName = trim((string) (($targetRecord->first_name ?? '').' '.($targetRecord->last_name ?? '')));
                 if ($displayName === '') {
-                    $displayName = (string) ($targetRecord->client_id ?? ('#' . (int) $id));
+                    $displayName = (string) ($targetRecord->client_id ?? ('#'.(int) $id));
                 }
 
                 $accessModalPayload = [
-                    'id' => $encodeId . '/Client',
+                    'id' => $encodeId.'/Client',
                     'cid' => (int) $id,
                     'name' => $displayName,
                     'record_type' => (string) ($targetRecord->type ?? 'client'),
@@ -4703,31 +4703,31 @@ trait ClientCrmFollowups
                     'company.financials',
                     'companyNominationsAsNominee.company',
                     'detailsVerifiedByStaff',
-                ])->find($id); //dd($fetchedData);
-                
+                ])->find($id); // dd($fetchedData);
+
                 // Route to company detail page if this is a company
                 if ($fetchedData && $fetchedData->is_company) {
                     // Fetch data needed for company detail page
                     $clientAddresses = ClientAddress::where('client_id', $id)->orderedForDisplay()->get();
                     $clientContacts = ClientContact::where('client_id', $id)->get();
                     $emails = ClientEmail::where('client_id', $id)->get() ?? [];
-                    
-                    $matter_cnt = \App\Models\ClientMatter::select('id')
-                        ->where('client_id',$id)
-                        ->where('matter_status',1)
+
+                    $matter_cnt = ClientMatter::select('id')
+                        ->where('client_id', $id)
+                        ->where('matter_status', 1)
                         ->count();
-                    
+
                     // Get current admin user data for SMS templates
                     $currentAdmin = Auth::user();
-                    $staffName = $currentAdmin->first_name . ' ' . $currentAdmin->last_name;
+                    $staffName = $currentAdmin->first_name.' '.$currentAdmin->last_name;
                     $matterNumber = $id1 ?? '';
                     $officePhone = $currentAdmin->phone ?? '';
                     $officeCountryCode = '+61';
                     $notPickedCallSmsDefault = $this->notPickedCallSmsDefaultForClient($fetchedData);
-                    
+
                     $encodeId = base64_encode(convert_uuencode($id));
                     $activeTab = $tab ?? 'companydetails';
-                    
+
                     return view('crm.companies.detail', compact(
                         'fetchedData', 'clientAddresses', 'clientContacts', 'emails',
                         'encodeId', 'id1', 'activeTab',
@@ -4736,8 +4736,7 @@ trait ClientCrmFollowups
                     ));
                 }
 
-
-                //Fetch other client-related data
+                // Fetch other client-related data
                 $clientAddresses = ClientAddress::where('client_id', $id)->orderedForDisplay()->get();
                 $clientContacts = ClientContact::where('client_id', $id)->get();
                 $emails = ClientEmail::where('client_id', $id)->get() ?? [];
@@ -4754,7 +4753,7 @@ trait ClientCrmFollowups
                 $clientFamilyDetails = ClientRelationship::where('client_id', $id)
                     ->with(['relatedClient:id,first_name,last_name,client_id'])
                     ->get() ?? [];
-                
+
                 // Detect if current matter is EOI-related
                 $isEoiMatter = false;
                 if ($id1) {
@@ -4766,7 +4765,7 @@ trait ClientCrmFollowups
                         ->where('cm.matter_status', 1)
                         ->select('m.nick_name', 'm.title')
                         ->first();
-                    
+
                     if ($currentMatter) {
                         $isEoiMatter = (
                             strtolower($currentMatter->nick_name) === 'eoi' ||
@@ -4782,25 +4781,25 @@ trait ClientCrmFollowups
                         ->join('matters as m', 'cm.sel_matter_id', '=', 'm.id')
                         ->where('cm.client_id', $id)
                         ->where('cm.matter_status', 1)
-                        ->where(function($query) {
+                        ->where(function ($query) {
                             $query->where('m.nick_name', 'ILIKE', 'eoi')
-                                  ->orWhere('m.title', 'LIKE', '%eoi%')
-                                  ->orWhere('m.title', 'LIKE', '%expression of interest%')
-                                  ->orWhere('m.title', 'LIKE', '%expression%');
+                                ->orWhere('m.title', 'LIKE', '%eoi%')
+                                ->orWhere('m.title', 'LIKE', '%expression of interest%')
+                                ->orWhere('m.title', 'LIKE', '%expression%');
                         })
                         ->exists();
-                    
+
                     $isEoiMatter = $eoiMatterExists;
                 }
-                
-                //dd($clientFamilyDetails);
-                
+
+                // dd($clientFamilyDetails);
+
                 // Check and insert/update application record when Client Portal tab is accessed
                 // applications table removed - workflow is tracked via client_matters
-                
+
                 // Get current admin user data for SMS templates
                 $currentAdmin = Auth::user();
-                $staffName = $currentAdmin->first_name . ' ' . $currentAdmin->last_name;
+                $staffName = $currentAdmin->first_name.' '.$currentAdmin->last_name;
                 $matterNumber = $id1 ?? '';
                 $officePhone = $currentAdmin->phone ?? '';
                 $officeCountryCode = '+61';
@@ -4850,22 +4849,12 @@ trait ClientCrmFollowups
                     })
                     ->values();
 
-                $validTabNames = [
-                    'personaldetails', 'activityfeed', 'noteterm', 'personaldocuments', 'visadocuments', 'nominationdocuments',
-                    'eoiroi', 'emails',
-                    'formgenerations', 'formgenerationsl',
-                    'client_portal', 'application', 'workflow', 'checklists',
-                ];
+                $validTabNames = ClientDetailTabs::slugs();
                 $matterContext = $this->buildClientDetailMatterContext((int) $id, $id1, $validTabNames);
 
-                $clientNotes = Note::where('client_id', $id)
-                    ->whereNull('assigned_to')
-                    ->where('type', 'client')
-                    ->with('user')
-                    ->orderby('pin', 'DESC')
-                    ->orderBy('updated_at', 'DESC')
-                    ->get();
-
+                // Account / checklists / emails / documents / notes / workflow / portal
+                // load via fragment routes (or eager-if-active tab blades). Do not preload
+                // those payloads here — first paint is personal details + matter context.
                 $personalDetailContacts = $clientContacts->filter(function ($contact) {
                     return ($contact->contact_type ?? '') !== 'Not In Use';
                 })->values();
@@ -4880,15 +4869,15 @@ trait ClientCrmFollowups
                     ]);
                 }
 
-                //Return the view with all data
+                // Return the view with personal-details data + matter sidebar context only.
                 return view('crm.clients.detail', array_merge(compact(
                     'fetchedData', 'clientAddresses', 'clientContacts', 'emails', 'qualifications',
-                    'experiences', 'testScores', 'visaCountries', 'clientOccupations','ClientPoints', 'clientSpouseDetail',
-                    'encodeId', 'id1','clientFamilyDetails', 'activeTab', 'isEoiMatter',
+                    'experiences', 'testScores', 'visaCountries', 'clientOccupations', 'ClientPoints', 'clientSpouseDetail',
+                    'encodeId', 'id1', 'clientFamilyDetails', 'activeTab', 'isEoiMatter',
                     'staffName', 'matterNumber', 'officePhone', 'officeCountryCode',
                     'visibleNomineeNominations', 'notPickedCallSmsDefault',
                     'assignableStaff', 'leadStageLabels', 'showGoogleReviewReminderModal',
-                    'primaryContactCompaniesForClient', 'clientNotes', 'personalDetailContacts'
+                    'primaryContactCompaniesForClient', 'personalDetailContacts'
                 ), $matterContext));
             } else {
                 return redirect()->route('clients.index')->with('error', 'Clients Not Exist');
@@ -4911,12 +4900,7 @@ trait ClientCrmFollowups
         $encodeId = $client_id;
         $id = $this->decodeString($client_id);
 
-        $knownTabNames = [
-            'personaldetails', 'companydetails', 'activityfeed', 'noteterm', 'personaldocuments', 'visadocuments',
-            'nominationdocuments', 'eoiroi', 'emails', 'client_portal', 'formgenerations', 'formgenerationsl',
-            'workflow', 'checklists', 'account', 'notuseddocuments',
-        ];
-        if ($client_unique_matter_ref_no && in_array(strtolower((string) $client_unique_matter_ref_no), $knownTabNames, true)) {
+        if ($client_unique_matter_ref_no && ClientDetailTabs::isKnownSlug((string) $client_unique_matter_ref_no)) {
             $client_unique_matter_ref_no = null;
         }
 
@@ -4925,7 +4909,7 @@ trait ClientCrmFollowups
         }
 
         $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
-        if (!$fetchedData) {
+        if (! $fetchedData) {
             abort(404);
         }
 
@@ -4950,12 +4934,7 @@ trait ClientCrmFollowups
         $encodeId = $client_id;
         $id = $this->decodeString($client_id);
 
-        $knownTabNames = [
-            'personaldetails', 'companydetails', 'activityfeed', 'noteterm', 'personaldocuments', 'visadocuments',
-            'nominationdocuments', 'eoiroi', 'emails', 'client_portal', 'formgenerations', 'formgenerationsl',
-            'workflow', 'checklists', 'account', 'notuseddocuments',
-        ];
-        if ($client_unique_matter_ref_no && in_array(strtolower((string) $client_unique_matter_ref_no), $knownTabNames, true)) {
+        if ($client_unique_matter_ref_no && ClientDetailTabs::isKnownSlug((string) $client_unique_matter_ref_no)) {
             $client_unique_matter_ref_no = null;
         }
 
@@ -4964,7 +4943,7 @@ trait ClientCrmFollowups
         }
 
         $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
-        if (!$fetchedData) {
+        if (! $fetchedData) {
             abort(404);
         }
 
@@ -4975,10 +4954,10 @@ trait ClientCrmFollowups
         $clientPassports = ClientPassportInformation::where('client_id', $clientId)->orderBy('id')->get();
         $visaCountries = ClientVisaCountry::with('matter')->where('client_id', $clientId)->orderBy('id')->get();
         $clientTravels = ClientTravelInformation::where('client_id', $clientId)
-            ->orderByRaw('travel_arrival_date DESC NULLS LAST, created_at DESC')
+            ->orderByRaw(ClientDetailTabs::nullsLastSql('travel_arrival_date').', created_at DESC')
             ->get();
         $qualifications = ClientQualification::where('client_id', $clientId)
-            ->orderByRaw('finish_date DESC NULLS LAST')
+            ->orderByRaw(ClientDetailTabs::nullsLastSql('finish_date'))
             ->get();
         $experiences = ClientExperience::where('client_id', $clientId)->orderedForDisplay()->get();
         $clientOccupations = ClientOccupation::where('client_id', $clientId)->get();
@@ -4999,6 +4978,255 @@ trait ClientCrmFollowups
             'experiences' => $experiences,
             'clientOccupations' => $clientOccupations,
             'testScores' => $testScores,
+        ]);
+    }
+
+    /**
+     * Lightweight HTML fragment for the Account tab only (lazy-load).
+     * Ledger/invoice/office queries live in ClientDetailAccountTab so first paint stays light.
+     */
+    public function accountTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
+    {
+        if (empty($client_id)) {
+            abort(404);
+        }
+
+        $encodeId = $client_id;
+        $id = $this->decodeString($client_id);
+
+        if ($client_unique_matter_ref_no && ClientDetailTabs::isKnownSlug((string) $client_unique_matter_ref_no)) {
+            $client_unique_matter_ref_no = null;
+        }
+
+        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
+            abort(403);
+        }
+
+        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
+        if (! $fetchedData) {
+            abort(404);
+        }
+
+        return view('crm.clients.tabs.account', [
+            'fetchedData' => $fetchedData,
+            'encodeId' => $encodeId,
+            'id1' => $client_unique_matter_ref_no,
+            'activeTab' => 'account',
+            'accountTabPayload' => ClientDetailAccountTab::build($fetchedData, $client_unique_matter_ref_no),
+        ]);
+    }
+
+    /**
+     * Lightweight HTML fragment for the Checklists tab only (lazy-load).
+     * Staff dropdowns / cost-assignment queries live in ClientDetailChecklistsTab.
+     */
+    public function checklistsTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
+    {
+        if (empty($client_id)) {
+            abort(404);
+        }
+
+        $encodeId = $client_id;
+        $id = $this->decodeString($client_id);
+
+        if ($client_unique_matter_ref_no && ClientDetailTabs::isKnownSlug((string) $client_unique_matter_ref_no)) {
+            $client_unique_matter_ref_no = null;
+        }
+
+        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
+            abort(403);
+        }
+
+        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
+        if (! $fetchedData) {
+            abort(404);
+        }
+
+        return view('crm.clients.tabs.checklists', [
+            'fetchedData' => $fetchedData,
+            'encodeId' => $encodeId,
+            'id1' => $client_unique_matter_ref_no,
+            'activeTab' => 'checklists',
+            'checklistsTabPayload' => ClientDetailChecklistsTab::build($fetchedData, $client_unique_matter_ref_no),
+        ]);
+    }
+
+    /**
+     * Lightweight HTML fragment for the Emails tab only (lazy-load).
+     * Shell is already light; list data is fetched once via loadEmails() then cached.
+     */
+    public function emailsTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
+    {
+        if (empty($client_id)) {
+            abort(404);
+        }
+
+        $encodeId = $client_id;
+        $id = $this->decodeString($client_id);
+
+        if ($client_unique_matter_ref_no && ClientDetailTabs::isKnownSlug((string) $client_unique_matter_ref_no)) {
+            $client_unique_matter_ref_no = null;
+        }
+
+        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
+            abort(403);
+        }
+
+        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
+        if (! $fetchedData) {
+            abort(404);
+        }
+
+        return view('crm.clients.tabs.emails', [
+            'fetchedData' => $fetchedData,
+            'encodeId' => $encodeId,
+            'id1' => $client_unique_matter_ref_no,
+            'activeTab' => 'emails',
+        ]);
+    }
+
+    /**
+     * Lightweight HTML fragment for the Personal Documents tab only (lazy-load).
+     * Category/document queries stay in the tab blade; first paint uses a stub.
+     */
+    public function personalDocumentsTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
+    {
+        if (empty($client_id)) {
+            abort(404);
+        }
+
+        $encodeId = $client_id;
+        $id = $this->decodeString($client_id);
+
+        if ($client_unique_matter_ref_no && ClientDetailTabs::isKnownSlug((string) $client_unique_matter_ref_no)) {
+            $client_unique_matter_ref_no = null;
+        }
+
+        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
+            abort(403);
+        }
+
+        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
+        if (! $fetchedData) {
+            abort(404);
+        }
+
+        return view('crm.clients.tabs.personal_documents', [
+            'fetchedData' => $fetchedData,
+            'encodeId' => $encodeId,
+            'id1' => $client_unique_matter_ref_no,
+            'activeTab' => 'personaldocuments',
+        ]);
+    }
+
+    /**
+     * Lightweight HTML fragment for the Visa Documents tab only (lazy-load).
+     * Matter resolution and category queries stay in the tab blade.
+     */
+    public function visaDocumentsTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
+    {
+        if (empty($client_id)) {
+            abort(404);
+        }
+
+        $encodeId = $client_id;
+        $id = $this->decodeString($client_id);
+
+        if ($client_unique_matter_ref_no && ClientDetailTabs::isKnownSlug((string) $client_unique_matter_ref_no)) {
+            $client_unique_matter_ref_no = null;
+        }
+
+        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
+            abort(403);
+        }
+
+        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
+        if (! $fetchedData) {
+            abort(404);
+        }
+
+        return view('crm.clients.tabs.visa_documents', [
+            'fetchedData' => $fetchedData,
+            'encodeId' => $encodeId,
+            'id1' => $client_unique_matter_ref_no,
+            'activeTab' => 'visadocuments',
+        ]);
+    }
+
+    /**
+     * Lightweight HTML fragment for the Not Used Documents tab only (lazy-load).
+     */
+    public function notUsedDocumentsTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
+    {
+        if (empty($client_id)) {
+            abort(404);
+        }
+
+        $encodeId = $client_id;
+        $id = $this->decodeString($client_id);
+
+        if ($client_unique_matter_ref_no && ClientDetailTabs::isKnownSlug((string) $client_unique_matter_ref_no)) {
+            $client_unique_matter_ref_no = null;
+        }
+
+        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
+            abort(403);
+        }
+
+        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
+        if (! $fetchedData) {
+            abort(404);
+        }
+
+        return view('crm.clients.tabs.not_used_documents', [
+            'fetchedData' => $fetchedData,
+            'encodeId' => $encodeId,
+            'id1' => $client_unique_matter_ref_no,
+            'activeTab' => 'notuseddocuments',
+        ]);
+    }
+
+    /**
+     * Lightweight HTML fragment for the Notes tab only (lazy-load).
+     * Pin, type pills, and matter filter re-bind after inject via notes-tab.js.
+     * Personal Details / Activity feed / sidebar remain eager on detail().
+     */
+    public function notesTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
+    {
+        if (empty($client_id)) {
+            abort(404);
+        }
+
+        $encodeId = $client_id;
+        $id = $this->decodeString($client_id);
+
+        if ($client_unique_matter_ref_no && ClientDetailTabs::isKnownSlug((string) $client_unique_matter_ref_no)) {
+            $client_unique_matter_ref_no = null;
+        }
+
+        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
+            abort(403);
+        }
+
+        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
+        if (! $fetchedData) {
+            abort(404);
+        }
+
+        $clientNotes = Note::where('client_id', (int) $id)
+            ->whereNull('assigned_to')
+            ->where('type', 'client')
+            ->with('user')
+            ->orderBy('pin', 'DESC')
+            ->orderBy('updated_at', 'DESC')
+            ->get();
+
+        return view('crm.clients.tabs.notes', [
+            'fetchedData' => $fetchedData,
+            'encodeId' => $encodeId,
+            'id1' => $client_unique_matter_ref_no,
+            'activeTab' => 'noteterm',
+            'clientNotes' => $clientNotes,
         ]);
     }
 
@@ -5124,7 +5352,7 @@ trait ClientCrmFollowups
         $client->details_verified_by = $staffId;
         $client->save();
 
-        $staffName = trim(($staff->first_name ?? '') . ' ' . ($staff->last_name ?? ''));
+        $staffName = trim(($staff->first_name ?? '').' '.($staff->last_name ?? ''));
         if ($staffName === '') {
             $staffName = $staff->email ?? 'Staff';
         }
@@ -5134,9 +5362,9 @@ trait ClientCrmFollowups
 
         $this->logClientActivity(
             (int) $client->id,
-            'verified ' . $label . ' details',
-            '<p><strong>Verified By:</strong> ' . e($staffName) . '</p>'
-                . '<p><strong>Verified At:</strong> ' . e($verifiedAtDisplay) . '</p>',
+            'verified '.$label.' details',
+            '<p><strong>Verified By:</strong> '.e($staffName).'</p>'
+                .'<p><strong>Verified At:</strong> '.e($verifiedAtDisplay).'</p>',
             'activity'
         );
 
@@ -5244,7 +5472,7 @@ trait ClientCrmFollowups
 
         $variables = [
             'first_name' => $firstDisplay,
-            'last_name'  => trim((string) ($admin->last_name ?? '')),
+            'last_name' => trim((string) ($admin->last_name ?? '')),
         ];
 
         $template = null;
@@ -5261,7 +5489,7 @@ trait ClientCrmFollowups
 
         if (! $template) {
             return response()->json([
-                'ok'      => false,
+                'ok' => false,
                 'message' => 'Google review SMS template not found. Please ensure an active SMS template titled "Google_review_link" exists in the Admin Console.',
             ], 422);
         }
@@ -5286,138 +5514,140 @@ trait ClientCrmFollowups
         ], 422);
     }
 
-    //Update session to be complete
-    public function updatesessioncompleted(Request $request,CheckinLog $checkinLog)
+    // Update session to be complete
+    public function updatesessioncompleted(Request $request, CheckinLog $checkinLog)
     {
-        $data = $request->all(); //dd($data['client_id']);
+        $data = $request->all(); // dd($data['client_id']);
         $sessionExist = CheckinLog::where('client_id', $data['client_id'])
-        ->where('status', 2)
-        ->update(['status' => 1]);
-        if($sessionExist){
-            $response['status'] 	= 	true;
-            $response['message']	=	'Session completed successfully';
+            ->where('status', 2)
+            ->update(['status' => 1]);
+        if ($sessionExist) {
+            $response['status'] = true;
+            $response['message'] = 'Session completed successfully';
         } else {
-            $response['status'] 	= 	false;
-            $response['message']	=	'Please try again';
+            $response['status'] = false;
+            $response['message'] = 'Please try again';
         }
         echo json_encode($response);
     }
 
-	public function getrecipients(Request $request){
-		$squery = $request->q;
-		if($squery != ''){
-				$d = '';
-			 $squeryLower = strtolower($squery);
-			 $clients = \App\Models\Admin::with('company')
-       ->where('is_archived', '=', 0)
-       ->whereIn('type', ['client', 'lead'])
-       ->where(
-           function($query) use ($squeryLower) {
-             return $query
-                    ->whereRaw('LOWER(email) LIKE ?', ['%'.$squeryLower.'%'])
-                    ->orWhereRaw('LOWER(first_name) LIKE ?', ['%'.$squeryLower.'%'])
-                    ->orWhereRaw('LOWER(last_name) LIKE ?', ['%'.$squeryLower.'%'])
-                    ->orWhereRaw('LOWER(client_id) LIKE ?', ['%'.$squeryLower.'%'])
-                    ->orWhereRaw('LOWER(phone) LIKE ?', ['%'.$squeryLower.'%'])
-                    ->orWhereRaw("LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE ?", ['%'.$squeryLower.'%'])
-                    ->orWhereHas('company', function($q) use ($squeryLower) {
-                        $q->whereRaw('LOWER(company_name) LIKE ?', ['%'.$squeryLower.'%']);
+    public function getrecipients(Request $request)
+    {
+        $squery = $request->q;
+        if ($squery != '') {
+            $d = '';
+            $squeryLower = strtolower($squery);
+            $clients = Admin::with('company')
+                ->where('is_archived', '=', 0)
+                ->whereIn('type', ['client', 'lead'])
+                ->where(
+                    function ($query) use ($squeryLower) {
+                        return $query
+                            ->whereRaw('LOWER(email) LIKE ?', ['%'.$squeryLower.'%'])
+                            ->orWhereRaw('LOWER(first_name) LIKE ?', ['%'.$squeryLower.'%'])
+                            ->orWhereRaw('LOWER(last_name) LIKE ?', ['%'.$squeryLower.'%'])
+                            ->orWhereRaw('LOWER(client_id) LIKE ?', ['%'.$squeryLower.'%'])
+                            ->orWhereRaw('LOWER(phone) LIKE ?', ['%'.$squeryLower.'%'])
+                            ->orWhereRaw("LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE ?", ['%'.$squeryLower.'%'])
+                            ->orWhereHas('company', function ($q) use ($squeryLower) {
+                                $q->whereRaw('LOWER(company_name) LIKE ?', ['%'.$squeryLower.'%']);
+                            });
                     });
-            });
             StaffClientVisibility::restrictAdminEloquentQuery($clients);
             $clients = $clients->get();
 
-			// Exclude contact persons when their company is already in results (avoid duplicates)
-			$companyIdsInResults = $clients->where('is_company', true)->pluck('id')->toArray();
-			$contactPersonIdsToExclude = \App\Models\Company::whereIn('admin_id', $companyIdsInResults)
-				->pluck('contact_person_id')
-				->filter()
-				->unique()
-				->values()
-				->toArray();
-			$contactPersonIdsToExclude = array_values(array_filter($contactPersonIdsToExclude, function ($pid) use ($squery) {
-				return ! $this->globalSearchQueryMatchesContactPerson((int) $pid, $squery);
-			}));
+            // Exclude contact persons when their company is already in results (avoid duplicates)
+            $companyIdsInResults = $clients->where('is_company', true)->pluck('id')->toArray();
+            $contactPersonIdsToExclude = Company::whereIn('admin_id', $companyIdsInResults)
+                ->pluck('contact_person_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+            $contactPersonIdsToExclude = array_values(array_filter($contactPersonIdsToExclude, function ($pid) use ($squery) {
+                return ! $this->globalSearchQueryMatchesContactPerson((int) $pid, $squery);
+            }));
 
-			$items = array();
-			foreach($clients as $clint){
-				if (!$clint->is_company && in_array($clint->id, $contactPersonIdsToExclude)) {
-					continue; // Skip contact person - their company is already in results
-				}
-				$displayName = $clint->company_name_or_personal_name;
-				$items[] = array('name' => $displayName,'email'=>$clint->email,'status'=>$clint->type,'id'=>$clint->id,'cid'=>base64_encode(convert_uuencode(@$clint->id)));
-			}
+            $items = [];
+            foreach ($clients as $clint) {
+                if (! $clint->is_company && in_array($clint->id, $contactPersonIdsToExclude)) {
+                    continue; // Skip contact person - their company is already in results
+                }
+                $displayName = $clint->company_name_or_personal_name;
+                $items[] = ['name' => $displayName, 'email' => $clint->email, 'status' => $clint->type, 'id' => $clint->id, 'cid' => base64_encode(convert_uuencode(@$clint->id))];
+            }
 
-			$litems = array();
-			$m = array_merge($items, $litems);
-			echo json_encode(array('items'=>$m));
-		}
-	}
+            $litems = [];
+            $m = array_merge($items, $litems);
+            echo json_encode(['items' => $m]);
+        }
+    }
 
-	public function getonlyclientrecipients(Request $request){
-		$squery = $request->q;
-		if($squery != ''){
-				$d = '';
-			$squeryLower = strtolower($squery);
-			$clients = \App\Models\Admin::with('company')
-			->where('is_archived', '=', 0)
-			->whereIn('type', ['client', 'lead'])
-			->where(
-           function($query) use ($squeryLower) {
-             	return $query
-                    ->whereRaw('LOWER(email) LIKE ?', ['%'.$squeryLower.'%'])
-                    ->orWhereRaw('LOWER(first_name) LIKE ?', ['%'.$squeryLower.'%'])
-                    ->orWhereRaw('LOWER(last_name) LIKE ?', ['%'.$squeryLower.'%'])
-                    ->orWhereRaw('LOWER(client_id) LIKE ?', ['%'.$squeryLower.'%'])
-                    ->orWhereRaw('LOWER(phone) LIKE ?', ['%'.$squeryLower.'%'])
-                    ->orWhereRaw("LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE ?", ['%'.$squeryLower.'%'])
-                    ->orWhereHas('company', function($q) use ($squeryLower) {
-                        $q->whereRaw('LOWER(company_name) LIKE ?', ['%'.$squeryLower.'%']);
+    public function getonlyclientrecipients(Request $request)
+    {
+        $squery = $request->q;
+        if ($squery != '') {
+            $d = '';
+            $squeryLower = strtolower($squery);
+            $clients = Admin::with('company')
+                ->where('is_archived', '=', 0)
+                ->whereIn('type', ['client', 'lead'])
+                ->where(
+                    function ($query) use ($squeryLower) {
+                        return $query
+                            ->whereRaw('LOWER(email) LIKE ?', ['%'.$squeryLower.'%'])
+                            ->orWhereRaw('LOWER(first_name) LIKE ?', ['%'.$squeryLower.'%'])
+                            ->orWhereRaw('LOWER(last_name) LIKE ?', ['%'.$squeryLower.'%'])
+                            ->orWhereRaw('LOWER(client_id) LIKE ?', ['%'.$squeryLower.'%'])
+                            ->orWhereRaw('LOWER(phone) LIKE ?', ['%'.$squeryLower.'%'])
+                            ->orWhereRaw("LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE ?", ['%'.$squeryLower.'%'])
+                            ->orWhereHas('company', function ($q) use ($squeryLower) {
+                                $q->whereRaw('LOWER(company_name) LIKE ?', ['%'.$squeryLower.'%']);
+                            });
                     });
-            });
             StaffClientVisibility::restrictAdminEloquentQuery($clients);
             $clients = $clients->get();
 
-			// Exclude contact persons when their company is already in results (avoid duplicates)
-			$companyIdsInResults = $clients->where('is_company', true)->pluck('id')->toArray();
-			$contactPersonIdsToExclude = \App\Models\Company::whereIn('admin_id', $companyIdsInResults)
-				->pluck('contact_person_id')
-				->filter()
-				->unique()
-				->values()
-				->toArray();
-			$contactPersonIdsToExclude = array_values(array_filter($contactPersonIdsToExclude, function ($pid) use ($squery) {
-				return ! $this->globalSearchQueryMatchesContactPerson((int) $pid, $squery);
-			}));
+            // Exclude contact persons when their company is already in results (avoid duplicates)
+            $companyIdsInResults = $clients->where('is_company', true)->pluck('id')->toArray();
+            $contactPersonIdsToExclude = Company::whereIn('admin_id', $companyIdsInResults)
+                ->pluck('contact_person_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+            $contactPersonIdsToExclude = array_values(array_filter($contactPersonIdsToExclude, function ($pid) use ($squery) {
+                return ! $this->globalSearchQueryMatchesContactPerson((int) $pid, $squery);
+            }));
 
-			$items = array();
-			foreach($clients as $clint){
-				if (!$clint->is_company && in_array($clint->id, $contactPersonIdsToExclude)) {
-					continue; // Skip contact person - their company is already in results
-				}
-				$displayName = $clint->company_name_or_personal_name;
-				$items[] = array('name' => $displayName,'email'=>$clint->email,'status'=>$clint->type,'id'=>$clint->id,'cid'=>base64_encode(convert_uuencode(@$clint->id)));
-			}
+            $items = [];
+            foreach ($clients as $clint) {
+                if (! $clint->is_company && in_array($clint->id, $contactPersonIdsToExclude)) {
+                    continue; // Skip contact person - their company is already in results
+                }
+                $displayName = $clint->company_name_or_personal_name;
+                $items[] = ['name' => $displayName, 'email' => $clint->email, 'status' => $clint->type, 'id' => $clint->id, 'cid' => base64_encode(convert_uuencode(@$clint->id))];
+            }
 
-			$litems = array();
+            $litems = [];
 
-			$m = array_merge($items, $litems);
-			echo json_encode(array('items'=>$m));
-		}
-	}
+            $m = array_merge($items, $litems);
+            echo json_encode(['items' => $m]);
+        }
+    }
 
     /**
      * Get staff for assignment/search (e.g. assignee dropdown).
      * Returns staff from staff table with pagination.
      */
-    public function getAllStaff(Request $request) {
-        $query = \App\Models\Staff::query()->select('id', 'first_name', 'last_name', 'email');
+    public function getAllStaff(Request $request)
+    {
+        $query = Staff::query()->select('id', 'first_name', 'last_name', 'email');
         if ($request->q) {
-            $q = '%' . strtolower($request->q) . '%';
+            $q = '%'.strtolower($request->q).'%';
             $query->whereRaw('LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ?', [$q, $q]);
         }
+
         return $query->paginate(10, ['*'], 'page', $request->page ?? 1)->toArray();
     }
-
-
 }

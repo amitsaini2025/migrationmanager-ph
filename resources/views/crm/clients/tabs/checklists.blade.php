@@ -1,26 +1,34 @@
            <!-- Checklists Tab -->
            @php
-                $checklistCurrentMatterId = null;
-                $checklistCurrentMatterRef = null;
-                $checklistCurrentMatterNeedsCostAssignment = false;
-                if (($isMatterIdInUrl ?? false) && !empty($id1) && isset($fetchedData->id)) {
-                    $checklistCurrentMatter = \App\Models\ClientMatter::where('client_id', $fetchedData->id)
-                        ->where('client_unique_matter_no', $id1)
-                        ->where('matter_status', 1)
-                        ->first();
-                    if ($checklistCurrentMatter) {
-                        $checklistCurrentMatterId = $checklistCurrentMatter->id;
-                        $checklistCurrentMatterRef = $id1;
-                        $checklistCurrentMatterNeedsCostAssignment = ! \App\Models\CostAssignmentForm::where('client_id', $fetchedData->id)
-                            ->where('client_matter_id', $checklistCurrentMatterId)
-                            ->exists();
-                    }
+                $checklistsTabFragmentUrl = ! empty($encodeId)
+                    ? route('clients.detail.checklists-tab', array_filter([
+                        'client_id' => $encodeId,
+                        'client_unique_matter_ref_no' => $id1 ?? null,
+                    ], static function ($value) {
+                        return $value !== null && $value !== '';
+                    }))
+                    : '';
+
+                if (! isset($checklistsTabPayload) || ! is_array($checklistsTabPayload)) {
+                    $checklistsTabPayload = \App\Support\ClientDetailChecklistsTab::build($fetchedData, $id1 ?? null);
                 }
+
+                $checklistCurrentMatterId = $checklistsTabPayload['checklistCurrentMatterId'];
+                $checklistCurrentMatterRef = $checklistsTabPayload['checklistCurrentMatterRef'];
+                $checklistCurrentMatterNeedsCostAssignment = $checklistsTabPayload['checklistCurrentMatterNeedsCostAssignment'];
+                $checklistMigrationAgents = $checklistsTabPayload['checklistMigrationAgents'];
+                $checklistPersonsResponsible = $checklistsTabPayload['checklistPersonsResponsible'];
+                $checklistPersonsAssisting = $checklistsTabPayload['checklistPersonsAssisting'];
+                $checklistOffices = $checklistsTabPayload['checklistOffices'];
+                $checklistAuthOfficeId = $checklistsTabPayload['checklistAuthOfficeId'];
+                $checklistMatterList = $checklistsTabPayload['checklistMatterList'];
+                $checklist_forms = $checklistsTabPayload['checklistForms'];
            @endphp
            <div class="tab-pane" id="checklists-tab"
                 data-current-matter-id="{{ $checklistCurrentMatterId ?? '' }}"
                 data-current-matter-ref="{{ $checklistCurrentMatterRef ?? '' }}"
-                data-needs-cost-assignment="{{ $checklistCurrentMatterNeedsCostAssignment ? '1' : '0' }}">
+                data-needs-cost-assignment="{{ $checklistCurrentMatterNeedsCostAssignment ? '1' : '0' }}"
+                @if($checklistsTabFragmentUrl !== '') data-checklists-url="{{ $checklistsTabFragmentUrl }}" @endif>
                 <div class="card full-width checklists-container">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h4 class="mb-0">@icon('fa-tasks', ['class' => 'mr-2'])Checklists</h4>
@@ -49,7 +57,7 @@
                                                     <label for="checklist_migration_agent">Migration Agent <span class="span_req">*</span></label>
                                                     <select data-valid="required" class="form-control mm-select checklist-field" name="checklist_migration_agent" id="checklist_migration_agent">
                                                         <option value="">Select Migration Agent</option>
-                                                        @foreach(\App\Models\Staff::assignmentDropdownMigrationAgentsQuery()->get() as $migAgntlist)
+                                                        @foreach($checklistMigrationAgents as $migAgntlist)
                                                             <option value="{{$migAgntlist->id}}">{{@$migAgntlist->first_name}} {{@$migAgntlist->last_name}} ({{@$migAgntlist->email}})</option>
                                                         @endforeach
                                                     </select>
@@ -62,7 +70,7 @@
                                                     <label for="checklist_person_responsible">Person Responsible <span class="span_req">*</span></label>
                                                     <select data-valid="required" class="form-control mm-select checklist-field" name="checklist_person_responsible" id="checklist_person_responsible">
                                                         <option value="">Select Person Responsible</option>
-                                                        @foreach(\App\Models\Staff::assignmentDropdownPersonResponsibleQuery()->get() as $perreslist)
+                                                        @foreach($checklistPersonsResponsible as $perreslist)
                                                             <option value="{{$perreslist->id}}">{{@$perreslist->first_name}} {{@$perreslist->last_name}} ({{@$perreslist->email}})</option>
                                                         @endforeach
                                                     </select>
@@ -75,7 +83,7 @@
                                                     <label for="checklist_person_assisting">Person Assisting <span class="span_req">*</span></label>
                                                     <select data-valid="required" class="form-control mm-select checklist-field" name="checklist_person_assisting" id="checklist_person_assisting">
                                                         <option value="">Select Person Assisting</option>
-                                                        @foreach(\App\Models\Staff::assignmentDropdownPersonAssistingQuery()->get() as $perassislist)
+                                                        @foreach($checklistPersonsAssisting as $perassislist)
                                                             <option value="{{$perassislist->id}}">{{@$perassislist->first_name}} {{@$perassislist->last_name}} ({{@$perassislist->email}})</option>
                                                         @endforeach
                                                     </select>
@@ -88,8 +96,8 @@
                                                     <label for="checklist_office">Handling Office <span class="span_req">*</span></label>
                                                     <select data-valid="required" class="form-control mm-select checklist-field" name="checklist_office" id="checklist_office">
                                                         <option value="">Select Office</option>
-                                                        @foreach(\App\Models\Branch::orderBy('office_name')->get() as $office)
-                                                            <option value="{{$office->id}}" {{ Auth::user()->office_id == $office->id ? 'selected' : '' }}>{{$office->office_name}}</option>
+                                                        @foreach($checklistOffices as $office)
+                                                            <option value="{{$office->id}}" {{ (string) $checklistAuthOfficeId === (string) $office->id ? 'selected' : '' }}>{{$office->office_name}}</option>
                                                         @endforeach
                                                     </select>
                                                     <small class="form-text text-muted">
@@ -109,12 +117,7 @@
                                                     <label class="form-check-label">Or Select any option</label>
                                                     <select data-valid="required" class="form-control mm-select checklist-field" name="checklist_matter" id="checklist_matter_select">
                                                         <option value="">Select Matter</option>
-                                                        @php
-                                                            $matterQuery = \App\Models\Matter::select('id','title')->where('status',1)
-                                                                ->forClientType((bool) (isset($fetchedData) && $fetchedData->is_company));
-                                                            $matterList = $matterQuery->get();
-                                                        @endphp
-                                                        @foreach($matterList as $matterlist)
+                                                        @foreach($checklistMatterList as $matterlist)
                                                             <option value="{{$matterlist->id}}" data-matter-id="{{$matterlist->id}}">{{@$matterlist->title}}</option>
                                                         @endforeach
                                                     </select>
@@ -147,13 +150,6 @@
                             @endif
                             <div id="checklists-list-container">
                                 <?php
-                                $checklist_forms = \App\Models\CostAssignmentForm::where('client_id', $fetchedData->id)
-                                    ->whereHas('clientMatter', function ($query) {
-                                        $query->where('matter_status', 1);
-                                    })
-                                    ->with(['client', 'agent', 'clientMatter'])
-                                    ->orderBy('created_at', 'DESC')
-                                    ->get();
                                 ?>
                                 @if($checklist_forms->isEmpty())
                                     <div class="alert alert-info" id="checklists-empty-state">
@@ -205,11 +201,7 @@
                                                     $discountAmount
                                                 );
                                                 
-                                                // Check if agreement document exists
-                                                $agreementDoc = \App\Models\Document::where('client_matter_id', $form->client_matter_id)
-                                                    ->where('doc_type', 'agreement')
-                                                    ->latest()
-                                                    ->first();
+                                                $agreementDoc = $form->agreement_document ?? null;
                                             @endphp
                                             <div class="checklist-item-wrapper" data-id="{{ $form->id }}" data-client-matter-id="{{ $form->client_matter_id }}">
                                                 <div class="checklist-item-header" data-bs-toggle="collapse" data-bs-target="#checklist-detail-{{ $form->id }}">
@@ -835,12 +827,79 @@
 }
 </style>
 
-@push('scripts')
 <script>
-(function($) {
-    'use strict';
-    $(document).ready(function() {
+(function() {
+    function bootChecklistsTab() {
+        'use strict';
+
+        /**
+         * Eager checklists boot runs inside the detail content section before layout
+         * scripts replace window.jQuery and bootstrap5-jquery-compat.js adds $.fn.modal.
+         * Always resolve the live jQuery / Bootstrap API at bind and show time.
+         */
+        function checklistJquery() {
+            return window.jQuery;
+        }
+
+        function showChecklistModal($modal) {
+            if (!$modal || !$modal.length) {
+                return false;
+            }
+            var $jq = checklistJquery();
+            if ($jq && typeof $jq.fn.modal === 'function') {
+                $jq($modal.get()).modal('show');
+                return true;
+            }
+            if (typeof $modal.modal === 'function') {
+                $modal.modal('show');
+                return true;
+            }
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal && $modal[0]) {
+                bootstrap.Modal.getOrCreateInstance($modal[0]).show();
+                return true;
+            }
+            return false;
+        }
+
+        function hideChecklistModal($modal) {
+            if (!$modal || !$modal.length) {
+                return false;
+            }
+            var $jq = checklistJquery();
+            if ($jq && typeof $jq.fn.modal === 'function') {
+                $jq($modal.get()).modal('hide');
+                return true;
+            }
+            if (typeof $modal.modal === 'function') {
+                $modal.modal('hide');
+                return true;
+            }
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal && $modal[0]) {
+                var instance = bootstrap.Modal.getInstance($modal[0]);
+                if (instance) {
+                    instance.hide();
+                }
+                return true;
+            }
+            return false;
+        }
+
+        function bindChecklistsTabUi() {
+        var $ = checklistJquery();
+        if (typeof $ === 'undefined') {
+            return;
+        }
         var $checklistsTab = $('#checklists-tab');
+        if (!$checklistsTab.length || $checklistsTab.attr('data-checklists-lazy') === '1') {
+            return;
+        }
+        $(document).off('.checklistsTabUi');
+        $('#btn-add-checklist').off('.checklistsTabUi');
+        $('#checklist-create-dropdown').off('.checklistsTabUi');
+        $('.checklist-item-header').off('.checklistsTabUi');
+        $('.checklist-item-details').off('.checklistsTabUi');
+        $('#checklist_general_matter_checkbox').off('.checklistsTabUi');
+
         var currentClientMatterId = $checklistsTab.data('current-matter-id') || null;
         var currentMatterNeedsCostAssignment = String($checklistsTab.data('needs-cost-assignment') || '') === '1';
         var $btnAdd = $('#btn-add-checklist');
@@ -861,7 +920,7 @@
             $modal.find('#cost_assignment_client_matter_id').val(clientMatterId);
             $modal.find('#costAssignmentModalLabel').text('Create Cost Assignment');
             var showModal = function() {
-                $modal.modal('show');
+                showChecklistModal($modal);
             };
             if (typeof window.getCostAssignmentMigrationAgentDetail === 'function') {
                 window.getCostAssignmentMigrationAgentDetail(clientId, clientMatterId, '#costAssignmentCreateFormModel', showModal);
@@ -889,11 +948,11 @@
                 });
             }
             $('#sel_matter_id_lead').trigger('change');
-            $('#costAssignmentCreateFormModelLead').modal('show');
+            showChecklistModal($('#costAssignmentCreateFormModelLead'));
         }
 
         // Set up cost assignment for the matter already in the URL (does not create a new matter)
-        $(document).on('click', '.btn-setup-cost-assignment-for-matter', function(e) {
+        $(document).on('click.checklistsTabUi', '.btn-setup-cost-assignment-for-matter', function(e) {
             e.preventDefault();
             e.stopPropagation();
             var clientId = window.ClientDetailConfig ? window.ClientDetailConfig.clientId : $('.crm-container').data('client-id');
@@ -932,7 +991,7 @@
         }
 
         // Toggle dropdown on plus button click
-        $btnAdd.on('click', function(e) {
+        $btnAdd.on('click.checklistsTabUi', function(e) {
             e.stopPropagation();
             $dropdown.toggle();
             if ($dropdown.is(':visible')) {
@@ -943,7 +1002,7 @@
         });
 
         // Close panel when clicking outside (do not close while the Tom Select menu is open)
-        $(document).on('click', function(e) {
+        $(document).on('click.checklistsTabUi', function(e) {
             if (!$dropdown.is(':visible')) {
                 return;
             }
@@ -961,13 +1020,13 @@
         });
 
         // Cancel button
-        $dropdown.on('click', '.btn-cancel-checklist', function() {
+        $dropdown.on('click.checklistsTabUi', '.btn-cancel-checklist', function() {
             destroyChecklistMmSelect();
             $dropdown.hide();
         });
 
         // General Matter checkbox: when checked, use matter 1 (same as Convert Lead To Client)
-        $('#checklist_general_matter_checkbox').on('change', function() {
+        $('#checklist_general_matter_checkbox').on('change.checklistsTabUi', function() {
             if ($(this).is(':checked')) {
                 $matterSelect.val('1').trigger('change');
             } else {
@@ -976,7 +1035,7 @@
         });
 
         // Continue / Save - uses Lead flow (matter type from admin list)
-        $dropdown.on('click', '.btn-continue-cost-assignment', function() {
+        $dropdown.on('click.checklistsTabUi', '.btn-continue-cost-assignment', function() {
             var generalMatterChecked = $('#checklist_general_matter_checkbox').is(':checked');
             var matterId = generalMatterChecked ? '1' : $matterSelect.val();
             var clientId = window.ClientDetailConfig ? window.ClientDetailConfig.clientId : $('.crm-container').data('client-id');
@@ -1023,8 +1082,10 @@
             });
         }
 
+        window.initChecklistMmSelect = initChecklistMmSelect;
+
         // Accordion toggle functionality
-        $('.checklist-item-header').on('click', function() {
+        $('.checklist-item-header').on('click.checklistsTabUi', function() {
             var $this = $(this);
             var isExpanded = $this.attr('aria-expanded') === 'true';
             
@@ -1037,14 +1098,14 @@
         });
 
         // Handle Bootstrap collapse events for proper aria-expanded state
-        $('.checklist-item-details').on('shown.bs.collapse', function() {
+        $('.checklist-item-details').on('shown.bs.collapse.checklistsTabUi', function() {
             $(this).prev('.checklist-item-header').attr('aria-expanded', 'true');
-        }).on('hidden.bs.collapse', function() {
+        }).on('hidden.bs.collapse.checklistsTabUi', function() {
             $(this).prev('.checklist-item-header').attr('aria-expanded', 'false');
         });
 
         // Send Checklist - open compose modal with matter selected (checklist rows filtered; user picks attachments)
-        $(document).on('click', '.btn-send-checklist', function(e) {
+        $(document).on('click.checklistsTabUi', '.btn-send-checklist', function(e) {
             e.stopPropagation();
             var $btn = $(this);
             var clientId = $btn.data('client-id');
@@ -1120,11 +1181,11 @@
                 }
             });
 
-            $('#emailmodal').modal('show');
+            showChecklistModal($('#emailmodal'));
         });
 
         // Copy signature link to clipboard
-        $(document).on('click', '.btn-copy-signature-link', function() {
+        $(document).on('click.checklistsTabUi', '.btn-copy-signature-link', function() {
             var link = $(this).data('link');
             var $input = $(this).closest('.input-group').find('.signature-link-input');
             
@@ -1148,7 +1209,7 @@
         });
 
         // Send Email with Signature Link - opens compose modal with default checklist/signature email
-        $(document).on('click', '.btn-send-signature-email', function(e) {
+        $(document).on('click.checklistsTabUi', '.btn-send-signature-email', function(e) {
             e.preventDefault();
             e.stopPropagation();
             var $btn = $(this);
@@ -1233,11 +1294,11 @@
                 }
             });
 
-            $('#emailmodal').modal('show');
+            showChecklistModal($('#emailmodal'));
         });
 
         // Send Reminder - AJAX (no full page reload)
-        $(document).on('click', '.btn-send-signature-reminder', function(e) {
+        $(document).on('click.checklistsTabUi', '.btn-send-signature-reminder', function(e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -1320,7 +1381,7 @@
         });
 
         // Amend checklist - opens the cost assignment modal to make changes
-        $(document).on('click', '.btn-amend-checklist', function(e) {
+        $(document).on('click.checklistsTabUi', '.btn-amend-checklist', function(e) {
             e.stopPropagation();
             var clientId = $(this).data('client-id');
             var clientMatterId = $(this).data('client-matter-id');
@@ -1332,6 +1393,10 @@
             
             // Set client/matter IDs in the modal form (scope to modal to avoid subtab form)
             var $modal = $('#costAssignmentCreateFormModel');
+            if (!$modal.length) {
+                alert('Cost assignment form is not available. Please refresh the page.');
+                return;
+            }
             $modal.find('#cost_assignment_client_id').val(clientId);
             $modal.find('#cost_assignment_client_matter_id').val(clientMatterId);
             
@@ -1339,21 +1404,20 @@
             $modal.find('#costAssignmentModalLabel').text('Amend Cost Assignment');
             
             // Load existing cost assignment data into the modal, then show it when loaded
+            var showAmendModal = function() {
+                showChecklistModal($modal);
+            };
             if (typeof window.getCostAssignmentMigrationAgentDetail === 'function') {
-                window.getCostAssignmentMigrationAgentDetail(clientId, clientMatterId, '#costAssignmentCreateFormModel', function() {
-                    $modal.modal('show');
-                });
+                window.getCostAssignmentMigrationAgentDetail(clientId, clientMatterId, '#costAssignmentCreateFormModel', showAmendModal);
             } else if (typeof getCostAssignmentMigrationAgentDetail === 'function') {
-                getCostAssignmentMigrationAgentDetail(clientId, clientMatterId, '#costAssignmentCreateFormModel', function() {
-                    $modal.modal('show');
-                });
+                getCostAssignmentMigrationAgentDetail(clientId, clientMatterId, '#costAssignmentCreateFormModel', showAmendModal);
             } else {
                 alert('Cost assignment function not available. Please refresh the page.');
             }
         });
 
         // When finalize button is clicked and agreement is uploaded, handle signature flow
-        $(document).on('agreementUploaded', function(e, data) {
+        $(document).on('agreementUploaded.checklistsTabUi', function(e, data) {
             if (data.signatureLink) {
                 // Reload the checklist tab to show the signature link
                 location.reload();
@@ -1384,7 +1448,7 @@
             sigState.selectedFieldIndex = -1;
             $('#signaturePlacementModal').removeData('lastSaveSource');
             $('#signaturePlacementModal').removeData('skipReloadOnHide');
-            $('#signaturePlacementModal').modal('show');
+            showChecklistModal($('#signaturePlacementModal'));
             $('#signature-placement-loading').show();
             $('#signature-placement-content').hide();
             $('#signature-placement-error').hide();
@@ -1437,11 +1501,11 @@
             });
         }
 
-        $(document).on('click', '.btn-place-signature-fields', function() {
+        $(document).on('click.checklistsTabUi', '.btn-place-signature-fields', function() {
             openSignaturePlacementModal($(this).data('document-id'));
         });
 
-        $(document).on('openSignaturePlacementModal', function(e, data) {
+        $(document).on('openSignaturePlacementModal.checklistsTabUi', function(e, data) {
             if (data && data.documentId) openSignaturePlacementModal(data.documentId);
         });
 
@@ -1638,13 +1702,13 @@
                         // Navigate to the correct tab URL; skip modal-hide reload to avoid races
                         // (e.g. nomination_documents defaulting to checklists).
                         $('#signaturePlacementModal').data('skipReloadOnHide', true);
-                        $('#signaturePlacementModal').modal('hide');
+                        hideChecklistModal($('#signaturePlacementModal'));
                         alert(resp.message || 'Signature fields saved. The signing link is now available.');
                         window.location.href = resp.redirect_url;
                         return;
                     }
 
-                    $('#signaturePlacementModal').modal('hide');
+                    hideChecklistModal($('#signaturePlacementModal'));
                     if (resp && resp.success) {
                         alert(resp.message || 'Signature fields saved. The signing link is now available.');
                     } else {
@@ -1704,7 +1768,27 @@
             $('#signaturePlacementModal').removeData('lastSaveSource');
             location.reload();
         });
-    });
-})(jQuery);
+            };
+
+        window.bindChecklistsTabUi = bindChecklistsTabUi;
+        // Already deferred past layout scripts (or fragment inject); bind immediately.
+        bindChecklistsTabUi();
+    }
+
+    function startChecklistsBoot() {
+        if (typeof window.jQuery === 'undefined') {
+            return;
+        }
+        bootChecklistsTab();
+    }
+
+    // Defer until DOMContentLoaded so layout's app.min.js + bootstrap5-jquery-compat
+    // have replaced window.jQuery and registered $.fn.modal. Lazy fragment inject
+    // already runs after that (readyState !== 'loading') and boots immediately.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startChecklistsBoot);
+    } else {
+        startChecklistsBoot();
+    }
+})();
 </script>
-@endpush

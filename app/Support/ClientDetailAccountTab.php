@@ -7,6 +7,7 @@ use App\Models\ClientMatter;
 use App\Models\Document;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -183,16 +184,22 @@ final class ClientDetailAccountTab
             }
         }
 
-        $documents = Document::query()
-            ->whereIn('id', array_unique($docIds))
-            ->get()
-            ->keyBy('id');
+        $documents = collect();
+        if ($docIds !== []) {
+            $documents = Document::query()
+                ->whereIn('id', array_unique($docIds))
+                ->get()
+                ->keyBy('id');
+        }
 
-        $matters = ClientMatter::query()
-            ->select('id', 'client_unique_matter_no')
-            ->whereIn('id', array_unique($matterIds))
-            ->get()
-            ->keyBy('id');
+        $matters = collect();
+        if ($matterIds !== []) {
+            $matters = ClientMatter::query()
+                ->select('id', 'client_unique_matter_no')
+                ->whereIn('id', array_unique($matterIds))
+                ->get()
+                ->keyBy('id');
+        }
 
         foreach ($rows as $row) {
             $docId = (int) ($row->uploaded_doc_id ?? 0);
@@ -207,8 +214,9 @@ final class ClientDetailAccountTab
                     $filePath = $matterRef
                         ? $crmClientRef.'/'.$matterRef.'/accounts/'.$document->myfile
                         : $crmClientRef.'/accounts/'.$document->myfile;
-                    /** @disregard P1009 */
-                    $url = Storage::disk('s3')->url($filePath);
+                    /** @var FilesystemAdapter $disk */
+                    $disk = Storage::disk('s3');
+                    $url = $disk->url($filePath);
                 }
             }
             $row->account_inline_doc_url = $url;

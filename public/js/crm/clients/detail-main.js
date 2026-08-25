@@ -85,11 +85,15 @@
             var $docRow = $('<div class="doc-row"></div>')
                 .attr('data-id', doc.id)
                 .attr('data-name', fileName)
+                .attr('data-file-ext', fileExt || '')
+                .attr('data-file-url', fileUrl || '')
+                .attr('data-doc-type', doc.doc_type || '')
+                .attr('data-file-status', doc.status || 'draft')
                 .attr('title', uploadTitle);
             $docRow.on('contextmenu', function(event) {
                 event.preventDefault();
-                if (typeof showNotUsedFileContextMenu === 'function') {
-                    showNotUsedFileContextMenu(event, doc.id, fileExt, fileUrl, doc.doc_type, doc.status || 'draft');
+                if (typeof window.showNotUsedFileContextMenu === 'function') {
+                    window.showNotUsedFileContextMenu(event, doc.id, fileExt, fileUrl, doc.doc_type, doc.status || 'draft');
                 }
                 return false;
             });
@@ -269,8 +273,27 @@
             '</tr>';
 
         $tbody.prepend(rowHtml);
+        var $newRow = $tbody.find('#id_' + doc.id);
+        // Prefer delegated jQuery binding so soft-restored rows keep working even if
+        // inline oncontextmenu cannot see a non-window function after lazy inject.
+        $newRow.find('.doc-row').off('contextmenu.softRestore').on('contextmenu.softRestore', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof window.showFileContextMenu === 'function') {
+                window.showFileContextMenu(event, doc.id, fileType, fileUrl, categoryId, status);
+            }
+            return false;
+        });
+        $newRow.find('.personalchecklist-row').off('contextmenu.softRestore').on('contextmenu.softRestore', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof window.showPersonalChecklistContextMenu === 'function') {
+                window.showPersonalChecklistContextMenu(event, doc.id);
+            }
+            return false;
+        });
         if (typeof refreshLucideIcons === 'function') {
-            refreshLucideIcons($tbody.find('#id_' + doc.id)[0]);
+            refreshLucideIcons($newRow[0]);
         }
         return true;
     }
@@ -329,8 +352,25 @@
             '</tr>';
 
         $tbody.prepend(rowHtml);
+        var $newRow = $tbody.find('#id_' + doc.id);
+        $newRow.find('.doc-row').off('contextmenu.softRestore').on('contextmenu.softRestore', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof window.showVisaFileContextMenu === 'function') {
+                window.showVisaFileContextMenu(event, doc.id, fileType, fileUrl, categoryId, status);
+            }
+            return false;
+        });
+        $newRow.find('.visachecklist-row').off('contextmenu.softRestore').on('contextmenu.softRestore', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof window.showVisaChecklistContextMenu === 'function') {
+                window.showVisaChecklistContextMenu(event, doc.id);
+            }
+            return false;
+        });
         if (typeof refreshLucideIcons === 'function') {
-            refreshLucideIcons($tbody.find('#id_' + doc.id)[0]);
+            refreshLucideIcons($newRow[0]);
         }
         return true;
     }
@@ -2574,17 +2614,31 @@ success: function(response) {
 
                 if( activeTab == 'noteterm' ) {
 
-                    if (typeof window.filterNotes === 'function') {
-                        window.filterNotes();
-                    }
+                    (typeof window.ensureNotesTabLoaded === 'function'
+                        ? window.ensureNotesTabLoaded()
+                        : Promise.resolve()
+                    ).then(function() {
+                        if (typeof window.filterNotes === 'function') {
+                            window.filterNotes();
+                        }
+                    }).catch(function(err) {
+                        console.error('[DetailMain] Failed to load Notes before matter filter', err);
+                    });
 
                 }
 
                 else if( activeTab == 'visadocuments') {
 
-                    if (typeof SidebarTabs !== 'undefined' && SidebarTabs.filterVisaDocumentsByMatter) {
-                        SidebarTabs.filterVisaDocumentsByMatter(selectedMatter);
-                    }
+                    (typeof window.ensureVisaDocumentsTabLoaded === 'function'
+                        ? window.ensureVisaDocumentsTabLoaded()
+                        : Promise.resolve()
+                    ).then(function() {
+                        if (typeof SidebarTabs !== 'undefined' && SidebarTabs.filterVisaDocumentsByMatter) {
+                            SidebarTabs.filterVisaDocumentsByMatter(selectedMatter);
+                        }
+                    }).catch(function(err) {
+                        console.error('[DetailMain] Failed to load Visa Documents before matter filter', err);
+                    });
 
                 }
 
@@ -2737,9 +2791,16 @@ success: function(response) {
 
             if( activeTab == 'noteterm' ) {
 
-                if (typeof window.filterNotes === 'function') {
-                    window.filterNotes();
-                }
+                (typeof window.ensureNotesTabLoaded === 'function'
+                    ? window.ensureNotesTabLoaded()
+                    : Promise.resolve()
+                ).then(function() {
+                    if (typeof window.filterNotes === 'function') {
+                        window.filterNotes();
+                    }
+                }).catch(function(err) {
+                    console.error('[DetailMain] Failed to load Notes before matter filter', err);
+                });
 
             }
 
@@ -2771,9 +2832,16 @@ success: function(response) {
 
             else if (activeTab == 'visadocuments') {
 
-                if (typeof SidebarTabs !== 'undefined' && SidebarTabs.filterVisaDocumentsByMatter) {
-                    SidebarTabs.filterVisaDocumentsByMatter(selectedMatter);
-                }
+                (typeof window.ensureVisaDocumentsTabLoaded === 'function'
+                    ? window.ensureVisaDocumentsTabLoaded()
+                    : Promise.resolve()
+                ).then(function() {
+                    if (typeof SidebarTabs !== 'undefined' && SidebarTabs.filterVisaDocumentsByMatter) {
+                        SidebarTabs.filterVisaDocumentsByMatter(selectedMatter);
+                    }
+                }).catch(function(err) {
+                    console.error('[DetailMain] Failed to load Visa Documents before matter filter', err);
+                });
 
             }
 
@@ -9294,6 +9362,14 @@ success: function(response) {
                                 '</a>' +
                             '</div>'
                         );
+                        uploadTd.find('.doc-row').off('contextmenu.softRestore').on('contextmenu.softRestore', function(event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            if (typeof window[contextMenuFn] === 'function') {
+                                window[contextMenuFn](event, fileid, ress.filetype, ress.fileurl, visa_doc_cat, ress.status_value || 'draft');
+                            }
+                            return false;
+                        });
                         
                         // Add hidden elements for context menu actions (Column 2 = Actions)
                         var actionTd = row.find('td').eq(2);
@@ -9546,6 +9622,15 @@ success: function(response) {
                             '</div>'
 
                         );
+
+                        uploadTd.find('.doc-row').off('contextmenu.softRestore').on('contextmenu.softRestore', function(event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            if (typeof window[contextMenuFn] === 'function') {
+                                window[contextMenuFn](event, fileidL1, ress.filetype, ress.fileurl, visa_doc_cat, ress.status_value || 'draft');
+                            }
+                            return false;
+                        });
 
 
 

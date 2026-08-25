@@ -1169,7 +1169,7 @@
                     if (uploadProgress) uploadProgress.className = 'upload-progress';
                     if (fileCountBadge) fileCountBadge.classList.remove('show');
                 }, 2000);
-                loadEmails();
+                loadEmails({ forceReload: true });
                 refreshSavedDocumentCategories(savedDocumentCategories);
             } else if (uploadedTotal > 0) {
                 if (uploadProgress) uploadProgress.className = 'upload-progress error';
@@ -1178,7 +1178,7 @@
                     uploadedTotal + ' uploaded, ' + (failedTotal + rejectedTotal) + ' skipped/failed',
                     'error'
                 );
-                loadEmails();
+                loadEmails({ forceReload: true });
                 refreshSavedDocumentCategories(savedDocumentCategories);
             } else if (rejectedTotal > 0 && failedTotal === 0) {
                 if (uploadProgress) uploadProgress.className = 'upload-progress error';
@@ -1264,9 +1264,13 @@
     // =========================================================================
 
     /**
-     * Initialize email list and load initial emails
+     * Initialize email list and load initial emails.
+     * Pass { forceReload: true } after uploads/deletes; otherwise reuse the cached list
+     * for the current client + matter + mail folder (inbox/sent).
      */
-    window.loadEmails = function() {
+    window.loadEmails = function(options) {
+        const opts = options && typeof options === 'object' ? options : {};
+        const forceReload = opts.forceReload === true;
         const container = document.querySelector('.email-interface-container');
         if (!container) {
             return;
@@ -1278,8 +1282,17 @@
         if (!isLead && !getMatterId()) {
             return;
         }
-        console.log('Loading emails...' + (isLead ? ' (lead context)' : ''));
-        loadEmailsFromServer();
+        const cacheKey = [getClientId() || '', getMatterId() || '', currentMailType || 'inbox', currentLabelId || '', currentSearch || ''].join('|');
+        if (!forceReload && window.__emailsListCacheKey === cacheKey) {
+            console.log('Emails already loaded for current filters; using cache');
+            return;
+        }
+        console.log('Loading emails...' + (isLead ? ' (lead context)' : '') + (forceReload ? ' (force)' : ''));
+        loadEmailsFromServer().then(function(ok) {
+            if (ok) {
+                window.__emailsListCacheKey = cacheKey;
+            }
+        });
     };
 
     /**
@@ -1291,7 +1304,7 @@
         const isLead = isLeadContext();
         
         if (!clientId) {
-            return;
+            return false;
         }
         
         if (!isLead && !matterId) {
@@ -1299,12 +1312,12 @@
             if (container) {
                 renderEmptyState('Please select a matter to view emails');
             }
-            return;
+            return false;
         }
 
         if (isLoading) {
             console.log('Already loading emails');
-            return;
+            return false;
         }
 
         isLoading = true;
@@ -1374,10 +1387,14 @@
                 }
             }
 
+            window.__emailsListCacheKey = [clientId || '', matterId || '', currentMailType || 'inbox', currentLabelId || '', currentSearch || ''].join('|');
+            return true;
+
         } catch (error) {
             console.error('Error loading emails:', error);
             showNotification('Failed to load emails: ' + error.message, 'error');
             renderEmptyState('Error loading emails');
+            return false;
         } finally {
             isLoading = false;
             updateLoadingState(false);
@@ -3885,6 +3902,18 @@
      * Initialize new filter and modal features
      */
     function initializeNewFeatures() {
+        const emailContainer = document.querySelector('.email-interface-container');
+        if (!emailContainer) {
+            return;
+        }
+        // Avoid duplicate listeners when emails.js is evaluated more than once
+        if (emailContainer.dataset.emailsUiBound === '1') {
+            initializeFolderTabs();
+            initializeReadingPaneActions();
+            return;
+        }
+        emailContainer.dataset.emailsUiBound = '1';
+
         cacheReadingPanePlaceholderHtml();
 
         // Restore mail type before filters bind and initial email load
@@ -3986,10 +4015,30 @@
     }
 
     /**
+     * Re-bind emails UI after a lazy tab fragment inject (DOM replaced; module already loaded).
+     */
+    window.reinitializeEmailsTabDom = function() {
+        initializeNewFeatures();
+        if (typeof window.initializeUpload === 'function') {
+            window.initializeUpload();
+        }
+        if (typeof window.initializeSearch === 'function') {
+            window.initializeSearch();
+        }
+        if (typeof window.initializeSendBodiesToS3Button === 'function') {
+            window.initializeSendBodiesToS3Button();
+        }
+    };
+
+    /**
      * Event delegation for attachment buttons
      * Handles all attachment-related clicks
      */
     function initializeAttachmentHandlers() {
+        if (window.__emailsAttachmentHandlersBound) {
+            return;
+        }
+        window.__emailsAttachmentHandlersBound = true;
         // Single delegated listener for all attachment actions
         document.addEventListener('click', function(e) {
             const target = e.target.closest('button');
@@ -4110,7 +4159,7 @@
                 showNotification(data.message || 'Email bodies sent to S3 successfully.', 'success');
 
                 if (typeof window.loadEmails === 'function') {
-                    window.loadEmails();
+                    window.loadEmails({ forceReload: true });
                 }
             } catch (error) {
                 console.error('Send bodies to S3 failed:', error);

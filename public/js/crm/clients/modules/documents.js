@@ -735,7 +735,7 @@
                         '<tbody class="tdata persdocumnetlist documnetlist_' + id + '"></tbody>' +
                     '</table>' +
                 '</div>' +
-                '<div class="grid_data griddata_' + id + '"><div class="clearfix"></div></div>' +
+                '<div class="grid_data griddata_' + id + '" style="display:none;"><div class="clearfix"></div></div>' +
                 '<div class="preview-pane file-preview-container preview-container-' + id + '" style="display: inline; margin-top: 15px !important; width: 499px;">' +
                     '<p style="color: #374151;">Click on a file to preview it here.</p>' +
                 '</div>' +

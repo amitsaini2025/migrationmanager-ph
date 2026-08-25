@@ -1,5 +1,16 @@
            <!-- Visa Documents Tab (Matter-Specific) -->
-           <div class="tab-pane" id="visadocuments-tab">
+           @php
+                $visaDocumentsTabFragmentUrl = ! empty($encodeId)
+                    ? route('clients.detail.visadocuments-tab', array_filter([
+                        'client_id' => $encodeId,
+                        'client_unique_matter_ref_no' => $id1 ?? null,
+                    ], static function ($value) {
+                        return $value !== null && $value !== '';
+                    }))
+                    : '';
+           @endphp
+           <div class="tab-pane" id="visadocuments-tab"
+                @if($visaDocumentsTabFragmentUrl !== '') data-visadocuments-url="{{ $visaDocumentsTabFragmentUrl }}" @endif>
                 <div class="card full-width documentalls-container">
                     <?php
                     $client_selected_matter_id1 = null;
@@ -76,6 +87,9 @@
 
                     $canDeleteVisaDocCategory = \Illuminate\Support\Facades\Auth::check()
                         && in_array((int) (\Illuminate\Support\Facades\Auth::user()->role ?? 0), config('crm.visa_document_category_delete_role_ids', [1, 16]), true);
+
+                    // One Document query for the whole tab; group by category in memory.
+                    $visaDocumentsByFolder = \App\Support\ClientDetailDocumentsTab::visaDocumentsByFolder((int) $fetchedData->id);
 
                     ?>
 
@@ -166,13 +180,7 @@
                                             </thead>
                                             <tbody class="tdata migdocumnetlist1 migdocumnetlist_<?= $id ?>">
                                                 <?php
-                                                 $documents = \App\Models\Document::with('signers')->where('client_id', $fetchedData->id)
-                                                    ->whereNull('not_used_doc')
-                                                    ->where('doc_type', 'visa')
-                                                    ->where('folder_name', $folderName)
-                                                    ->where('type', 'client')
-                                                    ->orderBy('created_at', 'DESC')
-                                                    ->get();
+                                                 $documents = $visaDocumentsByFolder->get((string) $folderName, collect());
                                                  $parentDocs = $documents->filter(fn($d) => !str_ends_with($d->checklist ?? '', '_signed'));
                                                  $signedByParent = $documents->filter(fn($d) => str_ends_with($d->checklist ?? '', '_signed'))
                                                     ->groupBy(fn($d) => ($d->folder_name ?? '') . '|' . ($d->client_matter_id ?? '') . '|' . substr($d->checklist ?? '', 0, -7));
@@ -183,7 +191,7 @@
                                                 ?>
                                                 <?php foreach ($parentDocs as $visaKey => $fetch): ?>
                                                     <?php
-                                                    $admin = \App\Models\Staff::where('id', $fetch->user_id)->first();
+                                                    $admin = $fetch->staff;
                                                     $isForm956 = !empty($fetch->form956_id);
 
                                                     // Build file URL: once a file is uploaded to a Form 956 row, use it directly
@@ -313,7 +321,6 @@
                                                     $signedKey = ($fetch->folder_name ?? '') . '|' . ($fetch->client_matter_id ?? '') . '|' . ($fetch->checklist ?? '');
                                                     $signedDocs = $signedByParent->get($signedKey, collect());
                                                     foreach ($signedDocs as $signedDoc):
-                                                        $signedAdmin = \App\Models\Staff::where('id', $signedDoc->user_id)->first();
                                                         $signedIsForm956 = !empty($signedDoc->form956_id);
                                                         if ($signedIsForm956 && !empty($signedDoc->myfile)) {
                                                             $signedFileUrl = $signedDoc->myfile;
@@ -360,7 +367,6 @@
                                                 foreach ($orphanSignedKeys as $orphanKey):
                                                     $signedDocs = $signedByParent->get($orphanKey, collect());
                                                     foreach ($signedDocs as $signedDoc):
-                                                        $signedAdmin = \App\Models\Staff::where('id', $signedDoc->user_id)->first();
                                                         $signedIsForm956 = !empty($signedDoc->form956_id);
                                                         if ($signedIsForm956 && !empty($signedDoc->myfile)) {
                                                             $signedFileUrl = $signedDoc->myfile;
@@ -406,16 +412,11 @@
                                     <div class="grid_data miggriddata" style="display:none;">
                                         <?php foreach ($visaDocCatList as $catVal):
                                             $id = $catVal->id;
-                                            $documents = \App\Models\Document::where('client_id', $fetchedData->id)
-                                                ->whereNull('not_used_doc')
-                                                ->where('doc_type', 'visa')
-                                                ->where('folder_name', $id)
-                                                ->where('type', 'client')
-                                                ->orderBy('updated_at', 'DESC')
-                                                ->get();
+                                            $documents = $visaDocumentsByFolder->get((string) $id, collect())
+                                                ->sortByDesc('updated_at')
+                                                ->values();
                                             foreach ($documents as $fetch):
                                                 if ($fetch->myfile):
-                                                    $admin = \App\Models\Staff::where('id', $fetch->user_id)->first();
                                                     ?>
                                                     <div class="grid_list" id="gid_<?= $fetch->id ?>">
                                                         <div class="grid_col">
@@ -532,6 +533,33 @@
                 </div>
             </div>
 
+            {{-- Shared with Personal Documents bulk upload; required when Visa loads without Personal orphans. --}}
+            <div id="bulk-upload-mapping-modal" class="bulk-upload-mapping-modal">
+                <div class="bulk-upload-mapping-content">
+                    <div class="bulk-upload-mapping-header">
+                        <h3>@icon('fa-link') Map Files to Checklists</h3>
+                        <span class="close-mapping-modal">&times;</span>
+                    </div>
+                    <div id="bulk-upload-mapping-table"></div>
+                    <div class="bulk-upload-actions">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="auto-create-unmatched" checked>
+                            <span>Auto-create checklist for unmatched files</span>
+                        </label>
+                        <div>
+                            <button type="button" class="btn btn-secondary" id="cancel-bulk-upload">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="confirm-bulk-upload">Upload All</button>
+                        </div>
+                    </div>
+                    <div class="bulk-upload-progress" id="bulk-upload-progress">
+                        <p>Uploading files...</p>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="bulk-upload-progress-bar">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <script>
                 let currentVisaContextFile = null;
                 let currentVisaContextData = {};
@@ -583,6 +611,9 @@
 
                     currentVisaChecklistContextFile = docId;
                     const menu = document.getElementById('visaChecklistContextMenu');
+                    if (!menu) {
+                        return;
+                    }
                     configureVisaChecklistContextMenu(docId);
                     positionContextMenuAtCursor(menu, event);
 
@@ -629,21 +660,28 @@
                     };
 
                     const menu = document.getElementById('visaFileContextMenu');
+                    if (!menu) {
+                        return;
+                    }
                     
                     // Show/hide PDF option based on file type
                     const pdfOption = document.getElementById('visa-context-pdf-option');
                     const sendSigOption = document.getElementById('visa-context-send-signature');
                     const fileExt = fileType.toLowerCase();
-                    if (['jpg', 'png', 'jpeg'].includes(fileExt)) {
-                        pdfOption.style.display = 'block';
-                    } else {
-                        pdfOption.style.display = 'none';
+                    if (pdfOption) {
+                        if (['jpg', 'png', 'jpeg'].includes(fileExt)) {
+                            pdfOption.style.display = 'block';
+                        } else {
+                            pdfOption.style.display = 'none';
+                        }
                     }
                     // Show "Send for Signature" only for PDF and when not already signed
-                    if (fileExt === 'pdf' && fileStatus !== 'signed') {
-                        sendSigOption.style.display = 'block';
-                    } else {
-                        sendSigOption.style.display = 'none';
+                    if (sendSigOption) {
+                        if (fileExt === 'pdf' && fileStatus !== 'signed') {
+                            sendSigOption.style.display = 'block';
+                        } else {
+                            sendSigOption.style.display = 'none';
+                        }
                     }
 
 
@@ -684,7 +722,9 @@
 
                 function hideVisaContextMenu() {
                     const menu = document.getElementById('visaFileContextMenu');
-                    menu.style.display = 'none';
+                    if (menu) {
+                        menu.style.display = 'none';
+                    }
                     document.removeEventListener('click', hideVisaContextMenu);
                 }
 
@@ -733,6 +773,14 @@
                             break;
                     }
                 }
+
+                // Soft-move / lazy-inject call these via inline oncontextmenu; keep them on window.
+                window.showVisaFileContextMenu = showVisaFileContextMenu;
+                window.hideVisaContextMenu = hideVisaContextMenu;
+                window.handleVisaContextAction = handleVisaContextAction;
+                window.showVisaChecklistContextMenu = showVisaChecklistContextMenu;
+                window.hideVisaChecklistContextMenu = hideVisaChecklistContextMenu;
+                window.handleVisaChecklistContextAction = handleVisaChecklistContextAction;
 
                 // ============================================================================
                 // MOVE VISA DOCUMENT FUNCTIONALITY
@@ -1538,6 +1586,8 @@
                         console.log('✅ Attached native handlers to visa bulk dropzone:', $zone.data('categoryid'));
                     });
                 }
+
+                window.initVisaBulkUploadDragDrop = initVisaBulkUploadDragDrop;
                 
                 // Initialize visa bulk upload drag-drop when container becomes visible
                 $(document).on('click', '.bulk-upload-toggle-btn-visa', function() {
@@ -2028,11 +2078,122 @@
                         }
                     });
                 }
+
+                // Shared helpers for visa bulk-upload mapping UI (same as personal documents).
+                function extractChecklistNameFromFile(fileName) {
+                    let name = fileName.replace(/\.[^/.]+$/, '');
+                    name = name.replace(/^[^_]+_/, '');
+                    name = name.replace(/_\d{10,}$/, '');
+                    name = name.replace(/_/g, ' ');
+                    name = name.replace(/\b\w/g, l => l.toUpperCase());
+                    return name || 'Document';
+                }
+
+                function formatFileSize(bytes) {
+                    if (bytes === 0) return '0 Bytes';
+                    const k = 1024;
+                    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+                }
+
+                function escapeHtml(text) {
+                    const map = {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#039;'
+                    };
+                    return String(text == null ? '' : text).replace(/[&<>"']/g, m => map[m]);
+                }
             </script>
 
             <style>
                 .context-menu-item:hover {
                     background-color: #f8f9fa;
+                }
+
+                .bulk-upload-mapping-modal {
+                    display: none;
+                    position: fixed;
+                    z-index: 10000;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0,0,0,0.5);
+                }
+
+                .bulk-upload-mapping-content {
+                    background-color: #fefefe;
+                    margin: 5% auto;
+                    padding: 20px;
+                    border: 1px solid #888;
+                    border-radius: 8px;
+                    width: 90%;
+                    max-width: 900px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                }
+
+                .bulk-upload-mapping-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 20px;
+                    padding-bottom: 15px;
+                    border-bottom: 2px solid #eee;
+                }
+
+                .bulk-upload-mapping-header h3 {
+                    margin: 0;
+                    color: #333;
+                }
+
+                .close-mapping-modal {
+                    color: #aaa;
+                    font-size: 28px;
+                    font-weight: bold;
+                    cursor: pointer;
+                }
+
+                .close-mapping-modal:hover {
+                    color: #000;
+                }
+
+                .bulk-upload-actions {
+                    margin-top: 20px;
+                    padding-top: 15px;
+                    border-top: 2px solid #eee;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .bulk-upload-progress {
+                    display: none;
+                    margin-top: 15px;
+                }
+
+                .progress-bar-container {
+                    width: 100%;
+                    height: 25px;
+                    background-color: #f0f0f0;
+                    border-radius: 4px;
+                    overflow: hidden;
+                }
+
+                .progress-bar {
+                    height: 100%;
+                    background-color: #4a90e2;
+                    width: 0%;
+                    transition: width 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 12px;
                 }
 
                 /* Bulk Upload Dropzone Styles for Visa */

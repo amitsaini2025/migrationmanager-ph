@@ -1,5 +1,13 @@
             <!-- Notes Tab -->
             @php
+                $notesTabFragmentUrl = ! empty($encodeId)
+                    ? route('clients.detail.noteterm-tab', array_filter([
+                        'client_id' => $encodeId,
+                        'client_unique_matter_ref_no' => $id1 ?? null,
+                    ], static function ($value) {
+                        return $value !== null && $value !== '';
+                    }))
+                    : '';
                 $notelist = $clientNotes ?? \App\Models\Note::where('client_id', $fetchedData->id)
                     ->whereNull('assigned_to')
                     ->where('type', 'client')
@@ -12,6 +20,7 @@
                 $showNotesScopeTabs = $matterNotesCount > 0 && $leadNotesCount > 0;
             @endphp
             <div class="tab-pane" id="noteterm-tab"
+                @if($notesTabFragmentUrl !== '') data-noteterm-url="{{ $notesTabFragmentUrl }}" @endif
                 data-has-matter-notes="{{ $matterNotesCount > 0 ? '1' : '0' }}"
                 data-has-lead-notes="{{ $leadNotesCount > 0 ? '1' : '0' }}">
                 <div class="card full-width notes-container">
@@ -416,9 +425,10 @@
                 });
             };
 
-            document.addEventListener('DOMContentLoaded', function() {
+            window.bindNotesTabUi = function() {
                 const searchInput = document.getElementById('notes-search-input');
-                if (searchInput) {
+                if (searchInput && !searchInput.dataset.notesUiBound) {
+                    searchInput.dataset.notesUiBound = '1';
                     searchInput.addEventListener('input', function() {
                         window.filterNotes();
                     });
@@ -428,6 +438,10 @@
                 }
 
                 document.querySelectorAll('.notes-scope-tab.pill-tab').forEach(function(tab) {
+                    if (tab.dataset.notesUiBound) {
+                        return;
+                    }
+                    tab.dataset.notesUiBound = '1';
                     tab.addEventListener('click', function() {
                         document.querySelectorAll('.notes-scope-tab.pill-tab').forEach(function(t) {
                             t.classList.remove('active');
@@ -438,6 +452,10 @@
                 });
 
                 document.querySelectorAll('.subtab8-button.pill-tab').forEach(function(tab) {
+                    if (tab.dataset.notesUiBound) {
+                        return;
+                    }
+                    tab.dataset.notesUiBound = '1';
                     tab.addEventListener('click', function() {
                         document.querySelectorAll('.subtab8-button.pill-tab').forEach(function(t) {
                             t.classList.remove('active');
@@ -457,23 +475,28 @@
                     }
                     window.filterNotes();
                 }, 200);
-                
-                // SAFE FIX: Ensure dropdown menus close properly to prevent overlay issues
-                $(document).on('click', function(e) {
-                    // Close dropdown if clicking outside
-                    if (!$(e.target).closest('.note-toggle-btn-div').length && 
-                        !$(e.target).closest('.dropdown-menu').length) {
-                        $('.note-card-redesign .dropdown-menu').removeClass('show').css('display', 'none');
-                        $('.note-card-redesign .dropdown-toggle').attr('aria-expanded', 'false');
-                    }
-                });
-                
-                // Close dropdowns when clicking on dropdown items
-                $(document).on('click', '.note-card-redesign .dropdown-item', function() {
-                    setTimeout(function() {
-                        $('.note-card-redesign .dropdown-menu').removeClass('show').css('display', 'none');
-                        $('.note-card-redesign .dropdown-toggle').attr('aria-expanded', 'false');
-                    }, 100);
-                });
+
+                if (!window.__notesDropdownUiBound && typeof $ !== 'undefined') {
+                    window.__notesDropdownUiBound = true;
+                    // SAFE FIX: Ensure dropdown menus close properly to prevent overlay issues
+                    $(document).on('click.notesTabUi', function(e) {
+                        if (!$(e.target).closest('.note-toggle-btn-div').length &&
+                            !$(e.target).closest('.dropdown-menu').length) {
+                            $('.note-card-redesign .dropdown-menu').removeClass('show').css('display', 'none');
+                            $('.note-card-redesign .dropdown-toggle').attr('aria-expanded', 'false');
+                        }
+                    });
+
+                    $(document).on('click.notesTabUi', '.note-card-redesign .dropdown-item', function() {
+                        setTimeout(function() {
+                            $('.note-card-redesign .dropdown-menu').removeClass('show').css('display', 'none');
+                            $('.note-card-redesign .dropdown-toggle').attr('aria-expanded', 'false');
+                        }, 100);
+                    });
+                }
+            };
+
+            document.addEventListener('DOMContentLoaded', function() {
+                window.bindNotesTabUi();
             });
             </script>

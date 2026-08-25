@@ -1,5 +1,16 @@
            <!-- Personal Documents Tab (Client-Level) -->
-           <div class="tab-pane" id="personaldocuments-tab">
+           @php
+                $personalDocumentsTabFragmentUrl = ! empty($encodeId)
+                    ? route('clients.detail.personaldocuments-tab', array_filter([
+                        'client_id' => $encodeId,
+                        'client_unique_matter_ref_no' => $id1 ?? null,
+                    ], static function ($value) {
+                        return $value !== null && $value !== '';
+                    }))
+                    : '';
+           @endphp
+           <div class="tab-pane" id="personaldocuments-tab"
+                @if($personalDocumentsTabFragmentUrl !== '') data-personaldocuments-url="{{ $personalDocumentsTabFragmentUrl }}" @endif>
                 <div class="card full-width documentalls-container">
                     <?php
                     $clientId = $fetchedData->id ?? null;
@@ -37,6 +48,8 @@
                         }
                     }
                     $firstPersDocCatId = optional($persDocCatList->first())->id;
+                    // One Document query for the whole tab; group by category in memory.
+                    $personalDocumentsByFolder = \App\Support\ClientDetailDocumentsTab::personalDocumentsByFolder((int) $clientId);
                     ?>
 
                     <!-- Personal Documents Content -->
@@ -130,13 +143,7 @@
                                             </thead>
                                             <tbody class="tdata persdocumnetlist documnetlist_<?= $id ?>">
                                                 <?php
-                                                $documents = \App\Models\Document::with('staff')->where('client_id', $clientId)
-                                                    ->whereNull('not_used_doc')
-                                                    ->where('doc_type', 'personal')
-                                                    ->where('folder_name', $folderName)
-                                                    ->where('type', 'client')
-                                                    ->orderBy('created_at', 'DESC')
-                                                    ->get();
+                                                $documents = $personalDocumentsByFolder->get((string) $folderName, collect());
                                                 ?>
                                                 <?php foreach ($documents as $docKey => $fetch): ?>
                                                     <?php
@@ -214,7 +221,8 @@
                                         </table>
                                     </div>
 
-                                    <div class="grid_data griddata_<?= $id ?>">
+                                    {{-- Hidden by default (list view). Visible grid_data width:100% squeezes the checklist column in the flex row. --}}
+                                    <div class="grid_data griddata_<?= $id ?>" style="display:none;">
                                         <?php foreach ($documents as $fetch): ?>
                                             <?php if ($fetch->myfile): ?>
                                                 <div class="grid_list" id="gid_<?= $fetch->id ?>">
@@ -738,6 +746,8 @@
                     console.log('✅ Local drag-drop handlers attached');
                 }
                 
+                window.initPersonalDocDragDrop = initPersonalDocDragDrop;
+
                 // CRITICAL: Initialize IMMEDIATELY (before detail-main.js loads)
                 // This ensures our handlers are attached first and can use stopImmediatePropagation()
                 console.log('🚀 Attaching Personal Documents handlers IMMEDIATELY');
@@ -816,6 +826,9 @@
 
                     currentPersonalChecklistContextFile = docId;
                     const menu = document.getElementById('personalChecklistContextMenu');
+                    if (!menu) {
+                        return;
+                    }
                     configurePersonalChecklistContextMenu(docId);
                     positionPersonalContextMenuAtCursor(menu, event);
 
@@ -862,14 +875,19 @@
                     };
 
                     const menu = document.getElementById('fileContextMenu');
+                    if (!menu) {
+                        return;
+                    }
                     
                     // Show/hide PDF option based on file type
                     const pdfOption = document.getElementById('context-pdf-option');
                     const fileExt = fileType.toLowerCase();
-                    if (['jpg', 'png', 'jpeg'].includes(fileExt)) {
-                        pdfOption.style.display = 'block';
-                    } else {
-                        pdfOption.style.display = 'none';
+                    if (pdfOption) {
+                        if (['jpg', 'png', 'jpeg'].includes(fileExt)) {
+                            pdfOption.style.display = 'block';
+                        } else {
+                            pdfOption.style.display = 'none';
+                        }
                     }
 
                     // Measure actual menu dimensions dynamically
@@ -915,7 +933,9 @@
 
                 function hideContextMenu() {
                     const menu = document.getElementById('fileContextMenu');
-                    menu.style.display = 'none';
+                    if (menu) {
+                        menu.style.display = 'none';
+                    }
                     document.removeEventListener('click', hideContextMenu);
                 }
 
@@ -957,6 +977,14 @@
                             break;
                     }
                 }
+
+                // Soft-move / lazy-inject call these via inline oncontextmenu; keep them on window.
+                window.showFileContextMenu = showFileContextMenu;
+                window.hideContextMenu = hideContextMenu;
+                window.handleContextAction = handleContextAction;
+                window.showPersonalChecklistContextMenu = showPersonalChecklistContextMenu;
+                window.hidePersonalChecklistContextMenu = hidePersonalChecklistContextMenu;
+                window.handlePersonalChecklistContextAction = handlePersonalChecklistContextAction;
 
                 // ============================================================================
                 // MOVE DOCUMENT FUNCTIONALITY
@@ -1864,30 +1892,13 @@
                 let bulkUploadFiles = {};
                 let currentCategoryId = null;
                 let currentClientId = <?= $clientId ?>;
+                // Expose for personaldocuments-tab.js Bulk Upload toggle (close clears selection).
+                window.bulkUploadFiles = bulkUploadFiles;
+                window.personalBulkUploadCurrentCategoryId = null;
                 
-                // Toggle bulk upload dropzone
-                $(document).on('click', '.bulk-upload-toggle-btn', function() {
-                    const categoryId = $(this).data('categoryid');
-                    const dropzoneContainer = $('#bulk-upload-' + categoryId);
-                    
-                    // Hide all other dropzones first
-                    $('.bulk-upload-dropzone-container').not('#bulk-upload-' + categoryId).slideUp();
-                    $('.bulk-upload-toggle-btn').not(this).html(crmI('fas fa-upload') + ' Bulk Upload');
-                    
-                    if (dropzoneContainer.is(':visible')) {
-                        dropzoneContainer.slideUp();
-                        $(this).html(crmI('fas fa-upload') + ' Bulk Upload');
-                        // Clear files if closing
-                        bulkUploadFiles[categoryId] = [];
-                        dropzoneContainer.find('.bulk-upload-file-list').hide();
-                        dropzoneContainer.find('.bulk-upload-files-container').empty();
-                        dropzoneContainer.find('.file-count').text('0');
-                    } else {
-                        dropzoneContainer.slideDown();
-                        $(this).html(crmI('fas fa-times') + ' Close');
-                        currentCategoryId = categoryId;
-                    }
-                });
+                // Bulk Upload open/close is owned by personaldocuments-tab.js
+                // (bindPersonalBulkUploadToggle). Binding again here would double-fire
+                // after lazy inject and immediately close the dropzone.
                 
                 // Initialize bulk upload files array for each category
                 $('.bulk-upload-dropzone').each(function() {
@@ -1999,13 +2010,8 @@
                         console.log('✅ Attached native handlers to bulk dropzone:', $zone.data('categoryid'));
                     });
                 }
-                
-                // Initialize bulk upload drag-drop when container becomes visible
-                $(document).on('click', '.bulk-upload-toggle-btn', function() {
-                    setTimeout(function() {
-                        initBulkUploadDragDrop();
-                    }, 300); // Wait for slideDown animation
-                });
+
+                window.initBulkUploadDragDrop = initBulkUploadDragDrop;
                 
                 // Also initialize on DOM ready for any visible dropzones
                 $(document).ready(function() {

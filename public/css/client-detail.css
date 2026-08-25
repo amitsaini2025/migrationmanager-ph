@@ -169,6 +169,67 @@
 .checklist-table td a.file-link { color: #4a90e2; text-decoration: none; }
 .checklist-table td a.file-link:hover { text-decoration: underline; }
 .checklist-table td small { color: #666; }
+
+/* Personal / Visa / Nomination document upload dropzones (always loaded —
+   blade inline <style> sits outside #personaldocuments-tab and is dropped on lazy inject). */
+.document-drag-drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    padding: 15px 20px;
+    text-align: center;
+    background-color: #f9f9f9;
+    cursor: pointer !important;
+    transition: all 0.3s ease;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 5px 0;
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+}
+.document-drag-drop-zone * {
+    pointer-events: none;
+}
+.document-drag-drop-zone:hover {
+    border-color: #007bff;
+    background-color: #f0f8ff;
+}
+.document-drag-drop-zone.drag_over {
+    border-color: #28a745;
+    background-color: #e8f5e9;
+    border-width: 3px;
+}
+.drag-zone-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #374151;
+}
+.drag-zone-inner i,
+.drag-zone-inner svg.lucide,
+.drag-zone-inner [data-lucide] {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: #2563eb;
+    flex-shrink: 0;
+}
+.drag-zone-text {
+    font-size: 14px;
+    color: inherit;
+}
+.document-drag-drop-zone.uploading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+.document-drag-drop-zone.uploading .drag-zone-text::after {
+    content: ' Uploading...';
+    font-weight: bold;
+    color: #007bff;
+}
+
 .preview-pane { flex: 1; background: #ffffff; border-radius: 5px; padding: 0; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.1); min-height: 200px; display: flex; align-items: flex-start; justify-content: center; }
 .preview-content { width: 100%; height: 100%; }
 @media (max-width: 768px) {

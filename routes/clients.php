@@ -1,27 +1,31 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\CRM\ClientsController;
+use App\Http\Controllers\AdminConsole\AnzscoOccupationController;
+use App\Http\Controllers\AdminConsole\Sms\SmsSendController;
+use App\Http\Controllers\AdminConsole\Sms\SmsTemplateController;
+use App\Http\Controllers\CRM\AccessGrantController;
+use App\Http\Controllers\CRM\ArtSheetController;
 use App\Http\Controllers\CRM\ClientAccountsController;
 use App\Http\Controllers\CRM\ClientEoiRoiController;
-use App\Http\Controllers\CRM\EoiRoiSheetController;
-use App\Http\Controllers\CRM\Clients\ClientNotesController;
-use App\Http\Controllers\CRM\Clients\ClientDocumentsController;
 use App\Http\Controllers\CRM\ClientPersonalDetailsController;
-use App\Http\Controllers\CRM\PhoneVerificationController;
-use App\Http\Controllers\CRM\EmailVerificationController;
-use App\Http\Controllers\AdminConsole\AnzscoOccupationController;
+use App\Http\Controllers\CRM\ClientPortalController;
+use App\Http\Controllers\CRM\Clients\ClientDocumentsController;
+use App\Http\Controllers\CRM\Clients\ClientNotesController;
+use App\Http\Controllers\CRM\ClientsController;
 use App\Http\Controllers\CRM\CRMUtilityController;
-use App\Http\Controllers\CRM\EmailUploadController;
-use App\Http\Controllers\CRM\SmartEmailImportController;
 use App\Http\Controllers\CRM\EmailLabelController;
 use App\Http\Controllers\CRM\EmailLogAttachmentController;
-use App\Http\Controllers\CRM\ClientPortalController;
+use App\Http\Controllers\CRM\EmailUploadController;
+use App\Http\Controllers\CRM\EmailVerificationController;
+use App\Http\Controllers\CRM\EoiRoiSheetController;
 use App\Http\Controllers\CRM\Form956Controller;
-use App\Http\Controllers\CRM\UploadChecklistController;
+use App\Http\Controllers\CRM\PhoneVerificationController;
 use App\Http\Controllers\CRM\SendGridSendersController;
-use App\Http\Controllers\CRM\AccessGrantController;
-use App\Http\Controllers\AdminConsole\Sms\SmsTemplateController;
+use App\Http\Controllers\CRM\SmartEmailImportController;
+use App\Http\Controllers\CRM\UploadChecklistController;
+use App\Http\Controllers\CRM\VisaTypeSheetController;
+use App\Support\CrmSheets;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,7 +40,7 @@ use App\Http\Controllers\AdminConsole\Sms\SmsTemplateController;
 |
 */
 
-/*---------- Client CRUD Operations ----------*/
+/* ---------- Client CRUD Operations ---------- */
 Route::get('/clients', [ClientsController::class, 'index'])->name('clients.index');
 Route::get('/clients/export-list', [ClientsController::class, 'exportList'])->name('clients.export-list');
 Route::get('/clientsmatterslist', [ClientsController::class, 'clientsmatterslist'])->name('clients.clientsmatterslist');
@@ -54,47 +58,47 @@ Route::post('/clients/verify-details', [ClientsController::class, 'verifyDetails
 Route::post('/edit-test-scores', [ClientsController::class, 'editTestScores'])->name('clients.editTestScores');
 Route::get('/clients/partner-eoi-data/{partnerId}', [ClientPersonalDetailsController::class, 'getPartnerEoiData'])->name('clients.partnerEoiData');
 
-/*---------- Sheets ----------*/
-Route::get('/clients/sheets/eoi-roi', [\App\Http\Controllers\CRM\EoiRoiSheetController::class, 'index'])->name('clients.sheets.eoi-roi');
-Route::get('/clients/sheets/eoi-roi/insights', [\App\Http\Controllers\CRM\EoiRoiSheetController::class, 'insights'])->name('clients.sheets.eoi-roi.insights');
-Route::post('/clients/sheets/eoi-roi/{eoiId}/toggle-pin', [\App\Http\Controllers\CRM\EoiRoiSheetController::class, 'togglePin'])->name('clients.sheets.eoi-roi.toggle-pin');
-Route::post('/clients/sheets/eoi-roi/{eoiId}/comment', [\App\Http\Controllers\CRM\EoiRoiSheetController::class, 'updateComment'])->name('clients.sheets.eoi-roi.comment');
+/* ---------- Sheets ---------- */
+Route::get('/clients/sheets/eoi-roi', [EoiRoiSheetController::class, 'index'])->name('clients.sheets.eoi-roi');
+Route::get('/clients/sheets/eoi-roi/insights', [EoiRoiSheetController::class, 'insights'])->name('clients.sheets.eoi-roi.insights');
+Route::post('/clients/sheets/eoi-roi/{eoiId}/toggle-pin', [EoiRoiSheetController::class, 'togglePin'])->name('clients.sheets.eoi-roi.toggle-pin');
+Route::post('/clients/sheets/eoi-roi/{eoiId}/comment', [EoiRoiSheetController::class, 'updateComment'])->name('clients.sheets.eoi-roi.comment');
 
-Route::get('/clients/sheets/art', [\App\Http\Controllers\CRM\ArtSheetController::class, 'index'])->name('clients.sheets.art');
-Route::get('/clients/sheets/art/insights', [\App\Http\Controllers\CRM\ArtSheetController::class, 'insights'])->name('clients.sheets.art.insights');
-Route::post('/clients/sheets/art/toggle-pin', [\App\Http\Controllers\CRM\ArtSheetController::class, 'togglePin'])->name('clients.sheets.art.toggle-pin');
-Route::post('/clients/sheets/art/comment', [\App\Http\Controllers\CRM\ArtSheetController::class, 'updateComment'])->name('clients.sheets.art.comment');
+Route::get('/clients/sheets/art', [ArtSheetController::class, 'index'])->name('clients.sheets.art');
+Route::get('/clients/sheets/art/insights', [ArtSheetController::class, 'insights'])->name('clients.sheets.art.insights');
+Route::post('/clients/sheets/art/toggle-pin', [ArtSheetController::class, 'togglePin'])->name('clients.sheets.art.toggle-pin');
+Route::post('/clients/sheets/art/comment', [ArtSheetController::class, 'updateComment'])->name('clients.sheets.art.comment');
 
-Route::get('/clients/sheets/{visaType}', [\App\Http\Controllers\CRM\VisaTypeSheetController::class, 'index'])
-    ->where('visaType', \App\Support\CrmSheets::visaTypeRoutePattern())
+Route::get('/clients/sheets/{visaType}', [VisaTypeSheetController::class, 'index'])
+    ->where('visaType', CrmSheets::visaTypeRoutePattern())
     ->name('clients.sheets.visa-type');
 
 // Sheet Pin/Star Actions
-Route::post('/clients/sheets/{visaType}/toggle-pin', [\App\Http\Controllers\CRM\VisaTypeSheetController::class, 'togglePin'])
-    ->where('visaType', \App\Support\CrmSheets::visaTypeRoutePattern())
+Route::post('/clients/sheets/{visaType}/toggle-pin', [VisaTypeSheetController::class, 'togglePin'])
+    ->where('visaType', CrmSheets::visaTypeRoutePattern())
     ->name('clients.sheets.visa-type.toggle-pin');
 
-Route::post('/clients/sheets/{visaType}/checklist-status', [\App\Http\Controllers\CRM\VisaTypeSheetController::class, 'updateChecklistStatus'])
-    ->where('visaType', \App\Support\CrmSheets::visaTypeRoutePattern())
+Route::post('/clients/sheets/{visaType}/checklist-status', [VisaTypeSheetController::class, 'updateChecklistStatus'])
+    ->where('visaType', CrmSheets::visaTypeRoutePattern())
     ->name('clients.sheets.visa-type.checklist-status');
 
-Route::post('/clients/sheets/{visaType}/comment', [\App\Http\Controllers\CRM\VisaTypeSheetController::class, 'updateComment'])
-    ->where('visaType', \App\Support\CrmSheets::visaTypeRoutePattern())
+Route::post('/clients/sheets/{visaType}/comment', [VisaTypeSheetController::class, 'updateComment'])
+    ->where('visaType', CrmSheets::visaTypeRoutePattern())
     ->name('clients.sheets.visa-type.comment');
 
-Route::post('/clients/sheets/{visaType}/refused-visa-type', [\App\Http\Controllers\CRM\VisaTypeSheetController::class, 'updateRefusedVisaType'])
-    ->where('visaType', \App\Support\CrmSheets::visaTypeRoutePattern())
+Route::post('/clients/sheets/{visaType}/refused-visa-type', [VisaTypeSheetController::class, 'updateRefusedVisaType'])
+    ->where('visaType', CrmSheets::visaTypeRoutePattern())
     ->name('clients.sheets.visa-type.refused-visa-type');
 
-Route::post('/clients/sheets/{visaType}/record-reminder', [\App\Http\Controllers\CRM\VisaTypeSheetController::class, 'recordReminder'])
-    ->where('visaType', \App\Support\CrmSheets::visaTypeRoutePattern())
+Route::post('/clients/sheets/{visaType}/record-reminder', [VisaTypeSheetController::class, 'recordReminder'])
+    ->where('visaType', CrmSheets::visaTypeRoutePattern())
     ->name('clients.sheets.visa-type.record-reminder');
 
 // EOI Confirmation Workflow (Staff actions - requires auth)
-Route::post('/clients/sheets/eoi-roi/{eoiId}/verify', [\App\Http\Controllers\CRM\EoiRoiSheetController::class, 'verifyByStaff'])->name('clients.sheets.eoi-roi.verify');
-Route::post('/clients/sheets/eoi-roi/{eoiId}/send-confirmation', [\App\Http\Controllers\CRM\EoiRoiSheetController::class, 'sendConfirmationEmail'])->name('clients.sheets.eoi-roi.send-confirmation');
+Route::post('/clients/sheets/eoi-roi/{eoiId}/verify', [EoiRoiSheetController::class, 'verifyByStaff'])->name('clients.sheets.eoi-roi.verify');
+Route::post('/clients/sheets/eoi-roi/{eoiId}/send-confirmation', [EoiRoiSheetController::class, 'sendConfirmationEmail'])->name('clients.sheets.eoi-roi.send-confirmation');
 
-/*---------- Phone & Email Verification ----------*/
+/* ---------- Phone & Email Verification ---------- */
 Route::prefix('clients/phone')->name('clients.phone.')->group(function () {
     Route::post('/send-otp', [PhoneVerificationController::class, 'sendOTP'])->name('sendOTP');
     Route::post('/verify-otp', [PhoneVerificationController::class, 'verifyOTP'])->name('verifyOTP');
@@ -108,7 +112,7 @@ Route::prefix('clients/email')->name('clients.email.')->group(function () {
     Route::get('/status/{emailId}', [EmailVerificationController::class, 'getStatus'])->name('status');
 });
 
-/*---------- Client Actions & Activities ----------*/
+/* ---------- Client Actions & Activities ---------- */
 Route::post('/clients/action/store', [ClientsController::class, 'actionStore']);
 Route::post('/clients/followup/retagfollowup', [ClientsController::class, 'retagfollowup']);
 Route::get('/clients/changetype/{id}/{type}', [ClientsController::class, 'changetype']);
@@ -118,10 +122,17 @@ Route::get('/clients/removetag', [ClientsController::class, 'removetag']);
 Route::get('/clients/detail/{client_id}/{client_unique_matter_ref_no?}/{tab?}', [ClientsController::class, 'detail'])->name('clients.detail');
 Route::get('/clients/detail-workflow-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'workflowTab'])->name('clients.detail.workflow-tab');
 Route::get('/clients/detail-client-portal-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'clientPortalTab'])->name('clients.detail.client-portal-tab');
+Route::get('/clients/detail-account-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'accountTab'])->name('clients.detail.account-tab');
+Route::get('/clients/detail-checklists-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'checklistsTab'])->name('clients.detail.checklists-tab');
+Route::get('/clients/detail-emails-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'emailsTab'])->name('clients.detail.emails-tab');
+Route::get('/clients/detail-personaldocuments-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'personalDocumentsTab'])->name('clients.detail.personaldocuments-tab');
+Route::get('/clients/detail-visadocuments-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'visaDocumentsTab'])->name('clients.detail.visadocuments-tab');
+Route::get('/clients/detail-notuseddocuments-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'notUsedDocumentsTab'])->name('clients.detail.notuseddocuments-tab');
+Route::get('/clients/detail-noteterm-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'notesTab'])->name('clients.detail.noteterm-tab');
 Route::post('/clients/google-review-reminder', [ClientsController::class, 'updateGoogleReviewReminder'])->name('clients.google-review-reminder');
 Route::post('/clients/google-review-reminder/sms', [ClientsController::class, 'sendGoogleReviewReminderSms'])->name('clients.google-review-reminder.sms');
 
-/*---------- Client Communication ----------*/
+/* ---------- Client Communication ---------- */
 Route::get('/clients/get-recipients', [ClientsController::class, 'getrecipients'])->name('clients.getrecipients');
 Route::get('/clients/get-onlyclientrecipients', [ClientsController::class, 'getonlyclientrecipients'])->name('clients.getonlyclientrecipients');
 Route::get('/clients/get-allclients', [ClientsController::class, 'getallclients'])->name('clients.getallclients');
@@ -132,7 +143,7 @@ Route::get('/clients/sms-templates-active', [SmsTemplateController::class, 'acti
 /** Full template body for SMS compose modal (avoid embedding HTML data-* attributes). */
 Route::get('/clients/sms-template/{id}/compose', [SmsTemplateController::class, 'showComposeBody'])->name('clients.sms.template.compose')->whereNumber('id');
 /** Send a manual SMS from the CRM (all authenticated staff); not behind Admin Console middleware. */
-Route::post('/clients/sms/send', [\App\Http\Controllers\AdminConsole\Sms\SmsSendController::class, 'send'])->name('clients.sms.send');
+Route::post('/clients/sms/send', [SmsSendController::class, 'send'])->name('clients.sms.send');
 Route::get('/get-compose-defaults', [CRMUtilityController::class, 'getComposeDefaults'])->name('clients.getComposeDefaults');
 Route::get('/crm/sendgrid-senders', [SendGridSendersController::class, 'senders'])->name('crm.sendgrid.senders');
 Route::post('/sendmail', [CRMUtilityController::class, 'sendmail'])->name('clients.sendmail');
@@ -171,7 +182,7 @@ Route::delete('/email-logs/{id}', [ClientsController::class, 'deleteEmailLog'])-
 Route::post('/email-logs/{id}/delete', [ClientsController::class, 'deleteEmailLog'])->name('email-logs.delete-post');
 Route::post('/mail/enhance', [ClientsController::class, 'enhanceMessage'])->name('mail.enhance');
 
-/*---------- Email Labels Management ----------*/
+/* ---------- Email Labels Management ---------- */
 Route::prefix('email-labels')->name('email-labels.')->group(function () {
     Route::get('/', [EmailLabelController::class, 'index'])->name('index');
     Route::post('/', [EmailLabelController::class, 'store'])->name('store');
@@ -179,14 +190,14 @@ Route::prefix('email-labels')->name('email-labels.')->group(function () {
     Route::delete('/remove', [EmailLabelController::class, 'remove'])->name('remove');
 });
 
-/*---------- Email Log Attachments ----------*/
+/* ---------- Email Log Attachments ---------- */
 Route::prefix('mail-attachments')->name('mail-attachments.')->group(function () {
     Route::get('/{id}/download', [EmailLogAttachmentController::class, 'download'])->name('download');
     Route::get('/{id}/preview', [EmailLogAttachmentController::class, 'preview'])->name('preview');
     Route::get('/email/{emailLogId}/download-all', [EmailLogAttachmentController::class, 'downloadAll'])->name('download-all');
 });
 
-/*---------- Client Notes ----------*/
+/* ---------- Client Notes ---------- */
 Route::post('/create-note', [ClientNotesController::class, 'createnote'])->name('clients.createnote');
 Route::post('/update-note-datetime', [ClientNotesController::class, 'updateNoteDatetime'])->name('clients.updateNoteDatetime');
 Route::get('/getnotedetail', [ClientNotesController::class, 'getnotedetail'])->name('clients.getnotedetail');
@@ -201,7 +212,7 @@ Route::get('/pinnote', [ClientNotesController::class, 'pinnote']);
 
 Route::post('/convert-activity-to-note', [ClientsController::class, 'convertActivityToNote'])->name('clients.convertActivityToNote');
 
-/*---------- Client Status & Archive ----------*/
+/* ---------- Client Status & Archive ---------- */
 Route::get('/archived', [ClientsController::class, 'archived'])->name('clients.archived');
 Route::post('/archive/{id}', [ClientsController::class, 'archive'])->name('clients.archive');
 Route::post('/clients/send-to-legal-crm/{id}', [ClientsController::class, 'sendToLegalCrm'])->name('clients.send_to_legal_crm');
@@ -213,7 +224,7 @@ Route::get('/deleteactivitylog', [ClientsController::class, 'deleteactivitylog']
 Route::post('/not-picked-call', [ClientsController::class, 'notpickedcall'])->name('clients.notpickedcall');
 Route::get('/pinactivitylog', [ClientsController::class, 'pinactivitylog']);
 
-/*---------- Client Services ----------*/
+/* ---------- Client Services ---------- */
 // Interested Services routes REMOVED - feature deprecated (no UI access, modals deleted, controllers don't exist)
 // Routes removed: interested-service, edit-interested-service, get-services, getintrestedservice, getintrestedserviceedit
 // servicesavefee, deleteservices, savetoapplication REMOVED - controller methods never existed in ClientsController; servicefeeform modal no longer in any view
@@ -222,7 +233,7 @@ Route::get('/pinactivitylog', [ClientsController::class, 'pinactivitylog']);
 // Model clientServiceTaken.php deleted, controller methods removed
 // Routes were: createservicetaken, removeservicetaken, getservicetaken
 
-/*---------- Client Documents Management ----------*/
+/* ---------- Client Documents Management ---------- */
 Route::post('/documents/add-edu-checklist', [ClientDocumentsController::class, 'addedudocchecklist'])->name('clients.documents.addedudocchecklist');
 Route::post('/documents/refresh-category-list', [ClientDocumentsController::class, 'refreshDocumentCategoryList'])->name('clients.documents.refreshDocumentCategoryList');
 Route::post('/documents/upload-edu-document', [ClientDocumentsController::class, 'uploadedudocument'])->name('clients.documents.uploadedudocument');
@@ -256,7 +267,7 @@ Route::post('/documents/bulk-upload-personal', [ClientDocumentsController::class
 Route::post('/documents/bulk-upload-visa', [ClientDocumentsController::class, 'bulkUploadVisaDocuments'])->name('clients.documents.bulkUploadVisaDocuments');
 Route::post('/documents/bulk-upload-nomination', [ClientDocumentsController::class, 'bulkUploadNominationDocuments'])->name('clients.documents.bulkUploadNominationDocuments');
 
-/*---------- Client EOI/ROI Management ----------*/
+/* ---------- Client EOI/ROI Management ---------- */
 Route::prefix('clients/{client}/eoi-roi')->name('clients.eoi-roi.')->group(function () {
     // IMPORTANT: Specific routes MUST come before generic /{eoiReference} routes
     // to avoid route parameter conflicts
@@ -281,7 +292,7 @@ Route::prefix('clients/{client}/eoi-roi')->name('clients.eoi-roi.')->group(funct
     Route::post('/{eoiReference}/resolve-amendment', [ClientEoiRoiController::class, 'resolveAmendment'])->name('resolveAmendment');
 });
 
-/*---------- Client Invoices & Receipts ----------*/
+/* ---------- Client Invoices & Receipts ---------- */
 Route::get('/clients/saveaccountreport/{id}', [ClientAccountsController::class, 'saveaccountreport'])->name('clients.saveaccountreport');
 Route::post('/clients/saveaccountreport', [ClientAccountsController::class, 'saveaccountreport'])->name('clients.saveaccountreport.update');
 
@@ -344,7 +355,7 @@ Route::post('/clients/upload-clientreceipt-document', [ClientAccountsController:
 Route::post('/clients/upload-officereceipt-document', [ClientAccountsController::class, 'uploadofficereceiptdocument'])->name('clients.uploadofficereceiptdocument');
 Route::post('/clients/upload-journalreceipt-document', [ClientAccountsController::class, 'uploadjournalreceiptdocument'])->name('clients.uploadjournalreceiptdocument');
 
-/*---------- Client Personal Details & Address ----------*/
+/* ---------- Client Personal Details & Address ---------- */
 Route::post('/clients/update-address', [ClientPersonalDetailsController::class, 'updateAddress'])->name('clients.updateAddress');
 Route::post('/clients/search-address-full', [ClientPersonalDetailsController::class, 'searchAddressFull'])->name('clients.searchAddressFull');
 Route::post('/clients/get-place-details', [ClientPersonalDetailsController::class, 'getPlaceDetails'])->name('clients.getPlaceDetails');
@@ -359,13 +370,13 @@ Route::get('/get-countries', [ClientPersonalDetailsController::class, 'getCountr
 Route::post('/updateOccupation', [ClientPersonalDetailsController::class, 'updateOccupation'])->name('clients.updateOccupation');
 Route::post('/leads/updateOccupation', [ClientPersonalDetailsController::class, 'updateOccupation'])->name('leads.updateOccupation');
 
-/*---------- Client Relationships ----------*/
+/* ---------- Client Relationships ---------- */
 Route::post('/clients/search-partner', [ClientPersonalDetailsController::class, 'searchPartner'])->name('clients.searchPartner');
 Route::get('/clients/search-partner-test', [ClientPersonalDetailsController::class, 'searchPartnerTest'])->name('clients.searchPartnerTest');
 Route::get('/clients/test-bidirectional', [ClientPersonalDetailsController::class, 'testBidirectionalRemoval'])->name('clients.testBidirectional');
 Route::post('/clients/save-relationship', [ClientPersonalDetailsController::class, 'saveRelationship'])->name('clients.saveRelationship');
 
-/*---------- Client Agreements & Forms ----------*/
+/* ---------- Client Agreements & Forms ---------- */
 Route::post('/clients/generateagreement', [ClientsController::class, 'generateagreement'])->name('clients.generateagreement');
 Route::post('/clients/getMigrationAgentDetail', [ClientsController::class, 'getMigrationAgentDetail'])->name('clients.getMigrationAgentDetail');
 Route::post('/clients/getVisaAggreementMigrationAgentDetail', [ClientsController::class, 'getVisaAggreementMigrationAgentDetail'])->name('clients.getVisaAggreementMigrationAgentDetail');
@@ -390,18 +401,18 @@ Route::delete('/forms/{form}', [Form956Controller::class, 'destroy'])->name('for
 Route::get('/forms/{form}/preview', [Form956Controller::class, 'previewPdf'])->name('forms.preview');
 Route::get('/forms/{form}/pdf', [Form956Controller::class, 'generatePdf'])->name('forms.pdf');
 
-/*---------- Client Matter Management ----------*/
+/* ---------- Client Matter Management ---------- */
 Route::get('/get-matter-templates', [CRMUtilityController::class, 'getmattertemplates'])->name('clients.getmattertemplates');
 Route::get('/get-client-matters/{clientId}', [ClientsController::class, 'getClientMatters'])->name('clients.getClientMatters');
 Route::post('/clients/fetchClientMatterAssignee', [ClientPersonalDetailsController::class, 'fetchClientMatterAssignee']);
 Route::post('/clients/updateClientMatterAssignee', [ClientPersonalDetailsController::class, 'updateClientMatterAssignee']);
 
-//matter checklist
+// matter checklist
 Route::get('/upload-checklists', [UploadChecklistController::class, 'index'])->name('upload_checklists.index');
 Route::get('/upload-checklists/matter/{matterId}', [UploadChecklistController::class, 'showByMatter'])->name('upload_checklists.matter');
 Route::post('/upload-checklists/store', [UploadChecklistController::class, 'store'])->name('upload_checklistsupload');
 
-/*---------- Client Sessions & Actions ----------*/
+/* ---------- Client Sessions & Actions ---------- */
 Route::post('/clients/action/personal/store', [ClientsController::class, 'storePersonalAction']);
 Route::post('/clients/action/update', [ClientsController::class, 'updateAction']);
 Route::post('/clients/action/reassign', [ClientsController::class, 'reassignAction']);
@@ -409,12 +420,12 @@ Route::post('/clients/update-session-completed', [ClientsController::class, 'upd
 Route::post('/clients/getAllStaff', [ClientsController::class, 'getAllStaff'])->name('clients.getAllStaff');
 Route::post('/clients/getAllUser', [ClientsController::class, 'getAllStaff'])->name('clients.getAllUser'); // deprecated, use getAllStaff
 
-/*---------- Appointments ----------*/
+/* ---------- Appointments ---------- */
 Route::post('/add-appointment', [ClientsController::class, 'addAppointment']);
 Route::post('/add-appointment-book', [ClientsController::class, 'addAppointmentBook']);
 Route::get('/get-appointments', [ClientsController::class, 'getAppointments']);
 
-/*---------- Client Portal ----------*/
+/* ---------- Client Portal ---------- */
 Route::post('/clients/toggle-client-portal', [ClientPortalController::class, 'toggleClientPortal'])->name('clients.toggleClientPortal');
 Route::post('/api/client-portal-details/approve-audit', [ClientPortalController::class, 'approveAuditValue'])->name('clients.approveAuditValue');
 Route::post('/api/client-portal-details/reject-audit', [ClientPortalController::class, 'rejectAuditValue'])->name('clients.rejectAuditValue');
@@ -442,11 +453,11 @@ Route::get('/api/client-portal/checklist-documents', [ClientPortalController::cl
 Route::post('/api/client-portal/delete-document', [ClientPortalController::class, 'deleteChecklistDocument'])->name('clients.deleteChecklistDocument');
 Route::post('/api/client-portal/update-document-status', [ClientPortalController::class, 'updateChecklistDocumentStatus'])->name('clients.updateChecklistDocumentStatus');
 
-/*---------- ANZSCO Occupation Search ----------*/
+/* ---------- ANZSCO Occupation Search ---------- */
 Route::get('/anzsco/search', [AnzscoOccupationController::class, 'search'])->name('anzsco.search');
 Route::get('/anzsco/code/{code}', [AnzscoOccupationController::class, 'getByCode'])->name('anzsco.getByCode');
 
-/*---------- Client Validation & Utilities ----------*/
+/* ---------- Client Validation & Utilities ---------- */
 Route::post('/check-email', [ClientsController::class, 'checkEmail'])->name('check.email');
 Route::post('/check.phone', [ClientsController::class, 'checkContact'])->name('check.phone');
 Route::post('/save_tag', [ClientsController::class, 'save_tag']);
@@ -457,14 +468,14 @@ Route::get('/merge_records/search', [ClientsController::class, 'searchMergeRecor
     ->middleware('throttle:30,1')
     ->name('client.merge_records.search');
 
-/*---------- Contact Person Search (for Company Leads) ----------*/
+/* ---------- Contact Person Search (for Company Leads) ---------- */
 Route::get('/api/search-contact-person', [ClientsController::class, 'searchContactPerson'])
     ->name('api.search.contact.person');
 
-/*---------- Visa Expiry Messages ----------*/
+/* ---------- Visa Expiry Messages ---------- */
 Route::get('/fetch-visa_expiry_messages', [CRMUtilityController::class, 'fetchvisaexpirymessages']);
 
-/*---------- CRM cross-access grants ----------*/
+/* ---------- CRM cross-access grants ---------- */
 Route::prefix('crm/access')->name('crm.access.')->group(function () {
     Route::get('/meta', [AccessGrantController::class, 'meta'])->name('meta');
     Route::post('/quick', [AccessGrantController::class, 'quick'])->middleware('throttle:30,1')->name('quick');
