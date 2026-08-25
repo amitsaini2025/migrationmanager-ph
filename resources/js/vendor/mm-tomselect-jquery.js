@@ -216,11 +216,10 @@ export function registerMmTomSelectBridge($, TomSelect) {
           return;
         }
         var ts = this;
-        if (clearOnSearch) {
-          callback();
-          if (ts && typeof ts.clearOptions === 'function') {
-            ts.clearOptions();
-          }
+        if (clearOnSearch && ts && typeof ts.clearOptions === 'function') {
+          // Do not callback() here: Tom Select treats an empty callback as
+          // "load finished" and flashes "No results found" before AJAX returns.
+          ts.clearOptions();
         }
         var payload =
           typeof ajax.data === 'function'
@@ -242,6 +241,11 @@ export function registerMmTomSelectBridge($, TomSelect) {
           cache: ajax.cache === true,
           data: payload,
           success: function (resp) {
+            var current = ts && typeof ts.inputValue === 'function' ? ts.inputValue() : query;
+            if (current !== query) {
+              callback([]);
+              return;
+            }
             var processed = ajax.processResults
               ? ajax.processResults(resp, { term: query, page: 1 })
               : { results: resp };
@@ -305,6 +309,13 @@ export function registerMmTomSelectBridge($, TomSelect) {
     if (legacyOpts.data && Array.isArray(legacyOpts.data)) {
       opts.options = legacyOpts.data.map(legacyResultToOpt);
       opts.persist = false;
+    }
+
+    if (legacyOpts.ajax) {
+      opts.render = opts.render || {};
+      opts.render.loading = function () {
+        return '<div class="spinner">Searching...</div>';
+      };
     }
 
     return opts;
