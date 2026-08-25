@@ -1,16 +1,16 @@
-# Graph Report - migrationmanager2  (2026-08-25)
+# Graph Report - migrationmanager2  (2026-08-24)
 
 ## Corpus Check
-- 1431 files · ~2,368,429 words
+- 1431 files · ~2,368,367 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 15503 nodes · 34754 edges · 1156 communities (757 shown, 399 thin omitted)
+- 15503 nodes · 34754 edges · 1157 communities (758 shown, 399 thin omitted)
 - Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 4976 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4beb2aa2`
+- Built from commit: `3cd09986`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,12 +19,12 @@
 - public/js/app.js
 - getIteratee
 - .forEach
-- trim
+- Kyslik\ColumnSortable\Sortable
 - BroadcastNotificationService
 - UsesAppointmentMailFrom.php
 - Admin
 - BansalAppointmentDatetimeSync
-- isSymbol
+- .now
 - Eloquent
 - .slice
 - Request
@@ -36,7 +36,7 @@
 - PointsServiceTest
 - ClientDocumentsController
 - Bus
-- .now
+- Carbon
 - View
 - Illuminate\Console\Command
 - ClientCrmFollowups.php
@@ -44,9 +44,9 @@
 - app.min.js
 - Document
 - TestCase
-- .get
+- trigger
 - Illuminate\Broadcasting\InteractsWithSockets
-- isObjectLike
+- isFunction
 - PythonConverterService
 - task-description-mentions.js
 - EB
@@ -59,20 +59,20 @@
 - EmailParserService
 - Buffer
 - custom-form-validation.js
-- Illuminate\Http\Request
+- Auth
 - workflow-tab.js
-- contains
+- remove
 - .response
 - Route
-- buildProps
-- ReactiveEffect
-- .config
+- .includes
+- .value
+- Illuminate\Http\Request
 - ComposeEmailPayload
 - Matter
-- ClientDetailTabFragmentTest.php
+- ActivitySearchController
 - VisaAgreementAmountTablePatcher
 - main.py
-- IconHelper
+- Illuminate\Support\Facades\Schema
 - VisaAgreementTemplateResolverTest
 - EmailUploadController
 - Editor
@@ -153,10 +153,10 @@
 - EmailRendererService
 - PDFService
 - Gate
-- EnsuresCrmRecordAccess.php
+- ClientReferenceService
 - PhoneVerification
 - CompanyVisaAgreementMacroBuilder
-- Toast
+- .hide
 - send-to-client.js
 - a
 - AppointmentSyncServiceProvider.php
@@ -169,7 +169,7 @@
 - ClientMatter
 - Pdf
 - Python Services - Quick Reference
-- .chat
+- WorkflowStage
 - Cookie
 - ChatbotKnowledgeMatcher
 - TwilioProvider
@@ -201,7 +201,7 @@
 - Artisan
 - Linux Production Deployment Guide
 - DB
-- PublicLeadInquiryService
+- some
 - email-upload-flow.js
 - AstNode
 - CommonFormat
@@ -221,7 +221,7 @@
 - audit-legacy-js.cjs
 - Plan: Vendor Library Vite Consolidation (Phase 2)
 - checklists-tab.js
-- remove
+- ._isShown
 - VisaAgreementApplicantAddressResolver
 - Laravel Boost Guidelines
 - fix-stage6-js-icons.cjs
@@ -256,7 +256,7 @@
 - ScriptLoader
 - audit-icons.cjs
 - FileDurationClass
-- Offcanvas
+- DocumentController
 - 2024_10_20_000001_create_appointment_consultants_table.php
 - SignatureTemplateService
 - NotificationService
@@ -328,7 +328,7 @@
 - mcp.json
 - AppointmentEmailFormatter
 - email-delete-confirm.js
-- FCMService
+- InvoicePaymentSyncService
 - CommonMenuItemInstanceApi
 - DomSerializerSettings
 - DomTreeWalker
@@ -360,7 +360,7 @@
 - Authenticate
 - getCostAssignmentMigrationAgentDetail
 - EventServiceProvider.php
-- Illuminate\Support\Facades\Schema
+- Controller
 - Migration Manager - Immigration CRM System
 - 2025_12_24_000000_add_tag_type_to_tags_table.php
 - 2026_02_14_000001_copy_staff_from_admins_to_staff.php
@@ -409,7 +409,7 @@
 - Plan: Rename "User" to Client/Staff Terminology
 - Public JS Legacy Assets
 - getallactivities
-- ESignatureController
+- AppServiceProvider.php
 - Queue & Job Best Practices
 - Tech Update — Modernisation Status & Plan
 - applyDiscountRowToEmailHtml
@@ -546,7 +546,7 @@
 - EnglishProficiencyService
 - Staff
 - 2026_02_16_100000_add_is_pinned_to_client_reference_tables.php
-- initializeContextMenu
+- .applyConfiguredCorsHeaders
 - AnzscoOccupationController
 - 2025_12_17_171644_add_agent_fields_to_admins_table.php
 - SortableTrait.php
@@ -576,7 +576,7 @@
 - 2025_10_12_223235_add_fte_multiplier_to_client_experiences_table.php
 - 2026_02_28_000000_add_alias_to_email_templates.php
 - 2025_10_15_183908_add_description_to_sms_templates_table.php
-- Button
+- extra
 - 2025_10_25_190321_remove_category_priority_from_mail_reports.php
 - 2026_03_09_000000_add_client_portal_payment_columns_to_account_client_receipts.php
 - 2025_12_17_185802_fix_client_contacts_verified_by_foreign_key.php
@@ -802,9 +802,10 @@
 - 2026_07_31_000000_add_service_token_columns_to_staff_table.php
 - 2026_03_27_100000_create_company_sponsorships_table.php
 - 2026_08_08_120000_add_send_to_legal_crm_to_admins_table.php
-- keywords
+- GetterRefImpl
 - 2026_03_27_120000_add_extended_workforce_fields_to_companies_table.php
-- tailwindcss
+- e
+- autoprefixer
 - 2026_02_16_000007_create_client_student_references_table.php
 - 2026_05_30_120000_add_sheet_comments_to_client_eoi_references.php
 - 2026_07_14_000000_add_is_completed_to_cp_doc_checklists.php
@@ -837,7 +838,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (1156 total, 399 thin omitted)
+## Communities (1157 total, 399 thin omitted)
 
 ### Community 0 - "tinymce.d.ts"
 Cohesion: 0.00
@@ -845,19 +846,19 @@ Nodes (472): AddOnConstructor, AddOnManager, AddOnManagerNamespace, AfterProgres
 
 ### Community 1 - "public/js/app.js"
 Cohesion: 0.01
-Nodes (161): RFC-3986, addCombinator(), advancePositionWithClone(), advancePositionWithMutation(), asciiSlice(), asciiWords(), assertNumber(), assocIndexOf() (+153 more)
+Nodes (153): RFC-3986, addCombinator(), advancePositionWithClone(), advancePositionWithMutation(), asciiSlice(), asciiWords(), assertNumber(), assocIndexOf() (+145 more)
 
 ### Community 2 - "getIteratee"
 Cohesion: 0.02
-Nodes (146): arrayAggregator(), arrayEachRight(), arrayFilter(), arrayLikeKeys(), arrayMap(), arrayPush(), arrayReduce(), arrayReduceRight() (+138 more)
+Nodes (176): arrayAggregator(), arrayEach(), arrayEachRight(), arrayFilter(), arrayIncludes(), arrayLikeKeys(), arrayMap(), arrayPush() (+168 more)
 
 ### Community 3 - ".forEach"
 Cohesion: 0.02
-Nodes (166): applyOptions(), registerLifecycleHook(), applyStyles(), areValidElements(), arrayEach(), arrayIncludes(), assertType(), defineAccessor() (+158 more)
+Nodes (179): addTransitionClass(), applyOptions(), registerLifecycleHook(), applyStyles(), applyTranslation(), areValidElements(), AxiosHeaders, defineAccessor() (+171 more)
 
-### Community 4 - "trim"
+### Community 4 - "Kyslik\ColumnSortable\Sortable"
 Cohesion: 0.05
-Nodes (49): AxiosHeaders, deleteHeader(), setHeader(), baseFindKey(), beforeUpdate(), callModelHook(), created(), findKey() (+41 more)
+Nodes (18): ActiveStaffController, Branch, CheckinHistory, CpDocChecklist, DocumentChecklist, EmailTemplate, PersonalDocumentType, Tag (+10 more)
 
 ### Community 6 - "UsesAppointmentMailFrom.php"
 Cohesion: 0.15
@@ -865,19 +866,19 @@ Nodes (6): AppointmentPaidPaymentLink, AppointmentReminder, applyAppointmentFrom
 
 ### Community 7 - "Admin"
 Cohesion: 0.02
-Nodes (17): Admin, self, LeadAnalyticsService, LegalCrmApiClient, PointsService, DocumentStoredFilename, notpickedcall(), searchContactPerson() (+9 more)
+Nodes (15): Admin, self, LeadAnalyticsService, PointsService, DocumentStoredFilename, notpickedcall(), searchContactPerson(), getEmptyClientQuery() (+7 more)
 
-### Community 9 - "isSymbol"
-Cohesion: 0.07
-Nodes (44): baseGet(), baseHas(), baseHasIn(), baseInvoke(), baseIsEqual(), baseIsMatch(), baseIteratee(), baseMatches() (+36 more)
+### Community 9 - ".now"
+Cohesion: 0.04
+Nodes (6): ClientPortalMessageController, ClientPortalController, MessageRecipient, verifyDetails(), Broadcast, Str
 
 ### Community 11 - ".slice"
-Cohesion: 0.03
-Nodes (135): arraySampleSize(), asciiToArray(), assert(), autoPrefix(), base64clean(), base64Slice(), baseClamp(), baseFill() (+127 more)
+Cohesion: 0.02
+Nodes (155): arraySample(), arraySampleSize(), autoPrefix(), deleteHeader(), setHeader(), base64clean(), base64Slice(), baseClamp() (+147 more)
 
 ### Community 13 - "EmailLog"
-Cohesion: 0.05
-Nodes (11): OutgoingEmailController, SystemGeneratedEmailController, EmailLog, MatterEmailBodyCleanupService, OutgoingEmailSearchService, SystemEmailLogService, SystemGeneratedEmailSearchService, updatemailreadbit() (+3 more)
+Cohesion: 0.04
+Nodes (12): OutgoingEmailController, SystemGeneratedEmailController, EmailLog, MatterEmailBodyCleanupService, OutgoingEmailSearchService, SystemEmailLogService, SystemGeneratedEmailSearchService, updatemailreadbit() (+4 more)
 
 ### Community 14 - "App"
 Cohesion: 0.01
@@ -893,15 +894,15 @@ Nodes (8): MigrateKunalCalendarAppointments, BookingAppointment, AppointmentPaym
 
 ### Community 17 - ".indexOf"
 Cohesion: 0.03
-Nodes (92): addEventListener(), applyStyle(), applyStyleOnLoad(), arrayIndexOf(), arrow(), attachToScrollParents(), baseExtremum(), baseGt() (+84 more)
+Nodes (106): addEventListener(), applyStyle(), applyStyleOnLoad(), arrayIndexOf(), arrow(), asciiToArray(), attachToScrollParents(), baseExtremum() (+98 more)
 
 ### Community 19 - "ClientDocumentsController"
 Cohesion: 0.08
 Nodes (5): ClientDocumentsController, UploadedFile, NominationDocumentType, DocumentFilenameRules, FilesystemAdapter
 
-### Community 21 - ".now"
-Cohesion: 0.04
-Nodes (9): ClientPortalMessageController, ClientPortalPersonalDetailsController, LeadAnalyticsController, ClientPortalDetailAudit, MessageRecipient, verifyDetails(), DateTimeInterface, Broadcast (+1 more)
+### Community 21 - "Carbon"
+Cohesion: 0.07
+Nodes (5): UpdateClientAges, ClientPortalPersonalDetailsController, ClientPortalDetailAudit, DateTimeInterface, Carbon
 
 ### Community 23 - "Illuminate\Console\Command"
 Cohesion: 0.04
@@ -909,7 +910,7 @@ Nodes (28): ArchiveOldDrafts, BackfillAppointmentActivityLogs, BackfillBansalApp
 
 ### Community 24 - "ClientCrmFollowups.php"
 Cohesion: 0.04
-Nodes (54): ReportController, ClientAddress, ClientCharacter, ClientContact, ClientEmail, ClientExperience, ClientOccupation, ClientPassportInformation (+46 more)
+Nodes (55): PhoneHelper, ClientAddress, ClientCharacter, ClientContact, ClientEmail, ClientExperience, ClientOccupation, ClientPassportInformation (+47 more)
 
 ### Community 25 - "detail-main.js"
 Cohesion: 0.08
@@ -920,24 +921,24 @@ Cohesion: 0.11
 Nodes (72): a(), a(), o(), r(), s(), u(), ae(), b() (+64 more)
 
 ### Community 27 - "Document"
-Cohesion: 0.02
-Nodes (13): BackfillVisaSignedDocumentRows, SendSignatureReminders, Document, Signer, SignatureAnalyticsService, SignatureService, SignedDocumentS3PathResolver, Command (+5 more)
+Cohesion: 0.03
+Nodes (12): BackfillVisaSignedDocumentRows, SendSignatureReminders, Document, Signer, SignatureAnalyticsService, SignatureService, SignedDocumentS3PathResolver, Command (+4 more)
 
 ### Community 28 - "TestCase"
 Cohesion: 0.03
 Nodes (28): CreatesApplication, Illuminate\Database\Schema\Builder, Illuminate\Foundation\Testing\DatabaseMigrations, Illuminate\Foundation\Testing\RefreshDatabase, Illuminate\Foundation\Testing\TestCase, Mockery, PHPUnit\Framework\Assert, PHPUnit\Framework\Attributes\DataProvider (+20 more)
 
-### Community 29 - ".get"
-Cohesion: 0.03
-Nodes (88): addToPrefiltersOrTransports(), addTransitionClass(), adoptValue(), ajaxConvert(), ajaxHandleResponses(), Animation(), applyTranslation(), arraySome() (+80 more)
+### Community 29 - "trigger"
+Cohesion: 0.07
+Nodes (32): addToPrefiltersOrTransports(), adoptValue(), ajaxConvert(), ajaxHandleResponses(), Animation(), CancelToken, createFxNow(), dispatchRequest() (+24 more)
 
 ### Community 30 - "Illuminate\Broadcasting\InteractsWithSockets"
 Cohesion: 0.08
 Nodes (14): BroadcastNotificationCreated, MessageDeleted, MessageReceived, MessageSent, MessageUpdated, OfficeVisitNotificationCreated, UnreadCountUpdated, Illuminate\Broadcasting\Channel (+6 more)
 
-### Community 31 - "isObjectLike"
-Cohesion: 0.07
-Nodes (43): assertOptions(), Axios, baseGetTag(), baseIsArguments(), baseIsArrayBuffer(), baseIsDate(), baseIsMap(), baseIsRegExp() (+35 more)
+### Community 31 - "isFunction"
+Cohesion: 0.04
+Nodes (80): arrayToObject(), assertOptions(), assignMergeValue(), Axios, AxiosURLSearchParams(), baseGetTag(), baseIsArguments(), baseIsArrayBuffer() (+72 more)
 
 ### Community 33 - "task-description-mentions.js"
 Cohesion: 0.19
@@ -948,8 +949,8 @@ Cohesion: 0.09
 Nodes (8): dispatch(), EB, execCommand(), get(), init(), MR, on(), unbindAllNativeEvents()
 
 ### Community 35 - "VisaTypeSheetController"
-Cohesion: 0.06
-Nodes (5): SignatureDashboardController, LengthAwarePaginator, VisaTypeSheetController, PublicLeadInquiryController, Expression
+Cohesion: 0.10
+Nodes (4): LengthAwarePaginator, VisaTypeSheetController, PublicLeadInquiryController, Expression
 
 ### Community 36 - "Illuminate\Foundation\Http\FormRequest"
 Cohesion: 0.09
@@ -961,7 +962,7 @@ Nodes (4): isEndOfTagSection(), isTagStartChar(), isWhitespace(), Tokenizer
 
 ### Community 38 - "apply"
 Cohesion: 0.04
-Nodes (72): addGetHookIf(), addHandler(), after(), apply(), ary(), baseDelay(), before(), bootstrapDelegationHandler() (+64 more)
+Nodes (79): addGetHookIf(), addHandler(), after(), apply(), ary(), assert(), baseDelay(), before() (+71 more)
 
 ### Community 39 - "jquery.min.js"
 Cohesion: 0.09
@@ -979,53 +980,53 @@ Nodes (10): read(), Buffer(), checkIEEE754(), checkInt(), checkOffset(), objectW
 Cohesion: 0.12
 Nodes (29): customInvoiceValidate(), customValidate(), displayValidationErrors(), displayValidationErrors2(), errorDisplay(), getallactivities(), getInvoiceAmount(), mmAcquireInvoiceSubmitLock() (+21 more)
 
-### Community 44 - "Illuminate\Http\Request"
+### Community 44 - "Auth"
 Cohesion: 0.02
-Nodes (27): ArtSheetController, AssigneeController, ClientPortalController, ClientNotesController, CRMUtilityController, LeadController, OfficeVisitController, ExceptionController (+19 more)
+Nodes (16): ESignatureController, ArtSheetController, AssigneeController, LeadAnalyticsController, SignatureDashboardController, deletecostagreement(), actionClientDisplayName(), actionStore() (+8 more)
 
 ### Community 45 - "workflow-tab.js"
 Cohesion: 0.12
 Nodes (51): activateInjectedScripts(), applyChecklistCompletionToStageData(), applyFileNoteToStageData(), bindClientPortalSubTabDelegation(), bindWorkflowChecklistInteractions(), bindWorkflowTabHandlers(), bindWorkflowV2StageNavigation(), bootWorkflowTabIfNeeded() (+43 more)
 
+### Community 46 - "remove"
+Cohesion: 0.10
+Nodes (6): Alert, cloneCopyEvent(), contains(), Modal, pull(), remove()
+
 ### Community 47 - ".response"
 Cohesion: 0.03
 Nodes (21): ClientPersonalDetailsController, DashboardController, ClientRelationship, Company, agreementFamilyMemberDisplayName(), agreementFormatDobSuffixForRelationship(), agreementPartnerEmailForDisplay(), buildScheduleAFamilyMacroStrings() (+13 more)
 
-### Community 49 - "buildProps"
+### Community 49 - ".includes"
 Cohesion: 0.04
-Nodes (100): addNode(), backTrack(), baseCompile(), baseParse(), buildDirectiveArgs(), buildDynamicSlot(), buildProps(), buildSlots() (+92 more)
+Nodes (101): addNode(), backTrack(), baseCompile(), baseParse(), buildDirectiveArgs(), buildDynamicSlot(), buildProps(), buildSlots() (+93 more)
 
-### Community 50 - "ReactiveEffect"
-Cohesion: 0.10
-Nodes (12): addSub(), batch(), cleanupDeps(), cleanupEffect(), ComputedRefImpl, Dep, isDirty(), prepareDeps() (+4 more)
+### Community 50 - ".value"
+Cohesion: 0.06
+Nodes (28): addSub(), batch(), beforeUpdate(), callModelHook(), cleanupDeps(), cleanupEffect(), ComputedRefImpl, created() (+20 more)
 
-### Community 51 - ".config"
+### Community 51 - "Illuminate\Http\Request"
 Cohesion: 0.02
-Nodes (37): Handler, ActivitySearchController, BranchesController, ClientController, CrmEmailTemplateController, DocumentChecklistController, EmailController, EmailLabelController (+29 more)
+Nodes (45): BranchesController, ClientController, CrmEmailTemplateController, DocumentChecklistController, EmailController, EmailLabelController, MatterController, MatterEmailTemplateController (+37 more)
 
 ### Community 53 - "Matter"
-Cohesion: 0.03
-Nodes (15): WorkflowController, LeadConversionController, CostAssignmentForm, Matter, Workflow, WorkflowStage, WorkflowStageChecklist, ClientDetailChecklistsTab (+7 more)
-
-### Community 54 - "ClientDetailTabFragmentTest.php"
-Cohesion: 0.11
-Nodes (10): EnsureAdminConsoleAccess, HttpsProtocol, RedirectIfAuthenticated, ReverbLabEnvAutoLogin, SetSecureSessionCookies, TrackStaffCrmActivity, VerifyCsrfToken, Closure (+2 more)
+Cohesion: 0.05
+Nodes (9): LeadConversionController, CostAssignmentForm, Matter, ClientDetailChecklistsTab, WorkflowAssignment, savecostassignment(), savecostassignmentlead(), CostAssignmentFormDiscountTest (+1 more)
 
 ### Community 56 - "main.py"
 Cohesion: 0.10
 Nodes (38): exception_handler, HTTPException, post, add_signatures(), analyze_email(), batch_convert_pages(), convert_docx_to_pdf(), convert_docx_to_pdf_json() (+30 more)
 
-### Community 57 - "IconHelper"
-Cohesion: 0.10
-Nodes (6): IconHelper, SortableHelper, getAppointments(), Illuminate\Pagination\Paginator, Illuminate\Support\Facades\Blade, Illuminate\Support\Facades\View
+### Community 57 - "Illuminate\Support\Facades\Schema"
+Cohesion: 0.03
+Nodes (47): IconHelper, ClientsController, HubdocInvoiceMail, AccountClientReceipt, ActivitiesLog, ClientPoint, ClientPortalActionNoteService, FCMService (+39 more)
 
 ### Community 61 - "bootstrap.bundle.min.js"
 Cohesion: 0.11
 Nodes (34): a(), ae(), bn(), Bt(), ce(), ee(), fe(), Ft() (+26 more)
 
 ### Community 62 - "push"
-Cohesion: 0.05
-Nodes (67): baseFilter(), baseKeysIn(), closeBlock(), createBaseVNode(), createBlock(), createCodegenContext(), newline(), createCommentVNode() (+59 more)
+Cohesion: 0.06
+Nodes (65): baseFilter(), baseKeysIn(), closeBlock(), createBaseVNode(), createBlock(), createCodegenContext(), newline(), createCommentVNode() (+57 more)
 
 ### Community 65 - "user-sessions.js"
 Cohesion: 0.10
@@ -1053,7 +1054,7 @@ Nodes (22): CLOSE_ACCOUNT(), close_authorized_web_screen(), close_deleteaccount(
 
 ### Community 73 - "warn"
 Cohesion: 0.04
-Nodes (55): arraySample(), baseFindIndex(), baseIndexOf(), baseIsNaN(), baseRandom(), baseSample(), baseSampleSize(), baseShuffle() (+47 more)
+Nodes (46): BaseReactiveHandler, checkIdentityKeys(), createInstrumentationGetter(), createInstrumentations(), createIterableMethod(), createReactiveObject(), createReadonlyMethod(), createRef() (+38 more)
 
 ### Community 74 - "SendGrid Integration Instructions for Migration Manager CRM"
 Cohesion: 0.05
@@ -1064,12 +1065,12 @@ Cohesion: 0.07
 Nodes (6): MatterChannel, UserChannel, DocumentPolicy, EmailMatchingService, Illuminate\Auth\Access\HandlesAuthorization, Illuminate\Contracts\Auth\Authenticatable
 
 ### Community 76 - "ClientEoiReference"
-Cohesion: 0.07
-Nodes (4): ClientEoiRoiController, EoiRoiSheetController, ClientEoiReference, Str
+Cohesion: 0.08
+Nodes (3): ClientEoiRoiController, EoiRoiSheetController, ClientEoiReference
 
 ### Community 77 - "Lead"
-Cohesion: 0.03
-Nodes (10): InPersonCompleteTaskRemoval, PhoneHelper, LeadAssignmentController, CheckinLog, Country, Lead, LeadFollowUpNoteService, insights() (+2 more)
+Cohesion: 0.04
+Nodes (8): InPersonCompleteTaskRemoval, LeadAssignmentController, CheckinLog, Lead, LeadFollowUpNoteService, insights(), updatesessioncompleted(), Illuminate\Database\Eloquent\Builder
 
 ### Community 78 - "TR Sheet Implementation Plan"
 Cohesion: 0.05
@@ -1113,15 +1114,15 @@ Nodes (3): SyncBansalAppointments, AppointmentSyncService, ClientMatchingService
 
 ### Community 92 - "Log"
 Cohesion: 0.02
-Nodes (27): UpdateClientAges, Settings, SmsWebhookController, ClientPortalAppointmentController, ClientPortalController, ClientPortalDocumentController, ClientPortalNotificationController, ClientPortalWorkflowController (+19 more)
+Nodes (27): Settings, SmsWebhookController, BaseController, ChatbotController, ClientPortalAppointmentController, ClientPortalController, ClientPortalDocumentController, ClientPortalNotificationController (+19 more)
 
 ### Community 93 - "dashboard-optimized.js"
 Cohesion: 0.16
 Nodes (25): applyInitialColumnVisibility(), buildDashboardMattersFragmentFetchQuery(), completeTask(), extendDeadline(), handleActionClick(), handleSearchInput(), initializeDashboard(), initializeDashboardMattersAjaxPagination() (+17 more)
 
 ### Community 94 - "emails.js"
-Cohesion: 0.11
-Nodes (23): canDeleteEmailFromContainer(), collapseLeadingEmptyTableColumns(), composeMessageForEditor(), escapeHtmlForCompose(), fetchLabels(), filterAllowedUploadFiles(), getAllowedUploadExtensionsLabel(), getAttachmentIcon() (+15 more)
+Cohesion: 0.12
+Nodes (21): canDeleteEmailFromContainer(), collapseLeadingEmptyTableColumns(), fetchLabels(), filterAllowedUploadFiles(), getAllowedUploadExtensionsLabel(), getAttachmentIcon(), getAttachmentIconColor(), getEmailPreviewText() (+13 more)
 
 ### Community 95 - "Email"
 Cohesion: 0.13
@@ -1137,7 +1138,7 @@ Nodes (26): applySuggestion(), buildAssignment(), buildRow(), countHighConfidenc
 
 ### Community 101 - "Storage"
 Cohesion: 0.03
-Nodes (11): RetryLocalAgreementsToS3, TempFileHelper, DocumentController, Exception, SmartEmailImportController, PublicDocumentController, DocxToPdfService, MessageAttachmentStorageService (+3 more)
+Nodes (6): ClientAccountsController, SmartEmailImportController, MessageAttachmentStorageService, S3AttachmentStorageService, uploadAgreement(), Storage
 
 ### Community 103 - "dependencies"
 Cohesion: 0.08
@@ -1157,15 +1158,15 @@ Nodes (44): a(), b(), c(), d(), e(), f(), P(), w() (+36 more)
 
 ### Community 124 - "devDependencies"
 Cohesion: 0.09
-Nodes (23): alpinejs, autoprefixer, axios, concurrently, datatables.net, datatables.net-bs5, datatables.net-buttons-bs5, jszip (+15 more)
+Nodes (23): alpinejs, axios, concurrently, datatables.net, datatables.net-bs5, datatables.net-buttons-bs5, jszip, devDependencies (+15 more)
 
 ### Community 126 - "clients/detail.blade.php"
 Cohesion: 0.07
 Nodes (29): crm.clients.tabs.account_lazy, crm.clients.tabs.checklists_lazy, crm.clients.tabs.client_portal_lazy, crm.clients.tabs.emails_lazy, crm.clients.tabs.eoi_roi, crm.clients.tabs.not_used_documents_lazy, crm.clients.tabs.notes_lazy, crm.clients.tabs.personal_details (+21 more)
 
 ### Community 127 - "handleForward"
-Cohesion: 0.16
-Nodes (22): buildExternalRecipient(), clearComposeToField(), ensureEmailDetail(), extractEmailAddress(), fetchEmailDetail(), fetchRecipientByEmail(), formatForwardSubject(), formatReplySubject() (+14 more)
+Cohesion: 0.14
+Nodes (24): buildExternalRecipient(), clearComposeToField(), composeMessageForEditor(), ensureEmailDetail(), escapeHtmlForCompose(), extractEmailAddress(), fetchEmailDetail(), fetchRecipientByEmail() (+16 more)
 
 ### Community 129 - "A"
 Cohesion: 0.07
@@ -1187,17 +1188,13 @@ Nodes (12): EmailRendererService, Any, Clean and enhance HTML content., Create a
 Cohesion: 0.13
 Nodes (12): PDFService, Any, Merge multiple PDF files into one. Args: pdf_contents: List of PDF file…, Extract text from PDF. Args: pdf_content: PDF file content as bytes Returns:…, Convert a single PDF page to image. Args: file_path: Absolute path to PDF file…, Get PDF information including page count and metadata. Args: file_path:…, Service for PDF processing operations., Validate a PDF file. Args: file_path: Absolute path to PDF file Returns: Dict… (+4 more)
 
-### Community 139 - "EnsuresCrmRecordAccess.php"
-Cohesion: 0.09
-Nodes (12): ensureCrmRecordAccess(), ensureCrmRecordAccessForOptionalClientId(), ensureCrmRecordAccessFromRequest(), ensureCrmRecordAccessStrict(), EmailLogAttachmentController, FrontDeskCheckInController, FrontDeskCheckIn, CheckInAppointmentService (+4 more)
+### Community 139 - "ClientReferenceService"
+Cohesion: 0.10
+Nodes (7): FrontDeskCheckInController, ClientReferenceService, CheckInAppointmentService, CheckInLookupService, CheckInNotificationService, PublicLeadInquiryService, Illuminate\Http\RedirectResponse
 
 ### Community 141 - "CompanyVisaAgreementMacroBuilder"
 Cohesion: 0.11
 Nodes (3): CompanyDirector, CompanyVisaAgreementMacroBuilder, CompanyVisaAgreementMacroBuilderTest
-
-### Community 142 - "Toast"
-Cohesion: 0.12
-Nodes (3): Alert, pull(), Toast
 
 ### Community 143 - "send-to-client.js"
 Cohesion: 0.22
@@ -1225,15 +1222,15 @@ Nodes (19): buildBladeIcon(), buildLegacyClassString(), collectTargets(), conver
 
 ### Community 152 - "ClientMatter"
 Cohesion: 0.02
-Nodes (20): CompleteTaskRemoval, SendFollowUpReminders, NotificationCountUpdated, ClientMatter, Note, Notification, EoiClientConfirmationNotificationService, FollowUpReminderService (+12 more)
+Nodes (17): CompleteTaskRemoval, SendFollowUpReminders, NotificationCountUpdated, ClientMatter, Note, Notification, EoiClientConfirmationNotificationService, FollowUpReminderService (+9 more)
 
 ### Community 154 - "Python Services - Quick Reference"
 Cohesion: 0.06
 Nodes (33): 📡 API Endpoints, Apply Configuration, Common Issues, 📝 Configuration, Docker, Docker, Documentation Files, Email Service (+25 more)
 
-### Community 155 - ".chat"
-Cohesion: 0.17
-Nodes (3): BaseController, ChatbotController, VisaPricingEstimatorController
+### Community 155 - "WorkflowStage"
+Cohesion: 0.08
+Nodes (6): WorkflowController, Workflow, WorkflowStage, WorkflowStageChecklist, WorkflowStageChecklistSync, WorkflowStageFreeze
 
 ### Community 157 - "ChatbotKnowledgeMatcher"
 Cohesion: 0.15
@@ -1268,8 +1265,8 @@ Cohesion: 0.13
 Nodes (8): AnzscoSampleSeeder, AppointmentConsultantSeeder, DatabaseSeeder, FixAllTestTypesProficiencySeeder, FixPTEProficiencySeeder, UpdateExistingTestScoresProficiencySeeder, Illuminate\Database\Console\Seeds\WithoutModelEvents, Illuminate\Database\Seeder
 
 ### Community 169 - "resolve"
-Cohesion: 0.09
-Nodes (16): defineAsyncComponent(), defineComponent(), Identity(), isMemoSame(), microtaskDebounce(), onloadend(), render(), resolve() (+8 more)
+Cohesion: 0.11
+Nodes (12): defineAsyncComponent(), defineComponent(), Identity(), isMemoSame(), microtaskDebounce(), onloadend(), render(), resolve() (+4 more)
 
 ### Community 170 - "ledger-dragdrop.js"
 Cohesion: 0.24
@@ -1321,7 +1318,11 @@ Nodes (30): 1. Create Dedicated User, 1. Upload Files to Server, 2. Restrict Fil
 
 ### Community 186 - "DB"
 Cohesion: 0.01
-Nodes (26): ImportLoginDataFromMySQL, ClientPortalBillingController, ClientPortalDashboardController, ClientAccountsController, FinancialStatsService, VisaSheetService, getCostAssignmentMigrationAgentDetail(), getCostAssignmentMigrationAgentDetailLead() (+18 more)
+Nodes (26): ImportLoginDataFromMySQL, ClientPortalBillingController, ClientPortalDashboardController, ClientPortalWorkflowController, FinancialStatsService, VisaSheetService, getCostAssignmentMigrationAgentDetail(), getCostAssignmentMigrationAgentDetailLead() (+18 more)
+
+### Community 187 - "some"
+Cohesion: 0.07
+Nodes (33): assertType(), createStructuralDirectiveTransform(), getInvalidTypeMessage(), getNamespace(), getSideOffsets(), getType(), hasDynamicKeyVBind(), hasMultipleChildren() (+25 more)
 
 ### Community 188 - "email-upload-flow.js"
 Cohesion: 0.12
@@ -1352,8 +1353,8 @@ Cohesion: 0.30
 Nodes (10): activateInjectedScripts(), applyNotesMatterFilter(), bootNotesTabIfNeeded(), ensureNotesTabLoaded(), importTabFragment(), initNotesTabAfterInject(), needsFragmentLoad(), notesTabFragmentUrl() (+2 more)
 
 ### Community 198 - "RegisterWebRoutes.php"
-Cohesion: 0.07
-Nodes (8): AdminLoginController, EmailVerificationController, PublicPhoneCallController, EmailVerification, EmailVerificationService, Illuminate\Container\Container, Illuminate\Contracts\Routing\ResponseFactory, Illuminate\Routing\Router
+Cohesion: 0.06
+Nodes (9): AdminLoginController, EmailVerificationController, ExceptionController, PublicPhoneCallController, EmailVerification, EmailVerificationService, Illuminate\Container\Container, Illuminate\Contracts\Routing\ResponseFactory (+1 more)
 
 ### Community 199 - "broadcasts.js"
 Cohesion: 0.26
@@ -1383,10 +1384,6 @@ Nodes (28): Approval, Build / deploy, Critical constraints, Current state (audit
 Cohesion: 0.36
 Nodes (9): activateInjectedScripts(), bootChecklistsTabIfNeeded(), checklistsTabFragmentUrl(), ensureChecklistsTabLoaded(), importChecklistsOrphanAssets(), importTabFragment(), initChecklistsTabAfterInject(), needsFragmentLoad() (+1 more)
 
-### Community 207 - "remove"
-Cohesion: 0.12
-Nodes (3): cloneCopyEvent(), Collapse, remove()
-
 ### Community 209 - "Laravel Boost Guidelines"
 Cohesion: 0.07
 Nodes (27): APIs & Eloquent Resources, Application Structure & Architecture, Artisan, Conventions, Deployment, Do Things the Laravel Way, Documentation Files, Foundational Context (+19 more)
@@ -1397,7 +1394,7 @@ Nodes (13): collectFiles(), crmI(), DRY_RUN, emaillabelsIndex, EXTRA, faLegacy()
 
 ### Community 212 - "composer.json"
 Cohesion: 0.15
-Nodes (12): autoload-dev, psr-4, description, extra, laravel, dont-discover, license, minimum-stability (+4 more)
+Nodes (12): autoload-dev, psr-4, description, keywords, license, minimum-stability, name, prefer-stable (+4 more)
 
 ### Community 213 - "2026_04_24_120000_add_performance_indexes_search_documents_notes_activities.php"
 Cohesion: 0.36
@@ -1420,7 +1417,7 @@ Cohesion: 0.12
 Nodes (3): TestBansalApiConnection, BansalApiClient, RetryInvalidEnquirySyncServiceTest
 
 ### Community 221 - "Tooltip"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (3): noop(), Popover, Tooltip
 
 ### Community 223 - "addclientmodal.blade.php"
@@ -1436,8 +1433,8 @@ Cohesion: 0.18
 Nodes (12): closeVerifyDetailsModal(), confirmVerifyClientDetails(), convertDateForBackend(), getClientEditForm(), removePartnerRow(), saveOccupationInfo(), saveOthersInfo(), saveParentsInfo() (+4 more)
 
 ### Community 227 - "showNotification"
-Cohesion: 0.38
-Nodes (7): downloadAllAttachments(), downloadAttachment(), initializeAttachmentHandlers(), previewAttachment(), removeLabel(), sanitizeFilename(), showNotification()
+Cohesion: 0.21
+Nodes (12): applyLabel(), downloadAllAttachments(), downloadAttachment(), hideContextMenu(), initializeAttachmentHandlers(), initializeContextMenu(), previewAttachment(), removeLabel() (+4 more)
 
 ### Community 228 - "k"
 Cohesion: 0.09
@@ -1462,6 +1459,10 @@ Nodes (11): addExperience(), createReadonlyCurrentExperienceToggle(), createRead
 ### Community 240 - "audit-icons.cjs"
 Cohesion: 0.22
 Nodes (10): EXTENSIONS, fs, loadLegacyMap(), main(), path, ROOT, SKIP_DIRS, STYLE_TOKENS (+2 more)
+
+### Community 242 - "DocumentController"
+Cohesion: 0.06
+Nodes (6): RetryLocalAgreementsToS3, TempFileHelper, DocumentController, Exception, PublicDocumentController, DocxToPdfService
 
 ### Community 246 - "require-dev"
 Cohesion: 0.20
@@ -1541,7 +1542,7 @@ Nodes (7): buildEmailUploadFormData(), emailUploadAcceptAttribute(), emailUpload
 
 ### Community 280 - "z"
 Cohesion: 0.07
-Nodes (78): ke(), Te(), He(), J(), Le(), We(), e(), S() (+70 more)
+Nodes (77): ke(), Te(), He(), J(), Le(), We(), S(), w() (+69 more)
 
 ### Community 281 - "CommonMenuItemSpec"
 Cohesion: 0.25
@@ -1735,9 +1736,9 @@ Nodes (15): applyCostAssignmentDiscountUi(), bindCostAssignmentDiscountToggle(),
 Cohesion: 0.29
 Nodes (5): EventServiceProvider, Illuminate\Auth\Events\Registered, Illuminate\Auth\Listeners\SendEmailVerificationNotification, Illuminate\Foundation\Support\Providers\EventServiceProvider, Illuminate\Support\Facades\Event
 
-### Community 349 - "Illuminate\Support\Facades\Schema"
-Cohesion: 0.02
-Nodes (82): ServiceAccountController, Controller, ClientsController, ReverbMessagingLabController, HubdocInvoiceMail, AccountClientReceipt, ActivitiesLog, ClientPoint (+74 more)
+### Community 349 - "Controller"
+Cohesion: 0.03
+Nodes (45): ServiceAccountController, ensureCrmRecordAccess(), ensureCrmRecordAccessForOptionalClientId(), ensureCrmRecordAccessFromRequest(), ensureCrmRecordAccessStrict(), Controller, EmailLogAttachmentController, ReportController (+37 more)
 
 ### Community 350 - "Migration Manager - Immigration CRM System"
 Cohesion: 0.13
@@ -1890,6 +1891,10 @@ Nodes (11): Audit tooling, Bundling rules, Copy scripts (rollback only), Never b
 ### Community 398 - "getallactivities"
 Cohesion: 0.24
 Nodes (12): applyNotUsedMoveSuccess(), buildNotUsedDocumentRow(), clientDetailApplyWafSafeDocumentUpload(), clientDetailDocFilenameMessage(), clientDetailIsAllowedDocumentFilename(), formatClientDocDateTime(), getallactivities(), handlePersonalDocDragDrop() (+4 more)
+
+### Community 399 - "AppServiceProvider.php"
+Cohesion: 0.29
+Nodes (3): SortableHelper, Illuminate\Pagination\Paginator, Illuminate\Support\Facades\Blade
 
 ### Community 400 - "Queue & Job Best Practices"
 Cohesion: 0.18
@@ -2344,12 +2349,12 @@ Cohesion: 0.02
 Nodes (4): CronJob, VisaExpireReminderEmail, Mail, Notification
 
 ### Community 548 - "Staff"
-Cohesion: 0.03
-Nodes (21): ProcessServiceAccountTokens, ActiveStaffController, Branch, CheckinHistory, ClientAccessGrant, CpDocChecklist, DocumentChecklist, Staff (+13 more)
+Cohesion: 0.04
+Nodes (18): ProcessServiceAccountTokens, EnsureAdminConsoleAccess, HttpsProtocol, RedirectIfAuthenticated, ReverbLabEnvAutoLogin, SetSecureSessionCookies, TrackStaffCrmActivity, VerifyCsrfToken (+10 more)
 
-### Community 550 - "initializeContextMenu"
-Cohesion: 0.50
-Nodes (5): applyLabel(), hideContextMenu(), initializeContextMenu(), renderLabelIcon(), showLabelSubmenu()
+### Community 550 - ".applyConfiguredCorsHeaders"
+Cohesion: 0.31
+Nodes (4): Handler, Arr, Illuminate\Auth\AuthenticationException, Illuminate\Foundation\Exceptions\Handler
 
 ### Community 552 - "2025_12_17_171644_add_agent_fields_to_admins_table.php"
 Cohesion: 0.83
@@ -2362,6 +2367,10 @@ Nodes (3): getSortableColumns(), sortableQuery(), Spatie\QueryBuilder\QueryBuild
 ### Community 557 - "Illuminate\Database\Migrations\Migration"
 Cohesion: 0.02
 Nodes (62): down(), up(), down(), up(), down(), up(), down(), up() (+54 more)
+
+### Community 580 - "extra"
+Cohesion: 0.67
+Nodes (3): extra, laravel, dont-discover
 
 ### Community 619 - "checkOTPComplete"
 Cohesion: 1.00
@@ -2415,10 +2424,6 @@ Nodes (4): ConsoleKernel, RegisterWebRoutes, Illuminate\Contracts\Console\Kernel
 Cohesion: 0.40
 Nodes (4): Geocoder\Provider\Chain\Chain, Geocoder\Provider\GeoPlugin\GeoPlugin, Geocoder\Provider\GoogleMaps\GoogleMaps, Http\Client\Curl\Client
 
-### Community 1146 - "keywords"
-Cohesion: 0.67
-Nodes (3): keywords, framework, laravel
-
 ## Knowledge Gaps
 - **1966 isolated node(s):** `context7`, `C:\Users\user\AppData\Local\Python\pythoncore-3.14-64\python.exe`, `php`, `HttpsProtocol`, `name` (+1961 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -2429,9 +2434,9 @@ _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Eloquent` connect `Eloquent` to `File`, `.insert`, `Lang`, `.select`, `.create`, `.getColumns`, `Gate`, `Request`, `App`, `.response`, `_ide_helper.php`, `Cache`, `Route`, `View`, `.cursor`, `Cookie`?**
   _High betweenness centrality (0.056) - this node is a cross-community bridge._
-- **Why does `Schema` connect `Schema` to `2026_02_28_150000_rename_typename_and_type_in_cp_doc_checklists.php`, `2026_04_01_100000_create_front_desk_check_ins_table.php`, `Admin`, `EmailLog`, `App`, `2026_03_13_000000_drop_smtp_and_password_from_emails_table.php`, `2026_04_01_120000_add_google_review_reminder_columns_to_admins_table.php`, `.now`, `ClientCrmFollowups.php`, `TestCase`, `VisaTypeSheetController`, `Staff`, `2026_02_16_100000_add_is_pinned_to_client_reference_tables.php`, `2026_07_29_120000_create_receipt_sequences_table.php`, `2025_12_17_171644_add_agent_fields_to_admins_table.php`, `2025_10_04_202014_add_verification_fields_to_client_emails_table.php`, `0001_01_01_000000_create_users_table.php`, `Illuminate\Http\Request`, `Illuminate\Database\Migrations\Migration`, `2025_10_10_171531_drop_seo_pages_table.php`, `.response`, `2025_10_13_190305_add_proficiency_level_to_client_testscore_table.php`, `2025_10_14_201735_add_sms_fields_to_activities_logs_table.php`, `2025_10_21_190455_create_document_notes_table.php`, `0001_01_01_000000_create_admins_table.php`, `2025_10_21_225122_add_signed_hash_to_documents_table.php`, `Matter`, `2024_01_01_000000_create_client_passport_informations_table.php`, `2025_10_25_172232_add_python_analysis_to_mail_reports.php`, `2025_10_12_185509_add_eoi_roi_workflow_columns_to_client_eoi_references_table.php`, `2025_10_04_192042_add_verification_columns_to_client_contacts_table.php`, `2025_11_06_210000_fix_client_occupations_foreign_key.php`, `2025_12_25_201151_fix_admins_table_primary_key_and_duplicate_id.php`, `2025_10_08_100000_create_anzsco_occupations_table.php`, `2025_10_12_223206_add_points_calculation_fields_to_client_qualifications_table.php`, `2025_12_16_174047_add_indexes_to_notifications_table.php`, `2025_10_14_201641_create_sms_logs_table.php`, `2026_01_26_174555_add_company_fields_to_admins_table.php`, `2025_10_12_223235_add_fte_multiplier_to_client_experiences_table.php`, `2026_02_20_160000_drop_polymorphic_and_signature_dashboard_columns_from_documents.php`, `2025_10_15_183908_add_description_to_sms_templates_table.php`, `2026_02_21_000000_drop_agents_table.php`, `2025_10_25_190321_remove_category_priority_from_mail_reports.php`, `2025_11_09_044318_update_booking_appointments_client_fk.php`, `2025_12_14_155107_fix_migrations_id_sequence.php`, `2025_12_17_185802_fix_client_contacts_verified_by_foreign_key.php`, `0001_01_01_000002_create_jobs_table.php`, `2026_02_11_000002_drop_att_contact_columns_from_admins_table.php`, `2025_12_26_000001_fix_all_tables_primary_keys_and_duplicate_ids.php`, `ClientEoiReference`, `2025_10_04_171643_add_passport_country_to_client_passport_informations_table.php`, `2026_02_16_000011_add_pr_checklist_status_to_client_matters.php`, `2026_01_10_171719_add_cancelled_at_to_signers_table.php`, `2026_01_10_175646_increase_signers_status_column_length.php`, `2026_02_14_100000_drop_profile_img_telephone_eoi_columns.php`, `2026_02_16_000006_create_visitor_matter_reminders_table.php`, `2026_01_28_100000_create_appointment_payments_table.php`, `2026_02_11_000003_drop_bansal_lead_columns_from_admins_table.php`, `2026_02_11_000004_drop_phase4_legacy_columns_from_admins_table.php`, `2026_02_16_000002_add_tr_checklist_status_to_client_matters.php`, `2025_10_24_152207_add_composite_indexes_to_notes_table.php`, `2026_02_16_000004_create_client_visitor_references_table.php`, `2026_02_14_000000_create_staff_table.php`, `2026_02_16_000001_create_client_tr_references_table.php`, `2025_12_17_145310_add_office_to_client_matters_and_documents.php`, `Log`, `2026_02_16_000003_create_tr_matter_reminders_table.php`, `2025_11_22_005215_create_clientportal_details_audit_table.php`, `2026_02_16_000010_create_client_pr_references_table.php`, `2026_02_16_000013_create_client_employer_sponsored_references_table.php`, `2026_02_17_000000_add_client_application_sent_to_account_client_receipts.php`, `2025_12_27_004110_add_default_values_to_appointment_sync_logs_table.php`, `2026_02_20_100000_create_lead_visa_checklist_references_tables.php`, `2026_02_20_150000_drop_unused_documents_columns.php`, `Storage`, `2025_10_20_191713_add_signature_dashboard_fields_to_documents_table.php`, `2026_02_16_000009_create_student_matter_reminders_table.php`, `2025_12_15_000000_fix_and_migrate_client_visa_countries.php`, `2026_02_17_000000_add_sort_order_and_reorder_workflow_stages.php`, `2026_02_18_201513_add_form956_id_to_documents_table.php`, `2026_02_23_000002_rename_checklist_tables.php`, `2026_02_17_140000_add_decision_outcome_note_to_client_matters.php`, `2026_02_28_170000_add_director_client_id_to_company_directors_table.php`, `2026_02_23_200000_create_client_matter_references_and_migrate.php`, `2026_04_02_000000_add_grant_super_admin_access_to_staff_table.php`, `2026_04_13_000002_add_arun_calendar.php`, `2026_04_17_120000_create_company_financials_table.php`, `2026_04_22_120000_add_client_matters_dashboard_role_scoped_indexes.php`, `2026_02_24_000000_rename_mail_reports_to_email_logs.php`, `2026_04_23_120000_add_email_log_attachments_email_log_id_index.php`, `2026_05_29_000000_fix_admins_archived_by_fk_to_staff.php`, `2026_02_26_000001_add_kunal_calendar.php`, `2026_06_13_000002_migrate_client_art_references_to_client_matter_references.php`, `2026_03_27_100000_create_company_sponsorships_table.php`, `2026_07_16_120000_create_staff_activity_logs_table.php`, `2026_07_18_000000_add_payment_token_to_booking_appointments.php`, `2026_03_27_120000_add_extended_workforce_fields_to_companies_table.php`, `2026_07_31_000000_add_service_token_columns_to_staff_table.php`, `2026_08_08_120000_add_send_to_legal_crm_to_admins_table.php`, `2026_02_16_000007_create_client_student_references_table.php`, `2026_05_30_120000_add_sheet_comments_to_client_eoi_references.php`, `2026_07_14_000000_add_is_completed_to_cp_doc_checklists.php`, `AppointmentSyncServiceProvider.php`, `2026_07_24_120000_add_details_verification_to_admins_table.php`, `DB`, `2026_04_24_120000_add_performance_indexes_search_documents_notes_activities.php`, `ClientDetailTabs`, `.create`, `2024_10_20_000001_create_appointment_consultants_table.php`, `.getColumns`, `patch_visa_agreement_docx_macros.php`, `Illuminate\Database\Schema\Blueprint`, `2025_10_04_202019_create_email_verifications_table.php`, `_ide_helper.php`, `2026_04_01_120000_add_walk_in_contact_to_checkin_logs_table.php`, `StaffPersonalCalendarFeedService`, `Queue`, `2026_04_13_000001_add_show_in_filter_to_appointment_consultants.php`, `2026_04_22_140000_add_global_search_fulltext_indexes.php`, `2026_07_27_120000_add_user_type_to_refresh_and_device_tokens.php`, `2026_02_27_120000_rename_client_application_sent_to_client_portal_sent.php`, `2026_02_28_000000_add_alias_to_email_templates.php`, `2025_12_24_000000_add_tag_type_to_tags_table.php`, `2026_02_14_000001_copy_staff_from_admins_to_staff.php`, `2026_02_22_110000_rename_folloup_and_followup_date_in_notes_table.php`, `2026_05_28_000001_add_outgoing_email_search_index.php`, `2026_04_18_100000_add_lmt_fields_to_client_matters_table.php`, `2026_04_21_000000_add_type_to_personal_document_types_table.php`, `2026_03_09_000000_add_client_portal_payment_columns_to_account_client_receipts.php`, `2026_02_22_120000_drop_points_columns_from_client_qualifications_table.php`, `WorkflowV2Display`, `2026_02_25_000000_create_lead_matter_references_and_migrate.php`, `2025_12_15_000001_fix_and_migrate_client_addresses.php`, `2026_02_28_120000_migrate_application_documents_to_documents.php`, `2026_02_26_000000_create_lead_reminders_and_migrate.php`, `2026_05_16_000000_create_chatbot_faqs_table.php`, `2026_02_27_000000_create_email_templates_and_migrate.php`, `2026_03_21_100000_add_sheet_access_to_staff_table.php`, `2026_02_27_011605_drop_make_mandatory_date_time_from_cp_doc_checklist.php`, `.mergeCommaSeparatedAdminField`, `2026_03_21_120000_add_eftpos_surcharge_amount_to_account_client_receipts.php`, `2026_05_29_000002_add_email_log_events_and_engagement_columns.php`, `Illuminate\Support\Collection`, `2026_04_23_140000_add_account_client_receipts_filter_sum_index.php`, `2025_12_15_000002_fix_and_migrate_client_travel_informations.php`, `2026_06_13_000003_add_refused_visa_type_to_client_matter_references.php`, `2026_02_18_000000_create_message_attachments_table.php`, `2026_04_23_100000_add_client_matters_client_id_role_visibility_indexes.php`, `2026_03_27_130000_trustee_company_type_and_widen_trust_abn.php`, `2026_02_28_100000_create_company_trading_names_table.php`, `2026_02_28_100002_create_company_directors_table.php`, `2026_03_07_000000_fix_client_eoi_references_checked_by_fk_to_staff.php`, `2026_03_24_120001_create_client_access_grants_table.php`, `2026_07_11_100000_create_workflow_stage_checklists_table.php`, `2026_02_22_140000_drop_representing_partners_and_applications_partner_id.php`, `2025_10_04_192020_create_phone_verifications_table.php`, `2026_03_31_201000_add_lead_id_to_documents_table.php`?**
+- **Why does `Schema` connect `Schema` to `2026_02_28_150000_rename_typename_and_type_in_cp_doc_checklists.php`, `2026_04_01_100000_create_front_desk_check_ins_table.php`, `Admin`, `.now`, `EmailLog`, `App`, `2026_03_13_000000_drop_smtp_and_password_from_emails_table.php`, `2026_04_01_120000_add_google_review_reminder_columns_to_admins_table.php`, `ClientCrmFollowups.php`, `TestCase`, `VisaTypeSheetController`, `Staff`, `2026_02_16_100000_add_is_pinned_to_client_reference_tables.php`, `2026_07_29_120000_create_receipt_sequences_table.php`, `2025_12_17_171644_add_agent_fields_to_admins_table.php`, `2025_10_04_202014_add_verification_fields_to_client_emails_table.php`, `0001_01_01_000000_create_users_table.php`, `2025_10_10_171531_drop_seo_pages_table.php`, `Illuminate\Database\Migrations\Migration`, `.create`, `.response`, `2025_10_13_190305_add_proficiency_level_to_client_testscore_table.php`, `2025_10_14_201735_add_sms_fields_to_activities_logs_table.php`, `2025_10_21_190455_create_document_notes_table.php`, `Illuminate\Http\Request`, `0001_01_01_000000_create_admins_table.php`, `2025_10_21_225122_add_signed_hash_to_documents_table.php`, `2024_01_01_000000_create_client_passport_informations_table.php`, `2025_10_25_172232_add_python_analysis_to_mail_reports.php`, `2025_10_12_185509_add_eoi_roi_workflow_columns_to_client_eoi_references_table.php`, `2025_10_04_192042_add_verification_columns_to_client_contacts_table.php`, `2025_11_06_210000_fix_client_occupations_foreign_key.php`, `2025_12_25_201151_fix_admins_table_primary_key_and_duplicate_id.php`, `2025_10_08_100000_create_anzsco_occupations_table.php`, `2025_10_12_223206_add_points_calculation_fields_to_client_qualifications_table.php`, `2025_12_16_174047_add_indexes_to_notifications_table.php`, `2025_10_14_201641_create_sms_logs_table.php`, `2026_01_26_174555_add_company_fields_to_admins_table.php`, `2025_10_12_223235_add_fte_multiplier_to_client_experiences_table.php`, `2026_02_20_160000_drop_polymorphic_and_signature_dashboard_columns_from_documents.php`, `2025_10_15_183908_add_description_to_sms_templates_table.php`, `2026_02_21_000000_drop_agents_table.php`, `2025_10_25_190321_remove_category_priority_from_mail_reports.php`, `2025_11_09_044318_update_booking_appointments_client_fk.php`, `2025_12_14_155107_fix_migrations_id_sequence.php`, `2025_12_17_185802_fix_client_contacts_verified_by_foreign_key.php`, `0001_01_01_000002_create_jobs_table.php`, `2026_02_11_000002_drop_att_contact_columns_from_admins_table.php`, `2025_12_26_000001_fix_all_tables_primary_keys_and_duplicate_ids.php`, `ClientEoiReference`, `2025_10_04_171643_add_passport_country_to_client_passport_informations_table.php`, `2026_02_16_000011_add_pr_checklist_status_to_client_matters.php`, `2026_01_10_171719_add_cancelled_at_to_signers_table.php`, `2026_01_10_175646_increase_signers_status_column_length.php`, `2026_02_14_100000_drop_profile_img_telephone_eoi_columns.php`, `2026_02_16_000006_create_visitor_matter_reminders_table.php`, `2026_01_28_100000_create_appointment_payments_table.php`, `2026_02_11_000003_drop_bansal_lead_columns_from_admins_table.php`, `2026_02_11_000004_drop_phase4_legacy_columns_from_admins_table.php`, `2026_02_16_000002_add_tr_checklist_status_to_client_matters.php`, `2025_10_24_152207_add_composite_indexes_to_notes_table.php`, `2026_02_16_000004_create_client_visitor_references_table.php`, `2026_02_14_000000_create_staff_table.php`, `2026_02_16_000001_create_client_tr_references_table.php`, `2025_12_17_145310_add_office_to_client_matters_and_documents.php`, `Log`, `2026_02_16_000003_create_tr_matter_reminders_table.php`, `2025_11_22_005215_create_clientportal_details_audit_table.php`, `2026_02_16_000010_create_client_pr_references_table.php`, `2026_02_16_000013_create_client_employer_sponsored_references_table.php`, `2026_02_17_000000_add_client_application_sent_to_account_client_receipts.php`, `2025_12_27_004110_add_default_values_to_appointment_sync_logs_table.php`, `2026_02_20_100000_create_lead_visa_checklist_references_tables.php`, `2026_02_20_150000_drop_unused_documents_columns.php`, `Storage`, `2025_10_20_191713_add_signature_dashboard_fields_to_documents_table.php`, `2026_02_16_000009_create_student_matter_reminders_table.php`, `2025_12_15_000000_fix_and_migrate_client_visa_countries.php`, `2026_02_17_000000_add_sort_order_and_reorder_workflow_stages.php`, `2026_02_18_201513_add_form956_id_to_documents_table.php`, `2026_02_23_000002_rename_checklist_tables.php`, `2026_02_17_140000_add_decision_outcome_note_to_client_matters.php`, `2026_02_28_170000_add_director_client_id_to_company_directors_table.php`, `2026_02_23_200000_create_client_matter_references_and_migrate.php`, `2026_04_02_000000_add_grant_super_admin_access_to_staff_table.php`, `2026_04_13_000002_add_arun_calendar.php`, `2026_04_17_120000_create_company_financials_table.php`, `2026_04_22_120000_add_client_matters_dashboard_role_scoped_indexes.php`, `2026_02_24_000000_rename_mail_reports_to_email_logs.php`, `2026_04_23_120000_add_email_log_attachments_email_log_id_index.php`, `2026_05_29_000000_fix_admins_archived_by_fk_to_staff.php`, `2026_02_26_000001_add_kunal_calendar.php`, `2026_06_13_000002_migrate_client_art_references_to_client_matter_references.php`, `2026_03_27_100000_create_company_sponsorships_table.php`, `2026_07_16_120000_create_staff_activity_logs_table.php`, `2026_07_18_000000_add_payment_token_to_booking_appointments.php`, `2026_03_27_120000_add_extended_workforce_fields_to_companies_table.php`, `2026_07_31_000000_add_service_token_columns_to_staff_table.php`, `2026_08_08_120000_add_send_to_legal_crm_to_admins_table.php`, `2026_02_16_000007_create_client_student_references_table.php`, `2026_05_30_120000_add_sheet_comments_to_client_eoi_references.php`, `2026_07_14_000000_add_is_completed_to_cp_doc_checklists.php`, `AppointmentSyncServiceProvider.php`, `WorkflowStage`, `2026_07_24_120000_add_details_verification_to_admins_table.php`, `DB`, `2026_04_24_120000_add_performance_indexes_search_documents_notes_activities.php`, `ClientDetailTabs`, `2024_10_20_000001_create_appointment_consultants_table.php`, `.getColumns`, `patch_visa_agreement_docx_macros.php`, `Illuminate\Database\Schema\Blueprint`, `2025_10_04_202019_create_email_verifications_table.php`, `_ide_helper.php`, `2026_04_01_120000_add_walk_in_contact_to_checkin_logs_table.php`, `StaffPersonalCalendarFeedService`, `Queue`, `2026_04_13_000001_add_show_in_filter_to_appointment_consultants.php`, `2026_04_22_140000_add_global_search_fulltext_indexes.php`, `2026_07_27_120000_add_user_type_to_refresh_and_device_tokens.php`, `2026_02_27_120000_rename_client_application_sent_to_client_portal_sent.php`, `2026_02_28_000000_add_alias_to_email_templates.php`, `2025_12_24_000000_add_tag_type_to_tags_table.php`, `2026_02_14_000001_copy_staff_from_admins_to_staff.php`, `2026_02_22_110000_rename_folloup_and_followup_date_in_notes_table.php`, `2026_05_28_000001_add_outgoing_email_search_index.php`, `2026_04_18_100000_add_lmt_fields_to_client_matters_table.php`, `2026_04_21_000000_add_type_to_personal_document_types_table.php`, `2026_03_09_000000_add_client_portal_payment_columns_to_account_client_receipts.php`, `2026_02_22_120000_drop_points_columns_from_client_qualifications_table.php`, `WorkflowV2Display`, `2026_02_25_000000_create_lead_matter_references_and_migrate.php`, `2025_12_15_000001_fix_and_migrate_client_addresses.php`, `2026_02_28_120000_migrate_application_documents_to_documents.php`, `2026_02_26_000000_create_lead_reminders_and_migrate.php`, `2026_05_16_000000_create_chatbot_faqs_table.php`, `2026_02_27_000000_create_email_templates_and_migrate.php`, `2026_03_21_100000_add_sheet_access_to_staff_table.php`, `2026_02_27_011605_drop_make_mandatory_date_time_from_cp_doc_checklist.php`, `.mergeCommaSeparatedAdminField`, `2026_03_21_120000_add_eftpos_surcharge_amount_to_account_client_receipts.php`, `2026_05_29_000002_add_email_log_events_and_engagement_columns.php`, `Illuminate\Support\Collection`, `2026_04_23_140000_add_account_client_receipts_filter_sum_index.php`, `2025_12_15_000002_fix_and_migrate_client_travel_informations.php`, `2026_06_13_000003_add_refused_visa_type_to_client_matter_references.php`, `2026_02_18_000000_create_message_attachments_table.php`, `2026_04_23_100000_add_client_matters_client_id_role_visibility_indexes.php`, `2026_03_27_130000_trustee_company_type_and_widen_trust_abn.php`, `2026_02_28_100000_create_company_trading_names_table.php`, `2026_02_28_100002_create_company_directors_table.php`, `2026_03_07_000000_fix_client_eoi_references_checked_by_fk_to_staff.php`, `2026_03_24_120001_create_client_access_grants_table.php`, `2026_07_11_100000_create_workflow_stage_checklists_table.php`, `2026_02_22_140000_drop_representing_partners_and_applications_partner_id.php`, `2025_10_04_192020_create_phone_verifications_table.php`, `2026_03_31_201000_add_lead_id_to_documents_table.php`?**
   _High betweenness centrality (0.036) - this node is a cross-community bridge._
-- **Why does `DB` connect `DB` to `BroadcastNotificationService`, `Admin`, `Mail`, `FixDuplicateClientReferences`, `App`, `Illuminate\Database\Eloquent\Model`, `BookingAppointment`, `EmailLog`, `ClientDocumentsController`, `Bus`, `.now`, `Illuminate\Console\Command`, `ClientCrmFollowups.php`, `Document`, `TestCase`, `VisaTypeSheetController`, `Staff`, `Illuminate\Http\Request`, `Illuminate\Database\Migrations\Migration`, `.response`, `Route`, `.config`, `Matter`, `2025_11_06_210000_fix_client_occupations_foreign_key.php`, `2026_04_13_000001_add_show_in_filter_to_appointment_consultants.php`, `2025_12_25_201151_fix_admins_table_primary_key_and_duplicate_id.php`, `2026_01_26_174555_add_company_fields_to_admins_table.php`, `Queue`, `2026_02_20_160000_drop_polymorphic_and_signature_dashboard_columns_from_documents.php`, `2026_04_18_100000_add_lmt_fields_to_client_matters_table.php`, `2026_04_21_000000_add_type_to_personal_document_types_table.php`, `File`, `Illuminate\Http\JsonResponse`, `Session`, `2026_02_25_000000_create_lead_matter_references_and_migrate.php`, `2025_12_14_155107_fix_migrations_id_sequence.php`, `2025_12_17_185802_fix_client_contacts_verified_by_foreign_key.php`, `2026_02_26_000000_create_lead_reminders_and_migrate.php`, `2026_02_28_120000_migrate_application_documents_to_documents.php`, `Illuminate\Contracts\Auth\Authenticatable`, `ClientEoiReference`, `Lead`, `2025_12_26_000001_fix_all_tables_primary_keys_and_duplicate_ids.php`, `2026_01_10_175646_increase_signers_status_column_length.php`, `2026_02_27_000000_create_email_templates_and_migrate.php`, `2026_04_23_140000_add_account_client_receipts_filter_sum_index.php`, `StaffLoginLog`, `Illuminate\Support\Collection`, `2026_03_07_000000_fix_client_eoi_references_checked_by_fk_to_staff.php`, `2026_03_27_130000_trustee_company_type_and_widen_trust_abn.php`, `2026_03_24_120001_create_client_access_grants_table.php`, `2025_12_17_145310_add_office_to_client_matters_and_documents.php`, `AppointmentSyncService`, `Log`, `.cursor`, `.insert`, `2025_12_27_004110_add_default_values_to_appointment_sync_logs_table.php`, `2026_02_28_150000_rename_typename_and_type_in_cp_doc_checklists.php`, `Blade`, `Storage`, `.select`, `2026_02_17_000000_add_sort_order_and_reorder_workflow_stages.php`, `2025_12_15_000000_fix_and_migrate_client_visa_countries.php`, `2026_07_29_120000_create_receipt_sequences_table.php`, `2026_04_13_000002_add_arun_calendar.php`, `2026_02_23_200000_create_client_matter_references_and_migrate.php`, `2026_04_17_120000_create_company_financials_table.php`, `2026_05_29_000000_fix_admins_archived_by_fk_to_staff.php`, `2026_06_13_000002_migrate_client_art_references_to_client_matter_references.php`, `2026_02_24_000000_rename_mail_reports_to_email_logs.php`, `2026_02_26_000001_add_kunal_calendar.php`, `2026_03_27_100000_create_company_sponsorships_table.php`, `Form956Controller`, `Gate`, `CompanyVisaAgreementMacroBuilder`, `AppointmentSyncServiceProvider.php`, `VisaAgreementTemplateResolver`, `ClientMatter`, `Illuminate\Database\Seeder`, `AppointmentPayment`, `DataTables`, `Cache`, `PublicLeadInquiryService`, `2026_04_24_120000_add_performance_indexes_search_documents_notes_activities.php`, `DashboardService`, `Illuminate\Database\Schema\Blueprint`, `_ide_helper.php`, `AnzscoImportService`, `ClearStuckServiceAccountTokenJobs`, `2026_04_22_140000_add_global_search_fulltext_indexes.php`, `2026_07_27_120000_add_user_type_to_refresh_and_device_tokens.php`, `Illuminate\Support\Facades\Schema`, `2025_12_24_000000_add_tag_type_to_tags_table.php`, `2026_02_14_000001_copy_staff_from_admins_to_staff.php`, `2026_02_22_110000_rename_folloup_and_followup_date_in_notes_table.php`, `WorkflowV2Display`, `Schema`, `2025_12_15_000001_fix_and_migrate_client_addresses.php`, `.mergeCommaSeparatedAdminField`, `2025_12_15_000002_fix_and_migrate_client_travel_informations.php`?**
+- **Why does `DB` connect `DB` to `Kyslik\ColumnSortable\Sortable`, `BroadcastNotificationService`, `Admin`, `.now`, `Mail`, `FixDuplicateClientReferences`, `App`, `EmailLog`, `BookingAppointment`, `ClientDocumentsController`, `Bus`, `Carbon`, `Illuminate\Console\Command`, `ClientCrmFollowups.php`, `Document`, `TestCase`, `VisaTypeSheetController`, `Staff`, `Auth`, `Illuminate\Database\Migrations\Migration`, `.response`, `Route`, `Illuminate\Http\Request`, `Matter`, `2025_11_06_210000_fix_client_occupations_foreign_key.php`, `Illuminate\Support\Facades\Schema`, `2025_12_25_201151_fix_admins_table_primary_key_and_duplicate_id.php`, `2026_01_26_174555_add_company_fields_to_admins_table.php`, `2026_04_13_000001_add_show_in_filter_to_appointment_consultants.php`, `Queue`, `2026_02_20_160000_drop_polymorphic_and_signature_dashboard_columns_from_documents.php`, `2026_04_18_100000_add_lmt_fields_to_client_matters_table.php`, `2026_04_21_000000_add_type_to_personal_document_types_table.php`, `File`, `Illuminate\Http\JsonResponse`, `Session`, `2026_02_25_000000_create_lead_matter_references_and_migrate.php`, `2025_12_14_155107_fix_migrations_id_sequence.php`, `2025_12_17_185802_fix_client_contacts_verified_by_foreign_key.php`, `2026_02_26_000000_create_lead_reminders_and_migrate.php`, `2026_02_28_120000_migrate_application_documents_to_documents.php`, `Illuminate\Contracts\Auth\Authenticatable`, `ClientEoiReference`, `Lead`, `2025_12_26_000001_fix_all_tables_primary_keys_and_duplicate_ids.php`, `2026_01_10_175646_increase_signers_status_column_length.php`, `2026_02_27_000000_create_email_templates_and_migrate.php`, `2026_04_23_140000_add_account_client_receipts_filter_sum_index.php`, `StaffLoginLog`, `Illuminate\Support\Collection`, `2026_03_07_000000_fix_client_eoi_references_checked_by_fk_to_staff.php`, `2026_03_27_130000_trustee_company_type_and_widen_trust_abn.php`, `2026_03_24_120001_create_client_access_grants_table.php`, `2025_12_17_145310_add_office_to_client_matters_and_documents.php`, `AppointmentSyncService`, `Log`, `.cursor`, `.insert`, `2025_12_27_004110_add_default_values_to_appointment_sync_logs_table.php`, `2026_02_28_150000_rename_typename_and_type_in_cp_doc_checklists.php`, `Blade`, `Storage`, `.select`, `2026_02_17_000000_add_sort_order_and_reorder_workflow_stages.php`, `2025_12_15_000000_fix_and_migrate_client_visa_countries.php`, `2026_07_29_120000_create_receipt_sequences_table.php`, `2026_04_13_000002_add_arun_calendar.php`, `2026_02_23_200000_create_client_matter_references_and_migrate.php`, `2026_04_17_120000_create_company_financials_table.php`, `2026_05_29_000000_fix_admins_archived_by_fk_to_staff.php`, `2026_06_13_000002_migrate_client_art_references_to_client_matter_references.php`, `2026_02_24_000000_rename_mail_reports_to_email_logs.php`, `2026_02_26_000001_add_kunal_calendar.php`, `2026_03_27_100000_create_company_sponsorships_table.php`, `Form956Controller`, `Gate`, `ClientReferenceService`, `CompanyVisaAgreementMacroBuilder`, `AppointmentSyncServiceProvider.php`, `VisaAgreementTemplateResolver`, `ClientMatter`, `WorkflowStage`, `Illuminate\Database\Seeder`, `AppointmentPayment`, `DataTables`, `Cache`, `2026_04_24_120000_add_performance_indexes_search_documents_notes_activities.php`, `DashboardService`, `DocumentController`, `Illuminate\Database\Schema\Blueprint`, `_ide_helper.php`, `AnzscoImportService`, `ClearStuckServiceAccountTokenJobs`, `InvoicePaymentSyncService`, `2026_04_22_140000_add_global_search_fulltext_indexes.php`, `2026_07_27_120000_add_user_type_to_refresh_and_device_tokens.php`, `Controller`, `2025_12_24_000000_add_tag_type_to_tags_table.php`, `2026_02_14_000001_copy_staff_from_admins_to_staff.php`, `2026_02_22_110000_rename_folloup_and_followup_date_in_notes_table.php`, `WorkflowV2Display`, `Schema`, `2025_12_15_000001_fix_and_migrate_client_addresses.php`, `.mergeCommaSeparatedAdminField`, `2025_12_15_000002_fix_and_migrate_client_travel_informations.php`?**
   _High betweenness centrality (0.034) - this node is a cross-community bridge._
 - **Are the 552 inferred relationships involving `DB` (e.g. with `.join()` and `.handle()`) actually correct?**
   _`DB` has 552 INFERRED edges - model-reasoned connections that need verification._
