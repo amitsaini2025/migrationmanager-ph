@@ -963,6 +963,10 @@
         outline: 0;
     }
 
+    #create_task_modal .js-data-example-ajaxccsearch__dashboardtask {
+        width: 100%;
+    }
+
     .custom-error {
         color: #dc3545;
         font-size: 12px;
@@ -1103,23 +1107,7 @@ $(function () {
                         allowClear: true,
                         width: '100%',
                         dropdownParent: $popoverCtx.length ? $popoverCtx : $('.popover.show').last(),
-                        ajax: {
-                            url: '{{URL::to('/clients/get-allclients')}}',
-                            dataType: 'json',
-                            delay: 350,
-                            data: function (params) {
-                                return { q: params.term || '' };
-                            },
-                            processResults: function (data) {
-                                if (!data || typeof data !== 'object') {
-                                    return { results: [] };
-                                }
-                                return {
-                                    results: data.items || []
-                                };
-                            },
-                            cache: true
-                        },
+                        ajax: dashboardClientSearchAjax(),
                         templateResult: formatRepomainMYTask,
                         templateSelection: formatRepoSelectionmainMYTask,
                         minimumInputLength: 2
@@ -1136,6 +1124,47 @@ $(function () {
 
         tryInitialize();
     }
+
+    function dashboardClientSearchAjax() {
+        return {
+            url: '{{ URL::to('/clients/get-allclients') }}',
+            dataType: 'json',
+            delay: 350,
+            data: function (params) {
+                return { q: params.term || '' };
+            },
+            processResults: function (data) {
+                if (!data || typeof data !== 'object') {
+                    return { results: [] };
+                }
+                return {
+                    results: data.items || []
+                };
+            },
+            cache: true
+        };
+    }
+
+    $(document).on('shown.bs.modal', '#create_task_modal', function () {
+        var $clientSelect = $('#dashboard_client_select');
+        if (!$clientSelect.length || typeof $clientSelect.mmSelect !== 'function') {
+            return;
+        }
+        if ($clientSelect.hasClass('mm-select-initialized')) {
+            return;
+        }
+        $clientSelect.mmSelect({
+            closeOnSelect: true,
+            placeholder: 'Search client...',
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#create_task_modal'),
+            ajax: dashboardClientSearchAjax(),
+            templateResult: formatRepomainMYTask,
+            templateSelection: formatRepoSelectionmainMYTask,
+            minimumInputLength: 2
+        });
+    });
 
     function formatRepomainMYTask (repo) {
         if (repo.loading) {

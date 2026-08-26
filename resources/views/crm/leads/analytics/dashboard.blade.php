@@ -477,7 +477,7 @@ const qualityChart = new Chart(qualityCtx, {
 function applyDateFilter() {
     const startDate = document.getElementById('start_date').value;
     const endDate = document.getElementById('end_date').value;
-    window.location.href = `{{ route('leads.analytics') }}?start_date=${startDate}&end_date=${endDate}`;
+    window.location.href = `{{ route('leads.analytics.index') }}?start_date=${startDate}&end_date=${endDate}`;
 }
 
 // Export function

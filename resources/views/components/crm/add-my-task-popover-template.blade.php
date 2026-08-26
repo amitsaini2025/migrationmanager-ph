@@ -19,22 +19,21 @@
                     <label class="dropdown-item"><input type="checkbox" id="select-all" /> <strong>Select All</strong></label>
                     <div style="border-top: 1px solid #e2e8f0; margin: 5px 0;"></div>
                     <div class="assignee-list">
-                        @foreach(\App\Models\Staff::where('status',1)->orderby('first_name','ASC')->get() as $admin)
+                        @foreach(\App\Support\AssigneeDropdownStaff::activeWithOffice() as $admin)
                             @php
-                                $branchname = \App\Models\Branch::where('id',$admin->office_id)->first();
-                                $searchText = strtolower($admin->first_name . $admin->last_name . (@$branchname->office_name ?? ''));
-                                $searchText = str_replace(' ', '', $searchText);
+                                $officeName = $admin->office?->office_name ?? '';
+                                $searchText = str_replace(' ', '', strtolower($admin->first_name . $admin->last_name . $officeName));
                             @endphp
                             <label class="dropdown-item assignee-item" data-searchtext="{{ e($searchText) }}">
                                 <input type="checkbox" class="checkbox-item" value="{{ $admin->id }}">
-                                {{ e($admin->first_name) }} {{ e($admin->last_name) }} ({{ e(@$branchname->office_name ?? '') }})
+                                {{ e($admin->first_name) }} {{ e($admin->last_name) }} ({{ e($officeName) }})
                             </label>
                         @endforeach
                     </div>
                 </div>
             </div>
             <select class="d-none" id="rem_cat" name="rem_cat[]" multiple="multiple">
-                @foreach(\App\Models\Staff::where('status',1)->orderby('first_name','ASC')->get() as $admin)
+                @foreach(\App\Support\AssigneeDropdownStaff::activeWithOffice() as $admin)
                     <option value="{{ $admin->id }}">{{ e($admin->first_name) }} {{ e($admin->last_name) }}</option>
                 @endforeach
             </select>

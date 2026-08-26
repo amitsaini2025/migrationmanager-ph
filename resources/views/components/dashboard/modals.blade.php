@@ -19,11 +19,8 @@
                         <label class="simple-form-label">
                             @icon('user', ['class' => 'text-primary']) Client
                         </label>
-                        <select class="simple-form-control" id="dashboard_client_select" name="client_id" required>
+                        <select class="simple-form-control js-data-example-ajaxccsearch__dashboardtask" id="dashboard_client_select" name="client_id" data-placeholder="Search and select client..." required>
                             <option value="">Search client...</option>
-                            @foreach(\App\Models\Admin::select('id','first_name','last_name','client_id')->whereIn('type', ['client', 'lead'])->orderBy('first_name')->get() as $client)
-                                <option value="{{ base64_encode(convert_uuencode($client->id)) }}">{{ $client->first_name }} {{ $client->last_name }} ({{ $client->client_id }})</option>
-                            @endforeach
                         </select>
                         <span class="custom-error client_error" role="alert" style="display: none;"></span>
                     </div>
@@ -47,14 +44,14 @@
                                 </div>
                                 <hr class="dropdown-divider">
                                 <div id="dashboard-staff-list" class="staff-list-container">
-                                    @foreach(\App\Models\Staff::where('status',1)->orderby('first_name','ASC')->get() as $admin)
-                                    <?php $branchname = \App\Models\Branch::where('id',$admin->office_id)->first(); ?>
-                                    <div class="staff-item modern-staff-item" data-name="{{ strtolower($admin->first_name.' '.$admin->last_name.' '.@$branchname->office_name) }}">
+                                    @foreach(\App\Support\AssigneeDropdownStaff::activeWithOffice() as $admin)
+                                    @php $officeName = $admin->office?->office_name ?? ''; @endphp
+                                    <div class="staff-item modern-staff-item" data-name="{{ strtolower($admin->first_name.' '.$admin->last_name.' '.$officeName) }}">
                                         <label class="modern-staff-label">
-                                            <input type="checkbox" class="checkbox-item modern-checkbox dashboard-checkbox-item" value="{{ $admin->id }}" data-name="{{ $admin->first_name }} {{ $admin->last_name }} ({{ @$branchname->office_name }})">
+                                            <input type="checkbox" class="checkbox-item modern-checkbox dashboard-checkbox-item" value="{{ $admin->id }}" data-name="{{ $admin->first_name }} {{ $admin->last_name }} ({{ $officeName }})">
                                             @icon('circle-user', ['class' => 'mr-2 text-muted icon-sm'])
                                             <span class="staff-name">{{ $admin->first_name }} {{ $admin->last_name }}</span>
-                                            <span class="staff-branch text-muted">({{ @$branchname->office_name }})</span>
+                                            <span class="staff-branch text-muted">({{ $officeName }})</span>
                                         </label>
                                     </div>
                                     @endforeach
@@ -62,9 +59,9 @@
                             </div>
                         </div>
                         <select class="d-none" id="dashboard_rem_cat" name="rem_cat[]" multiple="multiple">
-                            @foreach(\App\Models\Staff::where('status',1)->orderby('first_name','ASC')->get() as $admin)
-                            <?php $branchname = \App\Models\Branch::where('id',$admin->office_id)->first(); ?>
-                            <option value="{{ $admin->id }}">{{ $admin->first_name }} {{ $admin->last_name }} ({{ @$branchname->office_name }})</option>
+                            @foreach(\App\Support\AssigneeDropdownStaff::activeWithOffice() as $admin)
+                            @php $officeName = $admin->office?->office_name ?? ''; @endphp
+                            <option value="{{ $admin->id }}">{{ $admin->first_name }} {{ $admin->last_name }} ({{ $officeName }})</option>
                             @endforeach
                         </select>
                         <span class="custom-error assignee_error" role="alert" style="display: none;"></span>
