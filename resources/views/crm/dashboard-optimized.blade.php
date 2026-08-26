@@ -606,7 +606,7 @@
     color: white;
 }
 
-.spinner {
+.spinner-container .spinner {
     width: 50px;
     height: 50px;
     border: 4px solid rgba(255, 255, 255, 0.3);

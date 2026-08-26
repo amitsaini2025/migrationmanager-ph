@@ -45,9 +45,15 @@
 
 .ts-dropdown .no-results,
 .ts-dropdown .spinner,
+.ts-dropdown .mm-select-loading,
 .ts-dropdown .create {
   background-color: #ffffff !important;
   color: #495057 !important;
+}
+
+.ts-dropdown .mm-select-loading {
+  padding: 0.5rem 0.75rem;
+  white-space: nowrap;
 }
 
 .card .card-body .form-group .ts-wrapper,

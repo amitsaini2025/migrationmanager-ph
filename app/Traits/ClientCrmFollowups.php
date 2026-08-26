@@ -3052,13 +3052,7 @@ trait ClientCrmFollowups
         }
 
         // 3. Admins (clients / leads)
-        $d = '';
-        if (strstr($squery, '/')) {
-            $dob = explode('/', $squery);
-            if (! empty($dob) && is_array($dob)) {
-                $d = $dob[2].'/'.$dob[1].'/'.$dob[0];
-            }
-        }
+        $d = $this->globalSearchDobFromQuery($squery);
 
         $clientsQuery = Admin::query()
             ->with(['company.contactPerson'])
@@ -3320,6 +3314,23 @@ trait ClientCrmFollowups
         } catch (\Throwable) {
             return $cache[$key] = false;
         }
+    }
+
+    /**
+     * Reverse a dd/mm/yyyy search to yyyy/mm/dd for admins.dob. Incomplete slash queries stay empty.
+     */
+    protected function globalSearchDobFromQuery(string $squery): string
+    {
+        if (! str_contains($squery, '/')) {
+            return '';
+        }
+
+        $dob = explode('/', $squery);
+        if (count($dob) < 3 || $dob[0] === '' || $dob[1] === '' || $dob[2] === '') {
+            return '';
+        }
+
+        return $dob[2].'/'.$dob[1].'/'.$dob[0];
     }
 
     /**

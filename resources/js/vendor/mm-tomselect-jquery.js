@@ -314,7 +314,7 @@ export function registerMmTomSelectBridge($, TomSelect) {
     if (legacyOpts.ajax) {
       opts.render = opts.render || {};
       opts.render.loading = function () {
-        return '<div class="spinner">Searching...</div>';
+        return '<div class="mm-select-loading">Searching...</div>';
       };
     }
 
