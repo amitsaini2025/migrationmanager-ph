@@ -310,6 +310,41 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('.checklist-accordion', $checklistsBlade);
         Assert::assertStringContainsString('.checklist-item-wrapper', $checklistsBlade);
         Assert::assertStringNotContainsString("@push('scripts')", $checklistsBlade);
+        Assert::assertStringNotContainsString('openSignaturePlacementModal', $checklistsBlade);
+        Assert::assertStringNotContainsString('signaturePlacementModal', $checklistsBlade);
+    }
+
+    #[Test]
+    public function signature_placement_modal_is_shared_and_not_tied_to_checklists_tab(): void
+    {
+        $module = file_get_contents($this->projectPath('public/js/crm/clients/modules/signature-placement.js'));
+        Assert::assertNotFalse($module);
+        Assert::assertStringContainsString('openSignaturePlacementModal.signaturePlacementUi', $module);
+        Assert::assertStringContainsString('.btn-place-signature-fields', $module);
+        Assert::assertStringContainsString('window.openSignaturePlacementModal', $module);
+        Assert::assertStringContainsString('window.__signaturePlacementUiBound', $module);
+        Assert::assertStringContainsString('/documents/', $module);
+        Assert::assertStringContainsString('signature-placement-data', $module);
+
+        $clientDetail = file_get_contents($this->projectPath('resources/views/crm/clients/detail.blade.php'));
+        Assert::assertNotFalse($clientDetail);
+        Assert::assertStringContainsString('js/crm/clients/modules/signature-placement.js', $clientDetail);
+
+        $companyDetail = file_get_contents($this->projectPath('resources/views/crm/companies/detail.blade.php'));
+        Assert::assertNotFalse($companyDetail);
+        Assert::assertStringContainsString('js/crm/clients/modules/signature-placement.js', $companyDetail);
+
+        $visaBlade = file_get_contents($this->projectPath('resources/views/crm/clients/tabs/visa_documents.blade.php'));
+        Assert::assertNotFalse($visaBlade);
+        Assert::assertStringContainsString("$(document).trigger('openSignaturePlacementModal'", $visaBlade);
+
+        $nominationBlade = file_get_contents($this->projectPath('resources/views/crm/companies/tabs/nomination_documents.blade.php'));
+        Assert::assertNotFalse($nominationBlade);
+        Assert::assertStringContainsString("$(document).trigger('openSignaturePlacementModal'", $nominationBlade);
+
+        $modal = file_get_contents($this->projectPath('resources/views/crm/clients/modals/checklists.blade.php'));
+        Assert::assertNotFalse($modal);
+        Assert::assertStringContainsString('id="signaturePlacementModal"', $modal);
     }
 
     #[Test]

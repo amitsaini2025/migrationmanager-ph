@@ -1586,6 +1586,7 @@ $(document).ready(function() {
 <script src="{{ URL::asset('js/crm/clients/modules/notes.js') }}"></script>
 <script src="{{ URL::asset('js/crm/clients/modules/checklist.js') }}?v={{ file_exists(public_path('js/crm/clients/modules/checklist.js')) ? filemtime(public_path('js/crm/clients/modules/checklist.js')) : 1 }}"></script>
 <script src="{{ URL::asset('js/crm/clients/modules/documents.js') }}?v={{ file_exists(public_path('js/crm/clients/modules/documents.js')) ? filemtime(public_path('js/crm/clients/modules/documents.js')) : 1 }}"></script>
+<script src="{{ URL::asset('js/crm/clients/modules/signature-placement.js') }}?v={{ file_exists(public_path('js/crm/clients/modules/signature-placement.js')) ? filemtime(public_path('js/crm/clients/modules/signature-placement.js')) : 1 }}"></script>
 <script src="{{ URL::asset('js/crm/clients/modules/accounts.js') }}"></script>
 <script src="{{ URL::asset('js/crm/clients/modules/invoices.js') }}"></script>
 <script src="{{ URL::asset('js/crm/clients/modules/appointments.js') }}"></script>
