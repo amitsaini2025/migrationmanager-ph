@@ -3,30 +3,32 @@
 namespace App\Services;
 
 use App\Models\Admin;
+use App\Models\ClientAddress;
+use App\Models\ClientCharacter;
 use App\Models\ClientContact;
 use App\Models\ClientEmail;
-use App\Models\ClientVisaCountry;
-use App\Models\ClientAddress;
-use App\Models\ClientQualification;
-use App\Models\ClientExperience;
-use App\Models\ClientOccupation;
-use App\Models\ClientTestScore;
-use App\Models\ClientSpouseDetail;
-use App\Models\ClientPassportInformation;
-use App\Models\ClientTravelInformation;
-use App\Models\ClientCharacter;
-use App\Models\ClientRelationship;
 use App\Models\ClientEoiReference;
-use App\Models\Matter;
+use App\Models\ClientExperience;
+use App\Models\ClientMatter;
+use App\Models\ClientOccupation;
+use App\Models\ClientPassportInformation;
+use App\Models\ClientQualification;
+use App\Models\ClientRelationship;
+use App\Models\ClientSpouseDetail;
+use App\Models\ClientTestScore;
+use App\Models\ClientTravelInformation;
+use App\Models\ClientVisaCountry;
 use App\Models\Country;
+use App\Models\Matter;
+use App\Models\Staff;
 
 /**
  * ClientEditService
- * 
+ *
  * Handles data preparation for client edit page with optimized queries.
  * Eliminates N+1 query problems by eager loading relationships and
  * loading dropdown data once.
- * 
+ *
  * Used by:
  * - ClientsController@edit
  * - ClientPersonalDetailsController@clientdetailsinfo
@@ -35,19 +37,23 @@ class ClientEditService
 {
     /**
      * Get all data needed for client edit page with optimized queries
-     * 
-     * @param int $clientId
-     * @return array
+     *
+     * @return array<string, mixed>
      */
     public function getClientEditData(int $clientId): array
     {
-        // Get client data with partner relationship eager loaded
         $clientData = $this->getClientData($clientId);
-        
+
+        if (! $clientData) {
+            return [
+                'fetchedData' => null,
+            ];
+        }
+
         return [
             'fetchedData' => $clientData,
-            'clientContacts' => $this->getClientContacts($clientId),
-            'emails' => $this->getClientEmails($clientId),
+            'clientContacts' => $this->getClientContacts($clientId, $clientData),
+            'emails' => $this->getClientEmails($clientId, $clientData),
             'visaCountries' => $this->getVisaCountries($clientId),
             'clientAddresses' => $this->getClientAddresses($clientId),
             'qualifications' => $this->getQualifications($clientId),
@@ -60,20 +66,41 @@ class ClientEditService
             'clientCharacters' => $this->getCharacters($clientId),
             'clientPartners' => $this->getRelationships($clientId),
             'clientEoiReferences' => $this->getEoiReferences($clientId),
-            
+
             // Dropdown data - loaded ONCE to prevent N+1 queries
             'visaTypes' => $this->getVisaTypes(),
             'countries' => $this->getCountries(),
+            'latestMatterRefNo' => $this->getLatestMatterRefNo($clientId, (string) $clientData->type),
+            'detailsVerifiedByName' => $this->resolveDetailsVerifiedByName($clientData),
         ];
     }
 
     /**
-     * Get client basic data with partner and company relationships eager loaded
-     * This prevents N+1 query when accessing $fetchedData->partner or $fetchedData->company in blade
+     * Get client basic data with partner (and company, when needed) eager loaded.
+     * Company graph is skipped for individual clients.
      */
     protected function getClientData(int $clientId)
     {
-        return Admin::with(['partner', 'company.contactPerson', 'company.tradingNames', 'company.directors.directorClient', 'company.nominations.nominatedClient', 'company.sponsorships', 'company.financials'])->find($clientId);
+        $client = Admin::query()
+            ->whereIn('type', ['client', 'lead'])
+            ->with([
+                'partner',
+                'detailsVerifiedByStaff:id,first_name,last_name,email',
+            ])
+            ->find($clientId);
+
+        if ($client && $client->is_company) {
+            $client->load([
+                'company.contactPerson',
+                'company.tradingNames',
+                'company.directors.directorClient',
+                'company.nominations.nominatedClient',
+                'company.sponsorships',
+                'company.financials',
+            ]);
+        }
+
+        return $client;
     }
 
     /**
@@ -81,56 +108,53 @@ class ClientEditService
      * Falls back to admins table if no records in client_contacts
      * Always returns ClientContact models for consistency
      */
-    protected function getClientContacts(int $clientId)
+    protected function getClientContacts(int $clientId, ?Admin $admin = null)
     {
-        // Check if records exist in client_contacts table
-        if (ClientContact::where('client_id', $clientId)->exists()) {
-            return ClientContact::where('client_id', $clientId)->get();
+        $contacts = ClientContact::where('client_id', $clientId)->get();
+        if ($contacts->isNotEmpty()) {
+            return $contacts;
         }
-        
-        // Fallback: Convert Admin data to ClientContact models (without saving to DB)
-        // This ensures the blade template always receives ClientContact instances
-        $admin = Admin::where('id', $clientId)->first();
-        if ($admin && !empty($admin->phone)) {
-            // Create a ClientContact instance from Admin data (temporary, not persisted)
-            $clientContact = new ClientContact();
-            $clientContact->id = null; // No DB record yet - will be created on save
+
+        $admin ??= Admin::where('id', $clientId)->first();
+        if ($admin && ! empty($admin->phone)) {
+            $clientContact = new ClientContact;
+            $clientContact->id = null;
             $clientContact->client_id = $clientId;
             $clientContact->contact_type = $admin->contact_type ?? 'Personal';
             $clientContact->country_code = $admin->country_code ?? '';
             $clientContact->phone = $admin->phone;
-            $clientContact->is_verified = false; // Default to unverified
+            $clientContact->is_verified = false;
             $clientContact->verified_at = null;
             $clientContact->verified_by = null;
-            
-            // Mark as temporary so form knows to create new record on save
-            $clientContact->exists = false; // Tell Eloquent this is a new model
-            
-            return collect([$clientContact]); // Return as collection
+            $clientContact->exists = false;
+
+            return collect([$clientContact]);
         }
-        
-        return collect(); // Return empty collection
+
+        return collect();
     }
 
     /**
      * Get client email addresses
      * Falls back to admins table if no records in client_emails
      */
-    protected function getClientEmails(int $clientId)
+    protected function getClientEmails(int $clientId, ?Admin $admin = null)
     {
-        // Check if records exist in client_emails table
-        if (ClientEmail::where('client_id', $clientId)->exists()) {
-            return ClientEmail::where('client_id', $clientId)->get();
+        $emails = ClientEmail::where('client_id', $clientId)->get();
+        if ($emails->isNotEmpty()) {
+            return $emails;
         }
-        
-        // Fallback to admins table
-        if (Admin::where('id', $clientId)->exists()) {
-            return Admin::select('email', 'email_type')
-                ->where('id', $clientId)
-                ->get();
+
+        $admin ??= Admin::where('id', $clientId)->first();
+        if ($admin) {
+            return collect([(object) [
+                'id' => null,
+                'email' => $admin->email,
+                'email_type' => $admin->email_type,
+            ]]);
         }
-        
-        return collect(); // Return empty collection
+
+        return collect();
     }
 
     /**
@@ -140,7 +164,7 @@ class ClientEditService
     protected function getVisaCountries(int $clientId)
     {
         return ClientVisaCountry::where('client_id', $clientId)
-            ->with(['matter:id,title,nick_name'])  // Eager load to prevent N+1
+            ->with(['matter:id,title,nick_name'])
             ->orderBy('visa_expiry_date', 'desc')
             ->get() ?? [];
     }
@@ -229,7 +253,7 @@ class ClientEditService
     protected function getRelationships(int $clientId)
     {
         return ClientRelationship::where('client_id', $clientId)
-            ->with(['relatedClient:id,first_name,last_name,email,phone,client_id'])  // Eager load to prevent N+1
+            ->with(['relatedClient:id,first_name,last_name,email,phone,client_id'])
             ->get() ?? [];
     }
 
@@ -266,5 +290,30 @@ class ClientEditService
             ->orderBy('name', 'ASC')
             ->get();
     }
-}
 
+    protected function getLatestMatterRefNo(int $clientId, string $type): ?string
+    {
+        if ($type !== 'client') {
+            return null;
+        }
+
+        return ClientMatter::where('client_id', $clientId)
+            ->where('matter_status', 1)
+            ->orderByDesc('id')
+            ->value('client_unique_matter_no');
+    }
+
+    protected function resolveDetailsVerifiedByName(Admin $client): ?string
+    {
+        if (! $client->details_verified_by) {
+            return null;
+        }
+
+        $name = $client->detailsVerifiedByStaff?->full_name;
+        if (filled($name)) {
+            return $name;
+        }
+
+        return Staff::query()->whereKey($client->details_verified_by)->first()?->full_name;
+    }
+}

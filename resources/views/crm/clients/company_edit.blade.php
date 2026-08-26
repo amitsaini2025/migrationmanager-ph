@@ -1,21 +1,12 @@
 @extends('layouts.crm_client_detail_dashboard')
 
 @php
-    $latestMatterRefNo = null;
-    if (isset($fetchedData) && $fetchedData->type === 'client') {
-        $latestMatter = \App\Models\ClientMatter::where('client_id', $fetchedData->id)
-            ->where('matter_status', 1)
-            ->orderByDesc('id')
-            ->first();
+    $latestMatterRefNo = $latestMatterRefNo ?? null;
+    $detailsVerifiedByName = $detailsVerifiedByName ?? null;
 
-        if ($latestMatter) {
-            $latestMatterRefNo = $latestMatter->client_unique_matter_no;
-        }
-    }
-    
     // Get company data
     $company = $fetchedData->company;
-    $contactPerson = $company && $company->contact_person_id ? \App\Models\Admin::find($company->contact_person_id) : null;
+    $contactPerson = $company?->contactPerson;
     $isTrusteeBusinessType = $company && $company->isTrusteeBusiness();
     $companyTypeForForm = old('company_type', $company ? $company->company_type : '');
     $showTrusteeFieldsInitial = \App\Models\Company::isTrusteeBusinessType($companyTypeForForm);
@@ -111,11 +102,7 @@
                 </div>
 
                 @php
-                    $detailsVerifiedByName = null;
-                    if ($fetchedData->details_verified_by) {
-                        $detailsVerifiedByName = optional($fetchedData->detailsVerifiedByStaff)->full_name
-                            ?: optional(\App\Models\Staff::find($fetchedData->details_verified_by))->full_name;
-                    }
+                    $detailsVerifiedByName = $detailsVerifiedByName ?? null;
                 @endphp
                 <div class="sidebar-details-verify" id="sidebarDetailsVerify"
                      data-client-id="{{ $fetchedData->id }}"
@@ -144,7 +131,7 @@
                 // Current client ID for excluding from search results
                 window.currentClientId = '{{ $fetchedData->id }}';
                 window.currentClientType = @json($fetchedData->type);
-                window.latestClientMatterRef = @json($latestMatterRefNo);
+                window.latestClientMatterRef = @json($latestMatterRefNo ?? null);
             </script>
 
             <!-- Main Content Area -->
@@ -1063,6 +1050,7 @@
     {{-- Tom Select (mmSelect) for contact person search --}}
     <script>
         window.countriesData = @json($countries ?? []);
+        window.visaTypesData = @json($visaTypes ?? []);
         window.phonePopularIsoCodes = @json(config('phone.popular_countries'));
         window.phoneDefaultDialCode = @json(config('phone.default_country_code'));
     </script>

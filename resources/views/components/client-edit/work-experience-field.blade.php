@@ -46,13 +46,11 @@
         
         <div class="form-group">
             <label>Country</label>
-            <select name="job_country_hidden[{{ $index }}]">
+            <select name="job_country_hidden[{{ $index }}]" data-country-select="names" data-selected="{{ $experience->job_country ?? '' }}">
                 <option value="">Select Country</option>
-                @foreach($countries as $country)
-                    <option value="{{ $country }}" {{ ($experience->job_country ?? '') == $country ? 'selected' : '' }}>
-                        {{ $country }}
-                    </option>
-                @endforeach
+                @if(($experience->job_country ?? '') !== '')
+                    <option value="{{ $experience->job_country }}" selected>{{ $experience->job_country }}</option>
+                @endif
             </select>
         </div>
         

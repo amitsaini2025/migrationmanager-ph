@@ -11,13 +11,11 @@
     <div class="content-grid">
         <div class="form-group">
             <label>Visa Type / Subclass</label>
-            <select name="visa_type_hidden[{{ $index }}]" class="visa-type-field">
+            <select name="visa_type_hidden[{{ $index }}]" class="visa-type-field" data-visa-select data-selected="{{ $visa->visa_type ?? '' }}">
                 <option value="">Select Visa Type</option>
-                @foreach($visaTypes as $visaType)
-                    <option value="{{ $visaType->id }}" {{ ($visa->visa_type ?? '') == $visaType->id ? 'selected' : '' }}>
-                        {{ $visaType->title }}{{ $visaType->nick_name ? ' (' . $visaType->nick_name . ')' : '' }}
-                    </option>
-                @endforeach
+                @if(($visa->visa_type ?? '') !== '' && ($visa->visa_type ?? null) !== null)
+                    <option value="{{ $visa->visa_type }}" selected>{{ $visa->matter?->title ?? $visa->visa_type }}{{ $visa->matter?->nick_name ? ' (' . $visa->matter->nick_name . ')' : '' }}</option>
+                @endif
             </select>
         </div>
         

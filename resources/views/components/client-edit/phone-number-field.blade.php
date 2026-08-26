@@ -41,12 +41,9 @@
                             ? PhoneHelper::getDefaultCountryCode()
                             : PhoneHelper::normalizeCountryCode($ccRaw);
                     @endphp
-                    @include('partials.country-code-select', [
-                        'name' => 'country_code['.$index.']',
-                        'selected' => $selectedDial,
-                        'selectClass' => 'country-code-input',
-                        'showPlaceholder' => false,
-                    ])
+                    <select name="country_code[{{ $index }}]" class="country-code-input" data-phone-dial-select data-selected="{{ $selectedDial }}">
+                        <option value="{{ $selectedDial }}" selected>{{ $selectedDial }}</option>
+                    </select>
                 </div>
                 <input type="tel" 
                        name="phone[{{ $index }}]" 

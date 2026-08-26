@@ -2,7 +2,7 @@
 
 Measured **25 Aug 2026** against `http://127.0.0.1:8000` (local, logged-in superadmin).  
 **Ideal:** HTML TTFB **under 800ms** (Google “good” TTFB). **Poor:** over **2.5s** (Google LCP “good” bar).  
-Original probe did not change app code. **Lead analytics** was re-measured the same day after the aggregate-query rewrite (`/leads/analytics`): median HTML TTFB **51ms** (3 runs: 180ms warmup / 51ms / 43ms; HTTP 200). Previously **3.5s** (500), then **1.3s** after the route fix. **Admin Console — E-Signature** was re-measured the same day after the analytics rewrite (`/adminconsole/features/esignature`): median HTML TTFB **70ms** (3 runs: 70ms / 70ms / 143ms warmup; HTTP 200, ~250KB). Analytics queries alone **53ms**. Previously **~10 min**. **Dashboard** was re-measured the same day after the add-task markup rewrite (`/dashboard`): median HTML TTFB **98ms** (3 runs: 231ms warmup / 82ms / 98ms; HTTP 200, ~373KB). Previously **2.6s** (~2.5MB HTML, 252 Blade queries). **Office visit create** (`/office-visits/create`, **10.9s** / 500) was a leftover stub (missing `crm.officevisits.create` view). The live create flow is **Front-desk check-in** (`/front-desk/checkin`). The dead route was removed the same day.
+Original probe did not change app code. **Lead analytics** was re-measured the same day after the aggregate-query rewrite (`/leads/analytics`): median HTML TTFB **51ms** (3 runs: 180ms warmup / 51ms / 43ms; HTTP 200). Previously **3.5s** (500), then **1.3s** after the route fix. **Admin Console — E-Signature** was re-measured the same day after the analytics rewrite (`/adminconsole/features/esignature`): median HTML TTFB **70ms** (3 runs: 70ms / 70ms / 143ms warmup; HTTP 200, ~250KB). Analytics queries alone **53ms**. Previously **~10 min**. **Dashboard** was re-measured the same day after the add-task markup rewrite (`/dashboard`): median HTML TTFB **98ms** (3 runs: 231ms warmup / 82ms / 98ms; HTTP 200, ~373KB). Previously **2.6s** (~2.5MB HTML, 252 Blade queries). **Client edit** was re-measured **26 Aug 2026** after the dropdown-HTML rewrite (`/clients/edit/{id}`): median HTML TTFB **99ms** (3 runs: 327ms warmup / 99ms / 90ms; HTTP 200, ~380KB, 31 queries). Previously **11.2s**. **Office visit create** (`/office-visits/create`, **10.9s** / 500) was a leftover stub (missing `crm.officevisits.create` view). The live create flow is **Front-desk check-in** (`/front-desk/checkin`). The dead route was removed the same day.
 
 Times are **server HTML render only**. A real browser load is slower (CSS/JS/TinyMCE plus polling). `php artisan serve` is single-threaded, so background polls (`/get-activities`, `/fetch-notification`, `/notifications/broadcasts/unread`) often add **1–4s** on top of the numbers below.
 
@@ -12,7 +12,6 @@ Times are **server HTML render only**. A real browser load is slower (CSS/JS/Tin
 
 | Page | Path | TTFB |
 | --- | --- | --- |
-| Client edit | `/clients/edit/{id}` | **11.2s** |
 | Client detail — Account tab | `/clients/detail/.../account` | **2.9s** |
 | Client detail — Checklists tab | `/clients/detail/.../checklists` | **2.7s** |
 
@@ -53,4 +52,4 @@ While using the site, these kept taking **0.5–4s** because they share the PHP 
 
 ---
 
-**OK (under 800ms):** login, profile, bookings list/calendars, office-visit waiting/attending, **Front-desk check-in** (`/front-desk/checkin`; replaced dead `/office-visits/create`), actions, clients/leads/archived lists, **Dashboard** (`/dashboard`, **98ms**, was 2.6s), **Lead analytics** (`/leads/analytics`, **51ms**, was 3.5s / 500 then 1.3s), most Admin Console lists, **Admin Console — E-Signature** (`/adminconsole/features/esignature`, **70ms**, was ~10 min), SMS, offices, roles, teams, ANZSCO, access-grants dashboard.
+**OK (under 800ms):** login, profile, bookings list/calendars, office-visit waiting/attending, **Front-desk check-in** (`/front-desk/checkin`; replaced dead `/office-visits/create`), actions, clients/leads/archived lists, **Dashboard** (`/dashboard`, **98ms**, was 2.6s), **Client edit** (`/clients/edit/{id}`, **99ms**, was 11.2s), **Lead analytics** (`/leads/analytics`, **51ms**, was 3.5s / 500 then 1.3s), most Admin Console lists, **Admin Console — E-Signature** (`/adminconsole/features/esignature`, **70ms**, was ~10 min), SMS, offices, roles, teams, ANZSCO, access-grants dashboard.

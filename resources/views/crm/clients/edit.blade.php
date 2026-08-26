@@ -1,19 +1,5 @@
 @extends('layouts.crm_client_detail_dashboard')
 
-@php
-    $latestMatterRefNo = null;
-    if (isset($fetchedData) && $fetchedData->type === 'client') {
-        $latestMatter = \App\Models\ClientMatter::where('client_id', $fetchedData->id)
-            ->where('matter_status', 1)
-            ->orderByDesc('id')
-            ->first();
-
-        if ($latestMatter) {
-            $latestMatterRefNo = $latestMatter->client_unique_matter_no;
-        }
-    }
-@endphp
-
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/address-autocomplete.css') }}">
     <link rel="stylesheet" href="{{asset('css/client-forms.css')}}">
@@ -89,11 +75,7 @@
                 </div>
 
                 @php
-                    $detailsVerifiedByName = null;
-                    if ($fetchedData->details_verified_by) {
-                        $detailsVerifiedByName = optional($fetchedData->detailsVerifiedByStaff)->full_name
-                            ?: optional(\App\Models\Staff::find($fetchedData->details_verified_by))->full_name;
-                    }
+                    $detailsVerifiedByName = $detailsVerifiedByName ?? null;
                 @endphp
                 <div class="sidebar-details-verify" id="sidebarDetailsVerify"
                      data-client-id="{{ $fetchedData->id }}"
@@ -122,7 +104,7 @@
                 // Current client ID for excluding from search results
                 window.currentClientId = '{{ $fetchedData->id }}';
                 window.currentClientType = @json($fetchedData->type);
-                window.latestClientMatterRef = @json($latestMatterRefNo);
+                window.latestClientMatterRef = @json($latestMatterRefNo ?? null);
             </script>
 
             <!-- Main Content Area -->
@@ -434,10 +416,9 @@
                             <!-- Passport Details -->
                             <div id="passportDetailsContainer">
                                 @foreach($clientPassports as $index => $passport)
-                                    <x-client-edit.passport-field 
-                                        :index="$index" 
-                                        :passport="$passport" 
-                                        :countries="$countries" 
+                                    <x-client-edit.passport-field
+                                        :index="$index"
+                                        :passport="$passport"
                                     />
                                 @endforeach
                             </div>
@@ -512,10 +493,9 @@
                             <div id="visaDetailsSection">
                                 <div id="visaDetailsContainer">
                                     @foreach($visaCountries as $index => $visa)
-                                        <x-client-edit.visa-field 
-                                            :index="$index" 
-                                            :visa="$visa" 
-                                            :visaTypes="$visaTypes" 
+                                        <x-client-edit.visa-field
+                                            :index="$index"
+                                            :visa="$visa"
                                         />
                                     @endforeach
                                 </div>
@@ -607,10 +587,9 @@
                         <div id="travelInfoEdit" class="edit-view" style="display: none;">
                             <div id="travelDetailsContainer">
                                 @foreach($clientTravels as $index => $travel)
-                                    <x-client-edit.travel-field 
-                                        :index="$index" 
-                                        :travel="$travel" 
-                                        :countries="$countries->pluck('name')->toArray()"
+                                    <x-client-edit.travel-field
+                                        :index="$index"
+                                        :travel="$travel"
                                     />
                                 @endforeach
                             </div>
@@ -717,10 +696,9 @@
                         <div id="qualificationsInfoEdit" class="edit-view" style="display: none;">
                             <div id="qualificationsContainer">
                                 @foreach($qualifications as $index => $qualification)
-                                    <x-client-edit.qualification-field 
-                                        :index="$index" 
-                                        :qualification="$qualification" 
-                                        :countries="$countries"
+                                    <x-client-edit.qualification-field
+                                        :index="$index"
+                                        :qualification="$qualification"
                                     />
                                 @endforeach
                             </div>
@@ -818,10 +796,9 @@
                         <div id="experienceInfoEdit" class="edit-view" style="display: none;">
                             <div id="experienceContainer">
                                 @foreach($experiences as $index => $experience)
-                                    <x-client-edit.work-experience-field 
-                                        :index="$index" 
-                                        :experience="$experience" 
-                                        :countries="$countries->pluck('name')->toArray()"
+                                    <x-client-edit.work-experience-field
+                                        :index="$index"
+                                        :experience="$experience"
                                         :isCurrent="$index === 0"
                                     />
                                 @endforeach
@@ -2241,6 +2218,7 @@
     <script>
         // Pass countries data to JavaScript
         window.countriesData = @json($countries);
+        window.visaTypesData = @json($visaTypes);
     </script>
     <script src="{{asset('js/clients/edit-client.js')}}"></script>
     <script src="{{asset('js/clients/english-proficiency.js')}}"></script>

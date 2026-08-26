@@ -11,13 +11,11 @@
     <div class="content-grid">
         <div class="form-group">
             <label>Country Visited</label>
-            <select name="travel_country_visited[{{ $index }}]" class="travel-country-field">
+            <select name="travel_country_visited[{{ $index }}]" class="travel-country-field" data-country-select="names" data-selected="{{ $travel->country_visited ?? '' }}">
                 <option value="">Select Country</option>
-                @foreach($countries as $country)
-                    <option value="{{ $country }}" {{ ($travel->country_visited ?? '') == $country ? 'selected' : '' }}>
-                        {{ $country }}
-                    </option>
-                @endforeach
+                @if(($travel->country_visited ?? '') !== '')
+                    <option value="{{ $travel->country_visited }}" selected>{{ $travel->country_visited }}</option>
+                @endif
             </select>
         </div>
         

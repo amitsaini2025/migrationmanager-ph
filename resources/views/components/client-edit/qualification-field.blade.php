@@ -55,15 +55,11 @@
         
         <div class="form-group">
             <label>Country</label>
-            <select name="qual_country[{{ $index }}]" class="qualification-country-field">
+            <select name="qual_country[{{ $index }}]" class="qualification-country-field" data-country-select="priority" data-selected="{{ $qualification->country ?? '' }}">
                 <option value="">Select Country</option>
-                <option value="India" {{ ($qualification->country ?? '') == 'India' ? 'selected' : '' }}>India</option>
-                <option value="Australia" {{ ($qualification->country ?? '') == 'Australia' ? 'selected' : '' }}>Australia</option>
-                @foreach($countries as $country)
-                    @if($country->name != 'India' && $country->name != 'Australia')
-                        <option value="{{ $country->name }}" {{ ($qualification->country ?? '') == $country->name ? 'selected' : '' }}>{{ $country->name }}</option>
-                    @endif
-                @endforeach
+                @if(($qualification->country ?? '') !== '')
+                    <option value="{{ $qualification->country }}" selected>{{ $qualification->country }}</option>
+                @endif
             </select>
         </div>
         

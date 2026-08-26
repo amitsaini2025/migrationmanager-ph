@@ -432,12 +432,124 @@ let emailsToDelete = [];
 let visaTypesCache = null;
 let countriesCache = null;
 
+function escapeSelectHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function countryNamesFromWindow() {
+    const data = Array.isArray(window.countriesData) ? window.countriesData : [];
+    return data.map(function (country) {
+        if (typeof country === 'string') {
+            return country;
+        }
+        return country && country.name ? country.name : '';
+    }).filter(Boolean);
+}
+
+function buildPriorityCountryOptionsHtml(selected) {
+    const names = countryNamesFromWindow();
+    const seen = {};
+    let html = '<option value="">Select Country</option>';
+    ['India', 'Australia'].forEach(function (name) {
+        seen[name] = true;
+        const sel = selected === name ? ' selected' : '';
+        html += '<option value="' + escapeSelectHtml(name) + '"' + sel + '>' + escapeSelectHtml(name) + '</option>';
+    });
+    names.forEach(function (name) {
+        if (seen[name]) {
+            return;
+        }
+        seen[name] = true;
+        const sel = selected === name ? ' selected' : '';
+        html += '<option value="' + escapeSelectHtml(name) + '"' + sel + '>' + escapeSelectHtml(name) + '</option>';
+    });
+    if (selected && !seen[selected]) {
+        html += '<option value="' + escapeSelectHtml(selected) + '" selected>' + escapeSelectHtml(selected) + '</option>';
+    }
+    return html;
+}
+
+function buildNameCountryOptionsHtml(selected) {
+    const names = countryNamesFromWindow();
+    const seen = {};
+    let html = '<option value="">Select Country</option>';
+    names.forEach(function (name) {
+        seen[name] = true;
+        const sel = selected === name ? ' selected' : '';
+        html += '<option value="' + escapeSelectHtml(name) + '"' + sel + '>' + escapeSelectHtml(name) + '</option>';
+    });
+    if (selected && !seen[selected]) {
+        html += '<option value="' + escapeSelectHtml(selected) + '" selected>' + escapeSelectHtml(selected) + '</option>';
+    }
+    return html;
+}
+
+function buildVisaTypeOptionsHtml(selected) {
+    const visas = Array.isArray(window.visaTypesData) && window.visaTypesData.length
+        ? window.visaTypesData
+        : (visaTypesCache || []);
+    const seen = {};
+    let html = '<option value="">Select Visa Type</option>';
+    const selectedKey = selected === undefined || selected === null ? '' : String(selected);
+    visas.forEach(function (visa) {
+        const id = String(visa.id);
+        seen[id] = true;
+        const nickName = visa.nick_name ? ' (' + visa.nick_name + ')' : '';
+        const sel = selectedKey === id ? ' selected' : '';
+        html += '<option value="' + escapeSelectHtml(id) + '"' + sel + '>' + escapeSelectHtml((visa.title || '') + nickName) + '</option>';
+    });
+    if (selectedKey !== '' && !seen[selectedKey]) {
+        html += '<option value="' + escapeSelectHtml(selectedKey) + '" selected>' + escapeSelectHtml(selectedKey) + '</option>';
+    }
+    return html;
+}
+
+function hydrateClientEditSelects() {
+    document.querySelectorAll('select[data-country-select]').forEach(function (select) {
+        const selected = select.getAttribute('data-selected') || select.value || '';
+        const mode = select.getAttribute('data-country-select');
+        select.innerHTML = mode === 'priority'
+            ? buildPriorityCountryOptionsHtml(selected)
+            : buildNameCountryOptionsHtml(selected);
+        if (selected) {
+            select.value = selected;
+        }
+    });
+
+    document.querySelectorAll('select[data-visa-select]').forEach(function (select) {
+        const selected = select.getAttribute('data-selected') || select.value || '';
+        select.innerHTML = buildVisaTypeOptionsHtml(selected);
+        if (selected) {
+            select.value = selected;
+        }
+    });
+
+    document.querySelectorAll('select[data-phone-dial-select]').forEach(function (select) {
+        const selected = select.getAttribute('data-selected') || select.value || '';
+        if (typeof window.buildPhoneDialCodeOptionsHtml === 'function') {
+            select.innerHTML = window.buildPhoneDialCodeOptionsHtml(selected, { showPlaceholder: false });
+        }
+        if (selected) {
+            select.value = selected;
+        }
+    });
+}
+
 /**
  * Function to fetch visa types via AJAX
  */
 async function fetchVisaTypes() {
     if (visaTypesCache) {
         return visaTypesCache; // Return cached data if available
+    }
+
+    if (Array.isArray(window.visaTypesData) && window.visaTypesData.length) {
+        visaTypesCache = window.visaTypesData;
+        return visaTypesCache;
     }
 
     // Get the route from window object (set from blade)
@@ -467,6 +579,14 @@ async function fetchVisaTypes() {
 async function fetchCountries() {
     if (countriesCache) {
         return countriesCache; // Return cached data if available
+    }
+
+    const names = countryNamesFromWindow();
+    if (names.length) {
+        countriesCache = ['Australia', 'India'].concat(names.filter(function (name) {
+            return name !== 'Australia' && name !== 'India';
+        }));
+        return countriesCache;
     }
 
     // Get the route from window object (set from blade)
@@ -7175,4 +7295,10 @@ function submitVerifyClientDetails() {
 window.confirmVerifyClientDetails = confirmVerifyClientDetails;
 window.closeVerifyDetailsModal = closeVerifyDetailsModal;
 window.submitVerifyClientDetails = submitVerifyClientDetails;
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hydrateClientEditSelects);
+} else {
+    hydrateClientEditSelects();
+}
 

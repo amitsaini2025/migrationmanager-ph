@@ -11,15 +11,11 @@
     <div class="content-grid">
         <div class="form-group">
             <label>Country</label>
-            <select name="passports[{{ $index }}][passport_country]" class="passport-country-field">
+            <select name="passports[{{ $index }}][passport_country]" class="passport-country-field" data-country-select="priority" data-selected="{{ $passport->passport_country ?? '' }}">
                 <option value="">Select Country</option>
-                <option value="India" {{ ($passport->passport_country ?? '') == 'India' ? 'selected' : '' }}>India</option>
-                <option value="Australia" {{ ($passport->passport_country ?? '') == 'Australia' ? 'selected' : '' }}>Australia</option>
-                @foreach($countries as $country)
-                    @if($country->name != 'India' && $country->name != 'Australia')
-                        <option value="{{ $country->name }}" {{ ($passport->passport_country ?? '') == $country->name ? 'selected' : '' }}>{{ $country->name }}</option>
-                    @endif
-                @endforeach
+                @if(($passport->passport_country ?? '') !== '')
+                    <option value="{{ $passport->passport_country }}" selected>{{ $passport->passport_country }}</option>
+                @endif
             </select>
         </div>
         
