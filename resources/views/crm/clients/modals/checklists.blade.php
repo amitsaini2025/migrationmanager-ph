@@ -225,3 +225,39 @@
 	</div>
 </div>
 
+<style data-signature-placement-style="1">
+/* Always on client/company detail with the modal — not the lazy Checklists tab. */
+#sig-preview-container { position: relative; }
+#sig-fields-preview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+.sig-field-preview {
+    position: absolute;
+    border: 2px dashed #3b82f6;
+    background: rgba(59, 130, 246, 0.15);
+    cursor: move;
+    pointer-events: auto;
+    user-select: none;
+    touch-action: none;
+}
+.sig-field-preview:hover { background: rgba(59, 130, 246, 0.25); }
+.sig-field-preview.dragging { border-color: #1d4ed8; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4); }
+.sig-field-preview.sig-field-preview-selected { border-color: #1d4ed8; box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.5); background: rgba(59, 130, 246, 0.25); }
+.sig-field-row-selected { background-color: rgba(59, 130, 246, 0.08); border-color: #3b82f6; }
+.sig-field-label {
+    position: absolute;
+    top: -18px;
+    left: 0;
+    background: #3b82f6;
+    color: #fff;
+    padding: 2px 6px;
+    font-size: 10px;
+    border-radius: 3px;
+}
+</style>
+

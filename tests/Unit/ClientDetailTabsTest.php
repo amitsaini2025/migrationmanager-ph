@@ -345,6 +345,14 @@ class ClientDetailTabsTest extends TestCase
         $modal = file_get_contents($this->projectPath('resources/views/crm/clients/modals/checklists.blade.php'));
         Assert::assertNotFalse($modal);
         Assert::assertStringContainsString('id="signaturePlacementModal"', $modal);
+        Assert::assertStringContainsString('data-signature-placement-style', $modal);
+        Assert::assertStringContainsString('.sig-field-preview', $modal);
+        Assert::assertStringContainsString('#sig-fields-preview', $modal);
+
+        $checklistsBlade = file_get_contents($this->projectPath('resources/views/crm/clients/tabs/checklists.blade.php'));
+        Assert::assertNotFalse($checklistsBlade);
+        Assert::assertStringNotContainsString('.sig-field-preview', $checklistsBlade);
+        Assert::assertStringNotContainsString('#sig-fields-preview', $checklistsBlade);
     }
 
     #[Test]
