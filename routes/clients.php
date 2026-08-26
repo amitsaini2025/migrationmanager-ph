@@ -130,6 +130,8 @@ Route::get('/clients/detail-visadocuments-tab/{client_id}/{client_unique_matter_
 Route::get('/clients/detail-notuseddocuments-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'notUsedDocumentsTab'])->name('clients.detail.notuseddocuments-tab');
 Route::get('/clients/detail-noteterm-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'notesTab'])->name('clients.detail.noteterm-tab');
 Route::get('/clients/detail-personaldetails-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'personalDetailsTab'])->name('clients.detail.personaldetails-tab');
+Route::get('/clients/detail-shell-modals/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'shellModals'])->name('clients.detail.shell-modals');
+Route::get('/clients/detail-extra-modals/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'extraModals'])->name('clients.detail.extra-modals');
 Route::post('/clients/google-review-reminder', [ClientsController::class, 'updateGoogleReviewReminder'])->name('clients.google-review-reminder');
 Route::post('/clients/google-review-reminder/sms', [ClientsController::class, 'sendGoogleReviewReminderSms'])->name('clients.google-review-reminder.sms');
 
@@ -146,6 +148,8 @@ Route::get('/clients/sms-template/{id}/compose', [SmsTemplateController::class, 
 /** Send a manual SMS from the CRM (all authenticated staff); not behind Admin Console middleware. */
 Route::post('/clients/sms/send', [SmsSendController::class, 'send'])->name('clients.sms.send');
 Route::get('/get-compose-defaults', [CRMUtilityController::class, 'getComposeDefaults'])->name('clients.getComposeDefaults');
+Route::get('/get-compose-option-lists', [CRMUtilityController::class, 'getComposeOptionLists'])->name('clients.getComposeOptionLists');
+Route::get('/get-checkin-option-lists', [CRMUtilityController::class, 'getCheckinOptionLists'])->name('clients.getCheckinOptionLists');
 Route::get('/crm/sendgrid-senders', [SendGridSendersController::class, 'senders'])->name('crm.sendgrid.senders');
 Route::post('/sendmail', [CRMUtilityController::class, 'sendmail'])->name('clients.sendmail');
 

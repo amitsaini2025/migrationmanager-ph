@@ -630,8 +630,10 @@ $(document).delegate('.editnote', 'click', function(){
 		data:{id:v},
 		success: function(response){
 		    $('.showeditform').html(response);
-		 // Initialize TinyMCE editor (replacing Summernote)
-            if (typeof tinymce !== 'undefined') {
+		    var initLeadHistoryNoteEditor = function() {
+                if (typeof tinymce === 'undefined') {
+                    return;
+                }
                 $("#myeditnotes .tinymce-editor").each(function() {
                     var editorId = $(this).attr('id') || 'tinymce_' + Math.random().toString(36).substr(2, 9);
                     if (!$(this).attr('id')) {
@@ -656,6 +658,11 @@ $(document).delegate('.editnote', 'click', function(){
                         });
                     }
                 });
+            };
+            if (typeof window.ensureTinyMCELoaded === 'function') {
+                window.ensureTinyMCELoaded().then(initLeadHistoryNoteEditor);
+            } else {
+                initLeadHistoryNoteEditor();
             } 
 		}
 	});

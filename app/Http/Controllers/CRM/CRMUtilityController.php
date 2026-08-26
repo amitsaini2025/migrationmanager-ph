@@ -3,6 +3,7 @@ namespace App\Http\Controllers\CRM;
 
 use App\Http\Controllers\Concerns\EnsuresCrmRecordAccess;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -1072,6 +1073,81 @@ public function getChapters(Request $request)
 			'matter_templates' => $allTemplates,
 			'checklist_ids' => $checklistIds,
 			'macro_values' => $macroValues,
+		]);
+	}
+
+	/**
+	 * CRM compose dropdowns: templates (id/name) and checklist rows for #emailmodal.
+	 * Loaded on modal open so client-detail first paint does not dump EmailTemplate / UploadChecklist.
+	 */
+	public function getComposeOptionLists(): JsonResponse
+	{
+		$templates = \App\Models\EmailTemplate::crm()
+			->orderBy('id', 'desc')
+			->get(['id', 'name'])
+			->map(static function ($template): array {
+				return [
+					'id' => (int) $template->id,
+					'name' => (string) $template->name,
+				];
+			})
+			->values()
+			->all();
+
+		$checklists = \App\Models\UploadChecklist::query()
+			->orderBy('id')
+			->get(['id', 'name', 'file', 'matter_id'])
+			->map(static function ($checklist): array {
+				return [
+					'id' => (int) $checklist->id,
+					'name' => (string) $checklist->name,
+					'file' => (string) $checklist->file,
+					'matter_id' => $checklist->matter_id !== null ? (int) $checklist->matter_id : null,
+				];
+			})
+			->values()
+			->all();
+
+		return response()->json([
+			'templates' => $templates,
+			'checklists' => $checklists,
+		]);
+	}
+
+	/**
+	 * Check-in office + active assignee options. Loaded on #checkinmodal open
+	 * so the CRM layout does not dump Branch::all() / Staff on every page.
+	 */
+	public function getCheckinOptionLists(): JsonResponse
+	{
+		$offices = \App\Models\Branch::query()
+			->get(['id', 'office_name'])
+			->map(static function ($office): array {
+				return [
+					'id' => (int) $office->id,
+					'office_name' => (string) $office->office_name,
+				];
+			})
+			->values()
+			->all();
+
+		$assignees = \App\Models\Staff::query()
+			->where('status', 1)
+			->orderBy('first_name')
+			->get(['id', 'first_name', 'email'])
+			->map(static function ($staff): array {
+				return [
+					'id' => (int) $staff->id,
+					'first_name' => (string) $staff->first_name,
+					'email' => (string) $staff->email,
+				];
+			})
+			->values()
+			->all();
+
+		return response()->json([
+			'offices' => $offices,
+			'assignees' => $assignees,
 		]);
 	}
 

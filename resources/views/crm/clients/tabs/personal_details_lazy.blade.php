@@ -5,10 +5,12 @@
     ], static function ($value) {
         return $value !== null && $value !== '';
     }));
+    // Default tab: pane must already be active so activity-feed JS and first paint match today.
+    $personalDetailsTabIsActive = \App\Support\ClientDetailTabs::shouldEagerRender('personaldetails', $activeTab ?? 'personaldetails');
 @endphp
 
-{{-- Lightweight shell: full Personal Details content loads on first open. --}}
-<div class="tab-pane" id="personaldetails-tab"
+{{-- Lightweight shell: full Personal Details content loads on first open / default URL. --}}
+<div class="tab-pane{{ $personalDetailsTabIsActive ? ' active' : '' }}" id="personaldetails-tab"
      data-personaldetails-lazy="1"
      data-personaldetails-url="{{ $personalDetailsTabFragmentUrl }}">
     <div class="card full-width">

@@ -1072,8 +1072,6 @@ use App\Http\Controllers\Controller;
 
 @endsection
 @push('scripts')
-<!-- TinyMCE Editor -->
-<script src="{{asset('js/tinymce/js/tinymce/tinymce.min.js')}}"></script>
 <script>
 // TinyMCE Configuration for Email Modals
 var tinymceEmailConfig = {
@@ -1105,6 +1103,13 @@ var tinymceEmailConfig = {
 
 // Initialize TinyMCE for all email modals
 function initTinyMCEForModals() {
+    if (typeof tinymce === 'undefined') {
+        var inShownModal = $('#compose_email_message, #sendmsg_message, #matter_email_message, #uploadmail_message').closest('.modal.show').length;
+        if (inShownModal && typeof window.ensureTinyMCELoaded === 'function') {
+            window.ensureTinyMCELoaded().then(initTinyMCEForModals);
+        }
+        return;
+    }
     // Compose Email Modal
     if ($('#compose_email_message').length && !tinymce.get('compose_email_message')) {
         tinymce.init({
@@ -1161,28 +1166,28 @@ function initTinyMCEForModals() {
 
 // Helper functions to save TinyMCE content before form validation
 window.saveComposeEmail = function() {
-    if (tinymce.get('compose_email_message')) {
+    if (typeof tinymce !== 'undefined' && tinymce.get('compose_email_message')) {
         tinymce.get('compose_email_message').save();
     }
     customValidate('sendmail');
 };
 
 window.saveSendMessage = function() {
-    if (tinymce.get('sendmsg_message')) {
+    if (typeof tinymce !== 'undefined' && tinymce.get('sendmsg_message')) {
         tinymce.get('sendmsg_message').save();
     }
     customValidate('sendmsg');
 };
 
 window.saveApplicationEmail = function() {
-    if (tinymce.get('matter_email_message')) {
+    if (typeof tinymce !== 'undefined' && tinymce.get('matter_email_message')) {
         tinymce.get('matter_email_message').save();
     }
     customValidate('appkicationsendmail');
 };
 
 window.saveUploadMail = function() {
-    if (tinymce.get('uploadmail_message')) {
+    if (typeof tinymce !== 'undefined' && tinymce.get('uploadmail_message')) {
         tinymce.get('uploadmail_message').save();
     }
     customValidate('uploadmail');
@@ -1197,7 +1202,7 @@ window.setTinyMCEContent = function(editorId, content) {
         // Try to initialize if not already initialized
         setTimeout(function() {
             initTinyMCEForModals();
-            if (tinymce.get(editorId)) {
+            if (typeof tinymce !== 'undefined' && tinymce.get(editorId)) {
                 tinymce.get(editorId).setContent(content || '');
             }
         }, 200);
@@ -1237,9 +1242,10 @@ $(document).ready(function() {
         }, 100);
     });
     
-    // When compose modal opens with a matter: load templates/macros and filter checklist rows by matter.
+    // When compose modal opens: wait for CRM template/checklist lists, then apply matter defaults.
     // Checklist attachment checkboxes stay unchecked until the user selects them.
     $('#emailmodal').on('shown.bs.modal', function() {
+        var runComposeShown = function() {
         var $templateSelect = $('#emailmodal select.selecttemplate');
         if (typeof window.initComposeEmailTemplateSelect === 'function') {
             if (!$('#compose_client_matter_id').val() && typeof window.restoreComposeEmailTemplateCrmOptions === 'function') {
@@ -1307,6 +1313,12 @@ $(document).ready(function() {
                     $('#mychecklist-datatable').DataTable().draw();
                 }
             });
+        };
+        if (typeof window.ensureComposeOptionListsLoaded === 'function') {
+            $.when(window.ensureComposeOptionListsLoaded()).always(runComposeShown);
+        } else {
+            runComposeShown();
+        }
     });
 
     $('#emailmodal').on('hidden.bs.modal', function() {
@@ -1400,6 +1412,7 @@ $(document).ready(function() {
             changeClientStatus: '{{ URL::to("/change-client-status") }}',
             getTemplates: '{{ URL::to("/get-templates") }}',
             getComposeDefaults: '{{ URL::to("/get-compose-defaults") }}',
+            getComposeOptionLists: '{{ URL::to("/get-compose-option-lists") }}',
             getPartner: '{{ URL::to("/getpartner") }}',
             renameDoc: '{{ URL::to("/documents/rename") }}',
             renameChecklistDoc: '{{ URL::to("/documents/rename-checklist") }}',

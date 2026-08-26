@@ -1,4 +1,4 @@
-@extends('layouts.crm_client_detail')
+﻿@extends('layouts.crm_client_detail')
 @section('title', 'Client Detail')
 
 @section('content')
@@ -11,7 +11,7 @@ use App\Http\Controllers\Controller;
 <div class="crm-container" data-client-id="{{ $fetchedData->id }}">
     <!-- Collapsed Toggle Button (shown when sidebar is collapsed) -->
     <button id="collapsed-toggle" class="collapsed-toggle-btn" title="Show Sidebar">
-        ☰
+        â˜°
     </button>
     
     <!-- Client Navigation Sidebar -->
@@ -159,7 +159,7 @@ use App\Http\Controllers\Controller;
                 @endphp
                 @if(!empty($fetchedData->details_verified_at))
                 <div class="sidebar-details-verified-info" id="sidebarDetailsVerifiedInfo">
-                    <div class="details-verify-line"><strong>Verified By:</strong> {{ $detailsVerifiedByName ?: '—' }}</div>
+                    <div class="details-verify-line"><strong>Verified By:</strong> {{ $detailsVerifiedByName ?: 'â€”' }}</div>
                     <div class="details-verify-line"><strong>Verified At:</strong> {{ $fetchedData->details_verified_at->format('d/m/Y g:i A') }}</div>
                 </div>
                 @endif
@@ -269,11 +269,8 @@ use App\Http\Controllers\Controller;
         <div class="main-content-with-tabs">
             <!-- Tab Contents -->
             <div class="tab-content" id="tab-content">
-            @if(\App\Support\ClientDetailTabs::shouldEagerRender('personaldetails', $activeTab ?? 'personaldetails'))
-                @include('crm.clients.tabs.personal_details')
-            @else
-                @include('crm.clients.tabs.personal_details_lazy')
-            @endif
+            {{-- Always a stub: personaldetails-tab.js fetches the fragment, including default /personaldetails. --}}
+            @include('crm.clients.tabs.personal_details_lazy')
             
             @include('crm.clients.tabs.activityfeed_tab')
             
@@ -338,263 +335,8 @@ use App\Http\Controllers\Controller;
     @include('crm.clients.tabs.activity_feed')
 </div>
 
-@include('crm.clients.addclientmodal')
-@include('crm.clients.editclientmodal')
-@include('crm.clients.modals.edit-matter-office')
-@include('crm.clients.modals.client-management')
-
-
-
-
-
-
-<div id="emailmodal"  data-backdrop="static" data-keyboard="false" class="modal fade custom_modal" tabindex="-1" role="dialog" aria-labelledby="clientModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title" id="clientModalLabel">Compose Email</h5>
-				<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-					<span aria-hidden="true">&times;</span>
-				</button>
-			</div>
-			<div class="modal-body">
-				<form method="post" name="sendmail" action="{{route('clients.sendmail')}}" autocomplete="off" enctype="multipart/form-data">
-				@csrf
-                    <input type="hidden" name="client_id" value="{{$fetchedData->id}}">
-                    <input type="hidden" name="type" value="client">
-                    <input type="hidden" name="mail_type" value="1">
-                    <input type="hidden" name="mail_body_type" value="sent">
-                    <input type="hidden" name="compose_client_matter_id" id="compose_client_matter_id" value="">
-                    <input type="hidden" name="signing_url" id="compose_signing_url" value="">
-					<div class="row">
-						<div class="col-12 col-md-6 col-lg-6">
-							<div class="form-group">
-								<label for="email_from">From <span class="span_req">*</span></label>
-								@include('partials.email-from-sendgrid')
-								@if ($errors->has('email_from'))
-									<span class="custom-error" role="alert">
-										<strong>{{ @$errors->first('email_from') }}</strong>
-									</span>
-								@endif
-							</div>
-						</div>
-						<div class="col-12 col-md-6 col-lg-6">
-							<div class="form-group">
-								<label for="email_to">To <span class="span_req">*</span></label>
-								<select data-valid="required" class="form-select js-data-example-ajax" name="email_to[]"></select>
-
-								@if ($errors->has('email_to'))
-									<span class="custom-error" role="alert">
-										<strong>{{ @$errors->first('email_to') }}</strong>
-									</span>
-								@endif
-							</div>
-						</div>
-						<div class="col-12 col-md-6 col-lg-6">
-							<div class="form-group">
-								<label for="email_cc">CC </label>
-								<select data-valid="" class="form-select js-data-example-ajaxccd" name="email_cc[]"></select>
-
-								@if ($errors->has('email_cc'))
-									<span class="custom-error" role="alert">
-										<strong>{{ @$errors->first('email_cc') }}</strong>
-									</span>
-								@endif
-							</div>
-						</div>
-
-                        <div class="col-12 col-md-6 col-lg-6">
-							<div class="form-group">
-								<label for="template">Templates </label>
-                                <?php
-                                $clientAssigneeName = ''; // assignee column removed
-                                if(false){
-                                } else {
-                                    $clientAssigneeName = 'NA';
-                                }
-                                ?>
-								<select data-valid="" class="form-control mm-select selecttemplate" name="template" data-clientid="{{@$fetchedData->id}}" data-clientfirstname="{{@$fetchedData->first_name}}" data-clientvisaExpiry="{{@$fetchedData->visaExpiry}}" data-clientreference_number="{{@$fetchedData->client_id}}" data-clientassignee_name="{{@$clientAssigneeName}}">
-									<option value="">Select</option>
-									@foreach( \App\Models\EmailTemplate::crm()->orderBy('id', 'desc')->get() as $list)
-										<option value="{{$list->id}}">{{$list->name}}</option>
-									@endforeach
-								</select>
-                            </div>
-						</div>
-
-
-						<div class="col-12 col-md-12 col-lg-12">
-							<div class="form-group">
-								<label for="subject">Subject <span class="span_req">*</span></label>
-								<input type="text" name="subject" id="compose_email_subject" class="form-control selectedsubject" data-valid="required" autocomplete="off" placeholder="Enter Subject" value="" />
-								@if ($errors->has('subject'))
-									<span class="custom-error" role="alert">
-										<strong>{{ @$errors->first('subject') }}</strong>
-									</span>
-								@endif
-							</div>
-						</div>
-						<div class="col-12 col-md-12 col-lg-12">
-							<div class="form-group">
-								<label for="message">Message <span class="span_req">*</span></label>
-								<textarea class="tinymce-editor selectedmessage" id="compose_email_message" name="message" data-valid="required"></textarea>
-								@if ($errors->has('message'))
-									<span class="custom-error" role="alert">
-										<strong>{{ @$errors->first('message') }}</strong>
-									</span>
-								@endif
-							</div>
-						</div>
-						<div class="col-12 col-md-12 col-lg-12">
-						     <div class="form-group">
-						        <label>Attachment</label>
-						        <input type="file" name="attach[]" class="form-control" multiple>
-						     </div>
-						</div>
-						<div class="col-12 col-md-12 col-lg-12">
-						    <div class="table-responsive uploadchecklists">
-							<table id="mychecklist-datatable" class="table text_wrap table-2">
-							    <thead>
-							        <tr>
-							            <th></th>
-							            <th>File Name</th>
-							            <th>File</th>
-							        </tr>
-							    </thead>
-							    <tbody>
-							        @foreach(\App\Models\UploadChecklist::all() as $uclist)
-							        <tr data-matter-id="{{ $uclist->matter_id ?? '' }}" data-checklist-id="{{ $uclist->id }}">
-							            <td><input type="checkbox" name="checklistfile[]" value="<?php echo $uclist->id; ?>" class="checklistfile-cb"></td>
-							            <td><?php echo $uclist->name; ?></td>
-							             <td><a target="_blank" href="<?php echo URL::to('/checklists/'.$uclist->file); ?>"><?php echo $uclist->name; ?></a></td>
-							        </tr>
-							        @endforeach
-							    </tbody>
-							</table>
-						</div>
-							</div>
-						<div class="col-12 col-md-12 col-lg-12">
-							<button onclick="saveComposeEmail()" type="button" class="btn btn-primary">Send</button>
-							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-						</div>
-					</div>
-				</form>
-			</div>
-		</div>
-	</div>
-</div>
-
-
-<!-- Send Message-->
-<div id="sendmsgmodal"  data-backdrop="static" data-keyboard="false" class="modal fade custom_modal" tabindex="-1" role="dialog" aria-labelledby="messageModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title" id="messageModalLabel">Send Message</h5>
-				<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-					<span aria-hidden="true">&times;</span>
-				</button>
-			</div>
-			<div class="modal-body">
-				<form method="post" name="sendmsg" id="sendmsg" action="{{route('clients.sendmail')}}" autocomplete="off" enctype="multipart/form-data">
-				    @csrf
-                    <input type="hidden" name="client_id" id="sendmsg_client_id" value="">
-                    <input type="hidden" name="vtype" value="client">
-					<div class="row">
-						<div class="col-12 col-md-12 col-lg-12">
-							<div class="form-group">
-								<label for="message">Message <span class="span_req">*</span></label>
-								<textarea id="sendmsg_message" class="tinymce-editor selectedmessage" name="message" data-valid="required"></textarea>
-								@if ($errors->has('message'))
-									<span class="custom-error" role="alert">
-										<strong>{{ @$errors->first('message') }}</strong>
-									</span>
-								@endif
-							</div>
-						</div>
-                        <div class="col-12 col-md-12 col-lg-12">
-							<button onclick="saveSendMessage()" type="button" class="btn btn-primary">Send</button>
-							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-						</div>
-					</div>
-				</form>
-			</div>
-		</div>
-	</div>
-</div>
-
-<!-- Send SMS Modal -->
-<div id="sendSmsModal" data-backdrop="static" data-keyboard="false" class="modal fade custom_modal" tabindex="-1" role="dialog" aria-labelledby="smsModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title" id="smsModalLabel">
-					@icon('fa-sms') Send SMS
-				</h5>
-				<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-					<span aria-hidden="true">&times;</span>
-				</button>
-			</div>
-			<div class="modal-body">
-				<form id="sendSmsForm">
-				    @csrf
-                    <input type="hidden" name="client_id" id="sms_client_id" value="">
-                    
-					<div class="row">
-						<!-- Phone Number Selection -->
-						<div class="col-12">
-							<div class="form-group">
-								<label for="sms_phone">Send To <span class="span_req">*</span></label>
-								<select class="form-control" id="sms_phone" name="phone" required>
-									<option value="">Select phone number...</option>
-								</select>
-								<small class="form-text text-muted">
-									@icon('fa-info-circle') 
-									Australian numbers will use Cellcast, international numbers will use Twilio
-								</small>
-							</div>
-						</div>
-						
-						<!-- Template Selection -->
-						<div class="col-12">
-							<div class="form-group">
-								<label for="sms_template">Quick Template (Optional)</label>
-								<select class="form-control" id="sms_template">
-									<option value="">Type your own message or select a template...</option>
-								</select>
-							</div>
-						</div>
-						
-						<!-- Message -->
-						<div class="col-12">
-							<div class="form-group">
-								<label for="sms_message">Message <span class="span_req">*</span></label>
-								<textarea class="form-control" id="sms_message" name="message" rows="5" maxlength="320" required></textarea>
-								<div class="d-flex justify-content-between align-items-center mt-1">
-									<small class="text-muted">
-										<span id="sms_char_count">0</span> / <span id="sms_char_max">160</span> chars
-									</small>
-									<small>
-										<span id="sms_segment_badge" class="badge badge-success">1 SMS</span>
-										<span id="sms_chars_remaining" class="text-muted">&nbsp;&middot;&nbsp; 160 left in this SMS</span>
-									</small>
-								</div>
-							</div>
-						</div>
-						
-						<!-- Buttons -->
-                        <div class="col-12">
-							<button type="submit" class="btn btn-primary" id="sendSmsBtn">
-								@icon('fa-paper-plane') Send SMS
-							</button>
-							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-						</div>
-					</div>
-				</form>
-			</div>
-		</div>
-	</div>
-</div>
+{{-- Compose/SMS/notes/add-edit/management: lightweight ID stubs; HTML fetched on first open. Check-in stays in the layout. --}}
+@include('crm.clients.modals.lazy_stubs')
 
 {{-- interest_service_view modal REMOVED - Interested Services feature deprecated (no UI triggers) --}}
 
@@ -729,192 +471,6 @@ use App\Http\Controllers\Controller;
 	</div>
 </div>
 
-<div class="modal fade custom_modal" id="tags_clients" tabindex="-1" role="dialog" aria-labelledby="matterModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title" id="appliationModalLabel">Tags</h5>
-				<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-					<span aria-hidden="true">&times;</span>
-				</button>
-			</div>
-			<div class="modal-body">
-                <form method="post" action="{{url('/save_tag')}}" name="stags_matter" id="stags_matter" autocomplete="off" enctype="multipart/form-data">
-				@csrf
-				<input type="hidden" name="client_id" id="client_id" value="">
-				<input type="hidden" name="create_new_as_red" id="create_new_as_red" value="0">
-					<div id="tags_red_mode_hint" class="alert alert-warning py-2 mb-2" style="display: none;">
-						@icon('fa-exclamation-triangle', ['class' => 'text-danger']) <strong>Red Tag mode:</strong> Any new tags you add will be created as Red tags (hidden by default).
-					</div>
-					<div class="row">
-						<div class="col-12 col-md-12 col-lg-12">
-							<div class="form-group">
-								<label for="tags_modal_container">Tags</label>
-								<?php 
-								$tagIdsForModal = [];
-								$tagNamesForModal = [];
-								if(!empty($fetchedData->tagname)){
-									$tagIdsForModal = array_filter(array_map('intval', explode(',', $fetchedData->tagname)));
-									if(!empty($tagIdsForModal)){
-										$tagNamesForModal = \App\Models\Tag::whereIn('id', $tagIdsForModal)->pluck('name')->toArray();
-									}
-								}
-								?>
-								<div id="tags_modal_container" class="tags-modal-container form-control">
-									<div class="tags-pills-inner">
-										@foreach($tagNamesForModal as $tagName)
-										<span class="tag-pill" data-tag-name="{{ htmlspecialchars($tagName) }}">
-											<span class="tag-pill-text">{{ $tagName }}</span>
-											<button type="button" class="tag-pill-remove" aria-label="Remove tag">&times;</button>
-										</span>
-										@endforeach
-										<input type="text" id="tag_input" class="tag-input-inline" placeholder="Type and press comma or Enter to add" autocomplete="off">
-									</div>
-								</div>
-								<input type="hidden" id="tags_validation" value="{{ count($tagNamesForModal) > 0 ? '1' : '' }}" aria-hidden="true">
-								<small class="form-text text-muted">Separate tags with commas or press Enter to add.</small>
-							</div>
-						</div>
-
-						<div class="col-12 col-md-12 col-lg-12 mt-2">
-							<button onclick="customValidate('stags_matter')" type="button" class="btn btn-primary">Save</button>
-							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-						</div>
-					</div>
-				</form>
-			</div>
-		</div>
-	</div>
-</div>
-
-<style>
-.tags-modal-container {
-	min-height: 80px;
-	max-height: 320px;
-	height: auto;
-	padding: 6px 10px;
-	display: flex;
-	align-items: flex-start;
-	flex-wrap: wrap;
-	gap: 6px;
-	overflow-y: auto;
-	overflow-x: hidden;
-}
-.tags-modal-container.form-control { height: auto; }
-.tags-pills-inner { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px; flex: 1; width: 100%; min-width: 0; }
-.tag-pill { display: inline-flex; align-items: flex-start; gap: 6px; padding: 4px 10px; background-color: #6A60E3; color: #fff; border-radius: 6px; font-size: 13px; max-width: 100%; }
-.tag-pill-text { white-space: normal; word-break: break-word; line-height: 1.3; min-width: 0; }
-.tag-pill-remove { flex-shrink: 0; background: none; border: none; color: #fff; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; opacity: 0.8; }
-.tag-pill-remove:hover { opacity: 1; }
-.tag-input-inline { flex: 1; min-width: 120px; border: none; outline: none; font-size: 14px; background: transparent; }
-</style>
-
-{{-- Service Taken Modal - REMOVED --}}
-{{-- Feature deprecated - client_service_takens table does not exist --}}
-{{-- Table was for tracking Migration/Education services taken by clients --}}
-{{-- Model clientServiceTaken.php deleted - no database backing --}}
-{{-- Routes still exist but will fail: createservicetaken, removeservicetaken, getservicetaken --}}
-
-<div class="modal fade" id="inbox_reassignemail_modal">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<div class="modal-header">
-				  <h4 class="modal-title">Re-assign Inbox Email</h4>
-				  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-					<span aria-hidden="true">&times;</span>
-				  </button>
-			</div>
-			<form method="POST" action="{{ url('/reassiginboxemail') }}" name="inbox-email-reassign-to-client-matter" autocomplete="off" enctype="multipart/form-data" id="inbox-email-reassign-to-client-matter">
-			@csrf
-			<div class="modal-body">
-				<div class="form-group row">
-					<div class="col-sm-12">
-						<input id="memail_id" name="memail_id" type="hidden" value="">
-                        <input id="mail_type" name="mail_type" type="hidden" value="inbox">
-                        <input id="staff_mail" name="staff_mail" type="hidden" value="">
-                        <input id="uploaded_doc_id" name="uploaded_doc_id" type="hidden" value="">
-						<select id="reassign_client_id" name="reassign_client_id" class="form-control mm-select js-reassign-client-ajax" style="width: 100%;" data-valid="required" data-placeholder="Search by name, email, or client ID...">
-							<option value="">Select Client</option>
-						</select>
-					</div>
-				</div>
-
-                <div class="form-group row">
-					<div class="col-sm-12">
-						<select id="reassign_client_matter_id" name="reassign_client_matter_id" class="form-control mm-select " style="width: 100%;" disabled>
-						</select>
-					</div>
-				</div>
-			</div>
-			<div class="modal-footer">
-				<button type="button" class="btn btn-primary" onclick="customValidate('inbox-email-reassign-to-client-matter')">
-					@icon('fa-save') Re-assign Inbox Email
-				</button>
-			</div>
-			</form>
-		</div>
-	</div>
-</div>
-
-<div class="modal fade" id="sent_reassignemail_modal">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<div class="modal-header">
-				  <h4 class="modal-title">Re-assign Sent Email</h4>
-				  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-					<span aria-hidden="true">&times;</span>
-				  </button>
-			</div>
-			<form method="POST" action="{{ url('/reassigsentemail') }}" name="sent-email-reassign-to-client-matter" autocomplete="off" enctype="multipart/form-data" id="sent-email-reassign-to-client-matter">
-			@csrf
-			<div class="modal-body">
-				<div class="form-group row">
-					<div class="col-sm-12">
-						<input id="memail_id" name="memail_id" type="hidden" value="">
-                        <input id="mail_type" name="mail_type" type="hidden" value="sent">
-                        <input id="staff_mail" name="staff_mail" type="hidden" value="">
-                        <input id="uploaded_doc_id" name="uploaded_doc_id" type="hidden" value="">
-						<select id="reassign_sent_client_id" name="reassign_sent_client_id" class="form-control mm-select js-reassign-client-ajax" style="width: 100%;" data-valid="required" data-placeholder="Search by name, email, or client ID...">
-							<option value="">Select Client</option>
-						</select>
-					</div>
-				</div>
-
-                <div class="form-group row">
-					<div class="col-sm-12">
-						<select id="reassign_sent_client_matter_id" name="reassign_sent_client_matter_id" class="form-control mm-select " style="width: 100%;" disabled>
-						</select>
-					</div>
-				</div>
-			</div>
-			<div class="modal-footer">
-				<button type="button" class="btn btn-primary" onclick="customValidate('sent-email-reassign-to-client-matter')">
-					@icon('fa-save') Re-assign Sent Email
-				</button>
-			</div>
-			</form>
-		</div>
-	</div>
-</div>
-
-<div class="modal fade" id="sent_mail_preview_modal">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<div class="modal-header">
-				  <h4 class="modal-title" id="memail_subject"></h4>
-				  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-					<span aria-hidden="true">&times;</span>
-				  </button>
-			</div>
-			<div class="modal-body">
-				<div class="form-group row">
-					<div class="col-sm-12" id="memail_message">
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-</div>
 
 @if($showGoogleReviewReminderModal ?? false)
 <div class="modal fade custom_modal google-review-reminder-modal" id="googleReviewReminderModal" tabindex="-1" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="googleReviewReminderModalLabel" aria-describedby="googleReviewReminderModalDesc googleReviewReminderModalHint" data-backdrop="static" data-keyboard="false" data-auto-open="1">
@@ -922,13 +478,13 @@ use App\Http\Controllers\Controller;
 		<div class="modal-content">
 			<div class="modal-header">
 				<h5 class="modal-title" id="googleReviewReminderModalLabel">@icon('fa-google', ['class' => 'mr-2'])Google review reminder</h5>
-				<button type="button" class="close grr-modal-close-btn js-google-review-reminder" data-action="snooze_one_day" aria-label="Close and remind again tomorrow" title="Close — ask again tomorrow">
+				<button type="button" class="close grr-modal-close-btn js-google-review-reminder" data-action="snooze_one_day" aria-label="Close and remind again tomorrow" title="Close â€” ask again tomorrow">
 					<span aria-hidden="true">&times;</span>
 				</button>
 			</div>
 			<div class="modal-body">
 				<p class="mb-2 grr-modal-text" id="googleReviewReminderModalDesc">Has this contact been asked to leave a Google review? Choose an option so we know whether to remind you next time you open their record.</p>
-				<p class="mb-0 small grr-modal-hint" id="googleReviewReminderModalHint">Closing with the × button above hides this until tomorrow (one-day snooze).</p>
+				<p class="mb-0 small grr-modal-hint" id="googleReviewReminderModalHint">Closing with the Ã— button above hides this until tomorrow (one-day snooze).</p>
 			</div>
 			<div class="modal-footer flex-wrap justify-content-stretch gap-2 grr-modal-footer">
 				<button type="button" class="btn w-100 m-0 js-google-review-send-sms grr-btn grr-btn-sms">
@@ -978,6 +534,13 @@ var tinymceEmailConfig = {
 
 // Initialize TinyMCE for all email modals
 function initTinyMCEForModals() {
+    if (typeof tinymce === 'undefined') {
+        var inShownModal = $('#compose_email_message, #sendmsg_message, #matter_email_message, #uploadmail_message').closest('.modal.show').length;
+        if (inShownModal && typeof window.ensureTinyMCELoaded === 'function') {
+            window.ensureTinyMCELoaded().then(initTinyMCEForModals);
+        }
+        return;
+    }
     // Compose Email Modal
     if ($('#compose_email_message').length && !tinymce.get('compose_email_message')) {
         tinymce.init({
@@ -1032,30 +595,32 @@ function initTinyMCEForModals() {
     }
 }
 
+window.initTinyMCEForModals = initTinyMCEForModals;
+
 // Helper functions to save TinyMCE content before form validation
 window.saveComposeEmail = function() {
-    if (tinymce.get('compose_email_message')) {
+    if (typeof tinymce !== 'undefined' && tinymce.get('compose_email_message')) {
         tinymce.get('compose_email_message').save();
     }
     customValidate('sendmail');
 };
 
 window.saveSendMessage = function() {
-    if (tinymce.get('sendmsg_message')) {
+    if (typeof tinymce !== 'undefined' && tinymce.get('sendmsg_message')) {
         tinymce.get('sendmsg_message').save();
     }
     customValidate('sendmsg');
 };
 
 window.saveApplicationEmail = function() {
-    if (tinymce.get('matter_email_message')) {
+    if (typeof tinymce !== 'undefined' && tinymce.get('matter_email_message')) {
         tinymce.get('matter_email_message').save();
     }
     customValidate('appkicationsendmail');
 };
 
 window.saveUploadMail = function() {
-    if (tinymce.get('uploadmail_message')) {
+    if (typeof tinymce !== 'undefined' && tinymce.get('uploadmail_message')) {
         tinymce.get('uploadmail_message').save();
     }
     customValidate('uploadmail');
@@ -1070,7 +635,7 @@ window.setTinyMCEContent = function(editorId, content) {
         // Try to initialize if not already initialized
         setTimeout(function() {
             initTinyMCEForModals();
-            if (tinymce.get(editorId)) {
+            if (typeof tinymce !== 'undefined' && tinymce.get(editorId)) {
                 tinymce.get(editorId).setContent(content || '');
             }
         }, 200);
@@ -1110,9 +675,10 @@ $(document).ready(function() {
         }, 100);
     });
     
-    // When compose modal opens with a matter: load templates/macros and filter checklist rows by matter.
+    // When compose modal opens: wait for CRM template/checklist lists, then apply matter defaults.
     // Checklist attachment checkboxes stay unchecked until the user selects them.
     $('#emailmodal').on('shown.bs.modal', function() {
+        var runComposeShown = function() {
         var $templateSelect = $('#emailmodal select.selecttemplate');
         if (typeof window.initComposeEmailTemplateSelect === 'function') {
             if (!$('#compose_client_matter_id').val() && typeof window.restoreComposeEmailTemplateCrmOptions === 'function') {
@@ -1180,6 +746,12 @@ $(document).ready(function() {
                     $('#mychecklist-datatable').DataTable().draw();
                 }
             });
+        };
+        if (typeof window.ensureComposeOptionListsLoaded === 'function') {
+            $.when(window.ensureComposeOptionListsLoaded()).always(runComposeShown);
+        } else {
+            runComposeShown();
+        }
     });
 
     $('#emailmodal').on('hidden.bs.modal', function() {
@@ -1296,6 +868,8 @@ $(document).ready(function() {
             changeClientStatus: '{{ URL::to("/change-client-status") }}',
             getTemplates: '{{ URL::to("/get-templates") }}',
             getComposeDefaults: '{{ URL::to("/get-compose-defaults") }}',
+            getComposeOptionLists: '{{ URL::to("/get-compose-option-lists") }}',
+            getCheckinOptionLists: '{{ URL::to("/get-checkin-option-lists") }}',
             getPartner: '{{ URL::to("/getpartner") }}',
             renameDoc: '{{ URL::to("/documents/rename") }}',
             renameChecklistDoc: '{{ URL::to("/documents/rename-checklist") }}',
@@ -1330,6 +904,23 @@ $(document).ready(function() {
             reopen: '{{ route("clients.matter.reopen") }}',
             completeWorkflowChecklist: '{{ route("clients.matter.complete-workflow-checklist") }}',
             saveWorkflowFileNote: '{{ route("clients.matter.workflow-file-note") }}',
+            shellModals: '{{ route("clients.detail.shell-modals", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+            extraModals: '{{ route("clients.detail.extra-modals", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+        },
+        lazyModals: {
+            enabled: true,
+            packs: {
+                shell: {
+                    url: '{{ route("clients.detail.shell-modals", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+                    ids: @json(\App\Support\ClientDetailModals::shellIds()),
+                    triggers: @json(\App\Support\ClientDetailModals::packTriggers()['shell']),
+                },
+                extra: {
+                    url: '{{ route("clients.detail.extra-modals", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+                    ids: @json(\App\Support\ClientDetailModals::extraIds()),
+                    triggers: @json(\App\Support\ClientDetailModals::packTriggers()['extra']),
+                },
+            },
         }
     };
     
@@ -1569,6 +1160,7 @@ $(document).ready(function() {
 <script src="{{ URL::asset('js/crm/clients/utils/flatpickr-helpers.js') }}"></script>
 <script src="{{ URL::asset('js/crm/clients/utils/editor-helpers.js') }}"></script>
 <script src="{{ URL::asset('js/crm/clients/utils/dom-helpers.js') }}"></script>
+<script src="{{ URL::asset('js/crm/clients/lazy-modals.js') }}?v={{ file_exists(public_path('js/crm/clients/lazy-modals.js')) ? filemtime(public_path('js/crm/clients/lazy-modals.js')) : time() }}"></script>
 {{-- Phase 3 modules --}}
 <script src="{{ URL::asset('js/crm/clients/modules/references.js') }}"></script>
 <script src="{{ URL::asset('js/crm/clients/modules/send-to-client.js') }}"></script>
@@ -1721,14 +1313,14 @@ $('.send-sms-btn').on('click', function() {
         }
     });
     
-    // Reset form — trigger('input') re-runs the counter so badge/max/remaining all reset
+    // Reset form â€” trigger('input') re-runs the counter so badge/max/remaining all reset
     $('#sms_message').val('').trigger('input');
     $('#sms_template').val('');
 
     $('#sendSmsModal').modal('show');
 });
 
-// Template selection (body loaded via API — avoids broken data-* with quotes/newlines)
+// Template selection (body loaded via API â€” avoids broken data-* with quotes/newlines)
 $('#sms_template').on('change', function() {
     const id = $(this).val();
     if (!id) {
@@ -1908,7 +1500,7 @@ $(function () {
                         var toastMessages = {
                             snooze_one_day: 'Reminder snoozed until tomorrow',
                             snooze: 'Reminder snoozed for 1 week',
-                            not_interested: 'Noted — won\'t be reminded again',
+                            not_interested: 'Noted â€” won\'t be reminded again',
                             review_received: 'Great! Review marked as received'
                         };
                         iziToast.success({ message: toastMessages[action] || 'Saved', position: 'topRight' });

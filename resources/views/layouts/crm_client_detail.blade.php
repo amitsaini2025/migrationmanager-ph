@@ -1732,8 +1732,8 @@
     </script>
     <script src="{{asset('js/app.min.js')}}"></script>
     @vite(['resources/js/vendor-libs.js', 'resources/js/vendor-pdfmake.js'])
-    <!-- TinyMCE is self-hosted and loaded per page as needed -->
-    <script src="{{asset('js/tinymce/js/tinymce/tinymce.min.js')}}"></script>
+    <!-- TinyMCE loads on demand via tinymce-loader.js (notes, email, office visits still init) -->
+    <script src="{{ asset('js/tinymce-loader.js') }}?v={{ @filemtime(public_path('js/tinymce-loader.js')) ?: time() }}" data-tinymce-src="{{ asset('js/tinymce/js/tinymce/tinymce.min.js') }}"></script>
     <script src="{{asset('js/custom-form-validation.js')}}"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{asset('js/bootstrap5-jquery-compat.js')}}"></script>
@@ -2398,6 +2398,44 @@
                 return repo.name || repo.text;
             }
 
+            function ensureCheckinOptionListsLoaded() {
+                if (window.__checkinOptionListsPromise) {
+                    return window.__checkinOptionListsPromise;
+                }
+                var $modal = $('#checkinmodal');
+                if (!$modal.length) {
+                    return $.Deferred().resolve().promise();
+                }
+                var $office = $modal.find('select[name="office"]');
+                var $assignee = $modal.find('select.assignee-mm-select');
+                var hasOffices = $office.find('option').filter(function() { return $(this).val(); }).length > 0;
+                var hasAssignees = $assignee.find('option').filter(function() { return $(this).val(); }).length > 0;
+                if (hasOffices && hasAssignees) {
+                    window.__checkinOptionListsPromise = $.Deferred().resolve().promise();
+                    return window.__checkinOptionListsPromise;
+                }
+                window.__checkinOptionListsPromise = $.getJSON('{{ url("/get-checkin-option-lists") }}')
+                    .done(function(res) {
+                        if (!hasOffices && res && res.offices) {
+                            res.offices.forEach(function(office) {
+                                $office.append($('<option></option>').attr('value', office.id).text(office.office_name || ''));
+                            });
+                        }
+                        if (!hasAssignees && res && res.assignees) {
+                            $assignee.empty();
+                            res.assignees.forEach(function(staff) {
+                                $assignee.append(
+                                    $('<option></option>').attr('value', staff.id).text((staff.first_name || '') + ' (' + (staff.email || '') + ')')
+                                );
+                            });
+                        }
+                    })
+                    .fail(function() {
+                        window.__checkinOptionListsPromise = null;
+                    });
+                return window.__checkinOptionListsPromise;
+            }
+
             function initCheckinModalTomSelects() {
                 if (typeof $.fn.mmSelect === 'undefined') {
                     return;
@@ -2472,8 +2510,13 @@
             });
 
             $(document).on('shown.bs.modal', '#checkinmodal', function () {
-                initCheckinModalTomSelects();
+                $.when(ensureCheckinOptionListsLoaded()).always(function() {
+                    initCheckinModalTomSelects();
+                });
             });
+            if ($('#checkinmodal').length) {
+                ensureCheckinOptionListsLoaded();
+            }
 
             /* $('.timepicker').timepicker({
                 minuteStep: 1,
@@ -2790,9 +2833,6 @@
                                     <label for="email_from">Office <span class="span_req">*</span></label>
                                     <select data-valid="required" class="form-control" name="office">
                                         <option value="">Select</option>
-                                        @foreach(\App\Models\Branch::all() as $of)
-                                            <option value="{{$of->id}}">{{$of->office_name}}</option>
-                                        @endforeach
                                     </select>
 
                                 </div>
@@ -2813,13 +2853,7 @@
                             <div class="col-12 col-md-12 col-lg-12">
                                 <div class="form-group">
                                     <label for="message">Select In Person Assignee <span class="span_req">*</span></label>
-                                    <?php
-                                    $assignee = \App\Models\Staff::where('status', 1)->orderBy('first_name')->get();
-                                    ?>
                                     <select class="form-control assignee-mm-select" name="assignee">
-                                    @foreach($assignee as $assigne)
-                                        <option value="{{$assigne->id}}">{{$assigne->first_name}} ({{$assigne->email}})</option>
-                                    @endforeach
                                     </select>
                                     @if ($errors->has('message'))
                                         <span class="custom-error" role="alert">

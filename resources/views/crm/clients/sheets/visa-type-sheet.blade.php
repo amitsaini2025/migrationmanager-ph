@@ -1325,25 +1325,32 @@ jQuery(document).ready(function($) {
     }
 
     function initSheetEmailReminderTinyMce() {
-        if (typeof tinymce === 'undefined' || !$('#compose_email_message').length) {
-            return;
-        }
-        if (tinymce.get('compose_email_message')) {
-            return;
-        }
-        tinymce.init({
-            license_key: 'gpl',
-            selector: '#compose_email_message',
-            height: 280,
-            menubar: false,
-            plugins: ['lists', 'link', 'autolink'],
-            toolbar: 'bold italic underline | bullist numlist | link',
-            branding: false,
-            promotion: false,
-            setup: function(editor) {
-                editor.on('change', function() { editor.save(); });
+        var run = function() {
+            if (typeof tinymce === 'undefined' || !$('#compose_email_message').length) {
+                return;
             }
-        });
+            if (tinymce.get('compose_email_message')) {
+                return;
+            }
+            tinymce.init({
+                license_key: 'gpl',
+                selector: '#compose_email_message',
+                height: 280,
+                menubar: false,
+                plugins: ['lists', 'link', 'autolink'],
+                toolbar: 'bold italic underline | bullist numlist | link',
+                branding: false,
+                promotion: false,
+                setup: function(editor) {
+                    editor.on('change', function() { editor.save(); });
+                }
+            });
+        };
+        if (typeof window.ensureTinyMCELoaded === 'function') {
+            window.ensureTinyMCELoaded().then(run);
+            return;
+        }
+        run();
     }
 
     window.saveComposeEmail = function() {

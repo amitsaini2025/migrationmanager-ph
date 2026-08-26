@@ -446,7 +446,13 @@
     // Initialize TinyMCE for broadcast message
     let broadcastEditor = null;
     
-    if (typeof tinymce !== 'undefined') {
+    function initBroadcastTinyMce() {
+        if (typeof tinymce === 'undefined' || !document.getElementById('broadcast-message')) {
+            return;
+        }
+        if (tinymce.get('broadcast-message')) {
+            return;
+        }
         tinymce.init({
             selector: '#broadcast-message',
             license_key: 'gpl',
@@ -485,6 +491,12 @@
                 });
             }
         });
+    }
+
+    if (typeof window.ensureTinyMCELoaded === 'function') {
+        window.ensureTinyMCELoaded().then(initBroadcastTinyMce);
+    } else {
+        initBroadcastTinyMce();
     }
     
     function updateCharCount(editor) {

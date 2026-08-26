@@ -360,8 +360,11 @@ $(function () {
       });
     });
 
-  // TinyMCE Editor Initialization
-  if (typeof tinymce !== 'undefined') {
+  // TinyMCE Editor Initialization (runs when tinymce is already present, or after tinymce-loader.js)
+  window.initScriptsTinyMCEEditors = function() {
+    if (typeof tinymce === 'undefined') {
+      return;
+    }
     // Shared color map for both editor configurations
     var sharedColorMap = [
       "000000", "Black", "333333", "Dark Gray", "666666", "Medium Gray",
@@ -530,6 +533,12 @@ $(function () {
         });
       }
     });
+  };
+
+  if (typeof tinymce !== 'undefined') {
+    window.initScriptsTinyMCEEditors();
+  } else if (typeof window.requestTinyMCEInit === 'function') {
+    window.requestTinyMCEInit();
   }
 
   // Dismiss function

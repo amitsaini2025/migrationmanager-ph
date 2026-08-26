@@ -101,6 +101,7 @@ final class ClientDetailTabs
             'js/crm/clients/notuseddocuments-tab.js',
             'js/crm/clients/notes-tab.js',
             'js/crm/clients/personaldetails-tab.js',
+            'js/crm/clients/lazy-modals.js',
         ];
     }
 

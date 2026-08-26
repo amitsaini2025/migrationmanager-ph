@@ -114,6 +114,7 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('ensureNotUsedDocumentsTabLoaded', $sidebarTabs);
         Assert::assertStringContainsString('ensureNotesTabLoaded', $sidebarTabs);
         Assert::assertStringContainsString('ensurePersonalDetailsTabLoaded', $sidebarTabs);
+        Assert::assertContains('js/crm/clients/lazy-modals.js', ClientDetailTabs::tabScriptFilenames());
         Assert::assertStringContainsString('bindNavButtons', $sidebarTabs);
         Assert::assertStringNotContainsString('loadEmails({ forceReload: true })', $sidebarTabs);
         Assert::assertStringContainsString('filterEmailsByMatter', $sidebarTabs);
@@ -127,7 +128,6 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertNotFalse($detail);
 
         foreach ([
-            'crm.clients.tabs.personal_details',
             'crm.clients.tabs.activityfeed_tab',
             'crm.clients.tabs.notes',
             'crm.clients.tabs.personal_documents',
@@ -158,16 +158,99 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString("@include('crm.clients.tabs.not_used_documents_lazy')", $detail);
         Assert::assertStringContainsString("(\$activeTab ?? '') === 'noteterm'", $detail);
         Assert::assertStringContainsString("@include('crm.clients.tabs.notes_lazy')", $detail);
-        Assert::assertStringContainsString('ClientDetailTabs::shouldEagerRender(\'personaldetails\'', $detail);
-        Assert::assertStringContainsString("@include('crm.clients.tabs.personal_details')", $detail);
         Assert::assertStringContainsString("@include('crm.clients.tabs.personal_details_lazy')", $detail);
+        Assert::assertStringNotContainsString("@include('crm.clients.tabs.personal_details')", $detail);
+        Assert::assertStringNotContainsString("shouldEagerRender('personaldetails'", $detail);
         Assert::assertStringContainsString('@include(\'crm.clients.tabs.activityfeed_tab\')', $detail);
         Assert::assertStringNotContainsString('activityfeed_lazy', $detail);
         Assert::assertStringNotContainsString('activity_feed_lazy', $detail);
         Assert::assertStringNotContainsString("Admin::where('type','client')->get()", $detail);
-        Assert::assertStringContainsString('js-reassign-client-ajax', $detail);
+        Assert::assertStringNotContainsString("@include('crm.clients.addclientmodal')", $detail);
+        Assert::assertStringNotContainsString("@include('crm.clients.editclientmodal')", $detail);
+        Assert::assertStringNotContainsString('UploadChecklist::all()', $detail);
+        Assert::assertStringNotContainsString("EmailTemplate::crm()->orderBy('id', 'desc')->get()", $detail);
+        Assert::assertStringContainsString("@include('crm.clients.modals.lazy_stubs')", $detail);
+        Assert::assertStringContainsString('lazy-modals.js', $detail);
         Assert::assertStringContainsString('personaldetails-tab.js', $detail);
         Assert::assertStringNotContainsString('js/tinymce/js/tinymce/tinymce.min.js', $detail);
+        Assert::assertStringContainsString('ensureComposeOptionListsLoaded', $detail);
+        Assert::assertStringContainsString('getComposeOptionLists', $detail);
+
+        $shellModals = file_get_contents($this->projectPath('resources/views/crm/clients/modals/shell_modals.blade.php'));
+        Assert::assertNotFalse($shellModals);
+        Assert::assertStringContainsString('id="emailmodal"', $shellModals);
+        Assert::assertStringContainsString('js-reassign-client-ajax', $shellModals);
+        Assert::assertStringNotContainsString('UploadChecklist::all()', $shellModals);
+        Assert::assertStringNotContainsString("EmailTemplate::crm()->orderBy('id', 'desc')->get()", $shellModals);
+
+        $extraModals = file_get_contents($this->projectPath('resources/views/crm/clients/modals/extra_modals.blade.php'));
+        Assert::assertNotFalse($extraModals);
+        Assert::assertStringContainsString("@include('crm.clients.addclientmodal')", $extraModals);
+        Assert::assertStringContainsString("@include('crm.clients.editclientmodal')", $extraModals);
+        Assert::assertStringNotContainsString("@include('crm.clients.modals.client-management')", $extraModals);
+    }
+
+    #[Test]
+    public function compose_and_checkin_option_lists_load_on_modal_open(): void
+    {
+        $detailMain = file_get_contents($this->projectPath('public/js/crm/clients/detail-main.js'));
+        Assert::assertNotFalse($detailMain);
+        Assert::assertStringContainsString('window.ensureComposeOptionListsLoaded', $detailMain);
+        Assert::assertStringContainsString('populateComposeCrmTemplates', $detailMain);
+        Assert::assertStringContainsString('populateComposeChecklists', $detailMain);
+        Assert::assertStringContainsString('get-compose-option-lists', $detailMain);
+
+        $layout = file_get_contents($this->projectPath('resources/views/layouts/crm_client_detail.blade.php'));
+        Assert::assertNotFalse($layout);
+        Assert::assertStringNotContainsString('Branch::all()', $layout);
+        Assert::assertStringNotContainsString("Staff::where('status', 1)->orderBy('first_name')->get()", $layout);
+        Assert::assertStringContainsString('ensureCheckinOptionListsLoaded', $layout);
+        Assert::assertStringContainsString('/get-checkin-option-lists', $layout);
+
+        $dashboard = file_get_contents($this->projectPath('resources/views/layouts/crm_client_detail_dashboard.blade.php'));
+        Assert::assertNotFalse($dashboard);
+        Assert::assertStringContainsString('ensureCheckinOptionListsLoaded', $dashboard);
+        Assert::assertStringContainsString('/get-checkin-option-lists', $dashboard);
+    }
+
+    #[Test]
+    public function crm_layouts_load_tinymce_on_demand_instead_of_every_page(): void
+    {
+        $layout = file_get_contents($this->projectPath('resources/views/layouts/crm_client_detail.blade.php'));
+        Assert::assertNotFalse($layout);
+        Assert::assertStringContainsString('js/tinymce-loader.js', $layout);
+        Assert::assertDoesNotMatchRegularExpression(
+            '/<script\s+src=["\'][^"\']*tinymce\/js\/tinymce\/tinymce\.min\.js/',
+            $layout
+        );
+
+        $dashboard = file_get_contents($this->projectPath('resources/views/layouts/crm_client_detail_dashboard.blade.php'));
+        Assert::assertNotFalse($dashboard);
+        Assert::assertStringContainsString('js/tinymce-loader.js', $dashboard);
+        Assert::assertDoesNotMatchRegularExpression(
+            '/<script\s+src=["\'][^"\']*tinymce\/js\/tinymce\/tinymce\.min\.js/',
+            $dashboard
+        );
+
+        $loader = file_get_contents($this->projectPath('public/js/tinymce-loader.js'));
+        Assert::assertNotFalse($loader);
+        Assert::assertStringContainsString('window.ensureTinyMCELoaded', $loader);
+        Assert::assertStringContainsString('window.requestTinyMCEInit', $loader);
+        Assert::assertStringContainsString('shown.bs.modal', $loader);
+        Assert::assertStringContainsString('.tinymce-editor', $loader);
+
+        $scripts = file_get_contents($this->projectPath('public/js/scripts.js'));
+        Assert::assertNotFalse($scripts);
+        Assert::assertStringContainsString('window.initScriptsTinyMCEEditors', $scripts);
+        Assert::assertStringContainsString('window.requestTinyMCEInit', $scripts);
+
+        $companyDetail = file_get_contents($this->projectPath('resources/views/crm/companies/detail.blade.php'));
+        Assert::assertNotFalse($companyDetail);
+        Assert::assertDoesNotMatchRegularExpression(
+            '/<script\s+src=["\'][^"\']*tinymce\/js\/tinymce\/tinymce\.min\.js/',
+            $companyDetail
+        );
+        Assert::assertStringContainsString('ensureTinyMCELoaded', $companyDetail);
     }
 
     #[Test]
@@ -271,6 +354,8 @@ class ClientDetailTabsTest extends TestCase
         $personalDetailsLazy = file_get_contents($this->projectPath('resources/views/crm/clients/tabs/personal_details_lazy.blade.php'));
         Assert::assertNotFalse($personalDetailsLazy);
         Assert::assertStringContainsString('id="'.ClientDetailTabs::paneId('personaldetails').'"', $personalDetailsLazy);
+        Assert::assertStringContainsString("shouldEagerRender('personaldetails'", $personalDetailsLazy);
+        Assert::assertStringContainsString('tab-pane{{ $personalDetailsTabIsActive ? \' active\' : \'\' }}', $personalDetailsLazy);
     }
 
     #[Test]
@@ -504,13 +589,16 @@ class ClientDetailTabsTest extends TestCase
     }
 
     #[Test]
-    public function personal_details_tab_script_loads_fragment_when_not_the_url(): void
+    public function personal_details_tab_script_loads_fragment_including_default_tab(): void
     {
         $js = file_get_contents($this->projectPath('public/js/crm/clients/personaldetails-tab.js'));
         Assert::assertNotFalse($js);
         Assert::assertStringContainsString('function ensurePersonalDetailsTabLoaded', $js);
+        Assert::assertStringContainsString('function bootPersonalDetailsTabIfNeeded', $js);
         Assert::assertStringContainsString('data-personaldetails-lazy', $js);
         Assert::assertStringContainsString('#personaldetails-tab', $js);
+        Assert::assertStringContainsString('adjustActivityFeedHeight', $js);
+        Assert::assertStringContainsString('ClientDetailConfig.activeTab', $js);
 
         $detailMain = file_get_contents($this->projectPath('public/js/crm/clients/detail-main.js'));
         Assert::assertNotFalse($detailMain);

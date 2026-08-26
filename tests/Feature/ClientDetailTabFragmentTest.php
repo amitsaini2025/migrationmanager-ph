@@ -5,7 +5,11 @@ namespace Tests\Feature;
 use App\Http\Middleware\TrackStaffCrmActivity;
 use App\Http\Middleware\VerifyCsrfToken;
 use App\Models\Admin;
+use App\Models\Branch;
+use App\Models\EmailTemplate;
 use App\Models\Staff;
+use App\Models\UploadChecklist;
+use App\Support\ClientDetailModals;
 use App\Support\ClientDetailTabs;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Hash;
@@ -194,6 +198,127 @@ class ClientDetailTabFragmentTest extends TestCase
             ClientDetailTabs::fragmentRouteNames()['personaldetails'],
             ClientDetailTabs::paneId('personaldetails')
         );
+    }
+
+    #[Test]
+    public function shell_modals_fragment_returns_200_and_compose_modal_id(): void
+    {
+        $this->assertFragmentOk(
+            ClientDetailModals::fragmentRouteNames()['shell'],
+            'emailmodal'
+        );
+    }
+
+    #[Test]
+    public function extra_modals_fragment_returns_200_and_create_note_modal_id(): void
+    {
+        $this->assertFragmentOk(
+            ClientDetailModals::fragmentRouteNames()['extra'],
+            'create_note_d'
+        );
+    }
+
+    #[Test]
+    public function shell_modals_fragment_does_not_dump_crm_templates_or_checklists(): void
+    {
+        EmailTemplate::query()->create([
+            'type' => EmailTemplate::TYPE_CRM,
+            'name' => 'Dumped Template Must Not Appear',
+            'subject' => 'Hello',
+            'description' => 'Body',
+        ]);
+        $checklist = new UploadChecklist;
+        $checklist->forceFill([
+            'name' => 'Dumped Checklist Must Not Appear',
+            'file' => 'visa.pdf',
+            'matter_id' => 1,
+        ])->save();
+
+        $response = $this->actingAs($this->staff, 'admin')
+            ->get(route(ClientDetailModals::fragmentRouteNames()['shell'], [
+                'client_id' => $this->encodedClientId,
+            ]));
+
+        $response->assertOk();
+        $response->assertSee('id="emailmodal"', false);
+        $response->assertDontSee('Dumped Template Must Not Appear', false);
+        $response->assertDontSee('Dumped Checklist Must Not Appear', false);
+    }
+
+    #[Test]
+    public function compose_option_lists_return_crm_templates_and_checklists_only(): void
+    {
+        EmailTemplate::query()->create([
+            'type' => EmailTemplate::TYPE_CRM,
+            'name' => 'CRM Welcome',
+            'subject' => 'Hello',
+            'description' => 'Secret body',
+        ]);
+        EmailTemplate::query()->create([
+            'type' => EmailTemplate::TYPE_MATTER_FIRST,
+            'matter_id' => 99,
+            'name' => 'Matter First',
+            'subject' => 'Matter',
+            'description' => 'Matter body',
+        ]);
+        $checklist = new UploadChecklist;
+        $checklist->forceFill([
+            'name' => 'Visa checklist',
+            'file' => 'visa.pdf',
+            'matter_id' => 7,
+        ])->save();
+
+        $response = $this->actingAs($this->staff, 'admin')
+            ->get(route('clients.getComposeOptionLists'));
+
+        $response->assertOk();
+        $payload = $response->json();
+        Assert::assertIsArray($payload);
+        $templateNames = array_column($payload['templates'] ?? [], 'name');
+        Assert::assertContains('CRM Welcome', $templateNames);
+        Assert::assertNotContains('Matter First', $templateNames);
+        foreach ($payload['templates'] as $template) {
+            Assert::assertArrayHasKey('id', $template);
+            Assert::assertArrayHasKey('name', $template);
+            Assert::assertArrayNotHasKey('description', $template);
+        }
+        Assert::assertContains('Visa checklist', array_column($payload['checklists'] ?? [], 'name'));
+        $visa = collect($payload['checklists'])->firstWhere('name', 'Visa checklist');
+        Assert::assertSame('visa.pdf', $visa['file'] ?? null);
+        Assert::assertSame(7, $visa['matter_id'] ?? null);
+    }
+
+    #[Test]
+    public function checkin_option_lists_return_offices_and_active_staff_only(): void
+    {
+        Branch::query()->firstOrCreate(['office_name' => 'Adelaide Checkin']);
+        Staff::query()->firstOrCreate(
+            ['email' => 'inactive-checkin@test.com'],
+            [
+                'first_name' => 'Inactive',
+                'last_name' => 'Checkin',
+                'password' => Hash::make('password'),
+                'role' => 2,
+                'status' => 0,
+            ]
+        );
+
+        $response = $this->actingAs($this->staff, 'admin')
+            ->get(route('clients.getCheckinOptionLists'));
+
+        $response->assertOk();
+        $payload = $response->json();
+        Assert::assertContains('Adelaide Checkin', array_column($payload['offices'] ?? [], 'office_name'));
+        $emails = array_column($payload['assignees'] ?? [], 'email');
+        Assert::assertContains($this->staff->email, $emails);
+        Assert::assertNotContains('inactive-checkin@test.com', $emails);
+    }
+
+    #[Test]
+    public function compose_and_checkin_option_lists_require_staff_auth(): void
+    {
+        $this->get(route('clients.getComposeOptionLists'))->assertRedirect();
+        $this->get(route('clients.getCheckinOptionLists'))->assertRedirect();
     }
 
     private function assertFragmentOk(string $routeName, string $paneId): void
@@ -721,6 +846,57 @@ class ClientDetailTabFragmentTest extends TestCase
         if (! Schema::hasColumn('companies', 'ABN_number')) {
             Schema::table('companies', function (Blueprint $table) {
                 $table->string('ABN_number')->nullable();
+            });
+        }
+
+        if (! Schema::hasTable('email_templates')) {
+            Schema::create('email_templates', function (Blueprint $table) {
+                $table->id();
+                $table->string('type')->nullable();
+                $table->string('alias')->nullable();
+                $table->unsignedBigInteger('matter_id')->nullable();
+                $table->string('name')->nullable();
+                $table->string('subject')->nullable();
+                $table->text('description')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('matter_checklists')) {
+            Schema::create('matter_checklists', function (Blueprint $table) {
+                $table->id();
+                $table->string('name')->nullable();
+                $table->string('file')->nullable();
+                $table->unsignedBigInteger('matter_id')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('workflows')) {
+            Schema::create('workflows', function (Blueprint $table) {
+                $table->id();
+                $table->string('name')->nullable();
+                $table->unsignedBigInteger('matter_id')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('portal_document_checklists')) {
+            Schema::create('portal_document_checklists', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedTinyInteger('status')->nullable();
+                $table->unsignedTinyInteger('doc_type')->nullable();
+                $table->string('title')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('agent_details')) {
+            Schema::create('agent_details', function (Blueprint $table) {
+                $table->id();
+                $table->string('agent_name')->nullable();
+                $table->unsignedTinyInteger('status')->nullable();
+                $table->timestamps();
             });
         }
     }

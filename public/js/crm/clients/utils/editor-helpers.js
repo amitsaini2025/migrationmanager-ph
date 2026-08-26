@@ -38,7 +38,7 @@
             $element.val(content || '');
             if ($element.hasClass('tinymce-editor')) {
                 setTimeout(function() {
-                    if (elementId && tinymce.get(elementId)) {
+                    if (elementId && typeof tinymce !== 'undefined' && tinymce.get(elementId)) {
                         tinymce.get(elementId).setContent(content || '');
                     }
                 }, 100);

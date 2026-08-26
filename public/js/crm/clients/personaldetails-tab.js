@@ -1,6 +1,6 @@
 /**
  * Client Detail — Personal Details tab lazy fragment loader.
- * Eager when that tab is the URL; stub otherwise. Load once on click / deep-link.
+ * Always a stub (including default /personaldetails). Load once on boot / click.
  */
 (function() {
     'use strict';
@@ -226,12 +226,11 @@
         if (!tab) {
             return;
         }
-        var activeNav = document.querySelector('.client-nav-button.active');
-        var activeTab = (activeNav && activeNav.getAttribute('data-tab'))
-            || (window.ClientDetailConfig && window.ClientDetailConfig.activeTab)
-            || '';
+        // Sidebar Personal Details button is hardcoded `active` in HTML; use the pane / URL / config.
+        var configTab = (window.ClientDetailConfig && window.ClientDetailConfig.activeTab) || '';
         var path = window.location.pathname || '';
-        if (activeTab !== 'personaldetails' && !/\/personaldetails\/?$/.test(path)) {
+        var paneActive = tab.classList.contains('active');
+        if (!paneActive && configTab !== 'personaldetails' && !/\/personaldetails\/?$/.test(path)) {
             return;
         }
         ensurePersonalDetailsTabLoaded().catch(function(err) {

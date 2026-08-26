@@ -5246,7 +5246,7 @@ trait ClientCrmFollowups
 
     /**
      * Lightweight HTML fragment for the Personal Details tab only (lazy-load).
-     * Default /personaldetails URL still eager-renders in detail(); other tabs use the stub.
+     * Client detail always ships the stub; this fills it on boot (default tab) or click.
      */
     public function personalDetailsTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
     {
@@ -5345,6 +5345,66 @@ trait ClientCrmFollowups
             'assignableStaff' => $assignableStaff,
             'leadStageLabels' => $leadStageLabels,
         ]);
+    }
+
+    /**
+     * Compose / SMS / tags / reassign modal HTML (EmailTemplate + UploadChecklist live here).
+     */
+    public function shellModals(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
+    {
+        $ctx = $this->resolveClientDetailFragmentContext($client_id, $client_unique_matter_ref_no);
+
+        return view('crm.clients.modals.shell_modals', [
+            'fetchedData' => $ctx['fetchedData'],
+            'encodeId' => $ctx['encodeId'],
+            'id1' => $ctx['client_unique_matter_ref_no'],
+        ]);
+    }
+
+    /**
+     * Notes / add-edit / management / tab-owned modal HTML.
+     */
+    public function extraModals(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
+    {
+        $ctx = $this->resolveClientDetailFragmentContext($client_id, $client_unique_matter_ref_no);
+
+        return view('crm.clients.modals.extra_modals', [
+            'fetchedData' => $ctx['fetchedData'],
+            'encodeId' => $ctx['encodeId'],
+            'id1' => $ctx['client_unique_matter_ref_no'],
+        ]);
+    }
+
+    /**
+     * @return array{encodeId: string, fetchedData: Admin, client_unique_matter_ref_no: mixed}
+     */
+    protected function resolveClientDetailFragmentContext($client_id, $client_unique_matter_ref_no): array
+    {
+        if (empty($client_id)) {
+            abort(404);
+        }
+
+        $encodeId = $client_id;
+        $id = $this->decodeString($client_id);
+
+        if ($client_unique_matter_ref_no && ClientDetailTabs::isKnownSlug((string) $client_unique_matter_ref_no)) {
+            $client_unique_matter_ref_no = null;
+        }
+
+        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
+            abort(403);
+        }
+
+        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
+        if (! $fetchedData) {
+            abort(404);
+        }
+
+        return [
+            'encodeId' => $encodeId,
+            'fetchedData' => $fetchedData,
+            'client_unique_matter_ref_no' => $client_unique_matter_ref_no,
+        ];
     }
 
     protected function googleReviewCrmTemplateExists(): bool

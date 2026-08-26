@@ -516,8 +516,20 @@
     };
 
     /** Snapshot of CRM template <option>s for #emailmodal (restored when compose opens without a matter). */
+    function composeSelectHasRealOptions($select) {
+        if (!$select || !$select.length) {
+            return false;
+        }
+        return $select.find('option').filter(function() {
+            return $(this).val();
+        }).length > 0;
+    }
+
     function ensureComposeTemplateCrmOptionsSnapshot($select) {
         if (!$select || !$select.length || $select.data('composeCrmOptionsHtml')) {
+            return;
+        }
+        if (!composeSelectHasRealOptions($select)) {
             return;
         }
         $select.data('composeCrmOptionsHtml', $select.html());
@@ -533,6 +545,105 @@
             $select.html(html);
         }
     }
+
+    function composeOptionListsUrl() {
+        if (window.ClientDetailConfig && window.ClientDetailConfig.urls && window.ClientDetailConfig.urls.getComposeOptionLists) {
+            return window.ClientDetailConfig.urls.getComposeOptionLists;
+        }
+        return '/get-compose-option-lists';
+    }
+
+    function composeChecklistFileUrl(file) {
+        var base = (window.ClientDetailConfig && window.ClientDetailConfig.urls && window.ClientDetailConfig.urls.base)
+            ? String(window.ClientDetailConfig.urls.base).replace(/\/$/, '')
+            : '';
+        return base + '/checklists/' + encodeURIComponent(file || '');
+    }
+
+    function reinitComposeChecklistDataTable() {
+        var $table = $('#mychecklist-datatable');
+        if (!$table.length || !$.fn.dataTable) {
+            return;
+        }
+        if ($.fn.DataTable && $.fn.DataTable.isDataTable('#mychecklist-datatable')) {
+            $table.DataTable().destroy();
+        }
+        $table.dataTable({ searching: true });
+    }
+
+    function populateComposeCrmTemplates(templates) {
+        var $select = $('#emailmodal select.selecttemplate');
+        if (!$select.length) {
+            return;
+        }
+        $select.find('option').filter(function() {
+            return $(this).val();
+        }).remove();
+        (templates || []).forEach(function(template) {
+            $select.append($('<option></option>').attr('value', template.id).text(template.name || 'Template'));
+        });
+        $select.data('composeCrmOptionsHtml', $select.html());
+    }
+
+    function populateComposeChecklists(checklists) {
+        var $tbody = $('#mychecklist-datatable tbody');
+        if (!$tbody.length) {
+            return;
+        }
+        $tbody.empty();
+        (checklists || []).forEach(function(row) {
+            var $tr = $('<tr></tr>')
+                .attr('data-matter-id', row.matter_id == null ? '' : String(row.matter_id))
+                .attr('data-checklist-id', String(row.id));
+            var $cb = $('<input type="checkbox" class="checklistfile-cb">')
+                .attr('name', 'checklistfile[]')
+                .attr('value', String(row.id));
+            var $link = $('<a target="_blank"></a>')
+                .attr('href', composeChecklistFileUrl(row.file))
+                .text(row.name || '');
+            $tr.append($('<td></td>').append($cb));
+            $tr.append($('<td></td>').text(row.name || ''));
+            $tr.append($('<td></td>').append($link));
+            $tbody.append($tr);
+        });
+        reinitComposeChecklistDataTable();
+    }
+
+    /**
+     * Fill CRM template options and checklist rows when #emailmodal HTML exists but lists were stripped.
+     * Company/lead pages that still dump options skip the fetch.
+     */
+    window.ensureComposeOptionListsLoaded = function() {
+        if (window.__composeOptionListsPromise) {
+            return window.__composeOptionListsPromise;
+        }
+        var $select = $('#emailmodal select.selecttemplate');
+        var $tbody = $('#mychecklist-datatable tbody');
+        if (!$select.length) {
+            return $.Deferred().resolve().promise();
+        }
+        var hasTemplates = composeSelectHasRealOptions($select);
+        var hasChecklists = $tbody.find('tr[data-checklist-id]').length > 0;
+        if (hasTemplates && hasChecklists) {
+            ensureComposeTemplateCrmOptionsSnapshot($select);
+            return $.Deferred().resolve().promise();
+        }
+        window.__composeOptionListsPromise = $.getJSON(composeOptionListsUrl())
+            .done(function(res) {
+                if (!hasTemplates) {
+                    populateComposeCrmTemplates(res && res.templates ? res.templates : []);
+                } else {
+                    ensureComposeTemplateCrmOptionsSnapshot($select);
+                }
+                if (!hasChecklists) {
+                    populateComposeChecklists(res && res.checklists ? res.checklists : []);
+                }
+            })
+            .fail(function() {
+                window.__composeOptionListsPromise = null;
+            });
+        return window.__composeOptionListsPromise;
+    };
 
     /**
      * Compose Email template Tom Select: dropdown on body so positionDropdown() runs inside modals.
@@ -8709,13 +8820,50 @@ success: function(response) {
 
 
 
-        $('#emailmodal .js-data-example-ajax').mmSelect(emailModalRecipientsTomSelectBase());
+        window.initClientDetailShellModalWidgets = function() {
+            var $to = $('#emailmodal .js-data-example-ajax');
+            if ($to.length && typeof $.fn.mmSelect === 'function' && !($to[0] && $to[0].tomselect)) {
+                $to.mmSelect(emailModalRecipientsTomSelectBase());
+            }
 
+            var $cc = $('#emailmodal .js-data-example-ajaxccd');
+            if ($cc.length && typeof $.fn.mmSelect === 'function' && !($cc[0] && $cc[0].tomselect)) {
+                $cc.mmSelect(emailModalCcTomSelectBase());
+            }
 
+            $('.js-data-example-ajaxccapp').each(function() {
+                if (typeof $.fn.mmSelect === 'function' && !this.tomselect) {
+                    $(this).mmSelect(emailModalCcTomSelectBase());
+                }
+            });
 
-        $('#emailmodal .js-data-example-ajaxccd').mmSelect(emailModalCcTomSelectBase());
+            if ($('#reassign_client_id').length && !($('#reassign_client_id')[0].tomselect)) {
+                initReassignClientAjaxSelect($('#reassign_client_id'));
+            }
+            if ($('#reassign_sent_client_id').length && !($('#reassign_sent_client_id')[0].tomselect)) {
+                initReassignClientAjaxSelect($('#reassign_sent_client_id'));
+            }
+            if ($('#reassign_client_matter_id').length && typeof $.fn.mmSelect === 'function' && !($('#reassign_client_matter_id')[0].tomselect)) {
+                $('#reassign_client_matter_id').mmSelect();
+            }
+            if ($('#reassign_sent_client_matter_id').length && typeof $.fn.mmSelect === 'function' && !($('#reassign_sent_client_matter_id')[0].tomselect)) {
+                $('#reassign_sent_client_matter_id').mmSelect();
+            }
 
-        $('.js-data-example-ajaxccapp').mmSelect(emailModalCcTomSelectBase());
+            if ($('#mychecklist-datatable tbody tr[data-checklist-id]').length && $.fn.dataTable && !$.fn.DataTable.isDataTable('#mychecklist-datatable')) {
+                $('#mychecklist-datatable').dataTable({ searching: true });
+            }
+
+            if (typeof window.initTinyMCEForModals === 'function') {
+                window.initTinyMCEForModals();
+            }
+
+            if (typeof window.ensureComposeOptionListsLoaded === 'function') {
+                window.ensureComposeOptionListsLoaded();
+            }
+        };
+
+        window.initClientDetailShellModalWidgets();
 
 
 
@@ -8844,7 +8992,9 @@ success: function(response) {
             });
         }
 
-        $('#mychecklist-datatable').dataTable({"searching": true,});
+        if ($('#mychecklist-datatable').length && $.fn.dataTable && !$.fn.DataTable.isDataTable('#mychecklist-datatable')) {
+            $('#mychecklist-datatable').dataTable({"searching": true,});
+        }
 
         $(".invoicetable").dataTable({
 
