@@ -269,7 +269,11 @@ use App\Http\Controllers\Controller;
         <div class="main-content-with-tabs">
             <!-- Tab Contents -->
             <div class="tab-content" id="tab-content">
-            @include('crm.clients.tabs.personal_details')
+            @if(\App\Support\ClientDetailTabs::shouldEagerRender('personaldetails', $activeTab ?? 'personaldetails'))
+                @include('crm.clients.tabs.personal_details')
+            @else
+                @include('crm.clients.tabs.personal_details_lazy')
+            @endif
             
             @include('crm.clients.tabs.activityfeed_tab')
             
@@ -296,21 +300,15 @@ use App\Http\Controllers\Controller;
                     @include('crm.clients.tabs.eoi_roi')
                 @endif
                 
-                @if(($activeTab ?? '') === 'account')
-                    @include('crm.clients.tabs.account')
-                @else
-                    @include('crm.clients.tabs.account_lazy')
-                @endif
+                {{-- Always a stub: account-tab.js fetches the fragment, including deep-link /account. --}}
+                @include('crm.clients.tabs.account_lazy')
                 @if(($activeTab ?? '') === 'emails')
                     @include('crm.clients.tabs.emails')
                 @else
                     @include('crm.clients.tabs.emails_lazy')
                 @endif
-                @if(($activeTab ?? '') === 'checklists')
-                    @include('crm.clients.tabs.checklists')
-                @else
-                    @include('crm.clients.tabs.checklists_lazy')
-                @endif
+                {{-- Always a stub: checklists-tab.js fetches the fragment, including deep-link /checklists. --}}
+                @include('crm.clients.tabs.checklists_lazy')
                 @if(($activeTab ?? '') === 'workflow')
                     @include('crm.clients.tabs.workflow')
                 @else
@@ -322,11 +320,8 @@ use App\Http\Controllers\Controller;
                     @include('crm.clients.tabs.client_portal_lazy')
                 @endif
             @else
-                @if(($activeTab ?? '') === 'checklists')
-                    @include('crm.clients.tabs.checklists')
-                @else
-                    @include('crm.clients.tabs.checklists_lazy')
-                @endif
+                {{-- Always a stub: checklists-tab.js fetches the fragment, including deep-link /checklists. --}}
+                @include('crm.clients.tabs.checklists_lazy')
             @endif
             
             @if(($activeTab ?? '') === 'notuseddocuments')
@@ -838,11 +833,8 @@ use App\Http\Controllers\Controller;
                         <input id="mail_type" name="mail_type" type="hidden" value="inbox">
                         <input id="staff_mail" name="staff_mail" type="hidden" value="">
                         <input id="uploaded_doc_id" name="uploaded_doc_id" type="hidden" value="">
-						<select id="reassign_client_id" name="reassign_client_id" class="form-control mm-select" style="width: 100%;" data-valid="required">
+						<select id="reassign_client_id" name="reassign_client_id" class="form-control mm-select js-reassign-client-ajax" style="width: 100%;" data-valid="required" data-placeholder="Search by name, email, or client ID...">
 							<option value="">Select Client</option>
-							@foreach(\App\Models\Admin::where('type','client')->get() as $clientItem)
-							<option value="{{@$clientItem->id}}">{{@$clientItem->first_name}} {{@$clientItem->last_name}}({{@$clientItem->client_id}})</option>
-							@endforeach
 						</select>
 					</div>
 				</div>
@@ -882,11 +874,8 @@ use App\Http\Controllers\Controller;
                         <input id="mail_type" name="mail_type" type="hidden" value="sent">
                         <input id="staff_mail" name="staff_mail" type="hidden" value="">
                         <input id="uploaded_doc_id" name="uploaded_doc_id" type="hidden" value="">
-						<select id="reassign_sent_client_id" name="reassign_sent_client_id" class="form-control mm-select" style="width: 100%;" data-valid="required">
+						<select id="reassign_sent_client_id" name="reassign_sent_client_id" class="form-control mm-select js-reassign-client-ajax" style="width: 100%;" data-valid="required" data-placeholder="Search by name, email, or client ID...">
 							<option value="">Select Client</option>
-							@foreach(\App\Models\Admin::where('type','client')->get() as $clientItem)
-							<option value="{{@$clientItem->id}}">{{@$clientItem->first_name}} {{@$clientItem->last_name}}({{@$clientItem->client_id}})</option>
-							@endforeach
 						</select>
 					</div>
 				</div>
@@ -956,8 +945,7 @@ use App\Http\Controllers\Controller;
 
 @endsection
 @push('scripts')
-<!-- TinyMCE Editor -->
-<script src="{{asset('js/tinymce/js/tinymce/tinymce.min.js')}}"></script>
+{{-- TinyMCE is already loaded by layouts.crm_client_detail --}}
 <script>
 // TinyMCE Configuration for Email Modals
 var tinymceEmailConfig = {
@@ -1268,6 +1256,7 @@ $(document).ready(function() {
             visaDocumentsTab: '{{ route("clients.detail.visadocuments-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
             notUsedDocumentsTab: '{{ route("clients.detail.notuseddocuments-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
             notesTab: '{{ route("clients.detail.noteterm-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+            personalDetailsTab: '{{ route("clients.detail.personaldetails-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
             updateIntake: '{{ URL::to("/client-portal/updateintake") }}',
             updateExpectWin: '{{ URL::to("/client-portal/updateexpectwin") }}',
             updateDates: '{{ URL::to("/client-portal/updatedates") }}',
@@ -1601,6 +1590,7 @@ $(document).ready(function() {
 <script src="{{ URL::asset('js/crm/clients/visadocuments-tab.js') }}?v={{ time() }}"></script>
 <script src="{{ URL::asset('js/crm/clients/notuseddocuments-tab.js') }}?v={{ time() }}"></script>
 <script src="{{ URL::asset('js/crm/clients/notes-tab.js') }}?v={{ time() }}"></script>
+<script src="{{ URL::asset('js/crm/clients/personaldetails-tab.js') }}?v={{ time() }}"></script>
 {{-- Main detail page JavaScript --}}
 <script src="{{ URL::asset('js/crm/clients/detail-main.js') }}?v={{ time() }}"></script>
 

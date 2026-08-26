@@ -51,8 +51,8 @@ class ClientDetailTabsTest extends TestCase
     #[Test]
     public function deep_link_eager_renders_only_the_active_lazy_tab(): void
     {
-        Assert::assertTrue(ClientDetailTabs::shouldEagerRender('workflow', 'workflow'));
-        Assert::assertFalse(ClientDetailTabs::shouldEagerRender('workflow', 'personaldetails'));
+        Assert::assertTrue(ClientDetailTabs::shouldEagerRender('personaldetails', 'personaldetails'));
+        Assert::assertFalse(ClientDetailTabs::shouldEagerRender('personaldetails', 'account'));
         Assert::assertTrue(ClientDetailTabs::shouldEagerRender('client_portal', 'client_portal'));
         Assert::assertFalse(ClientDetailTabs::shouldEagerRender('client_portal', 'account'));
         Assert::assertTrue(ClientDetailTabs::shouldEagerRender('account', 'account'));
@@ -84,6 +84,7 @@ class ClientDetailTabsTest extends TestCase
             'visadocuments' => 'clients.detail.visadocuments-tab',
             'notuseddocuments' => 'clients.detail.notuseddocuments-tab',
             'noteterm' => 'clients.detail.noteterm-tab',
+            'personaldetails' => 'clients.detail.personaldetails-tab',
         ], ClientDetailTabs::fragmentRouteNames());
     }
 
@@ -112,6 +113,7 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('ensureVisaDocumentsTabLoaded', $sidebarTabs);
         Assert::assertStringContainsString('ensureNotUsedDocumentsTabLoaded', $sidebarTabs);
         Assert::assertStringContainsString('ensureNotesTabLoaded', $sidebarTabs);
+        Assert::assertStringContainsString('ensurePersonalDetailsTabLoaded', $sidebarTabs);
         Assert::assertStringContainsString('bindNavButtons', $sidebarTabs);
         Assert::assertStringNotContainsString('loadEmails({ forceReload: true })', $sidebarTabs);
         Assert::assertStringContainsString('filterEmailsByMatter', $sidebarTabs);
@@ -119,7 +121,7 @@ class ClientDetailTabsTest extends TestCase
     }
 
     #[Test]
-    public function client_detail_page_still_eager_includes_personal_details_and_non_lazy_tabs(): void
+    public function client_detail_page_lazy_loads_personal_details_account_and_checklists_safely(): void
     {
         $detail = file_get_contents($this->projectPath('resources/views/crm/clients/detail.blade.php'));
         Assert::assertNotFalse($detail);
@@ -130,9 +132,7 @@ class ClientDetailTabsTest extends TestCase
             'crm.clients.tabs.notes',
             'crm.clients.tabs.personal_documents',
             'crm.clients.tabs.visa_documents',
-            'crm.clients.tabs.account',
             'crm.clients.tabs.emails',
-            'crm.clients.tabs.checklists',
             'crm.clients.tabs.not_used_documents',
         ] as $include) {
             Assert::assertStringContainsString("@include('".$include."')", $detail);
@@ -145,11 +145,7 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString("(\$activeTab ?? '') === 'client_portal'", $detail);
         Assert::assertStringContainsString("@include('crm.clients.tabs.client_portal')", $detail);
         Assert::assertStringContainsString("@include('crm.clients.tabs.client_portal_lazy')", $detail);
-        Assert::assertStringContainsString("(\$activeTab ?? '') === 'account'", $detail);
-        Assert::assertStringContainsString("@include('crm.clients.tabs.account')", $detail);
         Assert::assertStringContainsString("@include('crm.clients.tabs.account_lazy')", $detail);
-        Assert::assertStringContainsString("(\$activeTab ?? '') === 'checklists'", $detail);
-        Assert::assertStringContainsString("@include('crm.clients.tabs.checklists')", $detail);
         Assert::assertStringContainsString("@include('crm.clients.tabs.checklists_lazy')", $detail);
         Assert::assertStringContainsString("(\$activeTab ?? '') === 'emails'", $detail);
         Assert::assertStringContainsString("@include('crm.clients.tabs.emails')", $detail);
@@ -162,12 +158,16 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString("@include('crm.clients.tabs.not_used_documents_lazy')", $detail);
         Assert::assertStringContainsString("(\$activeTab ?? '') === 'noteterm'", $detail);
         Assert::assertStringContainsString("@include('crm.clients.tabs.notes_lazy')", $detail);
-        // v1: Personal Details + Activity feed stay eager (never lazy stubs)
+        Assert::assertStringContainsString('ClientDetailTabs::shouldEagerRender(\'personaldetails\'', $detail);
         Assert::assertStringContainsString("@include('crm.clients.tabs.personal_details')", $detail);
-        Assert::assertStringContainsString("@include('crm.clients.tabs.activityfeed_tab')", $detail);
-        Assert::assertStringNotContainsString('personal_details_lazy', $detail);
+        Assert::assertStringContainsString("@include('crm.clients.tabs.personal_details_lazy')", $detail);
+        Assert::assertStringContainsString('@include(\'crm.clients.tabs.activityfeed_tab\')', $detail);
         Assert::assertStringNotContainsString('activityfeed_lazy', $detail);
         Assert::assertStringNotContainsString('activity_feed_lazy', $detail);
+        Assert::assertStringNotContainsString("Admin::where('type','client')->get()", $detail);
+        Assert::assertStringContainsString('js-reassign-client-ajax', $detail);
+        Assert::assertStringContainsString('personaldetails-tab.js', $detail);
+        Assert::assertStringNotContainsString('js/tinymce/js/tinymce/tinymce.min.js', $detail);
     }
 
     #[Test]
@@ -267,6 +267,10 @@ class ClientDetailTabsTest extends TestCase
         $notesLazy = file_get_contents($this->projectPath('resources/views/crm/clients/tabs/notes_lazy.blade.php'));
         Assert::assertNotFalse($notesLazy);
         Assert::assertStringContainsString('id="'.ClientDetailTabs::paneId('noteterm').'"', $notesLazy);
+
+        $personalDetailsLazy = file_get_contents($this->projectPath('resources/views/crm/clients/tabs/personal_details_lazy.blade.php'));
+        Assert::assertNotFalse($personalDetailsLazy);
+        Assert::assertStringContainsString('id="'.ClientDetailTabs::paneId('personaldetails').'"', $personalDetailsLazy);
     }
 
     #[Test]
@@ -497,6 +501,23 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertNotFalse($detailMain);
         Assert::assertStringContainsString('ensureNotesTabLoaded', $detailMain);
         Assert::assertStringContainsString('.pinnote', $detailMain);
+    }
+
+    #[Test]
+    public function personal_details_tab_script_loads_fragment_when_not_the_url(): void
+    {
+        $js = file_get_contents($this->projectPath('public/js/crm/clients/personaldetails-tab.js'));
+        Assert::assertNotFalse($js);
+        Assert::assertStringContainsString('function ensurePersonalDetailsTabLoaded', $js);
+        Assert::assertStringContainsString('data-personaldetails-lazy', $js);
+        Assert::assertStringContainsString('#personaldetails-tab', $js);
+
+        $detailMain = file_get_contents($this->projectPath('public/js/crm/clients/detail-main.js'));
+        Assert::assertNotFalse($detailMain);
+        Assert::assertStringContainsString('function initReassignClientAjaxSelect', $detailMain);
+        Assert::assertStringContainsString('initReassignClientAjaxSelect($(\'#reassign_client_id\'))', $detailMain);
+        Assert::assertStringContainsString('initReassignClientAjaxSelect($(\'#reassign_sent_client_id\'))', $detailMain);
+        Assert::assertStringContainsString('getRecipients', $detailMain);
     }
 
     #[Test]

@@ -78,6 +78,7 @@ final class ClientDetailTabs
             'visadocuments' => 'clients.detail.visadocuments-tab',
             'notuseddocuments' => 'clients.detail.notuseddocuments-tab',
             'noteterm' => 'clients.detail.noteterm-tab',
+            'personaldetails' => 'clients.detail.personaldetails-tab',
         ];
     }
 
@@ -99,6 +100,7 @@ final class ClientDetailTabs
             'js/crm/clients/visadocuments-tab.js',
             'js/crm/clients/notuseddocuments-tab.js',
             'js/crm/clients/notes-tab.js',
+            'js/crm/clients/personaldetails-tab.js',
         ];
     }
 

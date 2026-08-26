@@ -14,6 +14,58 @@
     }
     window.safeParseJsonResponse = safeParseJsonResponse;
 
+    /**
+     * Reassign-email client pickers: ajax search (same get-recipients endpoint as compose To).
+     * Keep numeric Admin id as the value — listAllMattersWRTSelClient and the reassign POST need it.
+     */
+    function initReassignClientAjaxSelect($select) {
+        if (!$select || !$select.length || typeof $.fn.mmSelect === 'undefined') {
+            return;
+        }
+        if ($select.data('mmSelect') || ($select[0] && $select[0].tomselect)) {
+            $select.mmSelect('destroy');
+        }
+        var recipientsUrl = (window.ClientDetailConfig && window.ClientDetailConfig.urls && window.ClientDetailConfig.urls.getRecipients)
+            || '/clients/get-recipients';
+        $select.mmSelect({
+            closeOnSelect: true,
+            placeholder: $select.attr('data-placeholder') || 'Search by name, email, or client ID...',
+            allowClear: true,
+            width: '100%',
+            minimumInputLength: 2,
+            dropdownParent: 'body',
+            ajax: {
+                url: recipientsUrl,
+                dataType: 'json',
+                delay: 350,
+                data: function (params) {
+                    return { q: params.term || '' };
+                },
+                processResults: function (data) {
+                    var items = (data && data.items) ? data.items : [];
+                    return {
+                        results: items
+                            .filter(function (item) {
+                                return String(item.status || '').toLowerCase() === 'client';
+                            })
+                            .map(function (item) {
+                                var name = item.name || item.email || String(item.id);
+                                return {
+                                    id: item.id,
+                                    text: name,
+                                    name: name,
+                                    email: item.email || '',
+                                    status: item.status || 'client'
+                                };
+                            })
+                    };
+                },
+                cache: true
+            }
+        });
+    }
+    window.initReassignClientAjaxSelect = initReassignClientAjaxSelect;
+
     function removeDocumentRowFromSourceTab(res) {
         var docId = res && res.doc_id;
         if (!docId) {
@@ -2041,9 +2093,9 @@ $(document).ready(function() {
 
 
 
-        // Inbox reassign modals – client + matter selects
+        // Inbox reassign modals – client + matter selects (client list is ajax, not dumped in HTML)
 
-        $('#reassign_client_id').mmSelect();
+        initReassignClientAjaxSelect($('#reassign_client_id'));
 
         $('#reassign_client_matter_id').mmSelect();
 
@@ -2161,9 +2213,9 @@ success: function(response) {
 
 
 
-        // Inbox reassign modals – client + matter selects
+        // Sent reassign modals – client + matter selects (client list is ajax, not dumped in HTML)
 
-        $('#reassign_sent_client_id').mmSelect();
+        initReassignClientAjaxSelect($('#reassign_sent_client_id'));
 
         $('#reassign_sent_client_matter_id').mmSelect();
 

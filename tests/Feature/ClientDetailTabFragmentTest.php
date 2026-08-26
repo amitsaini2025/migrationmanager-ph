@@ -102,6 +102,7 @@ class ClientDetailTabFragmentTest extends TestCase
             'visadocuments' => 'clients.detail.visadocuments-tab',
             'notuseddocuments' => 'clients.detail.notuseddocuments-tab',
             'noteterm' => 'clients.detail.noteterm-tab',
+            'personaldetails' => 'clients.detail.personaldetails-tab',
         ], ClientDetailTabs::fragmentRouteNames());
     }
 
@@ -183,6 +184,15 @@ class ClientDetailTabFragmentTest extends TestCase
         $this->assertFragmentOk(
             ClientDetailTabs::fragmentRouteNames()['noteterm'],
             ClientDetailTabs::paneId('noteterm')
+        );
+    }
+
+    #[Test]
+    public function personal_details_tab_fragment_returns_200_and_personaldetails_pane_id(): void
+    {
+        $this->assertFragmentOk(
+            ClientDetailTabs::fragmentRouteNames()['personaldetails'],
+            ClientDetailTabs::paneId('personaldetails')
         );
     }
 
@@ -522,6 +532,195 @@ class ClientDetailTabFragmentTest extends TestCase
                 $table->text('description')->nullable();
                 $table->string('mobile_number')->nullable();
                 $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('client_relationships')) {
+            Schema::create('client_relationships', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('client_id')->nullable();
+                $table->unsignedBigInteger('related_client_id')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('companies')) {
+            Schema::create('companies', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('admin_id')->nullable();
+                $table->unsignedBigInteger('contact_person_id')->nullable();
+                $table->string('company_name')->nullable();
+                $table->string('trading_name')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('company_trading_names')) {
+            Schema::create('company_trading_names', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('company_id')->nullable();
+                $table->string('trading_name')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('company_nominations')) {
+            Schema::create('company_nominations', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('company_id')->nullable();
+                $table->unsignedBigInteger('nominated_client_id')->nullable();
+                $table->unsignedInteger('sort_order')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('client_eoi_references')) {
+            Schema::create('client_eoi_references', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('client_id')->nullable();
+                $table->string('EOI_subclass')->nullable();
+                $table->string('EOI_occupation')->nullable();
+                $table->string('EOI_point')->nullable();
+                $table->string('EOI_state')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('tags')) {
+            Schema::create('tags', function (Blueprint $table) {
+                $table->id();
+                $table->string('name')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        $adminExtra = [
+            'dob_verified_date' => 'date',
+            'visa_expiry_verified_at' => 'date',
+            'tagname' => 'string',
+            'country_passport' => 'string',
+            'age' => 'string',
+            'gender' => 'string',
+            'marital_status' => 'string',
+        ];
+        foreach ($adminExtra as $column => $kind) {
+            if (! Schema::hasColumn('admins', $column)) {
+                Schema::table('admins', function (Blueprint $table) use ($column, $kind) {
+                    if ($kind === 'date') {
+                        $table->date($column)->nullable();
+                    } else {
+                        $table->string($column)->nullable();
+                    }
+                });
+            }
+        }
+
+        $addressExtra = ['suburb' => 'string', 'country' => 'string', 'zip' => 'string', 'regional_code' => 'string', 'address' => 'string', 'is_current' => 'unsignedTinyInteger'];
+        foreach ($addressExtra as $column => $kind) {
+            if (! Schema::hasColumn('client_addresses', $column)) {
+                Schema::table('client_addresses', function (Blueprint $table) use ($column, $kind) {
+                    if ($kind === 'unsignedTinyInteger') {
+                        $table->unsignedTinyInteger($column)->nullable();
+                    } else {
+                        $table->string($column)->nullable();
+                    }
+                });
+            }
+        }
+
+        $occupationExtra = ['skill_assessment', 'nomi_occupation', 'occupation_code', 'list', 'visa_subclass', 'dates'];
+        foreach ($occupationExtra as $column) {
+            if (! Schema::hasColumn('client_occupations', $column)) {
+                Schema::table('client_occupations', function (Blueprint $table) use ($column) {
+                    $table->string($column)->nullable();
+                });
+            }
+        }
+
+        $testExtra = ['test_type', 'listening', 'reading', 'writing', 'speaking', 'overall_score'];
+        foreach ($testExtra as $column) {
+            if (! Schema::hasColumn('client_testscore', $column)) {
+                Schema::table('client_testscore', function (Blueprint $table) use ($column) {
+                    $table->string($column)->nullable();
+                });
+            }
+        }
+        if (! Schema::hasColumn('client_testscore', 'test_date')) {
+            Schema::table('client_testscore', function (Blueprint $table) {
+                $table->date('test_date')->nullable();
+            });
+        }
+
+        $qualExtra = ['level', 'name', 'qual_campus'];
+        foreach ($qualExtra as $column) {
+            if (! Schema::hasColumn('client_qualifications', $column)) {
+                Schema::table('client_qualifications', function (Blueprint $table) use ($column) {
+                    $table->string($column)->nullable();
+                });
+            }
+        }
+
+        $expExtra = ['job_title', 'job_country'];
+        foreach ($expExtra as $column) {
+            if (! Schema::hasColumn('client_experiences', $column)) {
+                Schema::table('client_experiences', function (Blueprint $table) use ($column) {
+                    $table->string($column)->nullable();
+                });
+            }
+        }
+
+        $visaExtra = ['visa_expiry_date' => 'date', 'visa_grant_date' => 'date', 'visa_description' => 'string'];
+        foreach ($visaExtra as $column => $kind) {
+            if (! Schema::hasColumn('client_visa_countries', $column)) {
+                Schema::table('client_visa_countries', function (Blueprint $table) use ($column, $kind) {
+                    if ($kind === 'date') {
+                        $table->date($column)->nullable();
+                    } else {
+                        $table->string($column)->nullable();
+                    }
+                });
+            }
+        }
+
+        foreach (['contact_type' => 'string', 'country_code' => 'string'] as $column => $kind) {
+            if (! Schema::hasColumn('client_contacts', $column)) {
+                Schema::table('client_contacts', function (Blueprint $table) use ($column) {
+                    $table->string($column)->nullable();
+                });
+            }
+        }
+
+        foreach (['email_type' => 'string'] as $column => $kind) {
+            if (! Schema::hasColumn('client_emails', $column)) {
+                Schema::table('client_emails', function (Blueprint $table) use ($column) {
+                    $table->string($column)->nullable();
+                });
+            }
+        }
+
+        if (! Schema::hasColumn('matters', 'nick_name')) {
+            Schema::table('matters', function (Blueprint $table) {
+                $table->string('nick_name')->nullable();
+            });
+        }
+
+        foreach (['department_reference', 'other_reference'] as $column) {
+            if (! Schema::hasColumn('client_matters', $column)) {
+                Schema::table('client_matters', function (Blueprint $table) use ($column) {
+                    $table->string($column)->nullable();
+                });
+            }
+        }
+
+        if (! Schema::hasColumn('client_relationships', 'relationship_type')) {
+            Schema::table('client_relationships', function (Blueprint $table) {
+                $table->string('relationship_type')->nullable();
+            });
+        }
+
+        if (! Schema::hasColumn('companies', 'ABN_number')) {
+            Schema::table('companies', function (Blueprint $table) {
+                $table->string('ABN_number')->nullable();
             });
         }
     }

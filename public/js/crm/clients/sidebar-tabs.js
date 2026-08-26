@@ -117,6 +117,12 @@
         } else {
             console.error('[SidebarTabs] Tab pane not found:', `#${tabId}-tab`);
         }
+
+        if (tabId === 'personaldetails' && typeof window.ensurePersonalDetailsTabLoaded === 'function') {
+            window.ensurePersonalDetailsTabLoaded().catch(function(err) {
+                console.error('[SidebarTabs] Failed to load Personal Details tab', err);
+            });
+        }
         
         // Update URL
         updateUrl(tabId);
@@ -502,6 +508,12 @@
         // Apply side-effects directly to avoid an unwanted pushState entry.
         const defaultTabs = ['personaldetails', 'companydetails'];
         if (defaultTabs.includes(tabId)) {
+            // Eager Personal Details: no-op. Lazy stub (other URL, then restored): fetch once.
+            if (tabId === 'personaldetails' && typeof window.ensurePersonalDetailsTabLoaded === 'function') {
+                window.ensurePersonalDetailsTabLoaded().catch(function(err) {
+                    console.error('[SidebarTabs] Failed to load Personal Details tab', err);
+                });
+            }
             // The pane is already active from PHP; just apply feed + column visibility.
             if (isActivityFeedTab(tabId)) {
                 $('#activity-feed').show();

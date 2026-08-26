@@ -56,6 +56,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -73,7 +74,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 /**
  * ClientsController CRM list, detail, search, activity, email, merge, and action methods.
  *
- * @mixin \Illuminate\Routing\Controller
+ * @mixin Controller
  */
 trait ClientCrmFollowups
 {
@@ -758,26 +759,27 @@ trait ClientCrmFollowups
 
     // Fetch selected client all matters at assign email to client popup
     public function listAllMattersWRTSelClient(Request $request) // dd($request->all());
-    {if (ClientMatter::where('client_id', $request->client_id)->exists()) {
-        // Fetch All client matters
-        $clientMatetrs = ClientMatter::join('matters', 'client_matters.sel_matter_id', '=', 'matters.id')
-            ->select('client_matters.id', 'matters.title', 'client_matters.client_unique_matter_no')
-            ->where('client_id', $request->client_id)
-            ->get(); // dd($clientMatetrs);
-        if (! empty($clientMatetrs) && count($clientMatetrs) > 0) {
-            $response['status'] = true;
-            $response['message'] = 'Client matter is successfully fetched.';
-            $response['clientMatetrs'] = $clientMatetrs;
+    {
+        if (ClientMatter::where('client_id', $request->client_id)->exists()) {
+            // Fetch All client matters
+            $clientMatetrs = ClientMatter::join('matters', 'client_matters.sel_matter_id', '=', 'matters.id')
+                ->select('client_matters.id', 'matters.title', 'client_matters.client_unique_matter_no')
+                ->where('client_id', $request->client_id)
+                ->get(); // dd($clientMatetrs);
+            if (! empty($clientMatetrs) && count($clientMatetrs) > 0) {
+                $response['status'] = true;
+                $response['message'] = 'Client matter is successfully fetched.';
+                $response['clientMatetrs'] = $clientMatetrs;
+            } else {
+                $response['status'] = false;
+                $response['message'] = 'Please try again';
+                $response['clientMatetrs'] = [];
+            }
         } else {
             $response['status'] = false;
             $response['message'] = 'Please try again';
             $response['clientMatetrs'] = [];
         }
-    } else {
-        $response['status'] = false;
-        $response['message'] = 'Please try again';
-        $response['clientMatetrs'] = [];
-    }
         echo json_encode($response);
     }
 
@@ -814,24 +816,25 @@ trait ClientCrmFollowups
 
     // mail preview click update mail_is_read bit
     public function updatemailreadbit(Request $request) // dd($request->all());
-    {if (EmailLog::where('id', $request->mail_report_id)->exists()) {
-        $emailLogInfo = EmailLog::select('mail_is_read')->where('id', $request->mail_report_id)->first();
-        // dd($emailLogInfo);
-        if ($emailLogInfo) {
-            $email_log_info = EmailLog::find($request->mail_report_id);
-            $email_log_info->mail_is_read = 1;
-            $email_log_info->save();
+    {
+        if (EmailLog::where('id', $request->mail_report_id)->exists()) {
+            $emailLogInfo = EmailLog::select('mail_is_read')->where('id', $request->mail_report_id)->first();
+            // dd($emailLogInfo);
+            if ($emailLogInfo) {
+                $email_log_info = EmailLog::find($request->mail_report_id);
+                $email_log_info->mail_is_read = 1;
+                $email_log_info->save();
 
-            $response['status'] = true;
-            $response['message'] = 'Mail is successfully updated';
+                $response['status'] = true;
+                $response['message'] = 'Mail is successfully updated';
+            } else {
+                $response['status'] = false;
+                $response['message'] = 'Please try again';
+            }
         } else {
             $response['status'] = false;
             $response['message'] = 'Please try again';
         }
-    } else {
-        $response['status'] = false;
-        $response['message'] = 'Please try again';
-    }
         echo json_encode($response);
     }
 
@@ -5238,6 +5241,109 @@ trait ClientCrmFollowups
             'id1' => $client_unique_matter_ref_no,
             'activeTab' => 'noteterm',
             'clientNotes' => $clientNotes,
+        ]);
+    }
+
+    /**
+     * Lightweight HTML fragment for the Personal Details tab only (lazy-load).
+     * Default /personaldetails URL still eager-renders in detail(); other tabs use the stub.
+     */
+    public function personalDetailsTab(Request $request, $client_id = null, $client_unique_matter_ref_no = null)
+    {
+        if (empty($client_id)) {
+            abort(404);
+        }
+
+        $encodeId = $client_id;
+        $id = $this->decodeString($client_id);
+
+        if ($client_unique_matter_ref_no && ClientDetailTabs::isKnownSlug((string) $client_unique_matter_ref_no)) {
+            $client_unique_matter_ref_no = null;
+        }
+
+        if (! StaffClientVisibility::canAccessClientOrLead((int) $id, Auth::user())) {
+            abort(403);
+        }
+
+        $fetchedData = Admin::where('id', (int) $id)->whereIn('type', ['client', 'lead'])->first();
+
+        if (! $fetchedData) {
+            abort(404);
+        }
+
+        $clientContacts = ClientContact::where('client_id', (int) $id)->get();
+        $emails = ClientEmail::where('client_id', (int) $id)->get() ?? [];
+        $personalDetailContacts = $clientContacts->filter(function ($contact) {
+            return ($contact->contact_type ?? '') !== 'Not In Use';
+        })->values();
+
+        $clientFamilyDetails = collect();
+        if (Schema::hasTable('client_relationships')) {
+            $clientFamilyDetails = ClientRelationship::where('client_id', (int) $id)
+                ->with(['relatedClient:id,first_name,last_name,client_id'])
+                ->get() ?? [];
+        }
+
+        $visibleNomineeNominations = collect();
+        if (Schema::hasTable('company_nominations')) {
+            $visibleNomineeNominations = $fetchedData->companyNominationsAsNominee
+                ->filter(function ($n) {
+                    $companyAdminId = $n->company?->admin_id;
+                    if ($companyAdminId === null) {
+                        return true;
+                    }
+
+                    return StaffClientVisibility::canAccessClientOrLead((int) $companyAdminId, Auth::user());
+                })
+                ->values();
+        }
+
+        $primaryContactCompaniesForClient = collect();
+        if (Schema::hasTable('companies')) {
+            $primaryContactCompaniesForClient = Company::query()
+                ->where('contact_person_id', (int) $id)
+                ->when(Schema::hasTable('company_trading_names'), function ($q) {
+                    $q->with(['tradingNames']);
+                })
+                ->get()
+                ->filter(function (Company $c) {
+                    $aid = (int) ($c->admin_id ?? 0);
+                    if ($aid <= 0) {
+                        return false;
+                    }
+
+                    return StaffClientVisibility::canAccessClientOrLead($aid, Auth::user());
+                })
+                ->values();
+        }
+
+        $assignableStaff = collect();
+        $leadStageLabels = [];
+        if (($fetchedData->type ?? '') === 'lead') {
+            $assignableStaff = Staff::where('status', 1)
+                ->orderBy('first_name')
+                ->orderBy('last_name')
+                ->get();
+            $leadStageLabels = [
+                'new' => 'New',
+                'follow_up' => 'Follow up',
+                'not_qualified' => 'Not qualified',
+                'hostile' => 'Hostile',
+            ];
+        }
+
+        return view('crm.clients.tabs.personal_details', [
+            'fetchedData' => $fetchedData,
+            'encodeId' => $encodeId,
+            'id1' => $client_unique_matter_ref_no,
+            'activeTab' => 'personaldetails',
+            'emails' => $emails,
+            'personalDetailContacts' => $personalDetailContacts,
+            'clientFamilyDetails' => $clientFamilyDetails,
+            'visibleNomineeNominations' => $visibleNomineeNominations,
+            'primaryContactCompaniesForClient' => $primaryContactCompaniesForClient,
+            'assignableStaff' => $assignableStaff,
+            'leadStageLabels' => $leadStageLabels,
         ]);
     }
 

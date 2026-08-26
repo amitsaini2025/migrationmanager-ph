@@ -129,6 +129,7 @@ Route::get('/clients/detail-personaldocuments-tab/{client_id}/{client_unique_mat
 Route::get('/clients/detail-visadocuments-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'visaDocumentsTab'])->name('clients.detail.visadocuments-tab');
 Route::get('/clients/detail-notuseddocuments-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'notUsedDocumentsTab'])->name('clients.detail.notuseddocuments-tab');
 Route::get('/clients/detail-noteterm-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'notesTab'])->name('clients.detail.noteterm-tab');
+Route::get('/clients/detail-personaldetails-tab/{client_id}/{client_unique_matter_ref_no?}', [ClientsController::class, 'personalDetailsTab'])->name('clients.detail.personaldetails-tab');
 Route::post('/clients/google-review-reminder', [ClientsController::class, 'updateGoogleReviewReminder'])->name('clients.google-review-reminder');
 Route::post('/clients/google-review-reminder/sms', [ClientsController::class, 'sendGoogleReviewReminderSms'])->name('clients.google-review-reminder.sms');
 

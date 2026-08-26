@@ -987,11 +987,8 @@ use App\Http\Controllers\Controller;
                         <input id="mail_type" name="mail_type" type="hidden" value="inbox">
                         <input id="staff_mail" name="staff_mail" type="hidden" value="">
                         <input id="uploaded_doc_id" name="uploaded_doc_id" type="hidden" value="">
-						<select id="reassign_client_id" name="reassign_client_id" class="form-control mm-select" style="width: 100%;" data-valid="required">
+						<select id="reassign_client_id" name="reassign_client_id" class="form-control mm-select js-reassign-client-ajax" style="width: 100%;" data-valid="required" data-placeholder="Search by name, email, or client ID...">
 							<option value="">Select Client</option>
-							@foreach(\App\Models\Admin::where('type','client')->get() as $clientItem)
-							<option value="{{@$clientItem->id}}">{{@$clientItem->first_name}} {{@$clientItem->last_name}}({{@$clientItem->client_id}})</option>
-							@endforeach
 						</select>
 					</div>
 				</div>
@@ -1031,11 +1028,8 @@ use App\Http\Controllers\Controller;
                         <input id="mail_type" name="mail_type" type="hidden" value="sent">
                         <input id="staff_mail" name="staff_mail" type="hidden" value="">
                         <input id="uploaded_doc_id" name="uploaded_doc_id" type="hidden" value="">
-						<select id="reassign_sent_client_id" name="reassign_sent_client_id" class="form-control mm-select" style="width: 100%;" data-valid="required">
+						<select id="reassign_sent_client_id" name="reassign_sent_client_id" class="form-control mm-select js-reassign-client-ajax" style="width: 100%;" data-valid="required" data-placeholder="Search by name, email, or client ID...">
 							<option value="">Select Client</option>
-							@foreach(\App\Models\Admin::where('type','client')->get() as $clientItem)
-							<option value="{{@$clientItem->id}}">{{@$clientItem->first_name}} {{@$clientItem->last_name}}({{@$clientItem->client_id}})</option>
-							@endforeach
 						</select>
 					</div>
 				</div>
