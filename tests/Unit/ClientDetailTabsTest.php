@@ -114,6 +114,7 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('ensureNotUsedDocumentsTabLoaded', $sidebarTabs);
         Assert::assertStringContainsString('ensureNotesTabLoaded', $sidebarTabs);
         Assert::assertStringContainsString('ensurePersonalDetailsTabLoaded', $sidebarTabs);
+        Assert::assertStringContainsString('ensureActivityFeedLoaded', $sidebarTabs);
         Assert::assertContains('js/crm/clients/lazy-modals.js', ClientDetailTabs::tabScriptFilenames());
         Assert::assertStringContainsString('bindNavButtons', $sidebarTabs);
         Assert::assertStringNotContainsString('loadEmails({ forceReload: true })', $sidebarTabs);

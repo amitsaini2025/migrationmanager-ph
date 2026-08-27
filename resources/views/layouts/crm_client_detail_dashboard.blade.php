@@ -1714,21 +1714,7 @@
                 //load_TotalActivityCount();
             },5000);
             
-            // Teams-like notification functionality
-            function loadOfficeVisitNotifications() {
-                $.ajax({
-                    url: "{{URL::to('/fetch-office-visit-notifications')}}",
-                    method: "GET",
-                    dataType: "json",
-                    success: function(data) {
-                        var list = (data && data.notifications) ? data.notifications : [];
-                        list.forEach(function(notification) {
-                            showTeamsNotification(notification);
-                        });
-                    }
-                });
-            }
-            
+            // Teams-like notification UI. HTTP poll lives in resources/js/app.js (Echo + fallback).
             function showTeamsNotification(notification) {
                 // Check if notification already exists
                 if ($('#teams-notification-' + notification.id).length > 0) {
@@ -1895,16 +1881,6 @@
                     }
                 });
             };
-            
-            // Defer office visit notifications until after initial paint (Echo listener is in app.js)
-            function deferOfficeVisitNotificationsLoad() {
-                if (typeof requestIdleCallback === 'function') {
-                    requestIdleCallback(function () { loadOfficeVisitNotifications(); }, { timeout: 2000 });
-                } else {
-                    setTimeout(loadOfficeVisitNotifications, 300);
-                }
-            }
-            deferOfficeVisitNotificationsLoad();
         
         // Profile dropdown hover functionality
         let profileHoverTimeout;

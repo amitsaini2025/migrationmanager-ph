@@ -20,6 +20,16 @@
         return tabId === 'personaldetails' || tabId === 'companydetails' || tabId === 'activityfeed';
     }
 
+    function ensureActivityFeedLoaded() {
+        if (typeof window.loadActivities !== 'function') {
+            return;
+        }
+        if (window.ActivityFeedState && window.ActivityFeedState.fetched) {
+            return;
+        }
+        window.loadActivities({ reset: true });
+    }
+
     function setMainColumnForTab(tabId) {
         if (tabId === 'activityfeed') {
             $('#main-content').hide();
@@ -130,6 +140,7 @@
         // Handle activity feed visibility
         if (isActivityFeedTab(tabId)) {
             $('#activity-feed').show();
+            ensureActivityFeedLoaded();
             if (tabId !== 'activityfeed') {
                 $('#main-content').css('flex', '1');
             }
@@ -517,6 +528,7 @@
             // The pane is already active from PHP; just apply feed + column visibility.
             if (isActivityFeedTab(tabId)) {
                 $('#activity-feed').show();
+                ensureActivityFeedLoaded();
                 setMainColumnForTab(tabId);
                 setTimeout(function() {
                     if (typeof adjustActivityFeedHeight === 'function') {

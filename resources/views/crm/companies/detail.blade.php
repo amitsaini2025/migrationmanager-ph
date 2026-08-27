@@ -1449,7 +1449,7 @@ $(document).ready(function() {
     };
     
     // Global function to load activities feed (paginated via /get-activities)
-    window.ActivityFeedState = window.ActivityFeedState || { page: 1, hasMore: false, loading: false, pendingReset: false };
+    window.ActivityFeedState = window.ActivityFeedState || { page: 1, hasMore: false, loading: false, pendingReset: false, fetched: false };
 
     window.loadActivities = function(options) {
         var opts = options || {};
@@ -1634,6 +1634,7 @@ $(document).ready(function() {
                         }
                     }
 
+                    window.ActivityFeedState.fetched = true;
                     window.ActivityFeedState.hasMore = !!response.has_more;
                     $('#activity-feed-load-more-wrap').toggle(window.ActivityFeedState.hasMore);
 
@@ -1668,11 +1669,7 @@ $(document).ready(function() {
         });
     };
 
-    $(document).ready(function() {
-        if ($('.activity-feed').length && typeof window.loadActivities === 'function') {
-            window.loadActivities({ reset: true });
-        }
-    });
+    // First fetch is from sidebar-tabs when the feed is shown (Personal / Company / Activity).
 </script>
 
 {{-- Newly added external JS placeholders for progressive migration --}}

@@ -235,8 +235,21 @@
             clearInterval(state.pollingTimer);
         }
 
-        // Use longer polling interval as fallback (only if WebSocket fails)
+        fetchUnreadBroadcasts();
         state.pollingTimer = setInterval(fetchUnreadBroadcasts, 60000);
+    }
+
+    function scheduleExistingUnreadFetch() {
+        var run = function () {
+            fetchUnreadBroadcasts();
+        };
+
+        if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(run, { timeout: 2500 });
+            return;
+        }
+
+        setTimeout(run, 1500);
     }
     
     function startRealtimeListener() {
@@ -355,11 +368,8 @@
     }
 
     function init() {
-        // Initial fetch to show existing broadcasts
-        fetchUnreadBroadcasts();
-        
-        // Use real-time listener with polling fallback
         startRealtimeListener();
+        scheduleExistingUnreadFetch();
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
 

@@ -198,6 +198,18 @@ function whenEchoConnected(callback) {
     connection.bind('connected', callback);
 }
 
+function isCrmEchoConnected() {
+    if (window.EchoDisabled || !window.Echo) {
+        return false;
+    }
+
+    if (typeof window.Echo.connectionStatus === 'function') {
+        return window.Echo.connectionStatus() === 'connected';
+    }
+
+    return window.Echo?.connector?.pusher?.connection?.state === 'connected';
+}
+
 if (import.meta.env.VITE_REVERB_APP_KEY) {
     try {
         if (!window.Echo) {
@@ -290,7 +302,7 @@ if (import.meta.env.VITE_REVERB_APP_KEY) {
     });
 })();
 
-// Polling fallback for notification badge (updates without page refresh when WebSocket unavailable)
+// Polling fallback for notification badge (HTML already has the count; Echo updates live).
 (function pollNotificationCount() {
     const badgeEl = document.getElementById('countbell_notification');
     const userId = document.querySelector('meta[name="current-user-id"]')?.content;
@@ -298,6 +310,7 @@ if (import.meta.env.VITE_REVERB_APP_KEY) {
 
     function fetchCount() {
         if (document.visibilityState === 'hidden') return;
+        if (isCrmEchoConnected()) return;
         fetch('/fetch-notification', {
             method: 'GET',
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -316,11 +329,26 @@ if (import.meta.env.VITE_REVERB_APP_KEY) {
             .catch(() => {});
     }
 
-    setTimeout(fetchCount, 5000);
     setInterval(fetchCount, 30000);
     document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') fetchCount();
     });
+
+    const echoConnector = window.Echo?.connector;
+    if (echoConnector && typeof echoConnector.onConnectionChange === 'function') {
+        echoConnector.onConnectionChange(function (status) {
+            if (status === 'disconnected' || status === 'failed') {
+                fetchCount();
+            }
+        });
+    } else {
+        const connection = echoConnector?.pusher?.connection;
+        if (connection) {
+            connection.bind('disconnected', fetchCount);
+            connection.bind('unavailable', fetchCount);
+            connection.bind('failed', fetchCount);
+        }
+    }
 })();
 
 /*

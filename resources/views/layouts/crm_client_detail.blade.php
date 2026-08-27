@@ -2616,21 +2616,7 @@
             //load_TotalActivityCount();
         },120000);
         
-        // Teams-like notification functionality
-        function loadOfficeVisitNotifications() {
-            $.ajax({
-                url: "{{url('/fetch-office-visit-notifications')}}",
-                method: "GET",
-                dataType: "json",
-                success: function(data) {
-                    var list = (data && data.notifications) ? data.notifications : [];
-                    list.forEach(function(notification) {
-                        showTeamsNotification(notification);
-                    });
-                }
-            });
-        }
-        
+        // Teams-like notification UI. HTTP poll lives in resources/js/app.js (Echo + fallback).
         function showTeamsNotification(notification) {
             // Check if notification already exists
             if ($('#teams-notification-' + notification.id).length > 0) {
@@ -2797,9 +2783,6 @@
                 }
             });
         };
-        
-        // Initial load of office visit notifications (Echo listener is registered in resources/js/app.js)
-        loadOfficeVisitNotifications();
     });
     </script>
 
