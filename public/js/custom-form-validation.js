@@ -193,8 +193,21 @@ function mmResetClientReceiptForm() {
  * Soft-refresh Account tab ledger/invoice fragments from server HTML so new rows
  * keep full Blade actions (view/send/edit/allocate/upload). Falls back to reload on failure.
  */
+function mmAccountTabFragmentFetchUrl() {
+	var tab = document.getElementById('account-tab');
+	var fromTab = tab && tab.getAttribute('data-account-url');
+	if (fromTab) {
+		return fromTab;
+	}
+	var urls = (window.ClientDetailConfig && window.ClientDetailConfig.urls) || {};
+	if (urls.accountTab) {
+		return urls.accountTab;
+	}
+	return window.location.href;
+}
+
 function mmSoftRefreshAccountAfterClientFundCreate() {
-	return fetch(window.location.href, {
+	return fetch(mmAccountTabFragmentFetchUrl(), {
 		headers: {
 			'X-Requested-With': 'XMLHttpRequest',
 			'Accept': 'text/html'

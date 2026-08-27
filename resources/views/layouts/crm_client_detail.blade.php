@@ -1734,7 +1734,7 @@
     @vite(['resources/js/vendor-libs.js', 'resources/js/vendor-pdfmake.js'])
     <!-- TinyMCE loads on demand via tinymce-loader.js (notes, email, office visits still init) -->
     <script src="{{ asset('js/tinymce-loader.js') }}?v={{ @filemtime(public_path('js/tinymce-loader.js')) ?: time() }}" data-tinymce-src="{{ asset('js/tinymce/js/tinymce/tinymce.min.js') }}"></script>
-    <script src="{{asset('js/custom-form-validation.js')}}"></script>
+    <script src="{{ asset('js/custom-form-validation.js') }}?v={{ @filemtime(public_path('js/custom-form-validation.js')) ?: time() }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{asset('js/bootstrap5-jquery-compat.js')}}"></script>
     <script src="{{asset('js/scripts.js')}}"></script>

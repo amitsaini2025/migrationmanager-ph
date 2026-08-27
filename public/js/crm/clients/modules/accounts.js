@@ -212,8 +212,12 @@
 
         $(document).on('change', '#edit_ledger_payment_method', toggleEditLedgerEftposSurcharge);
 
-        $('#updateLedgerEntryBtn').on('click', function() {
+        // Delegated: #editLedgerModal is a lazy extra-pack stub on first paint.
+        $(document).on('click', '#updateLedgerEntryBtn', function() {
             var form = $('#editLedgerForm')[0];
+            if (!form) {
+                return;
+            }
             var formData = new FormData(form);
             $.ajax({
                 type: 'POST',
@@ -225,13 +229,31 @@
                     if (response.status) {
                         $('#editLedgerModal').modal('hide');
                         localStorage.setItem('activeTab', 'accounts');
-                        location.reload();
-                        $('.custom-error-msg').html('<span class="alert alert-success">' + response.message + '</span>');
-                        if (response.updatedEntries) {
-                            renderClientFundsLedger(response.updatedEntries);
+
+                        var okMsg = response.message || 'Client funds ledger entry updated successfully';
+                        if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
+                            toastr.success(okMsg);
+                        } else {
+                            $('.custom-error-msg').html('<span class="alert alert-success">' + okMsg + '</span>');
                         }
-                        if (response.currentFundsHeld !== undefined) {
-                            $('.current-funds-held').text('$ ' + parseFloat(response.currentFundsHeld).toFixed(2));
+
+                        var clientId = $('#editLedgerForm input[name="client_id"]').val()
+                            || (window.ClientDetailConfig && window.ClientDetailConfig.clientId);
+                        if (typeof getallactivities === 'function' && clientId) {
+                            getallactivities(clientId);
+                        }
+
+                        if (typeof mmSoftRefreshAccountAfterClientFundCreate === 'function') {
+                            mmSoftRefreshAccountAfterClientFundCreate()
+                                .catch(function(err) {
+                                    console.warn('[ClientFundsLedger] Soft refresh after update failed, falling back to reload', err);
+                                    if (clientId) {
+                                        localStorage.setItem('pendingGetActivities', clientId);
+                                    }
+                                    location.reload();
+                                });
+                        } else {
+                            location.reload();
                         }
                     } else {
                         $('.custom-error-msg').html('<span class="alert alert-danger">' + response.message + '</span>');

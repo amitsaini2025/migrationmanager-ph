@@ -31,6 +31,7 @@ class ClientDetailModalsTest extends TestCase
         Assert::assertContains('create_appoint', ClientDetailModals::extraIds());
         Assert::assertContains('matteremailmodal', ClientDetailModals::extraIds());
         Assert::assertContains('createreceiptmodal', ClientDetailModals::extraIds());
+        Assert::assertContains('editLedgerModal', ClientDetailModals::extraIds());
     }
 
     #[Test]

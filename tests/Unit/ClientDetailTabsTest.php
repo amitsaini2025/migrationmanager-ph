@@ -128,6 +128,12 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('shown.bs.modal', $flatpickrHelpers);
         Assert::assertStringContainsString('#createreceiptmodal', $flatpickrHelpers);
 
+        $accountsJs = file_get_contents($this->projectPath('public/js/crm/clients/modules/accounts.js'));
+        Assert::assertNotFalse($accountsJs);
+        Assert::assertStringContainsString("$(document).on('click', '#updateLedgerEntryBtn'", $accountsJs);
+        Assert::assertStringNotContainsString("$('#updateLedgerEntryBtn').on('click'", $accountsJs);
+        Assert::assertStringContainsString('mmSoftRefreshAccountAfterClientFundCreate', $accountsJs);
+
         $fromScript = file_get_contents($this->projectPath('resources/views/partials/email-from-sendgrid-script.blade.php'));
         Assert::assertNotFalse($fromScript);
         Assert::assertStringContainsString('window.refreshEmailFromSenders = refreshEmailFromSenders', $fromScript);
@@ -388,6 +394,18 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('window.clientLedgerBalanceAmount', $accountTabJs);
         Assert::assertStringContainsString('#sel_matter_id_client_detail', $accountTabJs);
         Assert::assertStringContainsString('.general_matter_checkbox_client_detail', $accountTabJs);
+    }
+
+    #[Test]
+    public function client_fund_ledger_soft_refresh_uses_account_tab_fragment(): void
+    {
+        $js = file_get_contents($this->projectPath('public/js/custom-form-validation.js'));
+        Assert::assertNotFalse($js);
+        Assert::assertStringContainsString('function mmAccountTabFragmentFetchUrl', $js);
+        Assert::assertStringContainsString('data-account-url', $js);
+        Assert::assertStringContainsString('urls.accountTab', $js);
+        Assert::assertStringContainsString('fetch(mmAccountTabFragmentFetchUrl()', $js);
+        Assert::assertStringContainsString('function mmSoftRefreshAccountAfterClientFundCreate', $js);
     }
 
     #[Test]
