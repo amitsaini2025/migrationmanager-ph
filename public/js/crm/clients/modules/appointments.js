@@ -699,7 +699,9 @@
             $('.showselecteddate').html('');
 
         });
-        $('.slot_overwrite_time_dropdown').change(function() {
+        // Delegated: #create_appoint is lazy-loaded on client detail, so these
+        // nodes do not exist at document.ready (same pattern as .inperson_address).
+        $(document).on('change', '.slot_overwrite_time_dropdown', function() {
 
             $('#timeslot_col_time').val("");
 
@@ -711,7 +713,7 @@
 
 
 
-        $('#slot_overwrite').change(function() {
+        $(document).on('change', '#slot_overwrite', function() {
 
             $('#timeslot_col_date').val("");
 
@@ -721,7 +723,11 @@
 
                 $('#slot_overwrite_hidden').val(1);
 
-                $('.timeslotDivCls').hide();
+                $('.timeslotDivCls, .timeslot-section').hide();
+
+                $('.timeslots-grid').empty().hide();
+
+                $('.no-slots-message').hide();
 
                 $('.slotTimeOverwriteDivCls').show();
 
@@ -729,9 +735,11 @@
 
                 $('#slot_overwrite_hidden').val(0);
 
-                $('.timeslotDivCls').show();
+                $('.timeslotDivCls, .timeslot-section').show();
 
                 $('.slotTimeOverwriteDivCls').hide();
+
+                $('.slot_overwrite_time_dropdown').val('');
 
             }
             

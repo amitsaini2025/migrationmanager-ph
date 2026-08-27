@@ -54,6 +54,7 @@ use App\Models\ClientVisaCountry; // Import the ClientAddress model
 use App\Models\ClientOccupation; // Import the ClientAddress model
 use App\Models\ClientSpouseDetail; // Import the ClientAddress model
 use App\Models\AppointmentConsultant; // Import the AppointmentConsultant model
+use App\Support\AppointmentSlotOverwrite;
 use App\Support\BansalSchedulingServiceType;
 
 use App\Models\ClientPoint;
@@ -445,6 +446,7 @@ trait ClientAppointments
                 'amount' => ($serviceId == 2) ? 0 : 150,
                 'final_amount' => ($serviceId == 2) ? 0 : 150,
                 'payment_status' => ($serviceId == 2) ? null : 'pending',
+                'slot_overwrite' => AppointmentSlotOverwrite::fromRequest($requestData),
             ];
 
             // Call Bansal API to create appointment and get real bansal_appointment_id

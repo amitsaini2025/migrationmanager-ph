@@ -215,7 +215,7 @@
                                                             </div>
                                                         </div>
                                                         
-                                                        <div class="timeslot-section">
+                                                        <div class="timeslot-section timeslotDivCls">
                                                             <div class="section-header">
                                                                 @icon('fa-clock')
                                                                 <span>Available Time Slots</span>
@@ -258,7 +258,7 @@
                                             <!-- Slot Overwrite at Bottom -->
                                             <div class="slot-overwrite-section mt-3">
                                                 <div class="custom-control custom-checkbox">
-                                                    <input type="checkbox" class="custom-control-input" name="slot_overwrite" id="slot_overwrite" value="0">
+                                                    <input type="checkbox" class="custom-control-input" name="slot_overwrite" id="slot_overwrite" value="1">
                                                     <label class="custom-control-label" for="slot_overwrite">
                                                         @icon('fa-unlock-alt', ['class' => 'mr-2'])Slot Overwrite
                                                     </label>
@@ -1050,6 +1050,13 @@ document.addEventListener('DOMContentLoaded', function() {
 			const noSlotsMsg = document.querySelector('.no-slots-message');
 			
 			if (!oldTimeslots || !modernGrid) return;
+
+			if (typeof $ !== 'undefined' && $('#slot_overwrite_hidden').val() == 1) {
+				modernGrid.innerHTML = '';
+				modernGrid.style.display = 'none';
+				if (noSlotsMsg) noSlotsMsg.style.display = 'none';
+				return;
+			}
 			
 			// Get all timeslot_col elements (correct class name from detail-main.js)
 			const oldSlots = oldTimeslots.querySelectorAll('.timeslot_col');
