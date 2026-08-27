@@ -614,6 +614,9 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('function ensureNotesTabLoaded', $js);
         Assert::assertStringContainsString('bindNotesTabUi', $js);
         Assert::assertStringContainsString('bindNotesScopeClicks', $js);
+        Assert::assertStringContainsString("closest('.notes-scope-tab')", $js);
+        Assert::assertStringContainsString("closest('#noteterm-tab')", $js);
+        Assert::assertStringContainsString('bindNotesScopeClicks();', $js);
         Assert::assertStringContainsString('filterNotes', $js);
 
         $blade = file_get_contents($this->projectPath('resources/views/crm/clients/tabs/notes.blade.php'));
@@ -622,6 +625,13 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('window.bindNotesTabUi', $blade);
         Assert::assertStringContainsString('window.bindNotesScopeClicks', $blade);
         Assert::assertStringContainsString('window.setNotesScope', $blade);
+        $fromPane = substr($blade, (int) strpos($blade, 'id="noteterm-tab"'));
+        Assert::assertNotFalse(strpos($fromPane, '</script>'));
+        Assert::assertLessThan(
+            strrpos($fromPane, '</div>'),
+            strpos($fromPane, '</script>'),
+            'Notes inline script must stay inside #noteterm-tab so lazy inject runs it'
+        );
         Assert::assertStringContainsString('#noteterm-tab .notes-scope-tab', $blade);
         Assert::assertStringContainsString('data-notes-scope="matter"', $blade);
         Assert::assertStringContainsString('No Lead Notes found', $blade);

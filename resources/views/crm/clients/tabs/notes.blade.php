@@ -324,7 +324,6 @@
                         No Lead Notes found
                     </div>
                 </div>
-            </div>
 
             <script>
             window.isLeadNoteMatterId = function(matterId) {
@@ -364,14 +363,14 @@
                 return activeScopeTab ? activeScopeTab.getAttribute('data-notes-scope') : 'matter';
             };
 
-            window.bindNotesScopeClicks = function() {
+            window.bindNotesScopeClicks = window.bindNotesScopeClicks || function() {
                 if (window.__notesScopeClickBound) {
                     return;
                 }
                 window.__notesScopeClickBound = true;
                 document.addEventListener('click', function(e) {
-                    const tab = e.target && e.target.closest && e.target.closest('#noteterm-tab .notes-scope-tab');
-                    if (!tab) {
+                    const tab = e.target && e.target.closest && e.target.closest('.notes-scope-tab');
+                    if (!tab || !tab.closest('#noteterm-tab')) {
                         return;
                     }
                     e.preventDefault();
@@ -536,3 +535,4 @@
                 window.bindNotesTabUi();
             });
             </script>
+            </div>

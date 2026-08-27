@@ -129,13 +129,40 @@
         }
     }
 
+    /**
+     * Bind Lead Notes / Matter Specific clicks on document (not the lazy fragment).
+     * Sidebar open injects notes after DOMContentLoaded; a listener on the fragment
+     * script can miss. Delegated click stays alive for both lazy and reload.
+     */
+    function bindNotesScopeClicks() {
+        if (window.__notesScopeClickBound) {
+            return;
+        }
+        window.__notesScopeClickBound = true;
+        document.addEventListener('click', function(e) {
+            var target = e.target;
+            if (!target || typeof target.closest !== 'function') {
+                return;
+            }
+            var tab = target.closest('.notes-scope-tab');
+            if (!tab || !tab.closest('#noteterm-tab')) {
+                return;
+            }
+            e.preventDefault();
+            if (typeof window.setNotesScope === 'function') {
+                window.setNotesScope(tab.getAttribute('data-notes-scope') || 'matter');
+            }
+            if (typeof window.filterNotes === 'function') {
+                window.filterNotes();
+            }
+        });
+    }
+
     function rebindNotesTabUi(tabEl) {
         if (typeof refreshLucideIcons === 'function' && tabEl) {
             refreshLucideIcons(tabEl);
         }
-        if (typeof window.bindNotesScopeClicks === 'function') {
-            window.bindNotesScopeClicks();
-        }
+        bindNotesScopeClicks();
         if (typeof window.bindNotesTabUi === 'function') {
             window.bindNotesTabUi();
         }
@@ -255,8 +282,11 @@
         });
     }
 
+    window.bindNotesScopeClicks = bindNotesScopeClicks;
     window.ensureNotesTabLoaded = ensureNotesTabLoaded;
     window.initNotesTabAfterInject = initNotesTabAfterInject;
+
+    bindNotesScopeClicks();
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
