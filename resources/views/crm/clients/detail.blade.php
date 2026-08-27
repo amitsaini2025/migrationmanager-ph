@@ -1154,7 +1154,7 @@ $(document).ready(function() {
 <script src="{{ URL::asset('js/crm/clients/tabs/client_portal.js') }}" defer></script>
 
 {{-- Client detail utilities (must load before detail-main.js) --}}
-<script src="{{ URL::asset('js/crm/clients/utils/flatpickr-helpers.js') }}"></script>
+<script src="{{ URL::asset('js/crm/clients/utils/flatpickr-helpers.js') }}?v={{ file_exists(public_path('js/crm/clients/utils/flatpickr-helpers.js')) ? filemtime(public_path('js/crm/clients/utils/flatpickr-helpers.js')) : time() }}"></script>
 <script src="{{ URL::asset('js/crm/clients/utils/editor-helpers.js') }}"></script>
 <script src="{{ URL::asset('js/crm/clients/utils/dom-helpers.js') }}"></script>
 <script src="{{ URL::asset('js/crm/clients/lazy-modals.js') }}?v={{ file_exists(public_path('js/crm/clients/lazy-modals.js')) ? filemtime(public_path('js/crm/clients/lazy-modals.js')) : time() }}"></script>

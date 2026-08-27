@@ -109,7 +109,40 @@
         });
     }
 
+    /**
+     * Bind receipt/ledger date fields. Safe to call more than once: already-bound
+     * inputs are skipped. Needed because #createreceiptmodal is a lazy stub until
+     * the extra modal pack is injected (page-load init finds no inputs).
+     */
+    function initReceiptModalDatepickers() {
+        initFlatpickrForClass('.report_date_fields');
+        initFlatpickrForClass('.report_entry_date_fields', {
+            defaultDate: new Date()
+        });
+        initFlatpickrForClass('.report_date_fields_invoice');
+        initFlatpickrForClass('.report_entry_date_fields_invoice', {
+            defaultDate: new Date()
+        });
+        initFlatpickrForClass('.report_date_fields_office');
+        initFlatpickrForClass('.report_entry_date_fields_office', {
+            defaultDate: new Date()
+        });
+        initFlatpickrForClass('.report_date_fields_journal');
+        initFlatpickrForClass('.report_entry_date_fields_journal', {
+            defaultDate: new Date()
+        });
+    }
+
+    $(document).on(
+        'shown.bs.modal',
+        '#createreceiptmodal, #createclientreceiptmodal, #createinvoicereceiptmodal, #createofficereceiptmodal, #createjournalreceiptmodal, #createadjustinvoicereceiptmodal',
+        function() {
+            initReceiptModalDatepickers();
+        }
+    );
+
     window.initFlatpickrForClass = initFlatpickrForClass;
     window.initFlatpickrWithAjax = initFlatpickrWithAjax;
+    window.initReceiptModalDatepickers = initReceiptModalDatepickers;
 
 })(typeof jQuery !== 'undefined' ? jQuery : null);

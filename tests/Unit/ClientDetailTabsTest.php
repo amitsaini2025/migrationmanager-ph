@@ -120,6 +120,13 @@ class ClientDetailTabsTest extends TestCase
         $lazyModals = file_get_contents($this->projectPath('public/js/crm/clients/lazy-modals.js'));
         Assert::assertNotFalse($lazyModals);
         Assert::assertStringContainsString('window.refreshEmailFromSenders', $lazyModals);
+        Assert::assertStringContainsString('window.initReceiptModalDatepickers', $lazyModals);
+
+        $flatpickrHelpers = file_get_contents($this->projectPath('public/js/crm/clients/utils/flatpickr-helpers.js'));
+        Assert::assertNotFalse($flatpickrHelpers);
+        Assert::assertStringContainsString('window.initReceiptModalDatepickers = initReceiptModalDatepickers', $flatpickrHelpers);
+        Assert::assertStringContainsString('shown.bs.modal', $flatpickrHelpers);
+        Assert::assertStringContainsString('#createreceiptmodal', $flatpickrHelpers);
 
         $fromScript = file_get_contents($this->projectPath('resources/views/partials/email-from-sendgrid-script.blade.php'));
         Assert::assertNotFalse($fromScript);
@@ -181,6 +188,7 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringNotContainsString("EmailTemplate::crm()->orderBy('id', 'desc')->get()", $detail);
         Assert::assertStringContainsString("@include('crm.clients.modals.lazy_stubs')", $detail);
         Assert::assertStringContainsString('lazy-modals.js', $detail);
+        Assert::assertStringContainsString('js/crm/clients/utils/flatpickr-helpers.js', $detail);
         Assert::assertStringContainsString('personaldetails-tab.js', $detail);
         Assert::assertStringNotContainsString('js/tinymce/js/tinymce/tinymce.min.js', $detail);
         Assert::assertStringContainsString('ensureComposeOptionListsLoaded', $detail);

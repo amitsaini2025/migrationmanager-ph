@@ -226,6 +226,9 @@
         if (typeof window.refreshEmailFromSenders === 'function') {
             window.refreshEmailFromSenders();
         }
+        if (typeof window.initReceiptModalDatepickers === 'function') {
+            window.initReceiptModalDatepickers();
+        }
     }
 
     function ensurePack(name) {

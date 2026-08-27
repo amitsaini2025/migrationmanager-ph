@@ -3202,11 +3202,11 @@ success: function(response) {
 
 
 
-        //create client receipt start - Initialize Flatpickr
-        initFlatpickrForClass('.report_date_fields');
-        initFlatpickrForClass('.report_entry_date_fields', {
-            defaultDate: new Date()
-        });
+        // Receipt/ledger date fields live in the lazy extra modal pack; bind now
+        // (no-op if stubs) and again after pack inject / modal shown.
+        if (typeof window.initReceiptModalDatepickers === 'function') {
+            window.initReceiptModalDatepickers();
+        }
 
 
 
@@ -3909,11 +3909,7 @@ success: function(response) {
 
 
 
-        //create invoice receipt start - Initialize Flatpickr
-        initFlatpickrForClass('.report_date_fields_invoice');
-        initFlatpickrForClass('.report_entry_date_fields_invoice', {
-            defaultDate: new Date()
-        });
+        // Invoice receipt date fields: bound via initReceiptModalDatepickers (lazy extra pack).
 
 
 
@@ -4121,11 +4117,7 @@ success: function(response) {
 
 
 
-        //create office receipt start - Initialize Flatpickr
-        initFlatpickrForClass('.report_date_fields_office');
-        initFlatpickrForClass('.report_entry_date_fields_office', {
-            defaultDate: new Date()
-        });
+        // Office receipt date fields: bound via initReceiptModalDatepickers (lazy extra pack).
 
 
 
@@ -4219,11 +4211,7 @@ success: function(response) {
 
 
 
-        //create journal receipt start - Initialize Flatpickr
-        initFlatpickrForClass('.report_date_fields_journal');
-        initFlatpickrForClass('.report_entry_date_fields_journal', {
-            defaultDate: new Date()
-        });
+        // Journal receipt date fields: bound via initReceiptModalDatepickers (lazy extra pack).
 
 
 
