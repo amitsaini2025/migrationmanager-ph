@@ -1317,8 +1317,16 @@ $('.send-sms-btn').on('click', function() {
     $('#sendSmsModal').modal('show');
 });
 
-// Template selection (body loaded via API â€” avoids broken data-* with quotes/newlines)
-$('#sms_template').on('change', function() {
+// Delegated: #sendSmsModal HTML is injected by the lazy shell pack after page-load
+// binds would miss #sms_template / #sms_message / #sendSmsForm. Do not also
+// re-bind .send-sms-btn — that icon is always in the header (double-fire risk).
+$(document)
+    .off('change.clientSendSms', '#sms_template')
+    .off('input.clientSendSms', '#sms_message')
+    .off('submit.clientSendSms', '#sendSmsForm');
+
+// Template selection (body loaded via API — avoids broken data-* with quotes/newlines)
+$(document).on('change.clientSendSms', '#sms_template', function() {
     const id = $(this).val();
     if (!id) {
         return;
@@ -1368,7 +1376,7 @@ $('#sms_template').on('change', function() {
 });
 
 // Character counter
-$('#sms_message').on('input', function() {
+$(document).on('input.clientSendSms', '#sms_message', function() {
     var len     = $(this).val().length;
     var segSize = 160;
     var segs    = Math.max(1, Math.ceil(len / segSize));
@@ -1384,7 +1392,7 @@ $('#sms_message').on('input', function() {
 });
 
 // Form submission
-$('#sendSmsForm').on('submit', function(e) {
+$(document).on('submit.clientSendSms', '#sendSmsForm', function(e) {
     e.preventDefault();
     
     const submitBtn = $('#sendSmsBtn');

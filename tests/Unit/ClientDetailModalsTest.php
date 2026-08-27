@@ -59,4 +59,18 @@ class ClientDetailModalsTest extends TestCase
             Assert::assertContains($id, $ids);
         }
     }
+
+    #[Test]
+    public function client_detail_sms_modal_handlers_are_delegated_for_lazy_shell_pack(): void
+    {
+        $blade = (string) file_get_contents(resource_path('views/crm/clients/detail.blade.php'));
+
+        Assert::assertStringContainsString("$(document).on('change.clientSendSms', '#sms_template'", $blade);
+        Assert::assertStringContainsString("$(document).on('input.clientSendSms', '#sms_message'", $blade);
+        Assert::assertStringContainsString("$(document).on('submit.clientSendSms', '#sendSmsForm'", $blade);
+        Assert::assertDoesNotMatchRegularExpression("/\\\$\\('#sms_template'\\)\\.on\\('change'/", $blade);
+        Assert::assertDoesNotMatchRegularExpression("/\\\$\\('#sms_message'\\)\\.on\\('input'/", $blade);
+        Assert::assertDoesNotMatchRegularExpression("/\\\$\\('#sendSmsForm'\\)\\.on\\('submit'/", $blade);
+        Assert::assertMatchesRegularExpression("/\\\$\\('\\.send-sms-btn'\\)\\.on\\('click'/", $blade);
+    }
 }
