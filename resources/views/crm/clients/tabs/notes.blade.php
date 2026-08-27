@@ -22,7 +22,8 @@
             <div class="tab-pane" id="noteterm-tab"
                 @if($notesTabFragmentUrl !== '') data-noteterm-url="{{ $notesTabFragmentUrl }}" @endif
                 data-has-matter-notes="{{ $matterNotesCount > 0 ? '1' : '0' }}"
-                data-has-lead-notes="{{ $leadNotesCount > 0 ? '1' : '0' }}">
+                data-has-lead-notes="{{ $leadNotesCount > 0 ? '1' : '0' }}"
+                data-notes-scope="matter">
                 <div class="card full-width notes-container">
                     <div class="notes-header">
                         <h3>@icon('fa-file-alt') Notes</h3>
@@ -44,7 +45,7 @@
                     </div>
 
                     <!-- Matter Specific / Lead Notes scope tabs (Case 3 only) -->
-                    <div class="notes-scope-tabs-container" style="margin: 10px 0 0 10px; padding: 10px 0;{{ $showNotesScopeTabs ? '' : ' display: none;' }}">
+                    <div class="notes-scope-tabs-container" style="margin: 10px 0 0 10px; padding: 10px 0; position: relative; z-index: 20;{{ $showNotesScopeTabs ? '' : ' display: none;' }}">
                         <nav class="notes-scope-pills note-pills" style="display: flex; gap: 10px;">
                             <button type="button" class="notes-scope-tab pill-tab active" data-notes-scope="matter">Matter Specific</button>
                             <button type="button" class="notes-scope-tab pill-tab" data-notes-scope="lead">Lead Notes</button>
@@ -319,12 +320,19 @@
                         </div>
                         @endforeach
                     </div>
+                    <div id="notes-scope-empty-lead" class="notes-scope-empty" style="display: none; padding: 24px 10px; color: #6c757d;">
+                        No Lead Notes found
+                    </div>
                 </div>
             </div>
 
             <script>
             window.isLeadNoteMatterId = function(matterId) {
-                return matterId === null || matterId === undefined || matterId === '' || matterId === 'null';
+                if (matterId === null || matterId === undefined) {
+                    return true;
+                }
+                const value = String(matterId).trim().toLowerCase();
+                return value === '' || value === 'null' || value === 'undefined' || value === '0';
             };
 
             window.getSelectedMatterForNotes = function() {
@@ -335,9 +343,48 @@
                 return matterSelect ? (matterSelect.value || '') : '';
             };
 
+            window.setNotesScope = function(scope) {
+                const tabPane = document.getElementById('noteterm-tab');
+                if (!tabPane) {
+                    return;
+                }
+                const nextScope = (scope === 'lead') ? 'lead' : 'matter';
+                tabPane.dataset.notesScope = nextScope;
+                tabPane.querySelectorAll('.notes-scope-tab.pill-tab').forEach(function(tab) {
+                    tab.classList.toggle('active', tab.getAttribute('data-notes-scope') === nextScope);
+                });
+            };
+
+            window.getNotesScope = function() {
+                const tabPane = document.getElementById('noteterm-tab');
+                if (tabPane && tabPane.dataset.notesScope) {
+                    return tabPane.dataset.notesScope;
+                }
+                const activeScopeTab = document.querySelector('#noteterm-tab .notes-scope-tab.pill-tab.active');
+                return activeScopeTab ? activeScopeTab.getAttribute('data-notes-scope') : 'matter';
+            };
+
+            window.bindNotesScopeClicks = function() {
+                if (window.__notesScopeClickBound) {
+                    return;
+                }
+                window.__notesScopeClickBound = true;
+                document.addEventListener('click', function(e) {
+                    const tab = e.target && e.target.closest && e.target.closest('#noteterm-tab .notes-scope-tab');
+                    if (!tab) {
+                        return;
+                    }
+                    e.preventDefault();
+                    window.setNotesScope(tab.getAttribute('data-notes-scope') || 'matter');
+                    if (typeof window.filterNotes === 'function') {
+                        window.filterNotes();
+                    }
+                });
+            };
+
             window.refreshNotesScopeTabs = function() {
                 const tabPane = document.getElementById('noteterm-tab');
-                const container = document.querySelector('.notes-scope-tabs-container');
+                const container = document.querySelector('#noteterm-tab .notes-scope-tabs-container');
                 if (!tabPane || !container) {
                     return;
                 }
@@ -361,16 +408,7 @@
                 container.style.display = showScopeTabs ? '' : 'none';
 
                 if (showScopeTabs) {
-                    const activeScope = document.querySelector('.notes-scope-tab.pill-tab.active');
-                    if (!activeScope) {
-                        document.querySelectorAll('.notes-scope-tab.pill-tab').forEach(function(tab) {
-                            tab.classList.remove('active');
-                        });
-                        const matterTab = document.querySelector('.notes-scope-tab[data-notes-scope="matter"]');
-                        if (matterTab) {
-                            matterTab.classList.add('active');
-                        }
-                    }
+                    window.setNotesScope(window.getNotesScope() || 'matter');
                 }
             };
 
@@ -387,15 +425,15 @@
                 const showScopeTabs = hasMatterNotes && hasLeadNotes;
                 const searchText = document.getElementById('notes-search-input')?.value.toLowerCase().trim() || '';
                 const selectedMatter = window.getSelectedMatterForNotes();
-                const activeTypeTab = document.querySelector('.subtab8-button.pill-tab.active');
+                const activeTypeTab = document.querySelector('#noteterm-tab .subtab8-button.pill-tab.active');
                 const type = activeTypeTab ? activeTypeTab.getAttribute('data-subtab8') : 'All';
 
                 let scope = 'matter';
                 if (showScopeTabs) {
-                    const activeScopeTab = document.querySelector('.notes-scope-tab.pill-tab.active');
-                    scope = activeScopeTab ? activeScopeTab.getAttribute('data-notes-scope') : 'matter';
+                    scope = window.getNotesScope() || 'matter';
                 }
 
+                let visibleLeadCount = 0;
                 document.querySelectorAll('#noteterm-tab .note-card-redesign').forEach(function(card) {
                     const cardType = card.getAttribute('data-type');
                     const cardMatter = card.getAttribute('data-matterid');
@@ -421,11 +459,22 @@
                         searchMatch = card.textContent.toLowerCase().includes(searchText);
                     }
 
-                    card.style.display = (typeMatch && scopeMatch && matterMatch && searchMatch) ? '' : 'none';
+                    const visible = typeMatch && scopeMatch && matterMatch && searchMatch;
+                    card.style.display = visible ? '' : 'none';
+                    if (visible && isLeadNote) {
+                        visibleLeadCount++;
+                    }
                 });
+
+                const emptyLead = document.getElementById('notes-scope-empty-lead');
+                if (emptyLead) {
+                    emptyLead.style.display = (showScopeTabs && scope === 'lead' && visibleLeadCount === 0) ? '' : 'none';
+                }
             };
 
             window.bindNotesTabUi = function() {
+                window.bindNotesScopeClicks();
+
                 const searchInput = document.getElementById('notes-search-input');
                 if (searchInput && !searchInput.dataset.notesUiBound) {
                     searchInput.dataset.notesUiBound = '1';
@@ -437,27 +486,13 @@
                     });
                 }
 
-                document.querySelectorAll('.notes-scope-tab.pill-tab').forEach(function(tab) {
+                document.querySelectorAll('#noteterm-tab .subtab8-button.pill-tab').forEach(function(tab) {
                     if (tab.dataset.notesUiBound) {
                         return;
                     }
                     tab.dataset.notesUiBound = '1';
                     tab.addEventListener('click', function() {
-                        document.querySelectorAll('.notes-scope-tab.pill-tab').forEach(function(t) {
-                            t.classList.remove('active');
-                        });
-                        this.classList.add('active');
-                        window.filterNotes();
-                    });
-                });
-
-                document.querySelectorAll('.subtab8-button.pill-tab').forEach(function(tab) {
-                    if (tab.dataset.notesUiBound) {
-                        return;
-                    }
-                    tab.dataset.notesUiBound = '1';
-                    tab.addEventListener('click', function() {
-                        document.querySelectorAll('.subtab8-button.pill-tab').forEach(function(t) {
+                        document.querySelectorAll('#noteterm-tab .subtab8-button.pill-tab').forEach(function(t) {
                             t.classList.remove('active');
                         });
                         this.classList.add('active');
@@ -466,9 +501,9 @@
                 });
 
                 setTimeout(function() {
-                    const allTab = document.querySelector('.subtab8-button.pill-tab[data-subtab8="All"]');
+                    const allTab = document.querySelector('#noteterm-tab .subtab8-button.pill-tab[data-subtab8="All"]');
                     if (allTab) {
-                        document.querySelectorAll('.subtab8-button.pill-tab').forEach(function(t) {
+                        document.querySelectorAll('#noteterm-tab .subtab8-button.pill-tab').forEach(function(t) {
                             t.classList.remove('active');
                         });
                         allTab.classList.add('active');
@@ -496,6 +531,7 @@
                 }
             };
 
+            window.bindNotesScopeClicks();
             document.addEventListener('DOMContentLoaded', function() {
                 window.bindNotesTabUi();
             });

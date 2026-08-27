@@ -133,6 +133,9 @@
         if (typeof refreshLucideIcons === 'function' && tabEl) {
             refreshLucideIcons(tabEl);
         }
+        if (typeof window.bindNotesScopeClicks === 'function') {
+            window.bindNotesScopeClicks();
+        }
         if (typeof window.bindNotesTabUi === 'function') {
             window.bindNotesTabUi();
         }

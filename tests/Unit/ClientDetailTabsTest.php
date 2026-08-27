@@ -613,12 +613,18 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertNotFalse($js);
         Assert::assertStringContainsString('function ensureNotesTabLoaded', $js);
         Assert::assertStringContainsString('bindNotesTabUi', $js);
+        Assert::assertStringContainsString('bindNotesScopeClicks', $js);
         Assert::assertStringContainsString('filterNotes', $js);
 
         $blade = file_get_contents($this->projectPath('resources/views/crm/clients/tabs/notes.blade.php'));
         Assert::assertNotFalse($blade);
         Assert::assertStringContainsString('window.filterNotes', $blade);
         Assert::assertStringContainsString('window.bindNotesTabUi', $blade);
+        Assert::assertStringContainsString('window.bindNotesScopeClicks', $blade);
+        Assert::assertStringContainsString('window.setNotesScope', $blade);
+        Assert::assertStringContainsString('#noteterm-tab .notes-scope-tab', $blade);
+        Assert::assertStringContainsString('data-notes-scope="matter"', $blade);
+        Assert::assertStringContainsString('No Lead Notes found', $blade);
         Assert::assertStringContainsString('pinnote', $blade);
         Assert::assertStringContainsString('subtab8-button', $blade);
         Assert::assertStringContainsString('notes-scope-tab', $blade);
