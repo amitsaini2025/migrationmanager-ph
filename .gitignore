@@ -45,3 +45,6 @@ python_services/start_services.sh
 
 # Zip archives
 *.zip
+
+# Graphify knowledge graph (local-only generated output)
+graphify-out/
