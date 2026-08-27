@@ -210,7 +210,7 @@
 						<div class="col-12">
 							<div class="form-group">
 								<label for="sms_message">Message <span class="span_req">*</span></label>
-								<textarea class="form-control" id="sms_message" name="message" rows="5" maxlength="320" required></textarea>
+								<textarea class="sms-compose-message" id="sms_message" name="message" rows="5" maxlength="320" required></textarea>
 								<div class="d-flex justify-content-between align-items-center mt-1">
 									<small class="text-muted">
 										<span id="sms_char_count">0</span> / <span id="sms_char_max">160</span> chars

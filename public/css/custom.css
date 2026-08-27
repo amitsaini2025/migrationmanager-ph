@@ -873,3 +873,30 @@ text-overflow: ellipsis;white-space: nowrap;}
 .popover-content, .badge.badge-info {
     background-color: #3abaf4 !important;
 }
+
+/* SMS compose: do not use textarea.form-control — global height:64px !important blocks native drag-resize. */
+textarea.sms-compose-message {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 400;
+    line-height: 1.6;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    min-height: 120px;
+    max-height: 60vh;
+    resize: vertical;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+textarea.sms-compose-message:focus {
+    color: #495057;
+    background-color: #fff;
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}

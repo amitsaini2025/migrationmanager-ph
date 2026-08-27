@@ -73,4 +73,18 @@ class ClientDetailModalsTest extends TestCase
         Assert::assertDoesNotMatchRegularExpression("/\\\$\\('#sendSmsForm'\\)\\.on\\('submit'/", $blade);
         Assert::assertMatchesRegularExpression("/\\\$\\('\\.send-sms-btn'\\)\\.on\\('click'/", $blade);
     }
+
+    #[Test]
+    public function send_sms_message_textarea_avoids_form_control_height_lock(): void
+    {
+        $shell = (string) file_get_contents(resource_path('views/crm/clients/modals/shell_modals.blade.php'));
+        $customCss = (string) file_get_contents(public_path('css/custom.css'));
+
+        Assert::assertStringContainsString('id="sms_message"', $shell);
+        Assert::assertStringContainsString('class="sms-compose-message"', $shell);
+        Assert::assertDoesNotMatchRegularExpression('/id="sms_message"[^>]*class="form-control"/', $shell);
+        Assert::assertDoesNotMatchRegularExpression('/class="form-control"[^>]*id="sms_message"/', $shell);
+        Assert::assertStringContainsString('textarea.sms-compose-message', $customCss);
+        Assert::assertStringContainsString('resize: vertical', $customCss);
+    }
 }
