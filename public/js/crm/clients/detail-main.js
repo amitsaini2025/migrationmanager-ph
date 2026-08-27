@@ -6695,10 +6695,13 @@ success: function(response) {
         $(document).on('submit', '#agreementUploadForm', function(e) { e.preventDefault(); });
 
         // Agreement modal: single upload function used for auto-upload on drop or browse
+        var agreementUploadInFlight = false;
         function doAgreementUpload() {
+            if (agreementUploadInFlight) return;
             var form = document.getElementById('agreementUploadForm');
             if (!form || !form.agreement_doc || !form.agreement_doc.files || !form.agreement_doc.files.length) return;
             var formData = new FormData(form);
+            agreementUploadInFlight = true;
             $('.popuploader').show();
             $('#agreementUploadError').hide();
             $.ajax({
@@ -6726,81 +6729,107 @@ success: function(response) {
                     $('.popuploader').hide();
                     var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'An error occurred while uploading the agreement.';
                     $('#agreementUploadError').text(msg).show();
+                },
+                complete: function() {
+                    agreementUploadInFlight = false;
                 }
             });
         }
 
-        // Agreement modal: drag-and-drop and click-to-browse; auto-upload on file set
+        // Agreement modal: delegated drag-and-drop / click-to-browse (modal is lazy-injected)
         (function() {
-            var $form = $('#agreementUploadForm');
-            var $input = $form.find('input[name="agreement_doc"]');
-            var $dropZone = $('#agreementDropZone');
-            var $fileName = $('#agreementFileName');
-            var $err = $('#agreementUploadError');
+            function agreementEls() {
+                var $form = $('#agreementUploadForm');
+                return {
+                    $input: $form.find('input[name="agreement_doc"]'),
+                    $dropZone: $('#agreementDropZone'),
+                    $fileName: $('#agreementFileName'),
+                    $err: $('#agreementUploadError')
+                };
+            }
 
             function setAgreementFile(file) {
                 if (!file) return;
+                var els = agreementEls();
+                if (!els.$input[0]) return;
                 var name = file.name || 'File chosen';
                 var isPdf = file.type === 'application/pdf' || (name.toLowerCase().indexOf('.pdf') === name.length - 4);
                 if (!isPdf) {
-                    $err.text('Please upload a PDF file.').show();
+                    els.$err.text('Please upload a PDF file.').show();
                     return;
                 }
-                $err.hide();
+                els.$err.hide();
                 var dt = new DataTransfer();
                 dt.items.add(file);
-                $input[0].files = dt.files;
-                $fileName.text(name);
-                $dropZone.addClass('agreement-drop-zone--over');
-                setTimeout(function() { $dropZone.removeClass('agreement-drop-zone--over'); }, 300);
+                els.$input[0].files = dt.files;
+                els.$fileName.text(name);
+                els.$dropZone.addClass('agreement-drop-zone--over');
+                setTimeout(function() { els.$dropZone.removeClass('agreement-drop-zone--over'); }, 300);
                 doAgreementUpload();
             }
 
             function clearAgreementUploadState() {
-                $input.val('');
-                $fileName.text('');
-                $err.hide();
-                $dropZone.removeClass('agreement-drop-zone--over');
+                var els = agreementEls();
+                els.$input.val('');
+                els.$fileName.text('');
+                els.$err.hide();
+                els.$dropZone.removeClass('agreement-drop-zone--over');
             }
 
-            $dropZone.on('click', function(e) {
+            $(document).on('click', '#agreementDropZone', function(e) {
                 if ($(e.target).closest('.agreement-file-input').length) return;
+                var input = $('#agreementUploadForm input[name="agreement_doc"]')[0];
+                if (!input) return;
                 e.preventDefault();
-                $input[0].click();
+                input.click();
             });
-            $dropZone.on('keydown', function(e) { if (e.which === 13 || e.which === 32) { e.preventDefault(); $input[0].click(); } });
+            $(document).on('keydown', '#agreementDropZone', function(e) {
+                if (e.which === 13 || e.which === 32) {
+                    e.preventDefault();
+                    var input = $('#agreementUploadForm input[name="agreement_doc"]')[0];
+                    if (input) input.click();
+                }
+            });
 
-            $dropZone.on('dragenter', function(e) { e.preventDefault(); e.stopPropagation(); $dropZone.addClass('agreement-drop-zone--over'); });
-            $dropZone.on('dragover', function(e) { e.preventDefault(); e.stopPropagation(); });
-            $dropZone.on('dragleave', function(e) {
-                e.preventDefault();
-                if (!$dropZone[0].contains(e.relatedTarget)) $dropZone.removeClass('agreement-drop-zone--over');
-            });
-            $dropZone.on('drop', function(e) {
+            $(document).on('dragenter', '#agreementDropZone', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                $dropZone.removeClass('agreement-drop-zone--over');
+                $(this).addClass('agreement-drop-zone--over');
+            });
+            $(document).on('dragover', '#agreementDropZone', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            $(document).on('dragleave', '#agreementDropZone', function(e) {
+                e.preventDefault();
+                if (!this.contains(e.relatedTarget)) $(this).removeClass('agreement-drop-zone--over');
+            });
+            $(document).on('drop', '#agreementDropZone', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).removeClass('agreement-drop-zone--over');
                 var file = (e.originalEvent && e.originalEvent.dataTransfer && e.originalEvent.dataTransfer.files) ? e.originalEvent.dataTransfer.files[0] : null;
                 if (file) setAgreementFile(file);
             });
 
             $(document).on('change', '#agreementUploadForm input[name="agreement_doc"]', function() {
+                var els = agreementEls();
                 var f = this.files && this.files[0];
                 if (f) {
                     var isPdf = f.type === 'application/pdf' || (f.name && f.name.toLowerCase().indexOf('.pdf') === f.name.length - 4);
                     if (!isPdf) {
-                        $err.text('Please upload a PDF file.').show();
+                        els.$err.text('Please upload a PDF file.').show();
                         return;
                     }
-                    $fileName.text(f.name);
-                    $err.hide();
+                    els.$fileName.text(f.name);
+                    els.$err.hide();
                     doAgreementUpload();
                 } else {
-                    $fileName.text('');
+                    els.$fileName.text('');
                 }
             });
 
-            $('#agreementModal').on('hidden.bs.modal', function() { clearAgreementUploadState(); });
+            $(document).on('hidden.bs.modal', '#agreementModal', function() { clearAgreementUploadState(); });
         })();
 
         $(document).delegate('.uploadSentAndFetchMail','click', function(){
@@ -9270,7 +9299,7 @@ success: function(response) {
         // This must be on document level, but we let drop zones handle their own events
         $(document).on('dragover', function(e) {
             // Allow drop zones to handle their own dragover events
-            if ($(e.target).closest('.personal-doc-drag-zone, .visa-doc-drag-zone, .nomination-doc-drag-zone, .bulk-upload-dropzone, .bulk-upload-dropzone-visa, .bulk-upload-dropzone-nomination').length) {
+            if ($(e.target).closest('.personal-doc-drag-zone, .visa-doc-drag-zone, .nomination-doc-drag-zone, .bulk-upload-dropzone, .bulk-upload-dropzone-visa, .bulk-upload-dropzone-nomination, .agreement-drop-zone').length) {
                 return; // Let the drop zone handler take over
             }
             // For other areas, prevent default to allow file drops
@@ -9279,7 +9308,7 @@ success: function(response) {
 
         $(document).on('drop', function(e) {
             // Allow drop zones to handle their own drop events
-            if ($(e.target).closest('.personal-doc-drag-zone, .visa-doc-drag-zone, .nomination-doc-drag-zone, .bulk-upload-dropzone, .bulk-upload-dropzone-visa, .bulk-upload-dropzone-nomination').length) {
+            if ($(e.target).closest('.personal-doc-drag-zone, .visa-doc-drag-zone, .nomination-doc-drag-zone, .bulk-upload-dropzone, .bulk-upload-dropzone-visa, .bulk-upload-dropzone-nomination, .agreement-drop-zone').length) {
                 return; // Let the drop zone handler take over
             }
             // For other areas, prevent default to prevent browser from opening file

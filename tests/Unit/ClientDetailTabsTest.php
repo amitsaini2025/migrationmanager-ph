@@ -699,6 +699,19 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringNotContainsString('SELECT DISTINCT ON', $accountBlade);
     }
 
+    #[Test]
+    public function agreement_modal_drag_drop_uses_delegated_handlers(): void
+    {
+        $detailMain = file_get_contents($this->projectPath('public/js/crm/clients/detail-main.js'));
+        Assert::assertNotFalse($detailMain);
+        Assert::assertStringContainsString("$(document).on('drop', '#agreementDropZone'", $detailMain);
+        Assert::assertStringContainsString("$(document).on('dragover', '#agreementDropZone'", $detailMain);
+        Assert::assertStringContainsString('$(document).on(\'change\', \'#agreementUploadForm input[name="agreement_doc"]\'', $detailMain);
+        Assert::assertStringContainsString('.agreement-drop-zone', $detailMain);
+        Assert::assertStringNotContainsString('$dropZone.on(\'drop\'', $detailMain);
+        Assert::assertStringNotContainsString("$('#agreementDropZone').on('drop'", $detailMain);
+    }
+
     private function projectPath(string $relative): string
     {
         return dirname(__DIR__, 2).DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relative);
