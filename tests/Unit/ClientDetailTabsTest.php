@@ -640,6 +640,9 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('#personaldetails-tab', $js);
         Assert::assertStringContainsString('adjustActivityFeedHeight', $js);
         Assert::assertStringContainsString('ClientDetailConfig.activeTab', $js);
+        Assert::assertStringNotContainsString('var wasActive', $js);
+        Assert::assertStringContainsString('if (currentTab.classList.contains(\'active\'))', $js);
+        Assert::assertStringContainsString('newTab.classList.remove(\'active\')', $js);
 
         $detailMain = file_get_contents($this->projectPath('public/js/crm/clients/detail-main.js'));
         Assert::assertNotFalse($detailMain);

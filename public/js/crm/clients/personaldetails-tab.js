@@ -161,7 +161,6 @@
         }
 
         currentTab.setAttribute('data-personaldetails-loading', '1');
-        var wasActive = currentTab.classList.contains('active');
 
         personalDetailsTabLoadPromise = fetch(url, {
             headers: {
@@ -195,7 +194,9 @@
             if (!newTab.getAttribute('data-personaldetails-url') && url) {
                 newTab.setAttribute('data-personaldetails-url', url);
             }
-            if (wasActive || currentTab.classList.contains('active')) {
+            // Use the live pane class, not a snapshot from fetch start — otherwise
+            // switching to Account while this request is in flight re-shows Personal Details.
+            if (currentTab.classList.contains('active')) {
                 newTab.classList.add('active');
             } else {
                 newTab.classList.remove('active');
