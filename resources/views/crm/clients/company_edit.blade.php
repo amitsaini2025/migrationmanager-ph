@@ -988,11 +988,11 @@
                                         <div class="summary-item">
                                             <span class="summary-label">{{ $email->email_type }}:</span>
                                             <span class="summary-value">{{ $email->email }}</span>
-                                            @if($email->is_verified)
+                                            @if($email->is_verified ?? false)
                                                 <span class="verified-badge" title="Verified on {{ $email->verified_at ? $email->verified_at->format('M j, Y g:i A') : 'Unknown' }}">
                                                     @icon('fa-check-circle') Verified
                                                 </span>
-                                            @else
+                                            @elseif(! empty($email->id))
                                                 <button type="button" class="btn-verify-email" onclick="sendEmailVerification({{ $email->id }}, '{{ $email->email }}')" data-email-id="{{ $email->id }}">
                                                     @icon('fa-lock') Verify
                                                 </button>

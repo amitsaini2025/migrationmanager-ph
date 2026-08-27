@@ -137,6 +137,7 @@ class ClientEditService
     /**
      * Get client email addresses
      * Falls back to admins table if no records in client_emails
+     * Always returns ClientEmail models for consistency
      */
     protected function getClientEmails(int $clientId, ?Admin $admin = null)
     {
@@ -146,15 +147,29 @@ class ClientEditService
         }
 
         $admin ??= Admin::where('id', $clientId)->first();
-        if ($admin) {
-            return collect([(object) [
-                'id' => null,
-                'email' => $admin->email,
-                'email_type' => $admin->email_type,
-            ]]);
+        if ($admin && ! empty($admin->email)) {
+            return collect([$this->makeAdminEmailFallback($clientId, $admin)]);
         }
 
         return collect();
+    }
+
+    /**
+     * Unsaved ClientEmail from the admins row, matching getClientContacts().
+     */
+    protected function makeAdminEmailFallback(int $clientId, Admin $admin): ClientEmail
+    {
+        $clientEmail = new ClientEmail;
+        $clientEmail->id = null;
+        $clientEmail->client_id = $clientId;
+        $clientEmail->email = $admin->email;
+        $clientEmail->email_type = $admin->email_type ?? 'Personal';
+        $clientEmail->is_verified = false;
+        $clientEmail->verified_at = null;
+        $clientEmail->verified_by = null;
+        $clientEmail->exists = false;
+
+        return $clientEmail;
     }
 
     /**

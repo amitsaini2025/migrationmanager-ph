@@ -74,6 +74,17 @@ class ClientEditFieldComponentTest extends TestCase
         Assert::assertStringNotContainsString('Staff::find', $company);
     }
 
+    public function test_client_edit_email_summary_guards_missing_is_verified(): void
+    {
+        $edit = $this->viewContents('resources/views/crm/clients/edit.blade.php');
+        $company = $this->viewContents('resources/views/crm/clients/company_edit.blade.php');
+
+        Assert::assertStringContainsString('$email->is_verified ?? false', $edit);
+        Assert::assertStringContainsString('$email->is_verified ?? false', $company);
+        Assert::assertStringContainsString('@elseif(! empty($email->id))', $edit);
+        Assert::assertStringContainsString('@elseif(! empty($email->id))', $company);
+    }
+
     private function viewContents(string $relative): string
     {
         $path = dirname(__DIR__, 2).DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relative);
