@@ -660,6 +660,17 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('if (currentTab.classList.contains(\'active\'))', $js);
         Assert::assertStringContainsString('newTab.classList.remove(\'active\')', $js);
 
+        $blade = file_get_contents($this->projectPath('resources/views/crm/clients/tabs/personal_details.blade.php'));
+        Assert::assertNotFalse($blade);
+        Assert::assertStringContainsString('id="ageDobToggle"', $blade);
+        $fromPane = substr($blade, (int) strpos($blade, 'id="personaldetails-tab"'));
+        Assert::assertNotFalse(strpos($fromPane, '</script>'));
+        Assert::assertLessThan(
+            strrpos($fromPane, '</div>'),
+            strpos($fromPane, '</script>'),
+            'Personal Details inline script must stay inside #personaldetails-tab so lazy inject runs it'
+        );
+
         $detailMain = file_get_contents($this->projectPath('public/js/crm/clients/detail-main.js'));
         Assert::assertNotFalse($detailMain);
         Assert::assertStringContainsString('function initReassignClientAjaxSelect', $detailMain);

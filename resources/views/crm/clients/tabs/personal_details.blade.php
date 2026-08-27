@@ -1153,9 +1153,8 @@
                     </style>
 
                 </div>
-            </div>
 
-            <!-- Age/DOB Toggle JavaScript -->
+            <!-- Age/DOB Toggle JavaScript (must stay inside #personaldetails-tab so lazy inject runs it) -->
             <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const ageDobToggle = document.getElementById('ageDobToggle');
@@ -1239,3 +1238,4 @@ this.classList.add('btn-danger');
                 }
             });
             </script>
+            </div>
