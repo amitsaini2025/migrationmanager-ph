@@ -559,6 +559,10 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('ensureVisaDocumentsTabLoaded', $detailMain);
         Assert::assertStringContainsString('contextmenu.softRestore', $detailMain);
         Assert::assertStringContainsString('appendForm956ChecklistRow', $detailMain);
+        Assert::assertStringContainsString("$(document).on('submit', '#createForm956'", $detailMain);
+        Assert::assertStringNotContainsString("$('#createForm956').on('submit'", $detailMain);
+        Assert::assertStringContainsString("$(document).on('submit', '#visaagreementform11'", $detailMain);
+        Assert::assertStringNotContainsString("$('#visaagreementform11').on('submit'", $detailMain);
 
         $blade = file_get_contents($this->projectPath('resources/views/crm/clients/tabs/visa_documents.blade.php'));
         Assert::assertNotFalse($blade);

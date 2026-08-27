@@ -4943,9 +4943,12 @@ success: function(response) {
             return true;
         };
 
-        // Handle form submission via AJAX
+        // Handle form submission via AJAX.
+        // Delegated: #createForm956 is injected with the extra modal pack on client detail
+        // (not present on first paint). Direct bind would no-op and native-POST to /forms/{id}.
+        // Company detail includes the form in the first paint; document delegation still works there.
 
-        $('#createForm956').on('submit', function(e) {
+        $(document).on('submit', '#createForm956', function(e) {
 
             e.preventDefault();
 
@@ -5533,9 +5536,10 @@ success: function(response) {
 
 
 
-        // Handle form submission via AJAX
+        // Handle form submission via AJAX.
+        // Delegated: #visaagreementform11 is in the same lazy extra modal pack as Form 956.
 
-        $('#visaagreementform11').on('submit', function(e) {
+        $(document).on('submit', '#visaagreementform11', function(e) {
 
             e.preventDefault();
 

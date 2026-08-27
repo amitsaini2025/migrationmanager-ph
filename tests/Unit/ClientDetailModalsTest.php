@@ -32,6 +32,8 @@ class ClientDetailModalsTest extends TestCase
         Assert::assertContains('matteremailmodal', ClientDetailModals::extraIds());
         Assert::assertContains('createreceiptmodal', ClientDetailModals::extraIds());
         Assert::assertContains('editLedgerModal', ClientDetailModals::extraIds());
+        Assert::assertContains('form956CreateFormModel', ClientDetailModals::extraIds());
+        Assert::assertContains('visaAgreementCreateFormModel', ClientDetailModals::extraIds());
     }
 
     #[Test]
