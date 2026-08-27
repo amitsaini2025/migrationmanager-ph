@@ -241,6 +241,7 @@ class ClientDetailTabFragmentTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('id="emailmodal"', false);
+        $response->assertSee('email-from-sendgrid', false);
         $response->assertDontSee('Dumped Template Must Not Appear', false);
         $response->assertDontSee('Dumped Checklist Must Not Appear', false);
     }

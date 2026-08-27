@@ -116,6 +116,15 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('ensurePersonalDetailsTabLoaded', $sidebarTabs);
         Assert::assertStringContainsString('ensureActivityFeedLoaded', $sidebarTabs);
         Assert::assertContains('js/crm/clients/lazy-modals.js', ClientDetailTabs::tabScriptFilenames());
+
+        $lazyModals = file_get_contents($this->projectPath('public/js/crm/clients/lazy-modals.js'));
+        Assert::assertNotFalse($lazyModals);
+        Assert::assertStringContainsString('window.refreshEmailFromSenders', $lazyModals);
+
+        $fromScript = file_get_contents($this->projectPath('resources/views/partials/email-from-sendgrid-script.blade.php'));
+        Assert::assertNotFalse($fromScript);
+        Assert::assertStringContainsString('window.refreshEmailFromSenders = refreshEmailFromSenders', $fromScript);
+
         Assert::assertStringContainsString('bindNavButtons', $sidebarTabs);
         Assert::assertStringNotContainsString('loadEmails({ forceReload: true })', $sidebarTabs);
         Assert::assertStringContainsString('filterEmailsByMatter', $sidebarTabs);
@@ -180,6 +189,7 @@ class ClientDetailTabsTest extends TestCase
         $shellModals = file_get_contents($this->projectPath('resources/views/crm/clients/modals/shell_modals.blade.php'));
         Assert::assertNotFalse($shellModals);
         Assert::assertStringContainsString('id="emailmodal"', $shellModals);
+        Assert::assertStringContainsString('email-from-sendgrid', $shellModals);
         Assert::assertStringContainsString('js-reassign-client-ajax', $shellModals);
         Assert::assertStringNotContainsString('UploadChecklist::all()', $shellModals);
         Assert::assertStringNotContainsString("EmailTemplate::crm()->orderBy('id', 'desc')->get()", $shellModals);

@@ -223,6 +223,9 @@
         if (typeof window.initTinyMCEForModals === 'function') {
             window.initTinyMCEForModals();
         }
+        if (typeof window.refreshEmailFromSenders === 'function') {
+            window.refreshEmailFromSenders();
+        }
     }
 
     function ensurePack(name) {
