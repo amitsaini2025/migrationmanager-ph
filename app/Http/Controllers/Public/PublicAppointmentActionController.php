@@ -42,7 +42,10 @@ class PublicAppointmentActionController extends Controller
         return view('public.appointment-action-cancel', $this->pageData($appointment, [
             'title' => 'Cancel appointment',
             'heading' => 'Cancel Appointment',
-            'submitUrl' => AppointmentActionLink::cancelSubmitUrl((int) $appointment->id),
+            'submitUrl' => AppointmentActionLink::cancelSubmitUrl(
+                (int) $appointment->id,
+                $appointment->appointment_datetime
+            ),
         ]));
     }
 
@@ -69,7 +72,10 @@ class PublicAppointmentActionController extends Controller
         return view('public.appointment-action-confirm', $this->pageData($appointment, [
             'title' => 'Confirm appointment',
             'heading' => 'Confirm Appointment',
-            'submitUrl' => AppointmentActionLink::confirmSubmitUrl((int) $appointment->id),
+            'submitUrl' => AppointmentActionLink::confirmSubmitUrl(
+                (int) $appointment->id,
+                $appointment->appointment_datetime
+            ),
         ]));
     }
 
@@ -156,12 +162,12 @@ class PublicAppointmentActionController extends Controller
     protected function blockedView(Request $request, BookingAppointment $appointment, string $action): ?View
     {
         if (! $request->hasValidSignature()) {
-            return view('public.appointment-action-result', [
-                'title' => 'Link expired',
-                'ok' => false,
-                'message' => 'This link is invalid or has expired. Please contact our office if you still need to '.$action.' your appointment.',
-                'appointment' => null,
-            ]);
+            return $this->expiredLinkView($action);
+        }
+
+        if (in_array($action, ['cancel', 'confirm'], true)
+            && ! AppointmentActionLink::matchesCurrentSlot($appointment, $request->query('at'))) {
+            return $this->expiredLinkView($action);
         }
 
         if (! $this->actionService->canAct($appointment) && ! ($action === 'cancel' && $appointment->status === 'cancelled')) {
@@ -180,6 +186,16 @@ class PublicAppointmentActionController extends Controller
         }
 
         return null;
+    }
+
+    protected function expiredLinkView(string $action): View
+    {
+        return view('public.appointment-action-result', [
+            'title' => 'Link expired',
+            'ok' => false,
+            'message' => 'This link is invalid or has expired. Please contact our office if you still need to '.$action.' your appointment.',
+            'appointment' => null,
+        ]);
     }
 
     protected function jsonBlocked(Request $request, BookingAppointment $appointment): ?JsonResponse

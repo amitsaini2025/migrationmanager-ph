@@ -72,7 +72,10 @@ class AppointmentDetailedConfirmation extends Mailable
             'Resume – [Your Full Name] – '.$resumeDateFragment.' Appointment'
         );
         $appointmentId = (int) ($this->details['appointment_id'] ?? 0);
-        $actionUrls = AppointmentActionLink::emailButtonUrls($appointmentId > 0 ? $appointmentId : null);
+        $actionUrls = AppointmentActionLink::emailButtonUrls(
+            $appointmentId > 0 ? $appointmentId : null,
+            $this->details['appointment_datetime'] ?? null
+        );
 
         return new Content(
             view: 'emails.appointment-confirmation',
