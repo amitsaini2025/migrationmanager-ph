@@ -6,6 +6,7 @@ use App\Models\ActivitiesLog;
 use App\Models\BookingAppointment;
 use App\Services\BansalAppointmentSync\BansalAppointmentRecoveryService;
 use App\Services\BansalAppointmentSync\NotificationService;
+use App\Support\AppointmentBookingWindow;
 use App\Support\AppointmentEmailFormatter;
 use App\Support\AppointmentOpenSlots;
 use Carbon\Carbon;
@@ -144,6 +145,10 @@ class ClientAppointmentActionService
 
         if ($newDatetime === false || $newDatetime->lessThan(now())) {
             return $this->failure('Please choose a future date and time.');
+        }
+
+        if (AppointmentBookingWindow::isInvalidEmailRescheduleDate($newDatetime)) {
+            return $this->failure(AppointmentBookingWindow::EMAIL_RESCHEDULE_CLOSED_MESSAGE);
         }
 
         $oldDatetime = $appointment->appointment_datetime;

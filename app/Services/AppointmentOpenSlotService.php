@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BookingAppointment;
 use App\Services\BansalAppointmentSync\BansalApiClient;
+use App\Support\AppointmentBookingWindow;
 use App\Support\AppointmentOpenSlots;
 use App\Support\BansalSchedulingServiceType;
 use Carbon\Carbon;
@@ -46,7 +47,7 @@ class AppointmentOpenSlotService
             return [
                 'success' => true,
                 'duration' => (int) ($response['duration'] ?? $appointment->duration_minutes ?? 30),
-                'weeks' => array_map('intval', $response['weeks'] ?? []),
+                'weeks' => self::mergeClosedWeekdays(array_map('intval', $response['weeks'] ?? [])),
                 'start_time' => (string) ($response['start_time'] ?? '09:00'),
                 'end_time' => (string) ($response['end_time'] ?? '17:00'),
                 'disabled_dates' => array_values(array_filter(array_map('strval', is_array($disabledDates) ? $disabledDates : []))),
@@ -61,7 +62,7 @@ class AppointmentOpenSlotService
                 'success' => false,
                 'message' => 'Unable to load available dates. Please try again or contact our office.',
                 'duration' => (int) ($appointment->duration_minutes ?: 30),
-                'weeks' => [],
+                'weeks' => self::mergeClosedWeekdays([]),
                 'start_time' => '09:00',
                 'end_time' => '17:00',
                 'disabled_dates' => [],
@@ -74,6 +75,14 @@ class AppointmentOpenSlotService
      */
     public function openSlotsForDate(BookingAppointment $appointment, Carbon $selectedDate): array
     {
+        if (AppointmentBookingWindow::isInvalidEmailRescheduleDate($selectedDate)) {
+            return [
+                'success' => true,
+                'slots' => [],
+                'message' => AppointmentBookingWindow::EMAIL_RESCHEDULE_CLOSED_MESSAGE,
+            ];
+        }
+
         $availability = $this->availability($appointment);
         if (! ($availability['success'] ?? false)) {
             return [
@@ -185,5 +194,17 @@ class AppointmentOpenSlotService
         } catch (\Throwable) {
             return $date;
         }
+    }
+
+    /**
+     * @param  list<int>  $weeks
+     * @return list<int>
+     */
+    protected static function mergeClosedWeekdays(array $weeks): array
+    {
+        return array_values(array_unique(array_merge(
+            $weeks,
+            AppointmentBookingWindow::EMAIL_RESCHEDULE_CLOSED_WEEKDAYS
+        )));
     }
 }

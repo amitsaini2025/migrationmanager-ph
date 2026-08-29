@@ -9,6 +9,7 @@ use App\Models\BookingAppointment;
 use App\Services\AppointmentOpenSlotService;
 use App\Services\ClientAppointmentActionService;
 use App\Support\AppointmentActionLink;
+use App\Support\AppointmentBookingWindow;
 use App\Support\AppointmentEmailFormatter;
 use App\Support\AppointmentMeetingTypeCopy;
 use Carbon\Carbon;
@@ -102,6 +103,8 @@ class PublicAppointmentActionController extends Controller
             'submitUrl' => AppointmentActionLink::rescheduleSubmitUrl((int) $appointment->id),
             'slotsUrl' => AppointmentActionLink::rescheduleSlotsUrl((int) $appointment->id),
             'availabilityUrl' => AppointmentActionLink::rescheduleAvailabilityUrl((int) $appointment->id),
+            'minRescheduleDate' => AppointmentBookingWindow::earliestEmailRescheduleDate()->toDateString(),
+            'closedWeekdays' => AppointmentBookingWindow::EMAIL_RESCHEDULE_CLOSED_WEEKDAYS,
         ]));
     }
 

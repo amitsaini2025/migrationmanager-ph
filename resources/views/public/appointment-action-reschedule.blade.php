@@ -1,7 +1,7 @@
 @extends('public.appointment-action-layout')
 
 @section('content')
-  <div class="msg info">Choose a new date and an open time slot. Meeting type cannot be changed here.</div>
+  <div class="msg info">Choose a new date (Monday–Thursday, from tomorrow onwards) and an open time slot. Meeting type cannot be changed here.</div>
   <div class="detail"><strong>Current date:</strong> {{ $appointmentDate }}</div>
   <div class="detail"><strong>Current time:</strong> {{ $appointmentTime }}</div>
   <div class="detail"><strong>Type:</strong> {{ $meetingTypeLabel }}</div>
@@ -13,7 +13,7 @@
   <form method="POST" action="{{ $submitUrl }}" id="reschedule-form">
     @csrf
     <label for="appointment_date">New date</label>
-    <input type="date" id="appointment_date" name="appointment_date" min="{{ now()->toDateString() }}" value="{{ old('appointment_date') }}" required>
+    <input type="date" id="appointment_date" name="appointment_date" min="{{ $minRescheduleDate }}" value="{{ old('appointment_date') }}" required>
     <input type="hidden" id="appointment_time" name="appointment_time" value="{{ old('appointment_time') }}">
     <label>Open slots</label>
     <div id="slots">Select a date to see open slots.</div>
@@ -32,8 +32,10 @@
   const submitBtn = document.getElementById('reschedule-submit');
   const slotsUrl = @json($slotsUrl);
   const availabilityUrl = @json($availabilityUrl);
+  const closedWeekdays = @json($closedWeekdays);
+  const minRescheduleDate = @json($minRescheduleDate);
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
-  let disabledWeeks = [];
+  let disabledWeeks = closedWeekdays.slice();
   let disabledDates = [];
 
   function setSubmitEnabled() {
@@ -48,7 +50,24 @@
     return parts[2] + '/' + parts[1] + '/' + parts[0];
   }
 
+  function mergeClosedWeekdays(weeks) {
+    const merged = (weeks || []).slice();
+    closedWeekdays.forEach(function (day) {
+      if (merged.indexOf(day) === -1) {
+        merged.push(day);
+      }
+    });
+    return merged;
+  }
+
+  function isBeforeMinDate(isoDate) {
+    return !isoDate || isoDate < minRescheduleDate;
+  }
+
   function isDateClosed(isoDate) {
+    if (isBeforeMinDate(isoDate)) {
+      return true;
+    }
     const parsed = new Date(isoDate + 'T12:00:00');
     if (Number.isNaN(parsed.getTime())) {
       return true;
@@ -122,7 +141,7 @@
   dateInput.addEventListener('change', function () {
     timeInput.value = '';
     if (isDateClosed(dateInput.value)) {
-      slotsBox.textContent = 'This date is not available. Please choose another day.';
+      slotsBox.textContent = 'This date is not available. Please choose a Monday–Thursday from tomorrow onwards.';
       setSubmitEnabled();
       return;
     }
@@ -133,10 +152,10 @@
     headers: { 'Accept': 'application/json' },
     credentials: 'same-origin'
   }).then(function (response) { return response.json(); }).then(function (data) {
-    disabledWeeks = data.weeks || [];
+    disabledWeeks = mergeClosedWeekdays(data.weeks || []);
     disabledDates = data.disabled_dates || [];
     if (dateInput.value && isDateClosed(dateInput.value)) {
-      slotsBox.textContent = 'This date is not available. Please choose another day.';
+      slotsBox.textContent = 'This date is not available. Please choose a Monday–Thursday from tomorrow onwards.';
       timeInput.value = '';
       setSubmitEnabled();
     }
