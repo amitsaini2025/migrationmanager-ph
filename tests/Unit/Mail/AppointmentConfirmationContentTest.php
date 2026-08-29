@@ -3,6 +3,7 @@
 namespace Tests\Unit\Mail;
 
 use App\Mail\AppointmentDetailedConfirmation;
+use Illuminate\Mail\Mailables\Attachment;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -17,8 +18,16 @@ class AppointmentConfirmationContentTest extends TestCase
         $this->assertStringContainsString('Phone Call', $html);
         $this->assertStringContainsString('Phone Appointment Reminder', $html);
         $this->assertStringContainsString('What to Have Ready', $html);
+        $this->assertStringContainsString('11:00 AM', $html);
+        $this->assertStringNotContainsString('11:20 AM', $html);
+        $this->assertStringContainsString('Free appointment is of 10 mins and Paid is of 30 mins.', $html);
         $this->assertStringNotContainsString('>Cancel</a>', $html);
         $this->assertStringNotContainsString('>Confirm</a>', $html);
+        $mailable->assertHasAttachment(
+            Attachment::fromPath(public_path('img/logo.png'))
+                ->as('Bansal-Immigration-Logo.png')
+                ->withMime('image/png')
+        );
     }
 
     #[Test]

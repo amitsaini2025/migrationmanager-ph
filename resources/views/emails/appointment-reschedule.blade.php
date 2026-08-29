@@ -86,6 +86,8 @@
           </td>
         </tr>
 
+        @include('emails.partials.appointment-duration-note')
+
         {{-- Type-based reminder card --}}
         <tr>
           <td style="padding:0 24px 16px 24px;">

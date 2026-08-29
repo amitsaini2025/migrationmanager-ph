@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\BookingAppointment;
+use Carbon\CarbonInterface;
 
 class AppointmentEmailFormatter
 {
@@ -43,6 +44,28 @@ class AppointmentEmailFormatter
         }
 
         return self::normalizeTimeslotFull($appointment->timeslot_full) ?? 'N/A';
+    }
+
+    /**
+     * Start time only for client-facing confirmation / cancellation / reschedule emails.
+     * Leaves formatTimeRange() unchanged for payment pages and other range displays.
+     */
+    public static function formatStartTime(?string $timeslotFull, mixed $appointmentDatetime = null): string
+    {
+        $timeslot = trim((string) $timeslotFull);
+        if ($timeslot !== '') {
+            $parts = preg_split('/\s*[-–—]\s*/u', $timeslot, 2);
+            $start = trim((string) ($parts[0] ?? ''));
+            if ($start !== '') {
+                return $start;
+            }
+        }
+
+        if ($appointmentDatetime instanceof CarbonInterface) {
+            return $appointmentDatetime->format('g:i A');
+        }
+
+        return 'N/A';
     }
 
     public static function resolveDurationMinutes(BookingAppointment $appointment): int

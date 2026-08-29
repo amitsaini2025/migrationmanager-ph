@@ -3,6 +3,7 @@
 namespace Tests\Unit\Mail;
 
 use App\Mail\AppointmentReschedule;
+use Illuminate\Mail\Mailables\Attachment;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -11,7 +12,8 @@ class AppointmentRescheduleContentTest extends TestCase
     #[Test]
     public function it_renders_type_specific_copy_and_hides_buttons_without_appointment_id(): void
     {
-        $html = (new AppointmentReschedule($this->details('phone')))->render();
+        $mailable = new AppointmentReschedule($this->details('phone'));
+        $html = $mailable->render();
 
         $this->assertStringContainsString('Registered Migration Agents', $html);
         $this->assertStringContainsString('Appointment Details', $html);
@@ -21,8 +23,16 @@ class AppointmentRescheduleContentTest extends TestCase
         $this->assertStringContainsString('Phone Call', $html);
         $this->assertStringContainsString('Phone Appointment Reminder', $html);
         $this->assertStringContainsString('What to Have Ready', $html);
+        $this->assertStringContainsString('11:00 AM', $html);
+        $this->assertStringNotContainsString('11:20 AM', $html);
+        $this->assertStringContainsString('Free appointment is of 10 mins and Paid is of 30 mins.', $html);
         $this->assertStringNotContainsString('>Cancel</a>', $html);
         $this->assertStringNotContainsString('>Confirm</a>', $html);
+        $mailable->assertHasAttachment(
+            Attachment::fromPath(public_path('img/logo.png'))
+                ->as('Bansal-Immigration-Logo.png')
+                ->withMime('image/png')
+        );
     }
 
     #[Test]

@@ -95,6 +95,8 @@
           </td>
         </tr>
 
+        @include('emails.partials.appointment-duration-note')
+
         @if($adminNotes)
         <tr>
           <td style="padding:0 24px 16px 24px;">

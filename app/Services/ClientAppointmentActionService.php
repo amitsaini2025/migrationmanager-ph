@@ -64,7 +64,7 @@ class ClientAppointmentActionService
             '<p><strong>Cancelled from email link.</strong></p><p><strong>Reason:</strong> '.e($reason).'</p>'
         );
 
-        $this->notificationService->sendCancellationConfirmationEmail($appointment->fresh(), $reason, true);
+        $this->notificationService->sendCancellationConfirmationEmail($appointment->fresh(), $reason);
 
         $message = 'Your appointment has been cancelled.';
         if ($syncError) {
@@ -108,7 +108,7 @@ class ClientAppointmentActionService
             '<p>Client confirmed the booking from the appointment email.</p>'
         );
 
-        $this->notificationService->sendClientConfirmedEmail($appointment->fresh(), true);
+        $this->notificationService->sendClientConfirmedEmail($appointment->fresh());
 
         $message = 'Thank you. Your appointment is now confirmed.';
         if ($syncError) {
@@ -226,7 +226,7 @@ class ClientAppointmentActionService
         );
 
         if (! empty($appointment->client_email)) {
-            $this->notificationService->sendRescheduleEmail($appointment->fresh(), $oldDatetime, true);
+            $this->notificationService->sendRescheduleEmail($appointment->fresh(), $oldDatetime);
         }
 
         $message = 'Your appointment has been rescheduled.';

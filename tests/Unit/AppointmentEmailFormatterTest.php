@@ -44,4 +44,42 @@ class AppointmentEmailFormatterTest extends TestCase
 
         $this->assertSame(15, AppointmentEmailFormatter::resolveDurationMinutes($appointment));
     }
+
+    #[Test]
+    public function it_formats_start_time_only_from_hyphen_range(): void
+    {
+        $this->assertSame(
+            '10:00 AM',
+            AppointmentEmailFormatter::formatStartTime('10:00 AM - 10:20 AM')
+        );
+    }
+
+    #[Test]
+    public function it_formats_start_time_only_from_en_dash_range(): void
+    {
+        $this->assertSame(
+            '11:00 AM',
+            AppointmentEmailFormatter::formatStartTime('11:00 AM – 11:20 AM')
+        );
+    }
+
+    #[Test]
+    public function it_keeps_single_start_time_unchanged(): void
+    {
+        $this->assertSame(
+            '11:00 AM',
+            AppointmentEmailFormatter::formatStartTime('11:00 AM')
+        );
+    }
+
+    #[Test]
+    public function it_falls_back_to_appointment_datetime_when_timeslot_missing(): void
+    {
+        $datetime = now()->setTime(14, 30);
+
+        $this->assertSame(
+            $datetime->format('g:i A'),
+            AppointmentEmailFormatter::formatStartTime(null, $datetime)
+        );
+    }
 }

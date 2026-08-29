@@ -2,8 +2,10 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\AttachesAppointmentLogo;
 use App\Mail\Concerns\UsesAppointmentMailFrom;
 use App\Support\AppointmentActionLink;
+use App\Support\AppointmentEmailFormatter;
 use App\Support\AppointmentMeetingTypeCopy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -15,7 +17,7 @@ use Illuminate\Queue\SerializesModels;
 
 class AppointmentDetailedConfirmation extends Mailable
 {
-    use Queueable, SerializesModels, UsesAppointmentMailFrom;
+    use AttachesAppointmentLogo, Queueable, SerializesModels, UsesAppointmentMailFrom;
 
     /**
      * Create a new message instance.
@@ -79,7 +81,10 @@ class AppointmentDetailedConfirmation extends Mailable
                 'appointmentDate' => $this->details['appointment_datetime']?->format('l, d F Y') ?? 'N/A',
                 'resumeDateForSubject' => $resumeDateFragment,
                 'resumeMailtoHref' => $resumeMailtoHref,
-                'appointmentTime' => $this->details['timeslot_full'] ?? 'N/A',
+                'appointmentTime' => AppointmentEmailFormatter::formatStartTime(
+                    $this->details['timeslot_full'] ?? null,
+                    $this->details['appointment_datetime'] ?? null
+                ),
                 'location' => ucfirst($locationKey),
                 'locationAddress' => $this->getLocationAddress($locationKey),
                 'serviceType' => filled($this->details['service_type'] ?? null)
@@ -111,7 +116,7 @@ class AppointmentDetailedConfirmation extends Mailable
      */
     public function attachments(): array
     {
-        return [];
+        return $this->appointmentLogoAttachments();
     }
 
     /**
