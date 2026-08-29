@@ -29,39 +29,39 @@ class AppointmentActionLink
         );
     }
 
-    public static function rescheduleShowUrl(int $appointmentId): string
+    public static function rescheduleShowUrl(int $appointmentId, mixed $slotAt = null): string
     {
         return URL::temporarySignedRoute(
             'public.appointment.reschedule.show',
             now()->addDays(self::TTL_DAYS),
-            ['appointment' => $appointmentId]
+            self::routeParams($appointmentId, $slotAt)
         );
     }
 
-    public static function rescheduleSubmitUrl(int $appointmentId): string
+    public static function rescheduleSubmitUrl(int $appointmentId, mixed $slotAt = null): string
     {
         return URL::temporarySignedRoute(
             'public.appointment.reschedule.submit',
             now()->addDays(self::TTL_DAYS),
-            ['appointment' => $appointmentId]
+            self::routeParams($appointmentId, $slotAt)
         );
     }
 
-    public static function rescheduleSlotsUrl(int $appointmentId): string
+    public static function rescheduleSlotsUrl(int $appointmentId, mixed $slotAt = null): string
     {
         return URL::temporarySignedRoute(
             'public.appointment.reschedule.slots',
             now()->addDays(self::TTL_DAYS),
-            ['appointment' => $appointmentId]
+            self::routeParams($appointmentId, $slotAt)
         );
     }
 
-    public static function rescheduleAvailabilityUrl(int $appointmentId): string
+    public static function rescheduleAvailabilityUrl(int $appointmentId, mixed $slotAt = null): string
     {
         return URL::temporarySignedRoute(
             'public.appointment.reschedule.availability',
             now()->addDays(self::TTL_DAYS),
-            ['appointment' => $appointmentId]
+            self::routeParams($appointmentId, $slotAt)
         );
     }
 
@@ -94,7 +94,7 @@ class AppointmentActionLink
 
         return [
             'cancel' => self::cancelShowUrl($appointmentId, $slotAt),
-            'reschedule' => self::rescheduleShowUrl($appointmentId),
+            'reschedule' => self::rescheduleShowUrl($appointmentId, $slotAt),
             'confirm' => self::confirmShowUrl($appointmentId, $slotAt),
         ];
     }
@@ -108,8 +108,8 @@ class AppointmentActionLink
     }
 
     /**
-     * Cancel/Confirm links bind to the appointment slot time so older emails
-     * stop working after a reschedule. Links without `at` stay valid (legacy).
+     * Cancel / Confirm / Reschedule links bind to the appointment slot time so
+     * older emails stop working after a reschedule. Links without `at` stay valid (legacy).
      */
     public static function matchesCurrentSlot(BookingAppointment $appointment, mixed $providedAt): bool
     {

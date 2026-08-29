@@ -100,9 +100,18 @@ class PublicAppointmentActionController extends Controller
         return view('public.appointment-action-reschedule', $this->pageData($appointment, [
             'title' => 'Reschedule appointment',
             'heading' => 'Reschedule Appointment',
-            'submitUrl' => AppointmentActionLink::rescheduleSubmitUrl((int) $appointment->id),
-            'slotsUrl' => AppointmentActionLink::rescheduleSlotsUrl((int) $appointment->id),
-            'availabilityUrl' => AppointmentActionLink::rescheduleAvailabilityUrl((int) $appointment->id),
+            'submitUrl' => AppointmentActionLink::rescheduleSubmitUrl(
+                (int) $appointment->id,
+                $appointment->appointment_datetime
+            ),
+            'slotsUrl' => AppointmentActionLink::rescheduleSlotsUrl(
+                (int) $appointment->id,
+                $appointment->appointment_datetime
+            ),
+            'availabilityUrl' => AppointmentActionLink::rescheduleAvailabilityUrl(
+                (int) $appointment->id,
+                $appointment->appointment_datetime
+            ),
             'minRescheduleDate' => AppointmentBookingWindow::earliestEmailRescheduleDate()->toDateString(),
             'closedWeekdays' => AppointmentBookingWindow::EMAIL_RESCHEDULE_CLOSED_WEEKDAYS,
         ]));
@@ -154,7 +163,10 @@ class PublicAppointmentActionController extends Controller
 
         if (! $result['ok']) {
             return redirect()
-                ->to(AppointmentActionLink::rescheduleShowUrl((int) $appointment->id))
+                ->to(AppointmentActionLink::rescheduleShowUrl(
+                    (int) $appointment->id,
+                    $appointment->appointment_datetime
+                ))
                 ->withErrors(['appointment_time' => $result['message']])
                 ->withInput();
         }
@@ -168,7 +180,7 @@ class PublicAppointmentActionController extends Controller
             return $this->expiredLinkView($action);
         }
 
-        if (in_array($action, ['cancel', 'confirm'], true)
+        if (in_array($action, ['cancel', 'confirm', 'reschedule'], true)
             && ! AppointmentActionLink::matchesCurrentSlot($appointment, $request->query('at'))) {
             return $this->expiredLinkView($action);
         }
@@ -204,6 +216,10 @@ class PublicAppointmentActionController extends Controller
     protected function jsonBlocked(Request $request, BookingAppointment $appointment): ?JsonResponse
     {
         if (! $request->hasValidSignature()) {
+            return response()->json(['success' => false, 'message' => 'This link is invalid or has expired.'], 403);
+        }
+
+        if (! AppointmentActionLink::matchesCurrentSlot($appointment, $request->query('at'))) {
             return response()->json(['success' => false, 'message' => 'This link is invalid or has expired.'], 403);
         }
 

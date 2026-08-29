@@ -22,7 +22,7 @@ class AppointmentActionLinkTest extends TestCase
         $this->assertStringContainsString('signature=', $urls['cancel']);
         $this->assertStringContainsString('at='.$slotAt->getTimestamp(), $urls['cancel']);
         $this->assertStringContainsString('at='.$slotAt->getTimestamp(), $urls['confirm']);
-        $this->assertStringNotContainsString('at=', $urls['reschedule']);
+        $this->assertStringContainsString('at='.$slotAt->getTimestamp(), $urls['reschedule']);
     }
 
     #[Test]
@@ -33,7 +33,7 @@ class AppointmentActionLinkTest extends TestCase
     }
 
     #[Test]
-    public function it_allows_legacy_cancel_confirm_links_without_slot_param(): void
+    public function it_allows_legacy_action_links_without_slot_param(): void
     {
         $appointment = new BookingAppointment([
             'appointment_datetime' => now()->addDays(2),
@@ -44,7 +44,7 @@ class AppointmentActionLinkTest extends TestCase
     }
 
     #[Test]
-    public function it_rejects_cancel_confirm_links_after_reschedule_slot_changes(): void
+    public function it_rejects_action_links_after_reschedule_slot_changes(): void
     {
         $original = now()->addDay()->startOfHour();
         $rescheduled = $original->copy()->addHours(2);
