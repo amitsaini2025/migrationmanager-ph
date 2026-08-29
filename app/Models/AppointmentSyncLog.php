@@ -155,6 +155,7 @@ class AppointmentSyncLog extends Model
                 'polling' => 'Automatic Polling',
                 'manual' => 'Manual Sync',
                 'backfill' => 'Historical Backfill',
+                'webhook' => 'Website Webhook Push',
                 default => ucfirst($this->sync_type)
             }
         );

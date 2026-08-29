@@ -144,6 +144,15 @@ return [
     ],
 
     /*
+    | Instant appointment push from Bansal website (book / reschedule / confirm / cancel).
+    | Shared secret must match MIGRATION_CRM_WEBHOOK_TOKEN on the website.
+    | 15-minute polling remains as a backup when this webhook is unset or fails.
+    */
+    'bansal_appointment_webhook' => [
+        'token' => env('BANSAL_APPOINTMENT_WEBHOOK_TOKEN'),
+    ],
+
+    /*
     | Instant lead handoff: Migration CRM → Legal CRM
     | POST {LEGAL_CRM_API_BASE_URL}/migration-crm/leads (Bearer = LEGAL_CRM_API_TOKEN)
     */

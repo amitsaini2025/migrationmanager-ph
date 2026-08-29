@@ -21,6 +21,7 @@ use App\Http\Controllers\API\OthersController;
 use App\Http\Controllers\API\VisaPricingEstimatorController;
 use App\Http\Controllers\API\SignupController;
 use App\Http\Controllers\API\ChatbotController;
+use App\Http\Controllers\API\BansalAppointmentWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -32,6 +33,11 @@ use App\Http\Controllers\API\ChatbotController;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+
+// Instant appointment push from Bansal website (auth via BANSAL_APPOINTMENT_WEBHOOK_TOKEN).
+// Polling (booking:sync-appointments every 15 min) remains the backup path.
+Route::post('/webhooks/bansal/appointments', BansalAppointmentWebhookController::class)
+    ->middleware('throttle:60,1');
 
 // Public routes (no authentication required)
 Route::post('/login', [ClientPortalController::class, 'login']);

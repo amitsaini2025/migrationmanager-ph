@@ -121,6 +121,83 @@ class AppointmentSyncService
     }
 
     /**
+     * Instant sync from Bansal website webhook push (book / reschedule / confirm / cancel).
+     * Reuses the same processAppointment() path as polling so behaviour stays identical.
+     *
+     * @param  array<string, mixed>  $appointmentData
+     * @return array{result: string, bansal_id: int|null}
+     */
+    public function syncPushedAppointment(array $appointmentData, ?string $event = null): array
+    {
+        $bansalId = isset($appointmentData['id']) ? (int) $appointmentData['id'] : null;
+
+        $this->syncLog = AppointmentSyncLog::create([
+            'sync_type' => 'webhook',
+            'started_at' => now(),
+            'status' => 'running',
+            'sync_details' => json_encode([
+                'event' => $event,
+                'bansal_id' => $bansalId,
+            ]),
+        ]);
+
+        $stats = [
+            'fetched' => 1,
+            'new' => 0,
+            'updated' => 0,
+            'skipped' => 0,
+            'failed' => 0,
+            'errors' => [],
+            'event' => $event,
+        ];
+
+        try {
+            $result = $this->processAppointment($appointmentData);
+
+            if ($result === 'new') {
+                $stats['new'] = 1;
+            } elseif ($result === 'updated') {
+                $stats['updated'] = 1;
+            } else {
+                $stats['skipped'] = 1;
+            }
+
+            $this->syncLog->update([
+                'completed_at' => now(),
+                'status' => 'success',
+                'appointments_fetched' => 1,
+                'appointments_new' => $stats['new'],
+                'appointments_updated' => $stats['updated'],
+                'appointments_skipped' => $stats['skipped'],
+                'appointments_failed' => 0,
+                'sync_details' => json_encode($stats),
+            ]);
+
+            return [
+                'result' => $result,
+                'bansal_id' => $bansalId,
+            ];
+        } catch (Exception $e) {
+            $stats['failed'] = 1;
+            $stats['errors'][] = [
+                'appointment_id' => $bansalId ?? 'unknown',
+                'error' => $e->getMessage(),
+            ];
+
+            $this->syncLog->update([
+                'completed_at' => now(),
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+                'appointments_fetched' => 1,
+                'appointments_failed' => 1,
+                'sync_details' => json_encode($stats),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
      * Process single appointment
      */
     protected function processAppointment(array $appointmentData): string
