@@ -7,8 +7,6 @@ use App\Models\BookingAppointment;
 use App\Services\BansalAppointmentSync\BansalAppointmentRecoveryService;
 use App\Services\BansalAppointmentSync\NotificationService;
 use App\Support\AppointmentBookingWindow;
-use App\Support\AppointmentEmailFormatter;
-use App\Support\AppointmentOpenSlots;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -187,14 +185,10 @@ class ClientAppointmentActionService
             }
         }
 
-        $duration = AppointmentEmailFormatter::resolveDurationMinutes($appointment);
-        $endLabel = AppointmentOpenSlots::minutesToLabel(
-            (AppointmentOpenSlots::parseMinutes($requestedStart) ?? 0) + $duration
-        );
-
         $appointment->appointment_datetime = $newDatetime;
         $appointment->timeslot_full = $matchingSlot['display']
-            ?? ($newDatetime->format('g:i A').' – '.$endLabel);
+            ?? $matchingSlot['start_label']
+            ?? $newDatetime->format('g:i A');
         $appointment->save();
 
         $syncError = null;

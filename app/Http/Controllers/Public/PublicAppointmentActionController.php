@@ -252,7 +252,10 @@ class PublicAppointmentActionController extends Controller
         return array_merge([
             'appointment' => $appointment,
             'appointmentDate' => AppointmentEmailFormatter::formatDate($appointment),
-            'appointmentTime' => AppointmentEmailFormatter::formatTimeRange($appointment),
+            'appointmentTime' => AppointmentEmailFormatter::formatStartTime(
+                $appointment->timeslot_full,
+                $appointment->appointment_datetime
+            ),
             'meetingTypeLabel' => AppointmentMeetingTypeCopy::label($appointment->meeting_type),
             'serviceType' => filled($appointment->service_type) ? (string) $appointment->service_type : 'N/A',
             'locationAddress' => $locationAddress,

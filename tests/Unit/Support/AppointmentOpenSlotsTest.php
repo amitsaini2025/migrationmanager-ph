@@ -26,7 +26,7 @@ class AppointmentOpenSlotsTest extends TestCase
 
             $starts = array_column($slots, 'start_24');
             $this->assertSame(['10:40'], $starts);
-            $this->assertSame('10:40 AM – 11:00 AM', $slots[0]['display']);
+            $this->assertSame('10:40 AM', $slots[0]['display']);
         } finally {
             Carbon::setTestNow();
         }

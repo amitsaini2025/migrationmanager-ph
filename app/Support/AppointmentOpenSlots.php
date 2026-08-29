@@ -60,7 +60,7 @@ class AppointmentOpenSlots
                 'start_label' => $startLabel,
                 'end_label' => $endLabel,
                 'start_24' => $start24,
-                'display' => $startLabel.' – '.$endLabel,
+                'display' => $startLabel,
             ];
         }
 
