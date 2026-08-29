@@ -28,14 +28,16 @@ class BansalAppointmentWebhookController extends Controller
             ], 401);
         }
 
-        $validated = $request->validate([
+        $request->validate([
             'event' => 'nullable|string|max:50',
             'appointment' => 'required|array',
             'appointment.id' => 'required|integer|min:1',
         ]);
 
-        $appointmentData = $validated['appointment'];
-        $event = $validated['event'] ?? null;
+        // Use full request payload (not validated()) so nested fields are not stripped.
+        // Poll sync also feeds processAppointment() the complete Bansal appointment array.
+        $appointmentData = $request->input('appointment', []);
+        $event = $request->input('event');
 
         try {
             $result = $this->syncService->syncPushedAppointment($appointmentData, $event);
