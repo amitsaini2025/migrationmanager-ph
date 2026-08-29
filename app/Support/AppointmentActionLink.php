@@ -108,19 +108,16 @@ class AppointmentActionLink
     }
 
     /**
-     * Cancel / Confirm / Reschedule links bind to the appointment slot time so
-     * older emails stop working after a reschedule. Links without `at` stay valid (legacy).
+     * Cancel / Confirm / Reschedule links must include `at` matching the current
+     * appointment slot. Missing or stale `at` (previous emails after reschedule) expire.
      */
     public static function matchesCurrentSlot(BookingAppointment $appointment, mixed $providedAt): bool
     {
         $provided = self::slotTimestamp($providedAt);
-        if ($provided === null) {
-            return true;
-        }
-
         $current = self::slotTimestamp($appointment->appointment_datetime);
-        if ($current === null) {
-            return true;
+
+        if ($provided === null || $current === null) {
+            return false;
         }
 
         return $current === $provided;

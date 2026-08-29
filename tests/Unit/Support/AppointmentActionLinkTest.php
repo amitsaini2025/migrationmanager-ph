@@ -33,14 +33,14 @@ class AppointmentActionLinkTest extends TestCase
     }
 
     #[Test]
-    public function it_allows_legacy_action_links_without_slot_param(): void
+    public function it_rejects_action_links_without_slot_param(): void
     {
         $appointment = new BookingAppointment([
             'appointment_datetime' => now()->addDays(2),
         ]);
 
-        $this->assertTrue(AppointmentActionLink::matchesCurrentSlot($appointment, null));
-        $this->assertTrue(AppointmentActionLink::matchesCurrentSlot($appointment, ''));
+        $this->assertFalse(AppointmentActionLink::matchesCurrentSlot($appointment, null));
+        $this->assertFalse(AppointmentActionLink::matchesCurrentSlot($appointment, ''));
     }
 
     #[Test]
