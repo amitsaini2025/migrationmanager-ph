@@ -38,6 +38,27 @@
     }
 
     /**
+     * Bansal rejects same-day bookings. Use Melbourne's tomorrow, not the browser's,
+     * so staff outside Australia cannot pick a Melbourne "today".
+     */
+    function melbourneTomorrowMinDate() {
+        var parts = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Australia/Melbourne',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).formatToParts(new Date());
+        var map = {};
+        parts.forEach(function (part) {
+            map[part.type] = part.value;
+        });
+        var tomorrow = new Date(Number(map.year), Number(map.month) - 1, Number(map.day));
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        return tomorrow;
+    }
+
+    /**
      * Restore hardcoded service card durations (used before API responds / on reset).
      */
     function resetServiceDurationLabels() {
@@ -322,7 +343,7 @@
                                 // Initialize flatpickr inline calendar
                                 flatpickr('#datetimepicker', {
                                     inline: true,
-                                    minDate: 'today',
+                                    minDate: melbourneTomorrowMinDate(),
                                     disable: disableRules,
                                     dateFormat: 'd/m/Y',
                                     locale: { firstDayOfWeek: 1 },

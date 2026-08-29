@@ -54,6 +54,7 @@ use App\Models\ClientVisaCountry; // Import the ClientAddress model
 use App\Models\ClientOccupation; // Import the ClientAddress model
 use App\Models\ClientSpouseDetail; // Import the ClientAddress model
 use App\Models\AppointmentConsultant; // Import the AppointmentConsultant model
+use App\Support\AppointmentBookingWindow;
 use App\Support\AppointmentSlotOverwrite;
 use App\Support\BansalSchedulingServiceType;
 
@@ -357,6 +358,14 @@ trait ClientAppointments
                 } catch (\Exception $e2) {
                     throw new \Exception('Invalid date/time format. Date: ' . $requestData['appoint_date'] . ', Time: ' . $timeStr . '. Error: ' . $e2->getMessage());
                 }
+            }
+
+            if (AppointmentBookingWindow::isOnOrBeforeToday($appointmentDateTime)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => AppointmentBookingWindow::SAME_DAY_MESSAGE,
+                    'errors' => ['appoint_date' => [AppointmentBookingWindow::SAME_DAY_MESSAGE]],
+                ], 422);
             }
 
             // Calculate duration based on service (fallback when API duration not sent)
