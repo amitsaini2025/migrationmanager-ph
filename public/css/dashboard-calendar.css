@@ -136,6 +136,7 @@
     flex-shrink: 0;
 }
 
+.dashboard-cal-dot--awaiting-confirmation { background: #fd7e14; }
 .dashboard-cal-dot--pending { background: #ffc107; }
 .dashboard-cal-dot--paid { background: #007bff; }
 .dashboard-cal-dot--confirmed { background: #28a745; }
@@ -206,6 +207,12 @@
     padding: 1px 4px;
     border-radius: 3px;
     border-width: 0;
+}
+
+.dashboard-calendar-container .fc-event.event-status-awaiting_confirmation {
+    background-color: #fd7e14 !important;
+    border-color: #fd7e14 !important;
+    color: #fff !important;
 }
 
 .dashboard-calendar-container .fc-event.event-status-pending {
@@ -413,6 +420,7 @@
     white-space: nowrap;
 }
 
+.dashboard-upcoming-type--awaiting_confirmation { background: #fd7e14; }
 .dashboard-upcoming-type--pending { background: #ffc107; color: #1a2c40; }
 .dashboard-upcoming-type--paid { background: #007bff; }
 .dashboard-upcoming-type--confirmed { background: #28a745; }

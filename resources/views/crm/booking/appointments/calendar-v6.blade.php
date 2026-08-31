@@ -79,6 +79,10 @@
                             <p>Upcoming</p>
                         </div>
                         <div class="stat-box">
+                            <h3>{{ $stats['awaiting_confirmation'] ?? 0 }}</h3>
+                            <p>Pending</p>
+                        </div>
+                        <div class="stat-box">
                             <h3>{{ $stats['pending'] ?? 0 }}</h3>
                             <p>Payment Pending</p>
                         </div>
@@ -94,6 +98,10 @@
 
                     <!-- Legend -->
                     <div class="calendar-legend">
+                        <div class="legend-item">
+                            <div class="legend-color event-awaiting-confirmation"></div>
+                            <span>Pending</span>
+                        </div>
                         <div class="legend-item">
                             <div class="legend-color event-pending"></div>
                             <span>Payment Pending</span>
@@ -648,6 +656,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function getStatusColor(status) {
         const colors = {
             'pending': '#ffc107',
+            'awaiting_confirmation': '#fd7e14',
             'paid': '#007bff',
             'confirmed': '#28a745',
             'completed': '#17a2b8',
@@ -665,6 +674,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function getStatusClass(status) {
         const classes = {
             'pending': 'warning',
+            'awaiting_confirmation': 'warning',
             'paid': 'info',
             'confirmed': 'success',
             'completed': 'info',
@@ -1384,6 +1394,10 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 /* Legend color styles */
+.legend-color.event-awaiting-confirmation {
+    background-color: #fd7e14;
+}
+
 .legend-color.event-pending {
     background-color: #ffc107;
 }
@@ -1406,6 +1420,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .legend-color.event-no-show {
     background-color: #6c757d;
+}
+
+.fc-event.event-awaiting_confirmation {
+    background-color: #fd7e14 !important;
+    border-color: #fd7e14 !important;
+    color: #fff !important;
 }
 
 /* Paid appointment color - blue with !important to override FullCalendar styles */

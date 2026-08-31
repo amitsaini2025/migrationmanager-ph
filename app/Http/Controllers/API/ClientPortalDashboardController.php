@@ -1256,6 +1256,7 @@ class ClientPortalDashboardController extends Controller
     {
         $colors = [
             'pending' => 'orange',
+            'awaiting_confirmation' => 'orange',
             'confirmed' => 'blue',
             'cancelled' => 'red',
             'rescheduled' => 'purple',

@@ -2,11 +2,10 @@
 
 namespace App\Models;
 
+use App\Support\BookingAppointmentStatus;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Casts\Attribute;
-use App\Models\Admin;
-use App\Models\AppointmentConsultant;
 
 class BookingAppointment extends Model
 {
@@ -65,12 +64,12 @@ class BookingAppointment extends Model
         'sync_status',
         'sync_error',
         'slot_overwrite_hidden',
-        'user_id'
+        'user_id',
     ];
 
     /**
      * Get the attributes that should be cast.
-     * 
+     *
      * Laravel 12: Use casts() method instead of $casts property
      */
     protected function casts(): array
@@ -210,7 +209,7 @@ class BookingAppointment extends Model
     /**
      * Laravel 12: Use Attribute class for accessors/mutators
      */
-    
+
     /**
      * Get the formatted appointment date.
      */
@@ -237,15 +236,7 @@ class BookingAppointment extends Model
     protected function statusBadge(): Attribute
     {
         return Attribute::make(
-            get: fn () => match($this->status) {
-                'pending' => 'warning',
-                'confirmed' => 'success',
-                'completed' => 'info',
-                'cancelled' => 'danger',
-                'no_show' => 'secondary',
-                'rescheduled' => 'primary',
-                default => 'secondary'
-            }
+            get: fn () => BookingAppointmentStatus::badgeClass((string) $this->status),
         );
     }
 
@@ -255,7 +246,7 @@ class BookingAppointment extends Model
     protected function locationDisplay(): Attribute
     {
         return Attribute::make(
-            get: fn () => match($this->location) {
+            get: fn () => match ($this->location) {
                 'melbourne' => 'Melbourne Office',
                 'adelaide' => 'Adelaide Office',
                 default => ucfirst($this->location)
@@ -268,8 +259,8 @@ class BookingAppointment extends Model
      */
     public function isUpcoming(): bool
     {
-        return $this->appointment_datetime?->isFuture() && 
-               !in_array($this->status, ['completed', 'cancelled', 'no_show']);
+        return $this->appointment_datetime?->isFuture() &&
+               ! in_array($this->status, ['completed', 'cancelled', 'no_show']);
     }
 
     /**
@@ -277,8 +268,12 @@ class BookingAppointment extends Model
      */
     public function isOverdue(): bool
     {
-        return $this->appointment_datetime?->isPast() && 
-               in_array($this->status, ['pending', 'confirmed']);
+        return $this->appointment_datetime?->isPast() &&
+               in_array($this->status, [
+                   BookingAppointmentStatus::PENDING,
+                   BookingAppointmentStatus::AWAITING_CONFIRMATION,
+                   BookingAppointmentStatus::CONFIRMED,
+               ], true);
     }
 
     /**
@@ -291,6 +286,7 @@ class BookingAppointment extends Model
         }
 
         $tomorrow = now()->addDay();
+
         return $this->appointment_datetime?->isSameDay($tomorrow);
     }
 
@@ -315,27 +311,24 @@ class BookingAppointment extends Model
      */
     public function getFullAddressAttribute(): string
     {
-        return match($this->location) {
+        return match ($this->location) {
             'melbourne' => 'Level 8/278 Collins St, Melbourne VIC 3000',
             'adelaide' => 'Unit 5, 55 Gawler Pl, Adelaide SA 5000, Australia',
             default => 'Office Address'
         };
     }
-    
+
     /**
      * Get the status badge color
      * Laravel 12: Accessor for status badge class
      */
     public function getStatusBadgeAttribute(): string
     {
-        return match($this->status) {
-            'pending' => 'warning',
-            'confirmed' => 'success',
-            'completed' => 'info',
-            'cancelled' => 'danger',
-            'no_show' => 'dark',
-            default => 'secondary'
-        };
+        return BookingAppointmentStatus::badgeClass((string) $this->status);
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return BookingAppointmentStatus::label((string) $this->status);
     }
 }
-

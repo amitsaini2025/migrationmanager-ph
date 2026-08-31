@@ -23,6 +23,8 @@ class ClientAppointmentActionServiceTest extends TestCase
         );
 
         $this->assertTrue($service->canAct(new BookingAppointment(['status' => 'pending'])));
+        $this->assertTrue($service->canAct(new BookingAppointment(['status' => 'awaiting_confirmation'])));
+        $this->assertTrue($service->canAct(new BookingAppointment(['status' => 'paid'])));
         $this->assertTrue($service->canAct(new BookingAppointment(['status' => 'confirmed'])));
         $this->assertFalse($service->canAct(new BookingAppointment(['status' => 'cancelled'])));
         $this->assertFalse($service->canAct(new BookingAppointment(['status' => 'completed'])));

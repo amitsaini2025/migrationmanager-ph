@@ -36,6 +36,7 @@ use App\Services\ClientReferenceService;
 use App\Services\MergeClientRecordsService;
 use App\Support\ActionTaskGroup;
 use App\Support\AppointmentActivityDescription;
+use App\Support\BookingAppointmentStatus;
 use App\Support\NoteDescriptionHtml;
 use App\Support\StaffClientVisibility;
 use App\Support\WorkflowAssignment;
@@ -545,13 +546,11 @@ trait ClientAppointments
                 'service_type' => $serviceTypeMapping['service_type'],
                 'enquiry_details' => $requestData['description'],
                 
-                // Determine status based on service type and payment status
-                // Case 1: Free appointment (serviceId == 2) -> status = 'confirmed'
-                // Case 2: Paid appointment (serviceId != 2) -> status = 'paid' if payment successful, 'pending' if payment failed
-                'status' => ($serviceId == 2) 
-                    ? 'confirmed' 
-                    : (($requestData['payment_status'] ?? 'pending') === 'completed' ? 'paid' : 'pending'),
-                'confirmed_at' => ($serviceId == 2) ? now() : null, // Set confirmed_at for free appointments
+                'status' => BookingAppointmentStatus::forNewBooking(
+                    (int) $serviceId,
+                    $requestData['payment_status'] ?? null
+                ),
+                'confirmed_at' => null,
                 'is_paid' => ($serviceId == 2) ? false : true, // Free service is not paid
                 'amount' => ($serviceId == 2) ? 0 : 150, // Set appropriate amounts
                 'final_amount' => ($serviceId == 2) ? 0 : 150,

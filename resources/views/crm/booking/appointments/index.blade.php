@@ -89,6 +89,21 @@ html, body {
                         <div class="col-lg col-md-6 col-sm-6 col-12">
                             <div class="card card-statistic-1">
                                 <div class="card-icon bg-warning">
+                                    @icon('fa-hourglass-half')
+                                </div>
+                                <div class="card-wrap">
+                                    <div class="card-header">
+                                        <h4>Pending</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        {{ $stats['awaiting_confirmation'] ?? 0 }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg col-md-6 col-sm-6 col-12">
+                            <div class="card card-statistic-1">
+                                <div class="card-icon bg-warning">
                                     @icon('fa-clock')
                                 </div>
                                 <div class="card-wrap">
@@ -179,7 +194,8 @@ html, body {
                                     <label>Status</label>
                                     <select class="form-control" name="status" id="filter-status">
                                         <option value="">All Status</option>
-                                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                                        <option value="awaiting_confirmation" {{ request('status') == 'awaiting_confirmation' ? 'selected' : '' }}>Pending</option>
+                                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Payment Pending</option>
                                         <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
                                         <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
                                         <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
@@ -304,16 +320,8 @@ html, body {
                                     </td>
                                     <td>
                                         @php
-                                            $statusClass = 'secondary';
-                                            $statusText = ucfirst($appointment->status);
-                                            switch($appointment->status) {
-                                                case 'pending': $statusClass = 'warning'; break;
-                                                case 'paid': $statusClass = 'primary'; break;
-                                                case 'confirmed': $statusClass = 'success'; break;
-                                                case 'completed': $statusClass = 'info'; break;
-                                                case 'cancelled': $statusClass = 'danger'; break;
-                                                case 'no_show': $statusClass = 'dark'; break;
-                                            }
+                                            $statusClass = $appointment->status_badge;
+                                            $statusText = $appointment->status_label;
                                         @endphp
                                         <span class="badge badge-{{ $statusClass }}">{{ $statusText }}</span>
                                     </td>

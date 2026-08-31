@@ -12,6 +12,7 @@ use App\Models\ActivitiesLog;
 use App\Services\BansalAppointmentSync\AppointmentSyncService;
 use App\Services\BansalAppointmentSync\BansalApiClient;
 use App\Services\BansalAppointmentSync\BansalAppointmentRecoveryService;
+use App\Support\BookingAppointmentStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -133,6 +134,7 @@ class BookingAppointmentsController extends Controller
 
         // Calculate statistics (same visibility as list)
         $stats = [
+            'awaiting_confirmation' => (clone $statsBase)->where('status', 'awaiting_confirmation')->count(),
             'pending' => (clone $statsBase)->where('status', 'pending')->where('is_paid', 1)->count(),
             'paid' => (clone $statsBase)->where('status', 'paid')->where('is_paid', 1)->count(),
             'confirmed' => (clone $statsBase)->where('status', 'confirmed')->count(),
@@ -271,7 +273,7 @@ class BookingAppointmentsController extends Controller
             })
             ->addColumn('status_badge', function ($appointment) {
                 $color = $appointment->status_badge;
-                $label = ucfirst(str_replace('_', ' ', $appointment->status));
+                $label = $appointment->status_label;
                 return '<span class="badge badge-' . $color . '">' . $label . '</span>';
             })
             ->addColumn('payment_info', function ($appointment) {
@@ -367,6 +369,7 @@ class BookingAppointmentsController extends Controller
             'this_month' => (clone $calendarStatsBase())->whereMonth('appointment_datetime', now()->month)->count(),
             'today' => (clone $calendarStatsBase())->whereDate('appointment_datetime', today())->count(),
             'upcoming' => (clone $calendarStatsBase())->where('appointment_datetime', '>', now())->count(),
+            'awaiting_confirmation' => (clone $calendarStatsBase())->where('status', 'awaiting_confirmation')->count(),
             'pending' => (clone $calendarStatsBase())->where('status', 'pending')->where('is_paid', 1)->count(),
             'paid' => (clone $calendarStatsBase())->where('status', 'paid')->where('is_paid', 1)->count(),
             'no_show' => (clone $calendarStatsBase())->where('status', 'no_show')->count(),
@@ -389,7 +392,7 @@ class BookingAppointmentsController extends Controller
         $this->assertBookingAppointmentAccess($appointment);
 
         $request->validate([
-            'status' => 'required|in:pending,paid,confirmed,completed,cancelled,no_show,rescheduled',
+            'status' => 'required|'.BookingAppointmentStatus::validationRule(),
             'cancellation_reason' => 'required_if:status,cancelled|nullable|string'
         ]);
 
@@ -464,7 +467,7 @@ class BookingAppointmentsController extends Controller
             $activityLog->client_id = $appointment->client_id;
             $activityLog->created_by = Auth::id();
             $activityLog->subject = 'Booking appointment status updated';
-            $activityLog->description = '<p><strong>Status changed:</strong> ' . ucfirst($oldStatus) . ' → ' . ucfirst($request->status) . '</p>' .
+            $activityLog->description = '<p><strong>Status changed:</strong> ' . e(BookingAppointmentStatus::label((string) $oldStatus)) . ' → ' . e(BookingAppointmentStatus::label((string) $request->status)) . '</p>' .
                                        ($request->cancellation_reason ? '<p><strong>Reason:</strong> ' . e($request->cancellation_reason) . '</p>' : '');
             $activityLog->task_status = 0;
             $activityLog->pin = 0;
@@ -1442,7 +1445,7 @@ class BookingAppointmentsController extends Controller
         $request->validate([
             'appointment_ids' => 'required|array',
             'appointment_ids.*' => 'exists:booking_appointments,id',
-            'status' => 'required|in:pending,confirmed,completed,cancelled,no_show'
+            'status' => 'required|'.BookingAppointmentStatus::validationRule(),
         ]);
 
         $updated = 0;

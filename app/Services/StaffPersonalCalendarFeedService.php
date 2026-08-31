@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Admin;
 use App\Models\BookingAppointment;
+use App\Support\BookingAppointmentStatus;
 use App\Support\StaffClientVisibility;
 use Carbon\Carbon;
 use Exception;
@@ -139,7 +140,7 @@ class StaffPersonalCalendarFeedService
         return [
             'id' => (string) $appointment->id,
             'booking_appointment_id' => $appointment->id,
-            'title' => $clientName . ' (' . $meetingTypeDisplay . ')',
+            'title' => $clientName.' ('.$meetingTypeDisplay.')',
             'starts_at' => $start->toIso8601String(),
             'ends_at' => $end->toIso8601String(),
             'appointment_datetime' => $start->toIso8601String(),
@@ -158,7 +159,7 @@ class StaffPersonalCalendarFeedService
             'status' => $status,
             'status_label' => $this->bookingStatusLabel($status),
             'is_paid' => (bool) $appointment->is_paid,
-            'detail_url' => url('/booking/appointments/' . $appointment->id),
+            'detail_url' => url('/booking/appointments/'.$appointment->id),
         ];
     }
 
@@ -180,7 +181,7 @@ class StaffPersonalCalendarFeedService
             'backgroundColor' => $color,
             'borderColor' => $color,
             'textColor' => $status === 'pending' ? '#1A2C40' : '#fff',
-            'classNames' => ['event-appointment', 'event-status-' . $status],
+            'classNames' => ['event-appointment', 'event-status-'.$status],
             'url' => (string) ($row['detail_url'] ?? ''),
             'extendedProps' => $row,
         ];
@@ -228,9 +229,9 @@ class StaffPersonalCalendarFeedService
             return null;
         }
 
-        $name = trim(($client->first_name ?? '') . ' ' . ($client->last_name ?? ''));
+        $name = trim(($client->first_name ?? '').' '.($client->last_name ?? ''));
 
-        return $name !== '' ? $name : ($client->client_id ?? 'Client #' . $client->id);
+        return $name !== '' ? $name : ($client->client_id ?? 'Client #'.$client->id);
     }
 
     protected function clientEmail(?Admin $client): ?string
@@ -246,29 +247,11 @@ class StaffPersonalCalendarFeedService
 
     protected function bookingStatusLabel(string $status): string
     {
-        return match ($status) {
-            'pending' => 'Pending',
-            'paid' => 'Paid',
-            'confirmed' => 'Confirmed',
-            'completed' => 'Completed',
-            'cancelled' => 'Cancelled',
-            'no_show' => 'No Show',
-            'rescheduled' => 'Rescheduled',
-            default => ucwords(str_replace('_', ' ', $status)),
-        };
+        return BookingAppointmentStatus::label($status);
     }
 
     protected function colorForBookingStatus(string $status): string
     {
-        return match ($status) {
-            'pending' => '#ffc107',
-            'paid' => '#007bff',
-            'confirmed' => '#28a745',
-            'completed' => '#17a2b8',
-            'cancelled' => '#dc3545',
-            'no_show' => '#6c757d',
-            'rescheduled' => '#007bff',
-            default => '#6c757d',
-        };
+        return BookingAppointmentStatus::color($status);
     }
 }

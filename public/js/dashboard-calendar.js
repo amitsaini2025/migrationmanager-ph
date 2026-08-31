@@ -121,7 +121,7 @@
 
     function statusClass(status) {
         var key = String(status || 'pending').toLowerCase();
-        if (['pending', 'paid', 'confirmed', 'completed'].indexOf(key) !== -1) {
+        if (['pending', 'awaiting_confirmation', 'paid', 'confirmed', 'completed'].indexOf(key) !== -1) {
             return key;
         }
         return 'other';

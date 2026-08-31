@@ -7,6 +7,7 @@ use App\Models\AppointmentSyncLog;
 use App\Models\ActivitiesLog;
 use App\Support\AppointmentActivityDescription;
 use App\Support\BansalAppointmentDatetimeSync;
+use App\Support\BookingAppointmentStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -242,8 +243,12 @@ class AppointmentSyncService
         // Assign consultant (now has access to service_id and noe_id)
         $consultant = $this->consultantAssigner->assignConsultant($appointmentDataForConsultant);
 
-        // Map status
         $status = $this->mapStatus($appointmentData['status'] ?? 'pending');
+        $isPaidBooking = filter_var($appointmentData['is_paid'] ?? false, FILTER_VALIDATE_BOOLEAN)
+            || ((float) ($appointmentData['amount'] ?? 0) > 0)
+            || ((float) ($appointmentData['final_amount'] ?? 0) > 0)
+            || $status === BookingAppointmentStatus::PAID;
+        $status = BookingAppointmentStatus::forNewWebsiteBooking($status, $isPaidBooking);
 
         // Create appointment record
         $appointment = BookingAppointment::create([
@@ -343,10 +348,14 @@ class AppointmentSyncService
         $updates = [];
 
         if ($appointment->status !== $status) {
-            $bansalUnpaidPending = $status === 'pending' && !$isPaid;
-            $isTerminalFromBansal = in_array($status, ['cancelled', 'completed', 'no_show'], true);
+            $bansalUnpaidPending = $status === BookingAppointmentStatus::PENDING && !$isPaid;
 
-            if ($isTerminalFromBansal || !($crmPaid && $bansalUnpaidPending)) {
+            if (BookingAppointmentStatus::shouldApplyIncomingWebsiteStatus(
+                (string) $appointment->status,
+                $status,
+                $crmPaid,
+                $bansalUnpaidPending
+            )) {
                 $updates['status'] = $status;
             }
         }
@@ -541,13 +550,14 @@ class AppointmentSyncService
         $normalized = str_replace([' ', '-'], '_', $normalized);
 
         return match ($normalized) {
-            'pending' => 'pending',
-            'paid' => 'paid',
-            'confirmed' => 'confirmed',
-            'completed' => 'completed',
-            'cancelled', 'canceled' => 'cancelled',
-            'no_show' => 'no_show',
-            default => 'pending',
+            'pending' => BookingAppointmentStatus::PENDING,
+            'awaiting_confirmation' => BookingAppointmentStatus::AWAITING_CONFIRMATION,
+            'paid' => BookingAppointmentStatus::PAID,
+            'confirmed' => BookingAppointmentStatus::CONFIRMED,
+            'completed' => BookingAppointmentStatus::COMPLETED,
+            'cancelled', 'canceled' => BookingAppointmentStatus::CANCELLED,
+            'no_show' => BookingAppointmentStatus::NO_SHOW,
+            default => BookingAppointmentStatus::PENDING,
         };
     }
 

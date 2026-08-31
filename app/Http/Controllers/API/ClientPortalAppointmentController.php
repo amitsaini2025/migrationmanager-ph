@@ -15,6 +15,7 @@ use App\Services\BansalAppointmentSync\ConsultantAssignmentService;
 use App\Services\ClientReferenceService;
 use App\Services\Payment\StripePaymentService;
 use App\Support\BansalSchedulingServiceType;
+use App\Support\BookingAppointmentStatus;
 use Carbon\Carbon;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
@@ -359,15 +360,7 @@ class ClientPortalAppointmentController extends BaseController
     private function formatAppointmentData($appointment)
     {
         // Map status to display format
-        $statusDisplay = match ($appointment->status) {
-            'pending' => 'Pending',
-            'confirmed' => 'Confirmed',
-            'completed' => 'Completed',
-            'cancelled' => 'Cancelled',
-            'no_show' => 'No Show',
-            'rescheduled' => 'Rescheduled',
-            default => ucfirst($appointment->status ?? 'Pending')
-        };
+        $statusDisplay = BookingAppointmentStatus::label((string) ($appointment->status ?? 'pending'));
 
         // Map enquiry type to display format
         $enquiryTypeDisplay = match ($appointment->enquiry_type) {
@@ -784,13 +777,11 @@ class ClientPortalAppointmentController extends BaseController
                 'service_type' => $serviceTypeMapping['service_type'],
                 'enquiry_details' => $requestData['description'],
 
-                // Determine status based on service type and payment status
-                // Case 1: Free appointment (serviceId == 2) -> status = 'confirmed'
-                // Case 2: Paid appointment (serviceId != 2) -> status = 'paid' if payment successful, 'pending' if payment failed
-                'status' => ($serviceId == 2)
-                    ? 'confirmed'
-                    : (($requestData['payment_status'] ?? 'pending') === 'completed' ? 'paid' : 'pending'),
-                'confirmed_at' => ($serviceId == 2) ? now() : null, // Set confirmed_at for free appointments
+                'status' => BookingAppointmentStatus::forNewBooking(
+                    (int) $serviceId,
+                    $requestData['payment_status'] ?? null
+                ),
+                'confirmed_at' => null,
                 'is_paid' => ($serviceId == 2) ? false : true, // Free service is not paid
                 'amount' => ($serviceId == 2) ? 0 : 150, // Set appropriate amounts
                 'final_amount' => ($serviceId == 2) ? 0 : 150,
@@ -1172,10 +1163,11 @@ class ClientPortalAppointmentController extends BaseController
                 'enquiry_type' => $serviceTypeMapping['enquiry_type'],
                 'service_type' => $serviceTypeMapping['service_type'],
                 'enquiry_details' => $requestData['description'],
-                'status' => ($serviceId == 2)
-                    ? 'confirmed'
-                    : (($requestData['payment_status'] ?? 'pending') === 'completed' ? 'paid' : 'pending'),
-                'confirmed_at' => ($serviceId == 2) ? now() : null,
+                'status' => BookingAppointmentStatus::forNewBooking(
+                    (int) $serviceId,
+                    $requestData['payment_status'] ?? null
+                ),
+                'confirmed_at' => null,
                 'is_paid' => ($serviceId == 2) ? false : true,
                 'amount' => ($serviceId == 2) ? 0 : 150,
                 'final_amount' => ($serviceId == 2) ? 0 : 150,

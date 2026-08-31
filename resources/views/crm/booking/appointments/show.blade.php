@@ -75,17 +75,10 @@ html, body {
                     </h4>
                     <div class="card-header-action">
                         @php
-                            $statusClass = match($appointment->status) {
-                                'pending' => 'warning',
-                                'confirmed' => 'success',
-                                'completed' => 'info',
-                                'cancelled' => 'danger',
-                                'no_show' => 'dark',
-                                default => 'secondary'
-                            };
+                            $statusClass = $appointment->status_badge;
                         @endphp
                         <span class="badge badge-{{ $statusClass }} badge-lg">
-                            {{ ucfirst($appointment->status) }}
+                            {{ $appointment->status_label }}
                         </span>
                     </div>
                 </div>
@@ -465,7 +458,7 @@ html, body {
                             </button>
                             @endif
                             
-                            @if(in_array($appointment->status, ['pending', 'confirmed']))
+                            @if(in_array($appointment->status, ['pending', 'awaiting_confirmation', 'confirmed']))
                             <button class="btn btn-primary" onclick="markCompleteAppointment()">
                                 @icon('fa-check-circle') Mark Completed
                             </button>

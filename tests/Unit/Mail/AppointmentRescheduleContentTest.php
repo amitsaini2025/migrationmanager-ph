@@ -50,6 +50,7 @@ class AppointmentRescheduleContentTest extends TestCase
         $this->assertStringContainsString('Cancel</a>', $html);
         $this->assertStringContainsString('Reschedule</a>', $html);
         $this->assertStringContainsString('Confirm</a>', $html);
+        $this->assertStringContainsString('This appointment stays pending until you confirm it', $html);
         $this->assertStringContainsString('/appointment/42/cancel', $html);
         $this->assertStringContainsString('at='.$details['appointment_datetime']->getTimestamp(), $html);
     }

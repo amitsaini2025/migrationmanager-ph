@@ -170,7 +170,7 @@
         <tr>
           <td style="padding:0 24px 8px 24px;">
             <p style="margin:0 0 8px 0; font-size:10px; color:#9aa6b2; line-height:1.6;">
-              By booking this appointment, you acknowledge the following: This appointment is considered confirmed upon receipt of this email.
+              By booking this appointment, you acknowledge the following: This appointment stays pending until you confirm it with the Confirm button below, or our calling team confirms it.
               Bansal Immigration reserves the right to cancel or reschedule any appointment at any time, with or without prior notice, due to unforeseen operational circumstances.
               Phone and video consultations may be subject to delays or interruptions beyond our control.
               Clients arriving more than 10 minutes late may be required to reschedule. Failure to attend without prior notice may result in forfeiture of the appointment slot.
