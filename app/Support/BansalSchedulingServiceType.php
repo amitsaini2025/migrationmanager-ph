@@ -18,7 +18,10 @@ class BansalSchedulingServiceType
     private const FAMILY_VISA_AND_CITIZENSHIP_NOE_IDS = [11, 12];
 
     /** enquiry_type values accepted by Bansal add-appointment API. */
-    private const BANSAL_VALID_ENQUIRY_TYPES = ['tr', 'tourist', 'education', 'pr_complex', 'ajay', 'kunal'];
+    private const BANSAL_VALID_ENQUIRY_TYPES = ['tr', 'tourist', 'education', 'pr_complex', 'ajay', 'kunal', 'arun'];
+
+    /** CRM-only Nature of Enquiry (not offered on website or client portal). */
+    public const CRM_ONLY_NOE_IDS = [13, 14];
 
     /**
      * @var array<int, string>
@@ -36,6 +39,8 @@ class BansalSchedulingServiceType
         10 => 'employer-sponsored',
         11 => 'family-visas',
         12 => 'citizenship',
+        13 => 'ajay',
+        14 => 'arun',
     ];
 
     public static function fromEnquiryItem(mixed $enquiryItem, ?string $location = null): string
@@ -51,7 +56,7 @@ class BansalSchedulingServiceType
 
     /**
      * enquiry_type for Bansal add-appointment / re-sync API only.
-     * Bansal accepts: tr, tourist, education, pr_complex, ajay, kunal.
+     * Bansal accepts: tr, tourist, education, pr_complex, ajay, kunal, arun.
      */
     public static function bansalEnquiryTypeForApi(mixed $noeId, ?string $location, string $crmEnquiryType): string
     {
@@ -71,8 +76,11 @@ class BansalSchedulingServiceType
             if (in_array($key, [1, 3, 8, 9, 10, 11, 12], true)) {
                 return 'pr_complex';
             }
-            if (in_array($key, [6, 7], true)) {
+            if (in_array($key, [6, 7, 13], true)) {
                 return 'ajay';
+            }
+            if ($key === 14) {
+                return 'arun';
             }
         }
 
@@ -102,6 +110,11 @@ class BansalSchedulingServiceType
         }
 
         return $crmServiceType;
+    }
+
+    public static function isCrmOnlyNoe(mixed $noeId): bool
+    {
+        return in_array((int) $noeId, self::CRM_ONLY_NOE_IDS, true);
     }
 
     public static function melbourneUsesEmployerSponsoredRouting(int $noeId, ?string $location): bool

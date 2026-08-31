@@ -49,6 +49,8 @@
 										<option value="11">Family Visas (Parent Visa, Partner Visa, Child Visa)</option>
 										<option value="12">Citizenship</option>
 										<option value="8">Anyone who is outside Australia</option>
+										<option value="13">Ajay</option>
+										<option value="14">Arun</option>
 									</select>
                                 </div>
                             </div>
@@ -115,7 +117,7 @@
                             <div class="form-group inperson_address_cls">
                                 <label for="inperson_address" class="heading_title">Location</label>
                                 <div class="inperson_address_header" id="inperson_address_1">
-                                    <label class="inperson_address_title">
+                                    <label class="inperson_address_title" id="adelaide_location_option">
                                         <input type="radio" class="inperson_address" name="inperson_address" data-val="1" value="1">
                                         <div class="inperson_address_title_span">
                                             ADELAIDE<br/><span style="font-size: 10px;">(Unit 5 5/55 Gawler Pl, Adelaide SA 5000)</span>
@@ -882,6 +884,46 @@ function applyServiceVisibilityForNatureOfEnquiry(selectedValue) {
 	showWrap(overseasWrap);
 }
 
+function applyLocationVisibilityForCrmOnlyNoe(selectedValue) {
+	const adelaideOption = document.getElementById('adelaide_location_option');
+	const melbourneRadio = document.querySelector('#create_appoint input.inperson_address[data-val="2"]');
+	const adelaideRadio = document.querySelector('#create_appoint input.inperson_address[data-val="1"]');
+	const isCrmOnly = selectedValue === '13' || selectedValue === '14';
+
+	if (adelaideOption) {
+		adelaideOption.style.display = '';
+		adelaideOption.classList.remove('is-disabled');
+	}
+
+	if (adelaideRadio) {
+		adelaideRadio.disabled = isCrmOnly;
+		if (isCrmOnly) {
+			adelaideRadio.checked = false;
+		}
+	}
+
+	if (!isCrmOnly) {
+		return;
+	}
+
+	if (melbourneRadio) {
+		melbourneRadio.checked = true;
+		melbourneRadio.value = '2';
+		var details = document.getElementById('appointment_details');
+		if (details && details.style.display !== 'none' && typeof $ !== 'undefined') {
+			$(melbourneRadio).trigger('change');
+		}
+	}
+}
+
+document.addEventListener('click', function (e) {
+	const adelaideOption = document.getElementById('adelaide_location_option');
+	const adelaideRadio = document.querySelector('#create_appoint input.inperson_address[data-val="1"]');
+	if (adelaideOption && adelaideRadio && adelaideRadio.disabled && adelaideOption.contains(e.target)) {
+		e.preventDefault();
+	}
+});
+
 // Auto-select radio when card is clicked using event delegation
 document.addEventListener('DOMContentLoaded', function() {
 	// Initialize Video Call option as hidden when modal opens
@@ -900,6 +942,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		if (enquirySelect) {
 			enquirySelect.value = '';
 		}
+		applyLocationVisibilityForCrmOnlyNoe('');
 		// Show all service cards (undo NOE 6/7/8 visibility) when modal opens
 		const freeConsultationService = document.querySelector('.service-free-consultation');
 		const paidServiceWrap = document.querySelector('.service-comprehensive-advice');
@@ -1003,6 +1046,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (selectedValue) {
 				document.getElementById('services').style.display = 'block';
 				applyServiceVisibilityForNatureOfEnquiry(selectedValue);
+				applyLocationVisibilityForCrmOnlyNoe(selectedValue);
 			} else {
 				document.getElementById('services').style.display = 'none';
 				document.getElementById('appointment_details').style.display = 'none';
@@ -1016,6 +1060,10 @@ document.addEventListener('DOMContentLoaded', function() {
 				// Toggle Video Call option visibility based on service
 				toggleVideoCallOption(serviceId);
 				document.getElementById('appointment_details').style.display = 'block';
+				var noeSelect = document.querySelector('.enquiry_item');
+				if (noeSelect) {
+					applyLocationVisibilityForCrmOnlyNoe(noeSelect.value);
+				}
 			}
 		}
 		

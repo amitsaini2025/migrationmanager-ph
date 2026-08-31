@@ -3,6 +3,7 @@
 namespace App\Services\BansalAppointmentSync;
 
 use App\Models\AppointmentConsultant;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
 class ConsultantAssignmentService
@@ -18,7 +19,7 @@ class ConsultantAssignmentService
     {
         $calendarType = $this->determineCalendarType($appointmentData);
 
-        if (!$calendarType) {
+        if (! $calendarType) {
             Log::warning('Could not determine calendar type for appointment', [
                 'appointment_id' => $appointmentData['id'] ?? null,
                 'noe_id' => $appointmentData['noe_id'] ?? null,
@@ -33,7 +34,7 @@ class ConsultantAssignmentService
             ->where('is_active', true)
             ->first();
 
-        if (!$consultant) {
+        if (! $consultant) {
             Log::error('No active consultant found for calendar type', [
                 'calendar_type' => $calendarType,
             ]);
@@ -72,6 +73,14 @@ class ConsultantAssignmentService
         // Education (incl. student / dependent flows that map to NOE 5)
         if ($noeId === 5) {
             return 'education';
+        }
+
+        // CRM-only Nature of Enquiry: Ajay / Arun (Melbourne)
+        if ($noeId === 13) {
+            return 'ajay';
+        }
+        if ($noeId === 14) {
+            return 'arun';
         }
 
         // Complex matters → Ajay
@@ -252,6 +261,8 @@ class ConsultantAssignmentService
             'employer-sponsored' => 10,
             'family-visas' => 11,
             'citizenship' => 12,
+            'ajay' => 13,
+            'arun' => 14,
             default => null,
         };
 
@@ -329,7 +340,7 @@ class ConsultantAssignmentService
     /**
      * Get all active consultants
      */
-    public function getAllConsultants(): \Illuminate\Database\Eloquent\Collection
+    public function getAllConsultants(): Collection
     {
         return AppointmentConsultant::where('is_active', true)->get();
     }

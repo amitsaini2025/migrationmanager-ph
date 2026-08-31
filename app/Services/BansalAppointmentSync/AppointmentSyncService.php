@@ -2,23 +2,24 @@
 
 namespace App\Services\BansalAppointmentSync;
 
-use App\Models\BookingAppointment;
-use App\Models\AppointmentSyncLog;
 use App\Models\ActivitiesLog;
+use App\Models\AppointmentSyncLog;
+use App\Models\BookingAppointment;
 use App\Support\AppointmentActivityDescription;
 use App\Support\BansalAppointmentDatetimeSync;
 use App\Support\BookingAppointmentStatus;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class AppointmentSyncService
 {
     protected BansalApiClient $apiClient;
+
     protected ClientMatchingService $clientMatcher;
+
     protected ConsultantAssignmentService $consultantAssigner;
-    
+
     protected AppointmentSyncLog $syncLog;
 
     public function __construct(
@@ -40,7 +41,7 @@ class AppointmentSyncService
         $this->syncLog = AppointmentSyncLog::create([
             'sync_type' => 'polling',
             'started_at' => now(),
-            'status' => 'running'
+            'status' => 'running',
         ]);
 
         $stats = [
@@ -49,7 +50,7 @@ class AppointmentSyncService
             'updated' => 0,
             'skipped' => 0,
             'failed' => 0,
-            'errors' => []
+            'errors' => [],
         ];
 
         try {
@@ -65,7 +66,7 @@ class AppointmentSyncService
             foreach ($appointments as $appointmentData) {
                 try {
                     $result = $this->processAppointment($appointmentData);
-                    
+
                     if ($result === 'new') {
                         $stats['new']++;
                     } elseif ($result === 'updated') {
@@ -77,13 +78,13 @@ class AppointmentSyncService
                     $stats['failed']++;
                     $stats['errors'][] = [
                         'appointment_id' => $appointmentData['id'] ?? 'unknown',
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ];
-                    
+
                     Log::error('Failed to process appointment', [
                         'appointment_id' => $appointmentData['id'] ?? null,
                         'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
+                        'trace' => $e->getTraceAsString(),
                     ]);
                 }
             }
@@ -97,7 +98,7 @@ class AppointmentSyncService
                 'appointments_updated' => $stats['updated'],
                 'appointments_skipped' => $stats['skipped'],
                 'appointments_failed' => $stats['failed'],
-                'sync_details' => json_encode($stats)
+                'sync_details' => json_encode($stats),
             ]);
 
             Log::info('Appointment sync completed', $stats);
@@ -109,12 +110,12 @@ class AppointmentSyncService
                 'status' => 'failed',
                 'error_message' => $e->getMessage(),
                 'appointments_fetched' => $stats['fetched'],
-                'appointments_failed' => $stats['failed']
+                'appointments_failed' => $stats['failed'],
             ]);
 
             Log::error('Appointment sync failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e;
@@ -208,9 +209,9 @@ class AppointmentSyncService
             'full_data' => $appointmentData,
             'status' => $appointmentData['status'] ?? 'not_set',
             'is_paid' => $appointmentData['is_paid'] ?? 'not_set',
-            'payment_data' => $appointmentData['payment'] ?? 'not_set'
+            'payment_data' => $appointmentData['payment'] ?? 'not_set',
         ]);
-        
+
         $bansalId = $appointmentData['id'];
 
         // Check if already exists — selectively heal payment/status/cancel only
@@ -254,15 +255,15 @@ class AppointmentSyncService
         $appointment = BookingAppointment::create([
             'bansal_appointment_id' => $bansalId,
             'order_hash' => $appointmentData['order_hash'] ?? null,
-            
+
             'client_id' => $client?->id,
             'consultant_id' => $consultant?->id,
-            
+
             'client_name' => $appointmentData['full_name'],
             'client_email' => $appointmentData['email'],
             'client_phone' => $appointmentData['phone'] ?? null,
             'client_timezone' => 'Australia/Melbourne',
-            
+
             'appointment_datetime' => Carbon::parse($appointmentData['appointment_datetime']),
             'timeslot_full' => $appointmentData['appointment_time'] ?? null,
             'duration_minutes' => $appointmentData['duration_minutes'] ?? 15,
@@ -270,16 +271,16 @@ class AppointmentSyncService
             'inperson_address' => $inpersonAddress,
             'meeting_type' => $this->mapMeetingType($appointmentData['meeting_type'] ?? null),
             'preferred_language' => $appointmentData['preferred_language'] ?? 'English',
-            
+
             'service_id' => $serviceId,
             'noe_id' => $noeId,
             'enquiry_type' => $appointmentData['enquiry_type'] ?? null,
             'service_type' => $appointmentData['service_type'] ?? null,
             'enquiry_details' => $appointmentData['enquiry_details'] ?? null,
-            
+
             'status' => $status,
             'confirmed_at' => $status === 'confirmed' ? now() : null,
-            
+
             'is_paid' => $appointmentData['is_paid'] ?? false,
             'amount' => $appointmentData['amount'] ?? 0,
             'discount_amount' => $appointmentData['discount_amount'] ?? 0,
@@ -287,10 +288,10 @@ class AppointmentSyncService
             'promo_code' => $appointmentData['promo_code'] ?? null,
             'payment_status' => $this->mapPaymentStatus($appointmentData),
             'payment_method' => $appointmentData['payment']['payment_method'] ?? null,
-            'paid_at' => !empty($appointmentData['payment']['paid_at']) 
-                ? Carbon::parse($appointmentData['payment']['paid_at']) 
+            'paid_at' => ! empty($appointmentData['payment']['paid_at'])
+                ? Carbon::parse($appointmentData['payment']['paid_at'])
                 : null,
-            
+
             'synced_from_bansal_at' => now(),
             'last_synced_at' => now(),
             'sync_status' => 'synced',
@@ -300,7 +301,7 @@ class AppointmentSyncService
             'bansal_id' => $bansalId,
             'crm_id' => $appointment->id,
             'client_id' => $client?->id,
-            'consultant_id' => $consultant?->id
+            'consultant_id' => $consultant?->id,
         ]);
 
         // Create activity log for synced appointment (only if client exists)
@@ -312,7 +313,7 @@ class AppointmentSyncService
                 Log::warning('Failed to create activity log for synced appointment', [
                     'appointment_id' => $appointment->id,
                     'client_id' => $appointment->client_id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -348,7 +349,7 @@ class AppointmentSyncService
         $updates = [];
 
         if ($appointment->status !== $status) {
-            $bansalUnpaidPending = $status === BookingAppointmentStatus::PENDING && !$isPaid;
+            $bansalUnpaidPending = $status === BookingAppointmentStatus::PENDING && ! $isPaid;
 
             if (BookingAppointmentStatus::shouldApplyIncomingWebsiteStatus(
                 (string) $appointment->status,
@@ -360,33 +361,33 @@ class AppointmentSyncService
             }
         }
 
-        if ($isPaid && !$appointment->is_paid) {
+        if ($isPaid && ! $appointment->is_paid) {
             $updates['is_paid'] = true;
         }
 
         if ($paymentStatus !== null && $appointment->payment_status !== $paymentStatus) {
             $crmCompleted = $appointment->payment_status === 'completed';
-            if (!($crmCompleted && $paymentStatus !== 'completed')) {
+            if (! ($crmCompleted && $paymentStatus !== 'completed')) {
                 $updates['payment_status'] = $paymentStatus;
             }
         }
 
         $paymentMethod = $appointmentData['payment']['payment_method'] ?? null;
-        if (!empty($paymentMethod) && $appointment->payment_method !== $paymentMethod) {
+        if (! empty($paymentMethod) && $appointment->payment_method !== $paymentMethod) {
             if (empty($appointment->payment_method) || $isPaid) {
                 $updates['payment_method'] = $paymentMethod;
             }
         }
 
-        if (!empty($appointmentData['payment']['paid_at']) && empty($appointment->paid_at)) {
+        if (! empty($appointmentData['payment']['paid_at']) && empty($appointment->paid_at)) {
             $updates['paid_at'] = Carbon::parse($appointmentData['payment']['paid_at']);
         }
 
         foreach (['amount', 'discount_amount', 'final_amount'] as $amountField) {
-            if (!array_key_exists($amountField, $appointmentData) || $appointmentData[$amountField] === null) {
+            if (! array_key_exists($amountField, $appointmentData) || $appointmentData[$amountField] === null) {
                 continue;
             }
-            if (!$isPaid && (float) $appointmentData[$amountField] == 0.0 && (float) $appointment->{$amountField} > 0) {
+            if (! $isPaid && (float) $appointmentData[$amountField] == 0.0 && (float) $appointment->{$amountField} > 0) {
                 continue;
             }
             if ((string) $appointment->{$amountField} !== (string) $appointmentData[$amountField]) {
@@ -409,7 +410,7 @@ class AppointmentSyncService
         $cancelReason = $appointmentData['cancellation_reason']
             ?? $appointmentData['cancel_reason']
             ?? null;
-        if ($effectiveStatus === 'cancelled' && !empty($cancelReason) && empty($appointment->cancellation_reason)) {
+        if ($effectiveStatus === 'cancelled' && ! empty($cancelReason) && empty($appointment->cancellation_reason)) {
             $updates['cancellation_reason'] = $cancelReason;
         }
 
@@ -433,6 +434,7 @@ class AppointmentSyncService
 
         if ($updates === []) {
             Log::info('Appointment already exists, no payment/status changes', ['bansal_id' => $bansalId]);
+
             return 'skipped';
         }
 
@@ -469,21 +471,21 @@ class AppointmentSyncService
     protected function mapServiceId(array $appointmentData): ?int
     {
         // Check if paid
-        if (!empty($appointmentData['is_paid']) && $appointmentData['is_paid'] === true) {
+        if (! empty($appointmentData['is_paid']) && $appointmentData['is_paid'] === true) {
 
-            if (!empty($appointmentData['specific_service']) && $appointmentData['specific_service'] === 'overseas-enquiry') {
+            if (! empty($appointmentData['specific_service']) && $appointmentData['specific_service'] === 'overseas-enquiry') {
                 return 3; // Paid Overseas
-            } elseif (!empty($appointmentData['specific_service']) && $appointmentData['specific_service'] === 'paid-consultation') {
+            } elseif (! empty($appointmentData['specific_service']) && $appointmentData['specific_service'] === 'paid-consultation') {
                 return 1; // Paid Migration advice
-            } 
+            }
         }
-        
-        if (!empty($appointmentData['final_amount']) && $appointmentData['final_amount'] > 0) {
-            if (!empty($appointmentData['specific_service']) && $appointmentData['specific_service'] === 'overseas-enquiry') {
+
+        if (! empty($appointmentData['final_amount']) && $appointmentData['final_amount'] > 0) {
+            if (! empty($appointmentData['specific_service']) && $appointmentData['specific_service'] === 'overseas-enquiry') {
                 return 3; // Paid Overseas
-            } elseif (!empty($appointmentData['specific_service']) && $appointmentData['specific_service'] === 'paid-consultation') {
+            } elseif (! empty($appointmentData['specific_service']) && $appointmentData['specific_service'] === 'paid-consultation') {
                 return 1; // Paid Migration advice
-            } 
+            }
         }
 
         return 2; // Free
@@ -514,6 +516,8 @@ class AppointmentSyncService
             'employer-sponsored' => 10,
             'family-visas' => 11,
             'citizenship' => 12,
+            'ajay' => 13,
+            'arun' => 14,
             default => null,
         };
     }
@@ -533,7 +537,7 @@ class AppointmentSyncService
         $normalized = strtolower(trim($meetingType));
         $normalized = str_replace([' ', '-'], '_', $normalized);
 
-        return match($normalized) {
+        return match ($normalized) {
             'in_person', 'inperson', 'in-person', 'in person', 'office', 'onsite' => 'in_person',
             'phone', 'telephone', 'call' => 'phone',
             'video', 'videocall', 'video_call', 'zoom', 'online' => 'video',
@@ -572,7 +576,7 @@ class AppointmentSyncService
 
         $paymentStatus = $appointmentData['payment']['status'] ?? null;
 
-        return match($paymentStatus) {
+        return match ($paymentStatus) {
             'completed', 'succeeded' => 'completed',
             'pending', 'processing' => 'pending',
             'failed' => 'failed',
@@ -589,20 +593,20 @@ class AppointmentSyncService
         $this->syncLog = AppointmentSyncLog::create([
             'sync_type' => 'backfill',
             'started_at' => now(),
-            'status' => 'running'
+            'status' => 'running',
         ]);
 
         $stats = [
             'fetched' => 0,
             'new' => 0,
             'skipped' => 0,
-            'failed' => 0
+            'failed' => 0,
         ];
 
         try {
             Log::info('Starting backfill', [
                 'start_date' => $startDate->toDateString(),
-                'end_date' => $endDate->toDateString()
+                'end_date' => $endDate->toDateString(),
             ]);
 
             $page = 1;
@@ -632,14 +636,14 @@ class AppointmentSyncService
                         $stats['failed']++;
                         Log::error('Backfill: Failed to process appointment', [
                             'appointment_id' => $appointmentData['id'] ?? null,
-                            'error' => $e->getMessage()
+                            'error' => $e->getMessage(),
                         ]);
                     }
                 }
 
                 // Check if more pages
-                $hasMore = !empty($pagination['current_page']) && 
-                          !empty($pagination['last_page']) && 
+                $hasMore = ! empty($pagination['current_page']) &&
+                          ! empty($pagination['last_page']) &&
                           $pagination['current_page'] < $pagination['last_page'];
                 $page++;
 
@@ -655,7 +659,7 @@ class AppointmentSyncService
                 'appointments_fetched' => $stats['fetched'],
                 'appointments_new' => $stats['new'],
                 'appointments_skipped' => $stats['skipped'],
-                'appointments_failed' => $stats['failed']
+                'appointments_failed' => $stats['failed'],
             ]);
 
             Log::info('Backfill completed', $stats);
@@ -665,7 +669,7 @@ class AppointmentSyncService
             $this->syncLog->update([
                 'completed_at' => now(),
                 'status' => 'failed',
-                'error_message' => $e->getMessage()
+                'error_message' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -682,6 +686,7 @@ class AppointmentSyncService
                 'appointment_id' => $appointment->id,
                 'status' => $status,
             ]);
+
             return null;
         }
 
@@ -698,6 +703,7 @@ class AppointmentSyncService
                 'appointment_id' => $appointment->id,
                 'status' => $status,
             ]);
+
             return null;
         }
 
@@ -731,11 +737,6 @@ class AppointmentSyncService
 
     /**
      * Create activity log entry for synced appointment
-     * 
-     * @param BookingAppointment $appointment
-     * @param int|null $serviceId
-     * @param int|null $noeId
-     * @return void
      */
     protected function createActivityLogForSyncedAppointment(BookingAppointment $appointment, ?int $serviceId, ?int $noeId): void
     {
@@ -749,4 +750,3 @@ class AppointmentSyncService
         );
     }
 }
-

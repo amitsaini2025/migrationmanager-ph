@@ -1453,6 +1453,10 @@ class ClientPortalAppointmentController extends BaseController
                 return $this->sendError('Missing required parameters: id, enquiry_item, and inperson_address are required', [], 422);
             }
 
+            if (BansalSchedulingServiceType::isCrmOnlyNoe($enquiry_item)) {
+                return $this->sendError('This nature of enquiry can only be booked from the CRM.', [], 422);
+            }
+
             Log::info('getDisabledDateFromCalendar called', [
                 'id' => $id,
                 'enquiry_item' => $enquiry_item,
@@ -1604,6 +1608,10 @@ class ClientPortalAppointmentController extends BaseController
             // Validate required parameters
             if (empty($service_id) || empty($enquiry_item) || empty($inperson_address) || empty($sel_date)) {
                 return $this->sendError('Missing required parameters: service_id, enquiry_item, inperson_address, and sel_date are required', [], 422);
+            }
+
+            if (BansalSchedulingServiceType::isCrmOnlyNoe($enquiry_item)) {
+                return $this->sendError('This nature of enquiry can only be booked from the CRM.', [], 422);
             }
 
             // Validate date format (dd/mm/yyyy)

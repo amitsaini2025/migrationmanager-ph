@@ -223,4 +223,26 @@ class BansalSchedulingServiceTypeTest extends TestCase
             BansalSchedulingServiceType::bansalServiceTypeForApi(1, 'GSM Visas: 491, 190, 189, 191')
         );
     }
+
+    public function test_melbourne_crm_only_ajay_uses_ajay_calendar_slug_and_enquiry_type(): void
+    {
+        $this->assertSame('ajay', BansalSchedulingServiceType::fromEnquiryItem(13, 'melbourne'));
+        $this->assertSame('ajay', BansalSchedulingServiceType::bansalEnquiryTypeForApi(13, 'melbourne', 'ajay'));
+        $this->assertSame('ajay', BansalSchedulingServiceType::bansalServiceTypeForApi(13, 'Ajay'));
+    }
+
+    public function test_melbourne_crm_only_arun_uses_arun_calendar_slug_and_enquiry_type(): void
+    {
+        $this->assertSame('arun', BansalSchedulingServiceType::fromEnquiryItem(14, 'melbourne'));
+        $this->assertSame('arun', BansalSchedulingServiceType::bansalEnquiryTypeForApi(14, 'melbourne', 'arun'));
+        $this->assertSame('arun', BansalSchedulingServiceType::bansalServiceTypeForApi(14, 'Arun'));
+    }
+
+    public function test_crm_only_noe_ids(): void
+    {
+        $this->assertTrue(BansalSchedulingServiceType::isCrmOnlyNoe(13));
+        $this->assertTrue(BansalSchedulingServiceType::isCrmOnlyNoe(14));
+        $this->assertFalse(BansalSchedulingServiceType::isCrmOnlyNoe(6));
+        $this->assertFalse(BansalSchedulingServiceType::isCrmOnlyNoe(7));
+    }
 }

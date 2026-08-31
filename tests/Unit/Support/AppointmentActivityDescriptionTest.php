@@ -58,4 +58,19 @@ class AppointmentActivityDescriptionTest extends TestCase
 
         $this->assertSame('EOI/ROI', AppointmentActivityDescription::categoryLabel($appointment));
     }
+
+    public function test_category_falls_back_to_ajay_and_arun_noe_labels(): void
+    {
+        $ajay = new BookingAppointment([
+            'noe_id' => 13,
+            'service_type' => null,
+        ]);
+        $arun = new BookingAppointment([
+            'noe_id' => 14,
+            'service_type' => null,
+        ]);
+
+        $this->assertSame('Ajay', AppointmentActivityDescription::categoryLabel($ajay));
+        $this->assertSame('Arun', AppointmentActivityDescription::categoryLabel($arun));
+    }
 }

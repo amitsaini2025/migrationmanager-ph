@@ -26,6 +26,8 @@ class AppointmentActivityDescription
         10 => 'Employer Sponsored Visas: 494, 482, 186, DAMA',
         11 => 'Family Visas (Parent Visa, Partner Visa, Child Visa)',
         12 => 'Citizenship',
+        13 => 'Ajay',
+        14 => 'Arun',
     ];
 
     public static function activitySubject(?int $serviceId): string
@@ -120,9 +122,9 @@ class AppointmentActivityDescription
         }
 
         return '<div class="appointment-activity-detail">'
-            . self::dateBadgeHtml($badgeDate)
-            . '<div class="appointment-activity-detail__body">' . $rows . '</div>'
-            . '</div>';
+            .self::dateBadgeHtml($badgeDate)
+            .'<div class="appointment-activity-detail__body">'.$rows.'</div>'
+            .'</div>';
     }
 
     /**
@@ -162,9 +164,9 @@ class AppointmentActivityDescription
         }
 
         return '<div class="'.$rowClass.'"'.$fieldAttr.'>'
-            . '<span class="appointment-activity-detail__label">'.e($label).'</span> '
-            . '<span class="appointment-activity-detail__value">'.e($value).'</span>'
-            . '</div>';
+            .'<span class="appointment-activity-detail__label">'.e($label).'</span> '
+            .'<span class="appointment-activity-detail__value">'.e($value).'</span>'
+            .'</div>';
     }
 
     private static function badgeDateString(BookingAppointment $appointment): string
@@ -204,7 +206,7 @@ class AppointmentActivityDescription
         }
 
         if ($datePart && $timePart) {
-            return $datePart . ' · ' . $timePart;
+            return $datePart.' · '.$timePart;
         }
 
         return $datePart ?: ($timePart ?: null);
@@ -216,10 +218,10 @@ class AppointmentActivityDescription
         $year = date('Y', strtotime($activityLogDate));
 
         return '<div class="appointment-activity-detail__badge">'
-            . '<span class="appointment-activity-detail__badge-inner">'
-            . '<span class="appointment-activity-detail__badge-day">' . e($dayMonth) . '</span>'
-            . '<span class="appointment-activity-detail__badge-year">' . e($year) . '</span>'
-            . '</span>'
-            . '</div>';
+            .'<span class="appointment-activity-detail__badge-inner">'
+            .'<span class="appointment-activity-detail__badge-day">'.e($dayMonth).'</span>'
+            .'<span class="appointment-activity-detail__badge-year">'.e($year).'</span>'
+            .'</span>'
+            .'</div>';
     }
 }

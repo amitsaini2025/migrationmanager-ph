@@ -9,7 +9,8 @@ class ConsultantAssignmentServiceMelbournePunjabiTest extends TestCase
 {
     private function calendarType(array $data): ?string
     {
-        $svc = new class extends ConsultantAssignmentService {
+        $svc = new class extends ConsultantAssignmentService
+        {
             public function exposeDetermine(array $a): ?string
             {
                 return $this->determineCalendarType($a);
@@ -232,6 +233,42 @@ class ConsultantAssignmentServiceMelbournePunjabiTest extends TestCase
             'service_id' => 1,
             'specific_service' => 'paid-consultation',
             'service_type' => 'Family Visas (Parent Visa, Partner Visa, Child Visa)',
+        ]));
+    }
+
+    public function test_melbourne_crm_only_ajay_noe_goes_ajay_calendar(): void
+    {
+        $this->assertSame('ajay', $this->calendarType([
+            'noe_id' => 13,
+            'location' => 'melbourne',
+            'inperson_address' => 2,
+            'service_id' => 2,
+            'specific_service' => 'consultation',
+            'service_type' => 'Ajay',
+        ]));
+    }
+
+    public function test_melbourne_crm_only_arun_noe_goes_arun_calendar(): void
+    {
+        $this->assertSame('arun', $this->calendarType([
+            'noe_id' => 14,
+            'location' => 'melbourne',
+            'inperson_address' => 2,
+            'service_id' => 1,
+            'specific_service' => 'paid-consultation',
+            'service_type' => 'Arun',
+        ]));
+    }
+
+    public function test_melbourne_complex_matters_still_goes_ajay(): void
+    {
+        $this->assertSame('ajay', $this->calendarType([
+            'noe_id' => 6,
+            'location' => 'melbourne',
+            'inperson_address' => 2,
+            'service_id' => 1,
+            'specific_service' => 'paid-consultation',
+            'service_type' => 'Complex Matters (ART, Protection visa, Federal Case)',
         ]));
     }
 }
