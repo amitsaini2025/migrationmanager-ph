@@ -66,6 +66,7 @@ use App\Http\Controllers\Controller;
                         <a href="javascript:;" class="send-sms-btn" data-client-id="{{@$fetchedData->id}}" data-client-name="{{@$fetchedData->first_name}} {{@$fetchedData->last_name}}" title="Send SMS">@icon('fa-sms')</a>
                         <a href="javascript:;" datatype="not_picked_call" class="not_picked_call" title="Not Picked Call">@icon('fa-mobile-alt')</a>
                         <a href="javascript:;" data-bs-toggle="modal" data-bs-target="#create_appoint" title="Add Appointment">@icon('fa-calendar-plus')</a>
+                        <a href="javascript:;" class="send-verify-link" title="Verify Link">@icon('fa-user-check')</a>
                     </div>
                     
                 </div>
@@ -829,6 +830,8 @@ $(document).ready(function() {
             notUsedDocumentsTab: '{{ route("clients.detail.notuseddocuments-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
             notesTab: '{{ route("clients.detail.noteterm-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
             personalDetailsTab: '{{ route("clients.detail.personaldetails-tab", array_filter(["client_id" => $encodeId, "client_unique_matter_ref_no" => $id1 ?? null], static fn ($v) => $v !== null && $v !== "")) }}',
+            sendVerifyLink: '{{ route("clients.detail-verification.send") }}',
+            acceptVerifyChange: '{{ url("/clients/detail-verification/fields") }}',
             updateIntake: '{{ URL::to("/client-portal/updateintake") }}',
             updateExpectWin: '{{ URL::to("/client-portal/updateexpectwin") }}',
             updateDates: '{{ URL::to("/client-portal/updatedates") }}',
@@ -1180,6 +1183,7 @@ $(document).ready(function() {
 <script src="{{ URL::asset('js/crm/clients/notuseddocuments-tab.js') }}?v={{ time() }}"></script>
 <script src="{{ URL::asset('js/crm/clients/notes-tab.js') }}?v={{ time() }}"></script>
 <script src="{{ URL::asset('js/crm/clients/personaldetails-tab.js') }}?v={{ time() }}"></script>
+<script src="{{ URL::asset('js/crm/clients/verify-link.js') }}?v={{ time() }}"></script>
 {{-- Main detail page JavaScript --}}
 <script src="{{ URL::asset('js/crm/clients/detail-main.js') }}?v={{ time() }}"></script>
 

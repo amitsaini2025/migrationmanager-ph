@@ -24,6 +24,7 @@ use App\Http\Controllers\CRM\StaffLoginAnalyticsController;
 use App\Http\Controllers\ExceptionController;
 use App\Http\Controllers\Public\PublicAppointmentActionController;
 use App\Http\Controllers\Public\PublicAppointmentPaymentController;
+use App\Http\Controllers\Public\PublicClientDetailVerificationController;
 use App\Http\Controllers\Public\PublicLeadInquiryController;
 use App\Http\Controllers\Public\PublicPhoneCallController;
 use Illuminate\Config\Repository as ConfigRepository;
@@ -450,6 +451,15 @@ final class RegisterWebRoutes
 
         // Public email verification route - no authentication required
         $this->router->get('/verify-email/{token}', [EmailVerificationController::class, 'verifyEmail'])->name('clients.email.verify');
+
+        $this->router->middleware('throttle:20,1')->group(function () {
+            $this->router->get('/verify-details/{token}', [PublicClientDetailVerificationController::class, 'show'])
+                ->where('token', '[A-Za-z0-9]{32,128}')
+                ->name('public.client-detail-verification.show');
+            $this->router->post('/verify-details/{token}', [PublicClientDetailVerificationController::class, 'submit'])
+                ->where('token', '[A-Za-z0-9]{32,128}')
+                ->name('public.client-detail-verification.submit');
+        });
 
         /*--------------------------------------------------
         || SECTION: Public Client EOI Confirmation Routes

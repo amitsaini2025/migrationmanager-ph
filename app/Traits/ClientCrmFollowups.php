@@ -32,6 +32,7 @@ use App\Models\Notification;
 use App\Models\SmsTemplate;
 use App\Models\Staff;
 use App\Models\Tag;
+use App\Services\ClientDetailVerificationService;
 use App\Services\ClientEditService;
 use App\Services\ClientExportService;
 use App\Services\ClientImportService;
@@ -5332,6 +5333,11 @@ trait ClientCrmFollowups
             ];
         }
 
+        $detailVerificationStatuses = [];
+        if (Schema::hasTable('client_detail_verification_fields')) {
+            $detailVerificationStatuses = app(ClientDetailVerificationService::class)->latestStatuses((int) $id);
+        }
+
         return view('crm.clients.tabs.personal_details', [
             'fetchedData' => $fetchedData,
             'encodeId' => $encodeId,
@@ -5339,6 +5345,7 @@ trait ClientCrmFollowups
             'activeTab' => 'personaldetails',
             'emails' => $emails,
             'personalDetailContacts' => $personalDetailContacts,
+            'detailVerificationStatuses' => $detailVerificationStatuses,
             'clientFamilyDetails' => $clientFamilyDetails,
             'visibleNomineeNominations' => $visibleNomineeNominations,
             'primaryContactCompaniesForClient' => $primaryContactCompaniesForClient,

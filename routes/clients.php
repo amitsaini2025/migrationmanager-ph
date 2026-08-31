@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminConsole\Sms\SmsTemplateController;
 use App\Http\Controllers\CRM\AccessGrantController;
 use App\Http\Controllers\CRM\ArtSheetController;
 use App\Http\Controllers\CRM\ClientAccountsController;
+use App\Http\Controllers\CRM\ClientDetailVerificationController;
 use App\Http\Controllers\CRM\ClientEoiRoiController;
 use App\Http\Controllers\CRM\ClientPersonalDetailsController;
 use App\Http\Controllers\CRM\ClientPortalController;
@@ -55,6 +56,8 @@ Route::get('/clients/export/{id}', [ClientsController::class, 'export'])->name('
 Route::post('/clients/import', [ClientsController::class, 'import'])->name('clients.import');
 Route::post('/clients/save-section', [ClientPersonalDetailsController::class, 'saveSection'])->name('clients.saveSection');
 Route::post('/clients/verify-details', [ClientsController::class, 'verifyDetails'])->name('clients.verifyDetails');
+Route::post('/clients/detail-verification/send', [ClientDetailVerificationController::class, 'send'])->name('clients.detail-verification.send');
+Route::post('/clients/detail-verification/fields/{field}/accept', [ClientDetailVerificationController::class, 'accept'])->name('clients.detail-verification.accept');
 Route::post('/edit-test-scores', [ClientsController::class, 'editTestScores'])->name('clients.editTestScores');
 Route::get('/clients/partner-eoi-data/{partnerId}', [ClientPersonalDetailsController::class, 'getPartnerEoiData'])->name('clients.partnerEoiData');
 

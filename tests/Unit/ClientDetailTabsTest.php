@@ -663,6 +663,13 @@ class ClientDetailTabsTest extends TestCase
         $blade = file_get_contents($this->projectPath('resources/views/crm/clients/tabs/personal_details.blade.php'));
         Assert::assertNotFalse($blade);
         Assert::assertStringContainsString('id="ageDobToggle"', $blade);
+        Assert::assertStringContainsString('Confirm Request', $blade);
+        Assert::assertStringContainsString('Original:', $blade);
+        Assert::assertStringContainsString('Change Request:', $blade);
+        Assert::assertStringNotContainsString('Old value:', $blade);
+        Assert::assertStringNotContainsString('Updated value:', $blade);
+        Assert::assertStringNotContainsString('Confirm updated value', $blade);
+        Assert::assertStringNotContainsString('window.location.reload()', $blade);
         $fromPane = substr($blade, (int) strpos($blade, 'id="personaldetails-tab"'));
         Assert::assertNotFalse(strpos($fromPane, '</script>'));
         Assert::assertLessThan(

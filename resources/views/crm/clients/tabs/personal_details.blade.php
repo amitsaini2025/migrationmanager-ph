@@ -1,20 +1,23 @@
 <div class="tab-pane active" id="personaldetails-tab">
+                @php
+                    $detailVerificationStatuses = $detailVerificationStatuses ?? [];
+                @endphp
                 <div class="content-grid">
                     <div class="card">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <h3>@icon('fa-user') Personal Information</h3>
                         </div>
-                        <div class="field-group">
+                        <div class="field-group {{ \App\Support\ClientDetailVerificationUi::fieldGroupClass($detailVerificationStatuses['dob'] ?? null) }}">
                             <span class="field-label">Age / Date of Birth</span>
                             <span class="field-value">
                                 <?php
                                 if ( isset($fetchedData->age) && $fetchedData->age != '') {
                                     $verifiedDob = \App\Models\Admin::where('id',$fetchedData->id)->whereNotNull('dob_verified_date')->first();
-                                    if ( $verifiedDob) {
-                                        $verifiedDobTick = \App\Helpers\IconHelper::fromLegacy('fas fa-check-circle', ['class' => 'verified-icon fa-lg']);
-                                    } else {
-                                        $verifiedDobTick = \App\Helpers\IconHelper::fromLegacy('far fa-circle', ['class' => 'unverified-icon fa-lg']);
-                                    }
+                                    $verifiedDobTick = \App\Support\ClientDetailVerificationUi::icon(
+                                        $detailVerificationStatuses['dob'] ?? null,
+                                        (bool) $verifiedDob,
+                                        true
+                                    );
                                     
                                     // Format DOB for display
                                     $formattedDob = 'N/A';
@@ -41,7 +44,7 @@
                             </span>
                         </div>
 
-                        <div class="field-group">
+                        <div class="field-group {{ \App\Support\ClientDetailVerificationUi::fieldGroupClass($detailVerificationStatuses['gender'] ?? null) }}">
                             <span class="field-label">Gender</span>
                             <span class="field-value">
                                 <?php
@@ -50,10 +53,11 @@
                                 } else {
                                     echo 'N/A';
                                 } ?>
+                                {!! \App\Support\ClientDetailVerificationUi::icon($detailVerificationStatuses['gender'] ?? null) !!}
                             </span>
                         </div>
 
-                        <div class="field-group">
+                        <div class="field-group {{ \App\Support\ClientDetailVerificationUi::fieldGroupClass($detailVerificationStatuses['marital_status'] ?? null) }}">
                             <span class="field-label">Marital Status</span>
                             <span class="field-value">
                                 <?php
@@ -62,10 +66,21 @@
                                 } else {
                                     echo 'N/A';
                                 } ?>
+                                {!! \App\Support\ClientDetailVerificationUi::icon($detailVerificationStatuses['marital_status'] ?? null) !!}
                             </span>
                         </div>
 
-                        <div class="field-group">
+                        @if(($detailVerificationStatuses['full_name']['status'] ?? null) === \App\Support\ClientDetailVerificationFields::STATUS_CHANGE_REQUESTED)
+                        <div class="field-group {{ \App\Support\ClientDetailVerificationUi::fieldGroupClass($detailVerificationStatuses['full_name'] ?? null) }}">
+                            <span class="field-label">Full Name</span>
+                            <span class="field-value">
+                                {{ trim(($fetchedData->first_name ?? '').' '.($fetchedData->last_name ?? '')) ?: 'N/A' }}
+                                {!! \App\Support\ClientDetailVerificationUi::icon($detailVerificationStatuses['full_name'] ?? null) !!}
+                            </span>
+                        </div>
+                        @endif
+
+                        <div class="field-group {{ \App\Support\ClientDetailVerificationUi::fieldGroupClass($detailVerificationStatuses['email'] ?? null) }}">
                             <span class="field-label">Client Email</span>
                             <span class="field-value">
                                 <?php
@@ -83,22 +98,21 @@
                                     $emailStr = "";
                                     foreach($clientEmails as $emailKey=>$emailVal){
 
-                                        //Check email is verified or not
+                                        $isPrimaryEmail = strcasecmp((string) $emailVal->email, (string) ($fetchedData->email ?? '')) === 0;
+                                        $primaryEmailStatus = $isPrimaryEmail ? ($detailVerificationStatuses['email'] ?? null) : null;
                                         $check_verified_email = $emailVal->email_type."".$emailVal->email;
                                         if( isset($emailVal->email_type) && $emailVal->email_type != "" ){
-                                            // Show verification status for ALL email types
-                                            if ( $emailVal->is_verified ) {
-                                                $emailStr .= $emailVal->email.' ' . \App\Helpers\IconHelper::fromLegacy('fas fa-check-circle', ['class' => 'verified-icon fa-lg', 'style' => 'color: #28a745;', 'title' => 'Verified on ' . ($emailVal->verified_at ? $emailVal->verified_at->format('M j, Y g:i A') : 'Unknown')]) . ' <br/>';
-                                            } else {
-                                                $emailStr .= $emailVal->email.' ' . \App\Helpers\IconHelper::fromLegacy('far fa-circle', ['class' => 'unverified-icon fa-lg', 'style' => 'color: #6c757d;', 'title' => 'Not verified']) . ' <br/>';
-                                            }
+                                            $emailStr .= $emailVal->email.' ' . \App\Support\ClientDetailVerificationUi::icon(
+                                                $primaryEmailStatus,
+                                                (bool) $emailVal->is_verified,
+                                                true
+                                            ) . ' <br/>';
                                         } else {
-                                            // For emails without type, still show verification status if available
-                                            if ( isset($emailVal->is_verified) && $emailVal->is_verified ) {
-                                                $emailStr .= $emailVal->email.' ' . \App\Helpers\IconHelper::fromLegacy('fas fa-check-circle', ['class' => 'verified-icon fa-lg', 'style' => 'color: #28a745;', 'title' => 'Verified on ' . ($emailVal->verified_at ? $emailVal->verified_at->format('M j, Y g:i A') : 'Unknown')]) . ' <br/>';
-                                            } else {
-                                                $emailStr .= $emailVal->email.' ' . \App\Helpers\IconHelper::fromLegacy('far fa-circle', ['class' => 'unverified-icon fa-lg', 'style' => 'color: #6c757d;', 'title' => 'Not verified']) . ' <br/>';
-                                            }
+                                            $emailStr .= $emailVal->email.' ' . \App\Support\ClientDetailVerificationUi::icon(
+                                                $primaryEmailStatus,
+                                                (bool) ($emailVal->is_verified ?? false),
+                                                true
+                                            ) . ' <br/>';
                                         }
                                     }
                                     echo $emailStr;
@@ -108,7 +122,7 @@
                             </span>
                         </div>
 
-                        <div class="field-group">
+                        <div class="field-group {{ \App\Support\ClientDetailVerificationUi::fieldGroupClass($detailVerificationStatuses['phone'] ?? null) }}">
                             <span class="field-label">Client Phone</span>
                             <span class="field-value">
                                 <?php
@@ -137,21 +151,13 @@
                                         // Format phone number to Australian standard
                                         $formattedPhone = \App\Helpers\PhoneValidationHelper::formatAustralianPhone($conVal->phone, $country_code);
 
-                                        if( isset($conVal->contact_type) && $conVal->contact_type != "" ){
-                                            // Show verification status for ALL contact types
-                                            if ( $conVal->is_verified ) {
-                                                $phonenoStr .= $formattedPhone.' ' . \App\Helpers\IconHelper::fromLegacy('fas fa-check-circle', ['class' => 'verified-icon fa-lg', 'style' => 'color: #28a745;', 'title' => 'Verified on ' . ($conVal->verified_at ? $conVal->verified_at->format('M j, Y g:i A') : 'Unknown')]) . ' <br/>';
-                                            } else {
-                                                $phonenoStr .= $formattedPhone.' ' . \App\Helpers\IconHelper::fromLegacy('far fa-circle', ['class' => 'unverified-icon fa-lg', 'style' => 'color: #6c757d;', 'title' => 'Not verified']) . ' <br/>';
-                                            }
-                                        } else {
-                                            // For phones without type, still show verification status if available
-                                            if ( isset($conVal->is_verified) && $conVal->is_verified ) {
-                                                $phonenoStr .= $formattedPhone.' ' . \App\Helpers\IconHelper::fromLegacy('fas fa-check-circle', ['class' => 'verified-icon fa-lg', 'style' => 'color: #28a745;', 'title' => 'Verified on ' . ($conVal->verified_at ? $conVal->verified_at->format('M j, Y g:i A') : 'Unknown')]) . ' <br/>';
-                                            } else {
-                                                $phonenoStr .= $formattedPhone.' ' . \App\Helpers\IconHelper::fromLegacy('far fa-circle', ['class' => 'unverified-icon fa-lg', 'style' => 'color: #6c757d;', 'title' => 'Not verified']) . ' <br/>';
-                                            }
-                                        }
+                                        $isPrimaryPhone = ((string) $conVal->phone === (string) ($fetchedData->phone ?? ''));
+                                        $primaryPhoneStatus = $isPrimaryPhone ? ($detailVerificationStatuses['phone'] ?? null) : null;
+                                        $phonenoStr .= $formattedPhone.' ' . \App\Support\ClientDetailVerificationUi::icon(
+                                            $primaryPhoneStatus,
+                                            (bool) ($conVal->is_verified ?? false),
+                                            true
+                                        ) . ' <br/>';
                                     }
                                     echo $phonenoStr;
                                 } else {
@@ -173,7 +179,7 @@
                         }
                         ?>
 
-                        <div class="field-group">
+                        <div class="field-group {{ \App\Support\ClientDetailVerificationUi::fieldGroupClass($detailVerificationStatuses['address'] ?? null) }}">
                             <span class="field-label">Address</span>
                             <span class="field-value">
                                 <?php
@@ -193,8 +199,10 @@
                                     }
                                     // This field always shows the current/preferred address
                                     echo ' <span class="badge badge-success" style="margin-left: 6px; vertical-align: middle;">Current</span>';
+                                    echo ' ' . \App\Support\ClientDetailVerificationUi::icon($detailVerificationStatuses['address'] ?? null);
                                 } else {
                                     echo 'N/A';
+                                    echo ' ' . \App\Support\ClientDetailVerificationUi::icon($detailVerificationStatuses['address'] ?? null);
                                 }
                                 ?>
                             </span>
@@ -354,7 +362,7 @@
                                     <hr style="margin: 15px 0; border-top: 1px solid #dee2e6;">
                                 <?php endif; ?>
                                 
-                                <div class="field-group">
+                                <div class="field-group {{ $visaIndex === 0 ? \App\Support\ClientDetailVerificationUi::fieldGroupClass($detailVerificationStatuses['visa_type'] ?? null) : '' }}">
                                     <span class="field-label">Visa Type</span>
                                     <span class="field-value">
                                         <?php
@@ -366,20 +374,23 @@
                                                 echo 'N/A';
                                             }
                                         } else { echo 'N/A'; }
+                                        if ($visaIndex === 0) {
+                                            echo ' ' . \App\Support\ClientDetailVerificationUi::icon($detailVerificationStatuses['visa_type'] ?? null);
+                                        }
                                         ?>
                                     </span>
                                 </div>
-                                <div class="field-group">
+                                <div class="field-group {{ $visaIndex === 0 ? \App\Support\ClientDetailVerificationUi::fieldGroupClass($detailVerificationStatuses['visa_expiry'] ?? null) : '' }}">
                                     <span class="field-label">Visa Expiry Date</span>
                                     <span class="field-value">
                                         <?php
                                         if( $visa_Info && !empty($visa_Info->visa_expiry_date)){
                                             $verifiedVisa = \App\Models\Admin::where('id',$fetchedData->id)->whereNotNull('visa_expiry_verified_at')->first();
-                                            if ( $verifiedVisa) {
-                                                $verifiedVisaTick = \App\Helpers\IconHelper::fromLegacy('fas fa-check-circle', ['class' => 'verified-icon fa-lg']);
-                                            } else {
-                                                $verifiedVisaTick = \App\Helpers\IconHelper::fromLegacy('far fa-circle', ['class' => 'unverified-icon fa-lg']);
-                                            }
+                                            $verifiedVisaTick = \App\Support\ClientDetailVerificationUi::icon(
+                                                $visaIndex === 0 ? ($detailVerificationStatuses['visa_expiry'] ?? null) : null,
+                                                (bool) $verifiedVisa,
+                                                true
+                                            );
                                             
                                             // Check if visa is expiring within 7 days (calendar days; avoids fractional diffInDays from time-of-day)
                                             $expiryDate = \Carbon\Carbon::parse($visa_Info->visa_expiry_date)->startOfDay();
@@ -430,7 +441,7 @@
                                 <span class="field-value">N/A</span>
                             </div>
                         <?php endif; ?>
-                        <div class="field-group">
+                        <div class="field-group {{ \App\Support\ClientDetailVerificationUi::fieldGroupClass($detailVerificationStatuses['passport_country'] ?? null) }}">
                             <span class="field-label">Country Of Passport</span>
                             <span class="field-value">
                                 <?php
@@ -439,9 +450,19 @@
                                 } else { 
                                     echo 'N/A'; 
                                 }
+                                echo ' ' . \App\Support\ClientDetailVerificationUi::icon($detailVerificationStatuses['passport_country'] ?? null);
                                 ?>
                             </span>
                         </div>
+                        @if(!empty($detailVerificationStatuses['location_status']))
+                        <div class="field-group {{ \App\Support\ClientDetailVerificationUi::fieldGroupClass($detailVerificationStatuses['location_status'] ?? null) }}">
+                            <span class="field-label">Current Location</span>
+                            <span class="field-value">
+                                {{ $detailVerificationStatuses['location_status']['original_value'] ?? 'N/A' }}
+                                {!! \App\Support\ClientDetailVerificationUi::icon($detailVerificationStatuses['location_status'] ?? null) !!}
+                            </span>
+                        </div>
+                        @endif
 
                         <div class="field-group">
                             <span class="field-label">Nomi Occupation / Code / Assessing Authority</span>
@@ -1149,6 +1170,20 @@
                             overflow-y: auto;
                             padding-right: 4px;
                         }
+                        .field-group.has-change-request {
+                            background: #fff7e6;
+                            border-left: 3px solid #a15c00;
+                            padding-left: 10px;
+                            border-radius: 4px;
+                        }
+                        .change-request-old {
+                            text-decoration: line-through;
+                            color: #6b7280;
+                        }
+                        .change-request-new {
+                            color: #14804a;
+                            font-weight: 700;
+                        }
 
                     </style>
 
@@ -1236,6 +1271,152 @@ this.classList.add('btn-danger');
                         }
                     });
                 }
+
+                var activeChangeIcon = null;
+
+                function applyAcceptedChangeOnPage(icon, displayValue, confirmedIconHtml) {
+                    if (!icon) {
+                        return;
+                    }
+                    var group = icon.closest('.field-group');
+                    if (group) {
+                        group.classList.remove('has-change-request');
+                    }
+
+                    var toggle = icon.closest('#ageDobToggle');
+                    if (toggle) {
+                        toggle.setAttribute('data-dob', displayValue);
+                        var dobSpan = toggle.querySelector('.display-dob');
+                        if (dobSpan) {
+                            dobSpan.textContent = displayValue;
+                        }
+                    } else {
+                        var cursor = icon.previousSibling;
+                        while (cursor) {
+                            if (cursor.nodeType === 1 && cursor.classList && cursor.classList.contains('badge')) {
+                                cursor = cursor.previousSibling;
+                                continue;
+                            }
+                            if (cursor.nodeType === 3 && cursor.textContent.trim()) {
+                                var leading = cursor.textContent.match(/^\s*/)[0];
+                                var trailing = cursor.textContent.match(/\s*$/)[0];
+                                cursor.textContent = leading + displayValue + (trailing || ' ');
+                                break;
+                            }
+                            if (cursor.nodeType === 1 && cursor.classList && !cursor.classList.contains('verify-status-icon')) {
+                                cursor.textContent = displayValue;
+                                break;
+                            }
+                            cursor = cursor.previousSibling;
+                        }
+                    }
+
+                    var host = group || icon.parentNode;
+                    icon.outerHTML = confirmedIconHtml || '';
+                    if (host && typeof window.refreshLucideIcons === 'function') {
+                        window.refreshLucideIcons(host);
+                    }
+                }
+
+                function bindChangeRequestIcons(root) {
+                    (root || document).querySelectorAll('[data-change-request="1"]').forEach(function (icon) {
+                        if (icon.dataset.boundChangeRequest === '1') {
+                            return;
+                        }
+                        icon.dataset.boundChangeRequest = '1';
+                        icon.addEventListener('click', function (event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            var payload = {};
+                            try {
+                                payload = JSON.parse(icon.getAttribute('data-change-payload') || '{}');
+                            } catch (err) {
+                                payload = {};
+                            }
+                            var modal = document.getElementById('verifyChangeRequestModal');
+                            if (!modal) {
+                                return;
+                            }
+                            activeChangeIcon = icon;
+                            modal.querySelector('[data-change-label]').textContent = payload.label || 'Field';
+                            modal.querySelector('[data-change-old]').textContent = payload.original || 'N/A';
+                            modal.querySelector('[data-change-new]').textContent = payload.requested || 'N/A';
+                            modal.setAttribute('data-field-id', payload.field_id || '');
+                            if (typeof window.jQuery !== 'undefined' && window.jQuery.fn.modal) {
+                                window.jQuery(modal).modal('show');
+                            } else {
+                                modal.style.display = 'block';
+                            }
+                        });
+                    });
+                }
+
+                bindChangeRequestIcons(document.getElementById('personaldetails-tab'));
+
+                var acceptBtn = document.getElementById('acceptVerifyChangeBtn');
+                if (acceptBtn && !acceptBtn.dataset.boundAccept) {
+                    acceptBtn.dataset.boundAccept = '1';
+                    acceptBtn.addEventListener('click', function () {
+                        var modal = document.getElementById('verifyChangeRequestModal');
+                        var fieldId = modal ? modal.getAttribute('data-field-id') : '';
+                        var config = window.ClientDetailConfig || {};
+                        var base = (config.urls && config.urls.acceptVerifyChange) || '';
+                        if (!fieldId || !base) {
+                            return;
+                        }
+                        acceptBtn.disabled = true;
+                        window.jQuery.ajax({
+                            url: base + '/' + encodeURIComponent(fieldId) + '/accept',
+                            method: 'POST',
+                            data: { _token: config.csrfToken },
+                            success: function (res) {
+                                var displayValue = (res && res.display_value)
+                                    || (modal.querySelector('[data-change-new]') || {}).textContent
+                                    || '';
+                                applyAcceptedChangeOnPage(activeChangeIcon, displayValue, (res && res.confirmed_icon) || '');
+                                activeChangeIcon = null;
+                                if (typeof iziToast !== 'undefined') {
+                                    iziToast.success({ message: (res && res.message) || 'Change accepted.', position: 'topRight' });
+                                }
+                                if (typeof window.jQuery !== 'undefined' && window.jQuery.fn.modal) {
+                                    window.jQuery(modal).modal('hide');
+                                } else if (modal) {
+                                    modal.style.display = 'none';
+                                }
+                            },
+                            error: function (xhr) {
+                                var msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Unable to accept this change.';
+                                if (typeof iziToast !== 'undefined') {
+                                    iziToast.error({ message: msg, position: 'topRight' });
+                                } else {
+                                    alert(msg);
+                                }
+                            },
+                            complete: function () {
+                                acceptBtn.disabled = false;
+                            }
+                        });
+                    });
+                }
             });
             </script>
+            <div class="modal fade" id="verifyChangeRequestModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Review requested change</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-2"><strong data-change-label>Field</strong></p>
+                            <p class="mb-1">Original: <span class="change-request-old" data-change-old></span></p>
+                            <p class="mb-0">Change Request: <span class="change-request-new" data-change-new></span></p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" id="acceptVerifyChangeBtn">Confirm Request</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             </div>
