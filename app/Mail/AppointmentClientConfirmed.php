@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Mail\Concerns\UsesAppointmentMailFrom;
+use App\Support\AppointmentEmailFormatter;
 use App\Support\AppointmentMeetingTypeCopy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -36,7 +37,10 @@ class AppointmentClientConfirmed extends Mailable
             with: [
                 'clientName' => $this->details['client_name'] ?? 'Valued Client',
                 'appointmentDate' => $this->details['appointment_datetime']?->format('l, d F Y') ?? 'N/A',
-                'appointmentTime' => $this->details['timeslot_full'] ?? 'N/A',
+                'appointmentTime' => AppointmentEmailFormatter::formatStartTime(
+                    $this->details['timeslot_full'] ?? null,
+                    $this->details['appointment_datetime'] ?? null
+                ),
                 'locationAddress' => $this->getLocationAddress($this->details['location'] ?? 'melbourne'),
                 'serviceType' => filled($this->details['service_type'] ?? null)
                     ? (string) $this->details['service_type']

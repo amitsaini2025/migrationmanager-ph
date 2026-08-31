@@ -52,6 +52,10 @@ class AppointmentEmailFormatterTest extends TestCase
             '10:00 AM',
             AppointmentEmailFormatter::formatStartTime('10:00 AM - 10:20 AM')
         );
+        $this->assertSame(
+            '10:20 AM',
+            AppointmentEmailFormatter::formatStartTime('10:20 AM-10:40 AM')
+        );
     }
 
     #[Test]
