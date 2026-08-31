@@ -52,8 +52,9 @@ class BookingAppointmentStatus
     }
 
     /**
-     * Do not let a later Bansal "confirmed" sync overwrite CRM pending-confirmation.
-     * Terminal and paid updates from the website still apply.
+     * Apply website confirm, paid, cancel, complete, and no-show.
+     * Keep CRM pending-confirmation if the website is still only pending (new free booking).
+     * Do not let an unpaid pending payload downgrade a CRM paid booking.
      */
     public static function shouldApplyIncomingWebsiteStatus(
         string $currentStatus,
@@ -63,8 +64,10 @@ class BookingAppointmentStatus
     ): bool {
         $isTerminalFromBansal = in_array($incomingStatus, [self::CANCELLED, self::COMPLETED, self::NO_SHOW], true);
 
-        if ($currentStatus === self::AWAITING_CONFIRMATION && ! $isTerminalFromBansal && $incomingStatus !== self::PAID) {
-            return false;
+        if ($currentStatus === self::AWAITING_CONFIRMATION) {
+            return $isTerminalFromBansal
+                || $incomingStatus === self::PAID
+                || $incomingStatus === self::CONFIRMED;
         }
 
         if ($isTerminalFromBansal) {

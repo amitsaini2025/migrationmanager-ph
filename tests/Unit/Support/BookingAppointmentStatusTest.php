@@ -55,9 +55,9 @@ class BookingAppointmentStatusTest extends TestCase
     }
 
     #[Test]
-    public function website_sync_does_not_overwrite_pending_confirmation_with_confirmed(): void
+    public function website_confirm_updates_pending_confirmation_but_pending_does_not(): void
     {
-        $this->assertFalse(BookingAppointmentStatus::shouldApplyIncomingWebsiteStatus(
+        $this->assertTrue(BookingAppointmentStatus::shouldApplyIncomingWebsiteStatus(
             BookingAppointmentStatus::AWAITING_CONFIRMATION,
             BookingAppointmentStatus::CONFIRMED,
             false,
@@ -72,6 +72,18 @@ class BookingAppointmentStatusTest extends TestCase
         $this->assertTrue(BookingAppointmentStatus::shouldApplyIncomingWebsiteStatus(
             BookingAppointmentStatus::AWAITING_CONFIRMATION,
             BookingAppointmentStatus::CANCELLED,
+            false,
+            false
+        ));
+        $this->assertTrue(BookingAppointmentStatus::shouldApplyIncomingWebsiteStatus(
+            BookingAppointmentStatus::AWAITING_CONFIRMATION,
+            BookingAppointmentStatus::COMPLETED,
+            false,
+            false
+        ));
+        $this->assertTrue(BookingAppointmentStatus::shouldApplyIncomingWebsiteStatus(
+            BookingAppointmentStatus::AWAITING_CONFIRMATION,
+            BookingAppointmentStatus::NO_SHOW,
             false,
             false
         ));
