@@ -294,4 +294,19 @@ return [
 
     'email_upload_max_kb' => max(1, (int) env('EMAIL_UPLOAD_MAX_KB', 30720)),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Staff workload (dashboard strip + Admin Console)
+    |--------------------------------------------------------------------------
+    |
+    | New = admins.created_at within this many days (Melbourne calendar).
+    | Returning = not new, and last Call/In-Person file note (any staff) was
+    | older than returning_gap_days before today, or never.
+    |
+    */
+    'workload' => [
+        'new_record_days' => max(1, (int) env('CRM_WORKLOAD_NEW_RECORD_DAYS', 14)),
+        'returning_gap_days' => max(1, (int) env('CRM_WORKLOAD_RETURNING_GAP_DAYS', 365)),
+    ],
+
 ];

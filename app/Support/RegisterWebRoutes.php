@@ -185,6 +185,7 @@ final class RegisterWebRoutes
             $this->router->get('/dashboard/calendar-events', [DashboardController::class, 'calendarEvents'])->name('dashboard.calendar-events');
             $this->router->get('/dashboard/matters-fragment', [DashboardController::class, 'mattersFragment'])->name('dashboard.matters-fragment');
             $this->router->get('/dashboard/cases-fragment', [DashboardController::class, 'casesFragment'])->name('dashboard.cases-fragment');
+            $this->router->get('/dashboard/workload-drilldown', [DashboardController::class, 'workloadDrilldown'])->name('dashboard.workload-drilldown');
             $this->router->post('/dashboard/column-preferences', [DashboardController::class, 'saveColumnPreferences'])->name('dashboard.column-preferences');
             $this->router->post('/dashboard/extend-deadline', [DashboardController::class, 'extendDeadlineDate'])->name('dashboard.extend-deadline');
             $this->router->post('/dashboard/update-action-completed', [DashboardController::class, 'updateActionCompleted'])->name('dashboard.update-action-completed');

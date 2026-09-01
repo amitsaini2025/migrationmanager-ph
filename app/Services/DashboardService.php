@@ -1,37 +1,37 @@
 <?php
+
 namespace App\Services;
 
+use App\Events\NotificationCountUpdated;
+use App\Helpers\IconHelper;
+use App\Models\ActivitiesLog;
+use App\Models\CheckinLog;
 use App\Models\ClientMatter;
+use App\Models\ClientVisaCountry;
+use App\Models\EmailLog;
 use App\Models\Note;
 use App\Models\Notification;
-use App\Models\CheckinLog;
-use App\Models\ClientVisaCountry;
-use App\Models\ActivitiesLog;
-use App\Models\EmailLog;
+use App\Models\Staff;
 use App\Models\Workflow;
 use App\Models\WorkflowStage;
-use App\Models\Staff;
-use App\Helpers\IconHelper;
+use App\Support\StaffClientVisibility;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
-use App\Services\FCMService;
-use App\Events\NotificationCountUpdated;
-use App\Support\StaffClientVisibility;
+use Illuminate\Support\Str;
 
 class DashboardService
 {
     /**
      * Data for the client matters table partial only (AJAX pagination).
      *
-     * @return array{data: \Illuminate\Contracts\Pagination\LengthAwarePaginator, workflowStages: mixed, visibleColumns: array, filters: array<string, string>}
+     * @return array{data: LengthAwarePaginator, workflowStages: mixed, visibleColumns: array, filters: array<string, string>}
      */
     public function getClientMattersTablePayload(Request $request, Staff $user): array
     {
@@ -59,7 +59,6 @@ class DashboardService
 
         $payload = [
             'notesData' => $this->getNotesData($user),
-            'count_active_matter' => $this->getActiveMatterCount(),
             'count_note_deadline' => $this->getNoteDeadlineCount($user),
             'count_cases_requiring_attention_data' => $this->getCasesRequiringAttentionCount($user),
             'filters' => [
@@ -86,7 +85,7 @@ class DashboardService
     /**
      * HTML fragment payload for the cases requiring attention widget.
      *
-     * @return array{cases_requiring_attention_data: \Illuminate\Support\Collection, count: int}
+     * @return array{cases_requiring_attention_data: Collection, count: int}
      */
     public function getCasesRequiringAttentionPayload(Staff $user): array
     {
@@ -119,19 +118,19 @@ class DashboardService
         $query->where('matter_status', '=', 1, 'and');
 
         // Apply client name filter
-        if ($request->has('client_name') && !empty($request->client_name)) {
+        if ($request->has('client_name') && ! empty($request->client_name)) {
             $clientName = trim($request->client_name);
             $clientNameLower = strtolower($clientName);
-            $query->whereHas('client', function ($q) use ($clientName, $clientNameLower) {
-                $q->whereRaw('LOWER(first_name) LIKE ?', ['%' . $clientNameLower . '%'])
-                  ->orWhereRaw('LOWER(last_name) LIKE ?', ['%' . $clientNameLower . '%'])
-                  ->orWhereRaw("LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE ?", ['%' . $clientNameLower . '%'])
-                  ->orWhereRaw('LOWER(client_id) LIKE ?', ['%' . $clientNameLower . '%']);
+            $query->whereHas('client', function ($q) use ($clientNameLower) {
+                $q->whereRaw('LOWER(first_name) LIKE ?', ['%'.$clientNameLower.'%'])
+                    ->orWhereRaw('LOWER(last_name) LIKE ?', ['%'.$clientNameLower.'%'])
+                    ->orWhereRaw("LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE ?", ['%'.$clientNameLower.'%'])
+                    ->orWhereRaw('LOWER(client_id) LIKE ?', ['%'.$clientNameLower.'%']);
             });
         }
 
         // Apply stage filter (match by stage name so one dropdown entry covers all workflows)
-        if ($request->has('client_stage') && !empty($request->client_stage)) {
+        if ($request->has('client_stage') && ! empty($request->client_stage)) {
             $stageName = WorkflowStage::query()
                 ->whereKey($request->client_stage)
                 ->value('name');
@@ -160,7 +159,7 @@ class DashboardService
         try {
             $this->hydrateDashboardUnreadMailCounts($paginator->getCollection());
         } catch (\Exception $e) {
-            Log::debug('Dashboard unread mail batch count failed: ' . $e->getMessage());
+            Log::debug('Dashboard unread mail batch count failed: '.$e->getMessage());
             foreach ($paginator->getCollection() as $matter) {
                 $matter->setAttribute('dashboard_unread_mail_count', 0);
             }
@@ -250,10 +249,10 @@ class DashboardService
     private function getCasesRequiringAttention(Staff $user): Collection
     {
         $query = ClientMatter::with([
-                'client:id,first_name,last_name,client_id',
-                'matter:id,title',
-                'personResponsible:id,first_name,last_name'
-            ])
+            'client:id,first_name,last_name,client_id',
+            'matter:id,title',
+            'personResponsible:id,first_name,last_name',
+        ])
             ->where('matter_status', '=', 1, 'and')
             ->where('updated_at', '>=', Carbon::now()->subDays(100), 'and');
 
@@ -278,7 +277,7 @@ class DashboardService
         try {
             $activityByClientId = $this->getLatestActivityMapForClientIds($clientIds);
         } catch (\Exception $e) {
-            Log::debug('Error batch-fetching activities_log: ' . $e->getMessage());
+            Log::debug('Error batch-fetching activities_log: '.$e->getMessage());
             $activityByClientId = [];
         }
 
@@ -309,7 +308,7 @@ class DashboardService
      * with id DESC tie-break for stable results.
      *
      * @param  array<int, int|string>  $clientIds
-     * @return array<int, array{type: string, date: \Carbon\Carbon|\Illuminate\Support\Carbon}>
+     * @return array<int, array{type: string, date: Carbon|\Illuminate\Support\Carbon}>
      */
     private function getLatestActivityMapForClientIds(array $clientIds): array
     {
@@ -318,7 +317,7 @@ class DashboardService
         }
 
         $connection = DB::connection();
-        $table = $connection->getTablePrefix() . 'activities_logs';
+        $table = $connection->getTablePrefix().'activities_logs';
         $driver = $connection->getDriverName();
         $placeholders = implode(',', array_fill(0, count($clientIds), '?'));
         $bindings = array_values($clientIds);
@@ -415,10 +414,10 @@ class DashboardService
         $role = (int) ($user->role ?? 0);
 
         return 'dashboard:client_matters:count:v1:'
-            . (int) $user->id
-            . ':' . $role
-            . ':' . md5($clientName)
-            . ':' . $stage;
+            .(int) $user->id
+            .':'.$role
+            .':'.md5($clientName)
+            .':'.$stage;
     }
 
     /**
@@ -459,7 +458,7 @@ class DashboardService
     {
         $role = (int) ($user->role ?? 0);
         $ttl = max(1, (int) config('cache.dashboard_kpi_counts_ttl', 60));
-        $cacheKey = 'dashboard:note_deadline_count:v1:' . (int) $user->id . ':' . $role;
+        $cacheKey = 'dashboard:note_deadline_count:v1:'.(int) $user->id.':'.$role;
 
         return (int) Cache::remember($cacheKey, $ttl, function () use ($user) {
             $query = Note::query()
@@ -482,7 +481,7 @@ class DashboardService
     {
         $role = (int) ($user->role ?? 0);
         $ttl = max(1, (int) config('cache.dashboard_kpi_counts_ttl', 60));
-        $cacheKey = 'dashboard:cases_attention_count:v1:' . (int) $user->id . ':' . $role;
+        $cacheKey = 'dashboard:cases_attention_count:v1:'.(int) $user->id.':'.$role;
 
         return (int) Cache::remember($cacheKey, $ttl, function () use ($user) {
             $query = ClientMatter::query()
@@ -510,8 +509,9 @@ class DashboardService
             return;
         }
 
-        Cache::forget('dashboard:note_deadline_count:v1:' . $userId . ':' . $role);
-        Cache::forget('dashboard:cases_attention_count:v1:' . $userId . ':' . $role);
+        Cache::forget('dashboard:note_deadline_count:v1:'.$userId.':'.$role);
+        Cache::forget('dashboard:cases_attention_count:v1:'.$userId.':'.$role);
+        StaffWorkloadService::forgetForStaff($userId);
     }
 
     /**
@@ -520,9 +520,9 @@ class DashboardService
     private function getVisibleColumns(): array
     {
         $defaultColumns = [
-            'matter', 'client_id', 'client_name', 'dob', 
-            'migration_agent', 'person_responsible', 
-            'person_assisting', 'stage'
+            'matter', 'client_id', 'client_name', 'dob',
+            'migration_agent', 'person_responsible',
+            'person_assisting', 'stage',
         ];
 
         return session('dashboard_column_preferences', $defaultColumns);
@@ -590,15 +590,15 @@ class DashboardService
     public function saveColumnPreferences(Request $request): void
     {
         $visibleColumns = $request->input('visible_columns', []);
-        
+
         $validColumns = [
-            'matter', 'client_id', 'client_name', 'dob', 
-            'migration_agent', 'person_responsible', 
-            'person_assisting', 'stage'
+            'matter', 'client_id', 'client_name', 'dob',
+            'migration_agent', 'person_responsible',
+            'person_assisting', 'stage',
         ];
-        
+
         $filteredColumns = array_intersect($visibleColumns, $validColumns);
-        
+
         session(['dashboard_column_preferences' => $filteredColumns]);
     }
 
@@ -633,14 +633,14 @@ class DashboardService
         $data = [];
         foreach ($notifications as $notification) {
             $checkinLog = CheckinLog::query()->whereKey((int) $notification->module_id)->first();
-            
-            if (!$checkinLog) {
+
+            if (! $checkinLog) {
                 continue;
             }
-            if (!$viewerIsReception && (int) $checkinLog->status !== 0) {
+            if (! $viewerIsReception && (int) $checkinLog->status !== 0) {
                 continue;
             }
-            if ($viewerIsReception && !in_array((int) $checkinLog->status, [0, 2], true)) {
+            if ($viewerIsReception && ! in_array((int) $checkinLog->status, [0, 2], true)) {
                 continue;
             }
 
@@ -652,13 +652,13 @@ class DashboardService
                 'checkin_id' => $checkinLog->id,
                 'is_reception_alert' => $isReceptionAlert,
                 'message' => $notification->message,
-                'sender_name' => $notification->sender 
-                    ? $notification->sender->first_name . ' ' . $notification->sender->last_name 
+                'sender_name' => $notification->sender
+                    ? $notification->sender->first_name.' '.$notification->sender->last_name
                     : 'System',
                 'client_name' => $checkinLog->contactDisplayLabel(),
                 'visit_purpose' => $checkinLog->visit_purpose,
                 'created_at' => $notification->created_at->format('d/m/Y h:i A'),
-                'url' => $notification->url
+                'url' => $notification->url,
             ];
         }
 
@@ -671,8 +671,8 @@ class DashboardService
     public function markNotificationAsSeen(int|string $notificationId): array
     {
         $notification = Notification::query()->whereKey((int) $notificationId)->first();
-        
-        if (!$notification || $notification->receiver_id != Auth::id()) {
+
+        if (! $notification || $notification->receiver_id != Auth::id()) {
             return ['status' => 'error'];
         }
 
@@ -703,7 +703,7 @@ class DashboardService
                 ->update([
                     'description' => $data['description'],
                     'note_deadline' => $data['note_deadline'],
-                    'user_id' => Auth::id()
+                    'user_id' => Auth::id(),
                 ]);
 
             if ($updated > 0) {
@@ -714,15 +714,16 @@ class DashboardService
                 $this->createNotificationAndActivityLog($firstNote);
 
                 return [
-                    'success' => true, 
-                    'message' => 'Successfully updated', 
-                    'clientID' => $firstNote->client_id
+                    'success' => true,
+                    'message' => 'Successfully updated',
+                    'clientID' => $firstNote->client_id,
                 ];
             } else {
                 return ['success' => false, 'message' => 'Failed to update notes'];
             }
         } catch (\Exception $e) {
-            Log::error('Error extending note deadline: ' . $e->getMessage());
+            Log::error('Error extending note deadline: '.$e->getMessage());
+
             return ['success' => false, 'message' => 'An error occurred while extending the deadline'];
         }
     }
@@ -738,22 +739,22 @@ class DashboardService
             ->where('unique_group_id', '=', $uniqueGroupId, 'and')
             ->first();
 
-        if (!$noteData) {
+        if (! $noteData) {
             return ['success' => false, 'message' => 'Action not found'];
         }
 
         // Update all notes in the group (matches Action tab behavior), or single note if no group
         $updated = 0;
-        if (!empty(trim($uniqueGroupId ?? ''))) {
+        if (! empty(trim($uniqueGroupId ?? ''))) {
             $updated = Note::query()
                 ->where('unique_group_id', '=', $uniqueGroupId, 'and')
                 ->whereNotNull('unique_group_id')
                 ->update(['status' => 1]);
         }
-        if (!$updated) {
+        if (! $updated) {
             $updated = Note::query()->where('id', '=', $noteId, 'and')->update(['status' => 1]);
         }
-        if (!$updated) {
+        if (! $updated) {
             return ['success' => false, 'message' => 'Failed to complete action'];
         }
 
@@ -766,12 +767,12 @@ class DashboardService
             if ((string) $taskGroup !== 'Client Portal') {
                 $assigneeName = 'N/A';
                 if ($noteData->assigned_to) {
-                    $assignee = \App\Models\Staff::query()->whereKey((int) $noteData->assigned_to)->first();
-                    $assigneeName = $assignee ? $assignee->first_name . ' ' . $assignee->last_name : 'N/A';
+                    $assignee = Staff::query()->whereKey((int) $noteData->assigned_to)->first();
+                    $assigneeName = $assignee ? $assignee->first_name.' '.$assignee->last_name : 'N/A';
                 }
 
                 $description = '';
-                if (!empty($completionNotes)) {
+                if (! empty($completionNotes)) {
                     $description .= '<p>';
                     $description .= IconHelper::fromLegacy('fas fa-ellipsis-v', [
                         'class' => 'convert-activity-to-note',
@@ -785,15 +786,15 @@ class DashboardService
                         'data-client-id' => $noteData->client_id,
                     ]);
                     $description .= '</p>';
-                    $description .= '<p>' . nl2br(htmlspecialchars($completionNotes)) . '</p>';
+                    $description .= '<p>'.nl2br(htmlspecialchars($completionNotes)).'</p>';
                     $description .= '<hr>';
                 }
-                $description .= '<p>' . ($noteData->description ?? '') . '</p>';
+                $description .= '<p>'.($noteData->description ?? '').'</p>';
 
                 ActivitiesLog::create([
                     'client_id' => $noteData->client_id,
                     'created_by' => Auth::id(),
-                    'subject' => 'completed action for ' . $assigneeName,
+                    'subject' => 'completed action for '.$assigneeName,
                     'description' => $description,
                     'use_for' => (Auth::id() != $noteData->assigned_to) ? $noteData->assigned_to : null,
                     'followup_date' => $noteData->action_date ?? null,
@@ -807,11 +808,11 @@ class DashboardService
             if ((string) $taskGroup === 'Client Portal') {
                 $messageText = trim(strip_tags(preg_replace('/<br\s*\/?>/i', "\n", (string) ($noteData->description ?? ''))));
                 if (mb_strlen($messageText) > 200) {
-                    $messageText = mb_substr($messageText, 0, 197) . '...';
+                    $messageText = mb_substr($messageText, 0, 197).'...';
                 }
-                $notificationMessage = 'This action is completed. ' . ($messageText ?: 'An action has been completed for your matter.');
+                $notificationMessage = 'This action is completed. '.($messageText ?: 'An action has been completed for your matter.');
                 // module_id = client matter id so notification appears in List API when client filters by client_matter_id
-                $moduleId = !empty($noteData->matter_id) ? (int) $noteData->matter_id : null;
+                $moduleId = ! empty($noteData->matter_id) ? (int) $noteData->matter_id : null;
                 if ($moduleId === null) {
                     $moduleId = ClientMatter::query()
                         ->where('client_id', '=', $noteData->client_id, 'and')
@@ -832,7 +833,7 @@ class DashboardService
                     'seen' => 0,
                 ]);
                 try {
-                    $fcm = new FCMService();
+                    $fcm = new FCMService;
                     $fcm->sendToUser($noteData->client_id, 'Action completed', $notificationMessage, [
                         'type' => 'action_completed',
                         'client_matter_id' => (string) $moduleId,
@@ -866,7 +867,7 @@ class DashboardService
             ->latest('id')
             ->first();
 
-        if (!$visaInfo || !$visaInfo->visa_expiry_date) {
+        if (! $visaInfo || ! $visaInfo->visa_expiry_date) {
             return '';
         }
 
@@ -878,7 +879,8 @@ class DashboardService
             return 'Your visa is expired';
         } elseif ($visaExpiredAt->gte($today) && $visaExpiredAt->lte($sevenDaysFromNow)) {
             $daysRemaining = $visaExpiredAt->diffInDays($today);
-            return "Your visa is expiring in next $daysRemaining day" . ($daysRemaining == 1 ? '' : 's');
+
+            return "Your visa is expiring in next $daysRemaining day".($daysRemaining == 1 ? '' : 's');
         }
 
         return '';
@@ -893,7 +895,7 @@ class DashboardService
             // Create notification only if assigned_to exists
             if ($note->assigned_to) {
                 $notificationUrl = $note->client_id
-                    ? url('/clients/detail/' . base64_encode(convert_uuencode($note->client_id)))
+                    ? url('/clients/detail/'.base64_encode(convert_uuencode($note->client_id)))
                     : url('/action');
                 Notification::create([
                     'sender_id' => Auth::id(),
@@ -901,7 +903,7 @@ class DashboardService
                     'module_id' => $note->client_id ?? 0,
                     'url' => $notificationUrl,
                     'notification_type' => 'client',
-                    'message' => 'Action Extended by ' . Auth::user()->first_name . ' ' . Auth::user()->last_name . ' on ' . date('d/M/Y h:i A')
+                    'message' => 'Action Extended by '.Auth::user()->first_name.' '.Auth::user()->last_name.' on '.date('d/M/Y h:i A'),
                 ]);
             }
 
@@ -910,7 +912,7 @@ class DashboardService
                 'client_id' => $note->client_id,
                 'created_by' => Auth::id(),
                 'subject' => 'Extended Note Deadline',
-                'description' => '<span class="text-semi-bold">' . ($note->title ?? 'Note') . '</span><p>' . ($note->description ?? '') . '</p>',
+                'description' => '<span class="text-semi-bold">'.($note->title ?? 'Note').'</span><p>'.($note->description ?? '').'</p>',
                 'use_for' => Auth::id() != $note->user_id ? $note->user_id : '',
                 'followup_date' => $note->action_date ?? null,
                 'task_group' => $note->task_group ?? null,
@@ -919,7 +921,7 @@ class DashboardService
             ]);
         } catch (\Exception $e) {
             // Log the error but don't break the main functionality
-            Log::error('Error creating notification/activity log: ' . $e->getMessage());
+            Log::error('Error creating notification/activity log: '.$e->getMessage());
         }
     }
 }
