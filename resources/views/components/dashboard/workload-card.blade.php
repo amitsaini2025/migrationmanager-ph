@@ -53,6 +53,9 @@
                     @endforeach
                 </p>
             @endif
+            @if($route)
+                <a href="{{ $route }}" class="workload-view-all" onclick="event.stopPropagation()">View all →</a>
+            @endif
         </div>
     </div>
 </div>

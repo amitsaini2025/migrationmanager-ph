@@ -1403,14 +1403,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 items.forEach(function(item) {
                     const tr = document.createElement('tr');
-                    const link = item.url
-                        ? '<a href="' + item.url + '" target="_blank" rel="noopener">' + (item.name || 'View') + '</a>'
-                        : (item.name || '—');
-                    tr.innerHTML = '<td>' + (item.at || '—') + '</td>'
-                        + '<td>' + link + (item.client_ref ? ' <small class="text-muted">(' + item.client_ref + ')</small>' : '') + '</td>'
-                        + '<td>' + (item.audience || '—') + (item.task_group ? ' · ' + item.task_group : '') + '</td>'
-                        + '<td>' + (item.people_class || '—') + '</td>'
-                        + '<td>' + (item.snippet || item.task_group || '—') + '</td>';
+
+                    const timeTd = document.createElement('td');
+                    timeTd.textContent = item.at || '—';
+                    tr.appendChild(timeTd);
+
+                    const personTd = document.createElement('td');
+                    if (item.url) {
+                        const link = document.createElement('a');
+                        link.href = item.url;
+                        link.target = '_blank';
+                        link.rel = 'noopener';
+                        link.textContent = item.name || 'View';
+                        personTd.appendChild(link);
+                        if (item.client_ref) {
+                            const ref = document.createElement('small');
+                            ref.className = 'text-muted';
+                            ref.textContent = ' (' + item.client_ref + ')';
+                            personTd.appendChild(ref);
+                        }
+                    } else {
+                        personTd.textContent = item.name || '—';
+                    }
+                    tr.appendChild(personTd);
+
+                    const typeTd = document.createElement('td');
+                    typeTd.textContent = (item.audience || '—') + (item.task_group ? ' · ' + item.task_group : '');
+                    tr.appendChild(typeTd);
+
+                    const classTd = document.createElement('td');
+                    classTd.textContent = item.people_class || '—';
+                    tr.appendChild(classTd);
+
+                    const actionTd = document.createElement('td');
+                    actionTd.textContent = item.snippet || item.task_group || '—';
+                    tr.appendChild(actionTd);
+
                     tbody.appendChild(tr);
                 });
                 tableEl.style.display = 'table';

@@ -499,7 +499,10 @@ class DashboardService
         });
     }
 
-    private function forgetDashboardKpiCountCaches(?int $userId = null, ?int $role = null): void
+    /**
+     * @param  array<int>  $additionalStaffIds
+     */
+    private function forgetDashboardKpiCountCaches(?int $userId = null, ?int $role = null, array $additionalStaffIds = []): void
     {
         $user = Auth::user();
         $userId = $userId ?? (int) ($user->id ?? 0);
@@ -511,7 +514,7 @@ class DashboardService
 
         Cache::forget('dashboard:note_deadline_count:v1:'.$userId.':'.$role);
         Cache::forget('dashboard:cases_attention_count:v1:'.$userId.':'.$role);
-        StaffWorkloadService::forgetForStaff($userId);
+        StaffWorkloadService::forgetForStaffIds($userId, ...$additionalStaffIds);
     }
 
     /**
@@ -758,7 +761,7 @@ class DashboardService
             return ['success' => false, 'message' => 'Failed to complete action'];
         }
 
-        $this->forgetDashboardKpiCountCaches();
+        $this->forgetDashboardKpiCountCaches(null, null, [(int) ($noteData->assigned_to ?? 0)]);
 
         // Activity Feed: log completion for client-linked actions, except Client Portal category (matches AssigneeController).
         if ($noteData->client_id) {
