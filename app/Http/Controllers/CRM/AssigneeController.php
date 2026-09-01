@@ -185,7 +185,10 @@ class AssigneeController extends Controller
             }
             $response['status'] = true;
             $response['message'] = 'Action completed successfully';
-            StaffWorkloadService::forgetForStaff((int) Auth::id());
+            StaffWorkloadService::forgetForStaffIds(
+                (int) Auth::id(),
+                (int) ($note_data['assigned_to'] ?? 0),
+            );
         } else {
             $response['status'] = false;
             $response['message'] = 'Please try again';
@@ -197,6 +200,7 @@ class AssigneeController extends Controller
     public function updateActionNotCompleted(Request $request)
     {
         $data = $request->all(); // dd($data['id']);
+        $noteRow = ! empty($data['id']) ? Note::find($data['id']) : null;
         $uniqueGroupId = $data['unique_group_id'] ?? '';
         $note = Note::where('unique_group_id', $uniqueGroupId)
             ->whereNotNull('assigned_to')
@@ -209,6 +213,13 @@ class AssigneeController extends Controller
         if ($note) {
             $response['status'] = true;
             $response['message'] = 'Action updated successfully';
+            if (! $noteRow && ! empty($uniqueGroupId)) {
+                $noteRow = Note::where('unique_group_id', $uniqueGroupId)->first();
+            }
+            StaffWorkloadService::forgetForStaffIds(
+                (int) Auth::id(),
+                (int) ($noteRow->assigned_to ?? 0),
+            );
         } else {
             $response['status'] = false;
             $response['message'] = 'Please try again';

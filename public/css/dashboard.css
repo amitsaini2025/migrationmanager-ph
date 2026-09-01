@@ -183,6 +183,19 @@ body[data-crm-layout="dashboard"] .main-footer {
 .workload-badge-returning { background: #fff3cd; color: #856404; }
 .workload-badge-current { background: #e8f5e9; color: #2e7d32; }
 
+.workload-view-all {
+    display: inline-block;
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #4e73df;
+    text-decoration: none;
+}
+
+.workload-view-all:hover {
+    text-decoration: underline;
+}
+
 .workload-legend {
     margin: 12px 0 0;
     font-size: 0.72rem;

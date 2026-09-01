@@ -42,6 +42,7 @@ use App\Services\FCMService;
 use App\Services\LegalCrm\LegalCrmApiClient;
 use App\Services\MatterEmailBodyCleanupService;
 use App\Services\Sms\UnifiedSmsManager;
+use App\Services\StaffWorkloadService;
 use App\Support\ActionTaskGroup;
 use App\Support\ClientDetailAccountTab;
 use App\Support\ClientDetailChecklistsTab;
@@ -2360,6 +2361,12 @@ trait ClientCrmFollowups
                 $activityLog->task_group = $action->task_group;
                 $activityLog->save();
             }
+
+            StaffWorkloadService::forgetForStaffIds(
+                (int) Auth::user()->id,
+                (int) $action->assigned_to,
+                $originalAssigneeId,
+            );
 
             return response()->json(['success' => true, 'message' => 'Action updated successfully']);
         } catch (\Exception $e) {

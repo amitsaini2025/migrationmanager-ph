@@ -129,6 +129,13 @@ class StaffWorkloadService
         Cache::forget('dashboard:workload:v1:'.$staffId.':'.$dateKey);
     }
 
+    public static function forgetForStaffIds(int ...$staffIds): void
+    {
+        foreach (array_unique(array_filter($staffIds, static fn (int $id): bool => $id > 0)) as $staffId) {
+            self::forgetForStaff($staffId);
+        }
+    }
+
     /**
      * @return array{0: Carbon, 1: Carbon}
      */
@@ -262,13 +269,13 @@ class StaffWorkloadService
     private function mapTallyRow(?object $row): array
     {
         return [
-            'total' => (int) ($row->total ?? 0),
-            'clients' => (int) ($row->clients ?? 0),
-            'leads' => (int) ($row->leads ?? 0),
-            'personal' => (int) ($row->personal ?? 0),
-            'new' => (int) ($row->new_count ?? 0),
-            'returning' => (int) ($row->returning_count ?? 0),
-            'current' => (int) ($row->current_count ?? 0),
+            'total' => (int) ($row?->total ?? 0),
+            'clients' => (int) ($row?->clients ?? 0),
+            'leads' => (int) ($row?->leads ?? 0),
+            'personal' => (int) ($row?->personal ?? 0),
+            'new' => (int) ($row?->new_count ?? 0),
+            'returning' => (int) ($row?->returning_count ?? 0),
+            'current' => (int) ($row?->current_count ?? 0),
         ];
     }
 
