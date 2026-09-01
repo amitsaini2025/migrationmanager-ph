@@ -122,7 +122,15 @@
                                                 </td>
                                                 <td style="white-space: initial;">
                                                     <span class="badge badge-<?php echo $fetch->doc_type === 'personal' ? 'primary' : 'success'; ?>">
-                                                        <?php echo $fetch->doc_type === 'nomination' ? 'File Document' : ucfirst((string) $fetch->doc_type); ?>
+                                                        <?php
+                                                        if ($fetch->doc_type === 'nomination') {
+                                                            echo 'File Document';
+                                                        } elseif ($fetch->doc_type === 'personal' && ! empty($relabelPersonalDocTypeAsCompany)) {
+                                                            echo 'Company Document';
+                                                        } else {
+                                                            echo ucfirst((string) $fetch->doc_type);
+                                                        }
+                                                        ?>
                                                     </span>
                                                 </td>
                                                 <td style="white-space: initial;">

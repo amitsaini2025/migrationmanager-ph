@@ -471,7 +471,7 @@ use App\Http\Controllers\Controller;
                 @include('crm.clients.tabs.checklists')
             @endif
             
-            @include('crm.clients.tabs.not_used_documents')
+            @include('crm.clients.tabs.not_used_documents', ['relabelPersonalDocTypeAsCompany' => true])
             
             </div>
         </div>
@@ -1344,6 +1344,7 @@ $(document).ready(function() {
         encodeId: @json(($encodeId ?? '')),
         matterId: @json(($id1 ?? '')),
         activeTab: @json(($activeTab ?? 'companydetails')),
+        relabelPersonalDocTypeAsCompany: true,
         matterRefNo: @json(($id1 ?? '')),
         clientFirstName: @json(($fetchedData->first_name ?? 'client')),
         notPickedCallSmsDefault: @json($notPickedCallSmsDefault ?? ''),

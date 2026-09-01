@@ -612,7 +612,7 @@ class ClientDetailTabsTest extends TestCase
 
         $companyDetail = file_get_contents($this->projectPath('resources/views/crm/companies/detail.blade.php'));
         Assert::assertNotFalse($companyDetail);
-        Assert::assertStringContainsString("@include('crm.clients.tabs.not_used_documents')", $companyDetail);
+        Assert::assertStringContainsString("@include('crm.clients.tabs.not_used_documents', ['relabelPersonalDocTypeAsCompany' => true])", $companyDetail);
         Assert::assertStringContainsString('notuseddocuments-tab.js', $companyDetail);
         Assert::assertStringNotContainsString('not_used_documents_lazy', $companyDetail);
 
@@ -626,9 +626,19 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('showNominationFileContextMenu', $detailMain);
         Assert::assertStringContainsString('preview-container-nomdocumnetlist', $detailMain);
         Assert::assertStringContainsString("'File Document'", $detailMain);
+        Assert::assertStringContainsString('function notUsedDocumentTypeLabel', $detailMain);
+        Assert::assertStringContainsString('relabelPersonalDocTypeAsCompany', $detailMain);
+        Assert::assertStringContainsString("'Company Document'", $detailMain);
         Assert::assertStringContainsString('data-doc-type', $blade);
         Assert::assertStringContainsString('data-doctype="{{$fetch->doc_type}}"', $blade);
         Assert::assertStringContainsString("'File Document'", $blade);
+        Assert::assertStringContainsString("'Company Document'", $blade);
+        Assert::assertStringContainsString('relabelPersonalDocTypeAsCompany', $blade);
+        Assert::assertStringContainsString('relabelPersonalDocTypeAsCompany: true', $companyDetail);
+
+        $clientDetail = file_get_contents($this->projectPath('resources/views/crm/clients/detail.blade.php'));
+        Assert::assertNotFalse($clientDetail);
+        Assert::assertStringNotContainsString('relabelPersonalDocTypeAsCompany', $clientDetail);
     }
 
     #[Test]

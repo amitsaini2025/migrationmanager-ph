@@ -86,6 +86,16 @@
         $('#gid_' + docId).remove();
     }
 
+    function notUsedDocumentTypeLabel(docType) {
+        if (docType === 'nomination') {
+            return 'File Document';
+        }
+        if (docType === 'personal' && window.ClientDetailConfig && window.ClientDetailConfig.relabelPersonalDocTypeAsCompany) {
+            return 'Company Document';
+        }
+        return docType ? docType.charAt(0).toUpperCase() + docType.slice(1) : 'N/A';
+    }
+
     function buildNotUsedDocumentRow(res) {
         if (!res || !res.docInfo) {
             return null;
@@ -113,9 +123,7 @@
         var uploadedDate = doc.created_at ? formatClientDocDateTime(doc.created_at) : '';
         var uploadTitle = 'Uploaded by: ' + uploadedBy + (uploadedDate ? ' on ' + uploadedDate : '');
         var badgeClass = doc.doc_type === 'personal' ? 'primary' : 'success';
-        var docTypeLabel = doc.doc_type === 'nomination'
-            ? 'File Document'
-            : (doc.doc_type ? doc.doc_type.charAt(0).toUpperCase() + doc.doc_type.slice(1) : 'N/A');
+        var docTypeLabel = notUsedDocumentTypeLabel(doc.doc_type);
         var fileName = doc.file_name || '';
         var fileExt = doc.filetype || '';
         var categoryLabel = res.category_label || '';
