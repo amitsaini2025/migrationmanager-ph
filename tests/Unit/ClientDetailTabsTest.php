@@ -610,6 +610,16 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString("@include('crm.clients.tabs.not_used_documents')", $companyDetail);
         Assert::assertStringContainsString('notuseddocuments-tab.js', $companyDetail);
         Assert::assertStringNotContainsString('not_used_documents_lazy', $companyDetail);
+
+        $detailMain = file_get_contents($this->projectPath('public/js/crm/clients/detail-main.js'));
+        Assert::assertNotFalse($detailMain);
+        Assert::assertStringContainsString('function restorePersonalDocRowFromNotUsed', $detailMain);
+        Assert::assertStringContainsString('function restoreVisaDocRowFromNotUsed', $detailMain);
+        Assert::assertStringContainsString('function restoreNominationDocRowFromNotUsed', $detailMain);
+        Assert::assertStringContainsString("docType === 'nomination'", $detailMain);
+        Assert::assertStringContainsString("activateClientDocumentsTabAndCategory('nominationdocuments'", $detailMain);
+        Assert::assertStringContainsString('showNominationFileContextMenu', $detailMain);
+        Assert::assertStringContainsString('preview-container-nomdocumnetlist', $detailMain);
     }
 
     #[Test]
