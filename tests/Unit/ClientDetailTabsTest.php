@@ -299,7 +299,7 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringNotContainsString('account-tab.js', $companyDetail);
         Assert::assertStringNotContainsString('checklists-tab.js', $companyDetail);
         Assert::assertStringNotContainsString('emails-tab.js', $companyDetail);
-        Assert::assertStringNotContainsString('personaldocuments-tab.js', $companyDetail);
+        Assert::assertStringContainsString('personaldocuments-tab.js', $companyDetail);
         Assert::assertStringNotContainsString('visadocuments-tab.js', $companyDetail);
         Assert::assertStringContainsString('notuseddocuments-tab.js', $companyDetail);
         Assert::assertStringNotContainsString('notes-tab.js', $companyDetail);
@@ -532,6 +532,11 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('window.showFileContextMenu', $blade);
         Assert::assertStringContainsString('window.handleContextAction', $blade);
         Assert::assertStringContainsString('window.showPersonalChecklistContextMenu', $blade);
+
+        $companyDetail = file_get_contents($this->projectPath('resources/views/crm/companies/detail.blade.php'));
+        Assert::assertNotFalse($companyDetail);
+        Assert::assertStringContainsString('personaldocuments-tab.js', $companyDetail);
+        Assert::assertStringNotContainsString('personal_documents_lazy', $companyDetail);
 
         $css = file_get_contents($this->projectPath('public/css/client-detail.css'));
         Assert::assertNotFalse($css);
