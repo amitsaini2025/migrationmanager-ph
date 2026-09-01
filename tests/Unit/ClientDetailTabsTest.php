@@ -301,7 +301,7 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringNotContainsString('emails-tab.js', $companyDetail);
         Assert::assertStringNotContainsString('personaldocuments-tab.js', $companyDetail);
         Assert::assertStringNotContainsString('visadocuments-tab.js', $companyDetail);
-        Assert::assertStringNotContainsString('notuseddocuments-tab.js', $companyDetail);
+        Assert::assertStringContainsString('notuseddocuments-tab.js', $companyDetail);
         Assert::assertStringNotContainsString('notes-tab.js', $companyDetail);
     }
 
@@ -604,6 +604,12 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('notUsedFileContextMenu', $blade);
         Assert::assertStringContainsString('Back To Document', $blade);
         Assert::assertStringContainsString('notuseddocuments-tab.js', $blade);
+
+        $companyDetail = file_get_contents($this->projectPath('resources/views/crm/companies/detail.blade.php'));
+        Assert::assertNotFalse($companyDetail);
+        Assert::assertStringContainsString("@include('crm.clients.tabs.not_used_documents')", $companyDetail);
+        Assert::assertStringContainsString('notuseddocuments-tab.js', $companyDetail);
+        Assert::assertStringNotContainsString('not_used_documents_lazy', $companyDetail);
     }
 
     #[Test]
