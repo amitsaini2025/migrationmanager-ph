@@ -77,7 +77,7 @@ class StaffWorkloadServiceTest extends TestCase
         $this->insertAdmin(30, 'client', $today->copy()->subYear());
 
         $this->insertNote(1, 1, 30, 1, 'Call', '0', 1);
-        $this->insertNote(2, 2, 30, 1, 'Checklist', '0', 1);
+        $this->insertNote(2, 2, 30, 2, 'Checklist', '0', 1);
 
         $summary = $this->service->getDashboardWorkload(1, $today);
 
@@ -113,6 +113,7 @@ class StaffWorkloadServiceTest extends TestCase
         $this->insertAdmin(50, 'client', $today->copy()->subYears(2));
 
         $this->insertNote(4, 1, 50, 0, 'Call', '0', 0, $today->copy()->subYears(2));
+        $this->insertNote(5, 1, 50, 0, 'Call', '0', 0, $today);
 
         $summary = $this->service->getDashboardWorkload(1, $today);
 
