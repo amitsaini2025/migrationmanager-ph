@@ -1,28 +1,30 @@
 <?php
+
 namespace App\Http\Controllers\CRM;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardRequest;
+use App\Models\CheckinLog;
+use App\Models\Note;
 use App\Models\Staff;
 use App\Services\DashboardService;
 use App\Services\StaffPersonalCalendarFeedService;
+use App\Services\StaffWorkloadService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class DashboardController extends Controller
 {
-    protected DashboardService $dashboardService;
-
-    protected StaffPersonalCalendarFeedService $personalCalendarFeed;
-
     public function __construct(
-        DashboardService $dashboardService,
-        StaffPersonalCalendarFeedService $personalCalendarFeed
+        protected DashboardService $dashboardService,
+        protected StaffPersonalCalendarFeedService $personalCalendarFeed,
+        protected StaffWorkloadService $staffWorkloadService,
     ) {
         $this->middleware('auth:admin');
-        $this->dashboardService = $dashboardService;
-        $this->personalCalendarFeed = $personalCalendarFeed;
     }
 
     /**
@@ -35,8 +37,33 @@ class DashboardController extends Controller
         $dashboardData['calendarTypes'] = $this->personalCalendarFeed->calendarTypeOptions();
         $dashboardData['defaultCalendarType'] = StaffPersonalCalendarFeedService::DEFAULT_TYPE;
         $dashboardData['calendarStats'] = ['today' => 0, 'this_week' => 0, 'upcoming' => 0];
+        $dashboardData['workload'] = $this->staffWorkloadService->getDashboardWorkload((int) Auth::id());
 
         return view('crm.dashboard-optimized', $dashboardData);
+    }
+
+    /**
+     * Drill-down items for workload cards (today, logged-in staff only).
+     */
+    public function workloadDrilldown(Request $request): JsonResponse
+    {
+        $staff = Auth::user();
+        if (! $staff instanceof Staff) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $metric = (string) $request->query('metric', '');
+        if (! in_array($metric, StaffWorkloadService::metricKeys(), true)) {
+            return response()->json(['success' => false, 'message' => 'Invalid metric'], 422);
+        }
+
+        $items = $this->staffWorkloadService->getDrillDownItems((int) $staff->id, $metric);
+
+        return response()->json([
+            'success' => true,
+            'metric' => $metric,
+            'items' => $items,
+        ]);
     }
 
     /**
@@ -89,7 +116,7 @@ class DashboardController extends Controller
         }
 
         $payload = $this->dashboardService->getClientMattersTablePayload($request, Auth::user());
-        /** @var \Illuminate\Pagination\LengthAwarePaginator $data */
+        /** @var LengthAwarePaginator $data */
         $data = $payload['data'];
         $data->setPath(route('dashboard'));
 
@@ -105,10 +132,10 @@ class DashboardController extends Controller
     public function saveColumnPreferences(Request $request)
     {
         $this->dashboardService->saveColumnPreferences($request);
-        
+
         return response()->json([
             'success' => true,
-            'message' => 'Column preferences saved successfully'
+            'message' => 'Column preferences saved successfully',
         ]);
     }
 
@@ -118,9 +145,9 @@ class DashboardController extends Controller
     public function fetchNotifications(Request $request)
     {
         $notifications = $this->dashboardService->getNotifications();
-        
+
         return response()->json([
-            'unseen_notification' => $notifications['count']
+            'unseen_notification' => $notifications['count'],
         ]);
     }
 
@@ -130,10 +157,10 @@ class DashboardController extends Controller
     public function fetchOfficeVisitNotifications(Request $request)
     {
         $notifications = $this->dashboardService->getOfficeVisitNotifications();
-        
+
         return response()->json([
             'notifications' => $notifications,
-            'count' => count($notifications)
+            'count' => count($notifications),
         ]);
     }
 
@@ -143,7 +170,7 @@ class DashboardController extends Controller
     public function markNotificationSeen(Request $request)
     {
         $result = $this->dashboardService->markNotificationAsSeen($request->notification_id);
-        
+
         return response()->json($result);
     }
 
@@ -157,29 +184,31 @@ class DashboardController extends Controller
                 'note_id' => 'required|integer',
                 'unique_group_id' => 'required|string',
                 'description' => 'required|string',
-                'note_deadline' => 'required|date'
+                'note_deadline' => 'required|date',
             ]);
 
             Log::info('Extend deadline request data:', $request->all());
 
             $result = $this->dashboardService->extendNoteDeadline($request->all());
-            
+
             Log::info('Extend deadline result:', $result);
-            
+
             return response()->json($result);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             Log::error('Validation error in extendDeadlineDate:', $e->errors());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed: ' . implode(', ', array_flatten($e->errors()))
+                'message' => 'Validation failed: '.implode(', ', array_flatten($e->errors())),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Error in extendDeadlineDate: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            Log::error('Error in extendDeadlineDate: '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while extending the deadline'
+                'message' => 'An error occurred while extending the deadline',
             ], 500);
         }
     }
@@ -191,11 +220,11 @@ class DashboardController extends Controller
     {
         try {
             Log::info('Update action completed request data:', $request->all());
-            
+
             $this->validate($request, [
                 'id' => 'required|integer',
                 'unique_group_id' => 'nullable|string',
-                'completion_notes' => 'nullable|string|max:5000'
+                'completion_notes' => 'nullable|string|max:5000',
             ]);
 
             $result = $this->dashboardService->updateActionCompleted(
@@ -203,23 +232,25 @@ class DashboardController extends Controller
                 $request->unique_group_id ?? '',
                 $request->completion_notes
             );
-            
+
             Log::info('Update action completed result:', $result);
-            
+
             return response()->json($result);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             Log::error('Validation error in updateActionCompleted:', $e->errors());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed: ' . implode(', ', array_flatten($e->errors()))
+                'message' => 'Validation failed: '.implode(', ', array_flatten($e->errors())),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Error in updateActionCompleted: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            Log::error('Error in updateActionCompleted: '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while updating action completion'
+                'message' => 'An error occurred while updating action completion',
             ], 500);
         }
     }
@@ -230,11 +261,11 @@ class DashboardController extends Controller
     public function fetchVisaExpiryMessages(Request $request)
     {
         $this->validate($request, [
-            'client_id' => 'required|integer'
+            'client_id' => 'required|integer',
         ]);
 
         $message = $this->dashboardService->getVisaExpiryMessage($request->client_id);
-        
+
         return $message;
     }
 
@@ -244,12 +275,12 @@ class DashboardController extends Controller
     public function checkCheckinStatus(Request $request)
     {
         try {
-            $checkinLog = \App\Models\CheckinLog::where('id', $request->checkin_id)->first();
-            
+            $checkinLog = CheckinLog::where('id', $request->checkin_id)->first();
+
             if ($checkinLog) {
                 return response()->json([
                     'success' => true,
-                    'status' => $checkinLog->status
+                    'status' => $checkinLog->status,
                 ]);
             }
 
@@ -263,23 +294,23 @@ class DashboardController extends Controller
      * Update checkin status
      */
     public function updateCheckinStatus(Request $request)
-    { 
+    {
         try {
-            $checkinLog = \App\Models\CheckinLog::where('id', $request->checkin_id)->first();
-            
+            $checkinLog = CheckinLog::where('id', $request->checkin_id)->first();
+
             if ($checkinLog) {
                 $checkinLog->status = $request->status;
-                
+
                 if ($request->has('wait_type')) {
                     $checkinLog->wait_type = $request->wait_type;
                 }
-                
+
                 $saved = $checkinLog->save();
-                
+
                 if ($saved) {
                     return response()->json([
                         'success' => true,
-                        'message' => 'Status updated successfully to ' . $request->status
+                        'message' => 'Status updated successfully to '.$request->status,
                     ]);
                 } else {
                     return response()->json(['success' => false, 'message' => 'Failed to save status update']);
@@ -288,7 +319,7 @@ class DashboardController extends Controller
 
             return response()->json(['success' => false, 'message' => 'Checkin not found']);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error updating checkin status: ' . $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Error updating checkin status: '.$e->getMessage()]);
         }
     }
 
@@ -297,7 +328,7 @@ class DashboardController extends Controller
      */
     public function fetchInPersonWaitingCount(Request $request)
     {
-        $InPersonwaitingCount = \App\Models\CheckinLog::inPersonWaitingCountForViewer();
+        $InPersonwaitingCount = CheckinLog::inPersonWaitingCountForViewer();
 
         return response()->json(['InPersonwaitingCount' => $InPersonwaitingCount]);
     }
@@ -308,19 +339,19 @@ class DashboardController extends Controller
     public function fetchTotalActivityCount(Request $request)
     {
         if (Auth::user()->role == 1) {
-            $assigneesCount = \App\Models\Note::query()->where('type', 'client')
+            $assigneesCount = Note::query()->where('type', 'client')
                 ->whereNotNull('client_id')
                 ->where('is_action', 1)
                 ->where('status', 0)
                 ->count();
         } else {
-            $assigneesCount = \App\Models\Note::query()->where('assigned_to', Auth::user()->id)
+            $assigneesCount = Note::query()->where('assigned_to', Auth::user()->id)
                 ->where('type', 'client')
                 ->where('is_action', 1)
                 ->where('status', 0)
                 ->count();
         }
-        
+
         return response()->json(['assigneesCount' => $assigneesCount]);
     }
 }

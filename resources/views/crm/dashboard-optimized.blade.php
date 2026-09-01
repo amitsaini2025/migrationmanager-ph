@@ -15,30 +15,7 @@
             </div>
         </header>
 
-        {{-- KPI Cards Section --}}
-        <section class="kpi-cards">
-            <x-dashboard.kpi-card 
-                :title="'Active Matters'" 
-                :count="$count_active_matter" 
-                :route="route('clients.clientsmatterslist')"
-                icon="fas fa-briefcase"
-                icon-class="icon-active" 
-            />
-            
-            <x-dashboard.kpi-card 
-                :title="'Urgent Notes Deadlines'" 
-                :count="$count_note_deadline"
-                icon="fas fa-hourglass-half"
-                icon-class="icon-pending" 
-            />
-            
-            <x-dashboard.kpi-card 
-                :title="'Cases Requiring Attention'" 
-                :count="$count_cases_requiring_attention_data"
-                icon="fas fa-check-circle"
-                icon-class="icon-success" 
-            />
-        </section>
+        <x-dashboard.workload-strip :workload="$workload ?? []" />
 
         <x-dashboard.staff-calendar
             :stats="$calendarStats ?? ['today' => 0, 'this_week' => 0, 'upcoming' => 0]"
@@ -1364,7 +1341,86 @@ document.addEventListener('keydown', function(e) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Dashboard ready
+    const metricTitles = {
+        completed_excl_call: 'Completed (excl. Call)',
+        updated: 'Updated today',
+        pending: 'Pending actions',
+        call_completed: 'Call completed today',
+        call_notes: 'Call notes today',
+        in_person: 'In-person today'
+    };
+
+    document.querySelectorAll('.workload-card[data-workload-metric]').forEach(function(card) {
+        card.addEventListener('click', function() {
+            const metric = card.getAttribute('data-workload-metric');
+            if (!metric) {
+                return;
+            }
+            openWorkloadDrilldown(metric);
+        });
+        card.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                card.click();
+            }
+        });
+    });
+
+    function openWorkloadDrilldown(metric) {
+        const modalEl = document.getElementById('workloadDrilldownModal');
+        const titleEl = document.getElementById('workloadDrilldownModalLabel');
+        const loadingEl = document.getElementById('workloadDrilldownLoading');
+        const emptyEl = document.getElementById('workloadDrilldownEmpty');
+        const tableEl = document.getElementById('workloadDrilldownTable');
+        const tbody = tableEl ? tableEl.querySelector('tbody') : null;
+
+        if (!modalEl || !tbody) {
+            return;
+        }
+
+        titleEl.textContent = metricTitles[metric] || 'Workload details';
+        loadingEl.style.display = 'block';
+        emptyEl.style.display = 'none';
+        tableEl.style.display = 'none';
+        tbody.innerHTML = '';
+
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        } else if (typeof $ !== 'undefined' && $.fn.modal) {
+            $(modalEl).modal('show');
+        }
+
+        fetch('{{ route('dashboard.workload-drilldown') }}?metric=' + encodeURIComponent(metric), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                loadingEl.style.display = 'none';
+                const items = (data && data.items) ? data.items : [];
+                if (!items.length) {
+                    emptyEl.style.display = 'block';
+                    return;
+                }
+                items.forEach(function(item) {
+                    const tr = document.createElement('tr');
+                    const link = item.url
+                        ? '<a href="' + item.url + '" target="_blank" rel="noopener">' + (item.name || 'View') + '</a>'
+                        : (item.name || '—');
+                    tr.innerHTML = '<td>' + (item.at || '—') + '</td>'
+                        + '<td>' + link + (item.client_ref ? ' <small class="text-muted">(' + item.client_ref + ')</small>' : '') + '</td>'
+                        + '<td>' + (item.audience || '—') + (item.task_group ? ' · ' + item.task_group : '') + '</td>'
+                        + '<td>' + (item.people_class || '—') + '</td>'
+                        + '<td>' + (item.snippet || item.task_group || '—') + '</td>';
+                    tbody.appendChild(tr);
+                });
+                tableEl.style.display = 'table';
+            })
+            .catch(function() {
+                loadingEl.style.display = 'none';
+                emptyEl.textContent = 'Could not load details.';
+                emptyEl.style.display = 'block';
+            });
+    }
 });
 
 // Debounced search (override from original script)
