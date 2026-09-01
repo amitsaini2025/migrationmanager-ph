@@ -620,6 +620,10 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString("activateClientDocumentsTabAndCategory('nominationdocuments'", $detailMain);
         Assert::assertStringContainsString('showNominationFileContextMenu', $detailMain);
         Assert::assertStringContainsString('preview-container-nomdocumnetlist', $detailMain);
+        Assert::assertStringContainsString("'File Document'", $detailMain);
+        Assert::assertStringContainsString('data-doc-type', $blade);
+        Assert::assertStringContainsString('data-doctype="{{$fetch->doc_type}}"', $blade);
+        Assert::assertStringContainsString("'File Document'", $blade);
     }
 
     #[Test]

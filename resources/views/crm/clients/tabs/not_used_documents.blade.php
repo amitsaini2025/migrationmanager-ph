@@ -122,7 +122,7 @@
                                                 </td>
                                                 <td style="white-space: initial;">
                                                     <span class="badge badge-<?php echo $fetch->doc_type === 'personal' ? 'primary' : 'success'; ?>">
-                                                        <?php echo ucfirst($fetch->doc_type); ?>
+                                                        <?php echo $fetch->doc_type === 'nomination' ? 'File Document' : ucfirst((string) $fetch->doc_type); ?>
                                                     </span>
                                                 </td>
                                                 <td style="white-space: initial;">
