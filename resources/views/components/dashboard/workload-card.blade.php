@@ -34,7 +34,7 @@
             <h3 class="workload-title">{{ $title }}</h3>
             <div class="workload-count">{{ number_format($total) }}</div>
             <p class="workload-split">
-                {{ $clients }} clients · {{ $leads }} leads@if($personal > 0) · {{ $personal }} personal@endif
+                {{ $clients }} clients · {{ $leads }} leads @if($personal > 0)· {{ $personal }} personal @endif
             </p>
             @if($newCount > 0 || $returning > 0 || $current > 0)
                 <p class="workload-class-split">
