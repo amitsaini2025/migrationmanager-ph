@@ -131,7 +131,7 @@
 
     /**
      * Accordion card CSS and bindChecklistsTabUi live outside #checklists-tab
-     * in the fragment — import them once so lazy load matches eager layout/UX.
+     * in the fragment — import styles + scripts only (never other tab HTML).
      */
     function importChecklistsOrphanAssets(doc, afterEl) {
         return new Promise(function(resolve) {
@@ -153,14 +153,17 @@
                 });
             }
 
-            var insertAfter = afterEl;
             var scriptHosts = [];
 
             Array.prototype.forEach.call(doc.body.children, function(child) {
                 if (child.id === 'checklists-tab') {
                     return;
                 }
-                if (String(child.tagName).toLowerCase() === 'style') {
+                var tag = String(child.tagName).toLowerCase();
+                if (tag === 'style') {
+                    return;
+                }
+                if (tag !== 'script') {
                     return;
                 }
 
@@ -169,18 +172,7 @@
                     return;
                 }
 
-                if (imported.id) {
-                    var existing = document.getElementById(imported.id);
-                    if (existing && existing !== afterEl) {
-                        existing.replaceWith(imported);
-                        insertAfter = imported;
-                        scriptHosts.push(imported);
-                        return;
-                    }
-                }
-
-                insertAfter.parentNode.insertBefore(imported, insertAfter.nextSibling);
-                insertAfter = imported;
+                document.body.appendChild(imported);
                 scriptHosts.push(imported);
             });
 
@@ -203,6 +195,24 @@
                 resolve();
             });
         });
+    }
+
+    function syncChecklistsPaneVisibility(tabEl) {
+        var nav = document.querySelector('.client-nav-button.active');
+        var navTab = nav ? nav.getAttribute('data-tab') : '';
+        var path = window.location.pathname || '';
+        var checklistsIsCurrent = navTab === 'checklists' || /\/checklists\/?$/.test(path);
+        if (!checklistsIsCurrent || !tabEl) {
+            if (tabEl && navTab && navTab !== 'checklists') {
+                tabEl.classList.remove('active');
+            }
+            return;
+        }
+        var panes = document.querySelectorAll('#tab-content > .tab-pane');
+        Array.prototype.forEach.call(panes, function(pane) {
+            pane.classList.remove('active');
+        });
+        tabEl.classList.add('active');
     }
 
     function initChecklistsTabAfterInject(tabEl) {
@@ -232,6 +242,7 @@
         }
 
         if (!needsFragmentLoad(currentTab, force)) {
+            syncChecklistsPaneVisibility(currentTab);
             initChecklistsTabAfterInject(currentTab);
             return Promise.resolve(currentTab);
         }
@@ -290,6 +301,7 @@
                     return importChecklistsOrphanAssets(doc, newTab);
                 })
                 .then(function() {
+                    syncChecklistsPaneVisibility(newTab);
                     initChecklistsTabAfterInject(newTab);
                     return newTab;
                 });

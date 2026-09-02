@@ -111,9 +111,10 @@
      * Activate a specific tab
      */
     function activateTab(tabId) {
-        // Remove active class from all sidebar buttons and panes
+        // Remove active class from all sidebar buttons and top-level panes only
+        // (nested .tab-pane inside a tab, e.g. email folders, must keep their own active).
         $('.client-nav-button').removeClass('active');
-        $('.tab-pane').removeClass('active');
+        $('#tab-content > .tab-pane').removeClass('active');
         
         // Add active class to the clicked button - use exact match with filter to ensure precision
         $('.client-nav-button').filter(function() {

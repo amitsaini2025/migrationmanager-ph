@@ -416,9 +416,21 @@ class ClientDetailTabsTest extends TestCase
         Assert::assertStringContainsString('function ensureChecklistsTabLoaded', $checklistsTabJs);
         Assert::assertStringContainsString('function activateInjectedScripts', $checklistsTabJs);
         Assert::assertStringContainsString('function importChecklistsOrphanAssets', $checklistsTabJs);
+        Assert::assertStringContainsString('function syncChecklistsPaneVisibility', $checklistsTabJs);
+        Assert::assertStringContainsString("tag !== 'script'", $checklistsTabJs);
+        Assert::assertStringContainsString('#tab-content > .tab-pane', $checklistsTabJs);
         Assert::assertStringContainsString('data-checklists-fragment-style', $checklistsTabJs);
         Assert::assertStringContainsString('__checklistsOrphanScriptsLoaded', $checklistsTabJs);
         Assert::assertStringContainsString('window.bindChecklistsTabUi', $checklistsTabJs);
+
+        $clientDetailCss = file_get_contents($this->projectPath('public/css/client-detail.css'));
+        Assert::assertNotFalse($clientDetailCss);
+        Assert::assertStringContainsString('#tab-content > .tab-pane', $clientDetailCss);
+        Assert::assertStringContainsString('#tab-content > .tab-pane.active', $clientDetailCss);
+
+        $sidebarTabs = file_get_contents($this->projectPath('public/js/crm/clients/sidebar-tabs.js'));
+        Assert::assertNotFalse($sidebarTabs);
+        Assert::assertStringContainsString("$('#tab-content > .tab-pane').removeClass('active')", $sidebarTabs);
 
         $checklistsBlade = file_get_contents($this->projectPath('resources/views/crm/clients/tabs/checklists.blade.php'));
         Assert::assertNotFalse($checklistsBlade);

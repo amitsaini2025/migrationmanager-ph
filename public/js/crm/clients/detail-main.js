@@ -270,7 +270,7 @@
             SidebarTabs.activateTab(tabId);
         } else {
             $('.client-nav-button').removeClass('active');
-            $('.tab-pane').removeClass('active');
+            $('#tab-content > .tab-pane').removeClass('active');
             $('.client-nav-button[data-tab="' + tabId + '"]').addClass('active');
             $('#' + tabId + '-tab').addClass('active');
             localStorage.setItem('activeTab', tabId);
