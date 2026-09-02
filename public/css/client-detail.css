@@ -659,12 +659,19 @@
 }
 
 
-/* Tab Pane Styles */
-.tab-pane { 
-    display: none; 
+/* Tab Pane Styles — only the active sidebar tab (direct child of #tab-content).
+   Do not target nested .tab-pane (email folders, etc.). */
+.tab-pane {
+    display: none;
 }
-.tab-pane.active { 
-    display: block; 
+.tab-pane.active {
+    display: block;
+}
+#tab-content > .tab-pane {
+    display: none !important;
+}
+#tab-content > .tab-pane.active {
+    display: block !important;
 }
 .full-width { 
     width: 100%; 
