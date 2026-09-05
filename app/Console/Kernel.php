@@ -106,11 +106,11 @@ class Kernel extends ConsoleKernel
         // $schedule->command('VisaExpireReminderEmail:daily')->daily();
 
         // Appointment Sync System - Sync from Bansal website every 15 minutes (look back 20 minutes for overlap buffer)
-        $schedule->command('booking:sync-appointments --minutes=20')
-            ->everyFifteenMinutes()
-            ->timezone('Australia/Melbourne')
-            ->withoutOverlapping(10)
-            ->appendOutputTo(storage_path('logs/appointment-sync.log'));
+        // $schedule->command('booking:sync-appointments --minutes=20')
+        //     ->everyFifteenMinutes()
+        //     ->timezone('Australia/Melbourne')
+        //     ->withoutOverlapping(10)
+        //     ->appendOutputTo(storage_path('logs/appointment-sync.log'));
 
         // Appointment Sync System - Send reminders daily at 9 AM
         $schedule->command('booking:send-reminders')
