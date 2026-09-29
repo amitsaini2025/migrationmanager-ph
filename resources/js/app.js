@@ -59,43 +59,6 @@ window.playOfficeVisitNotificationSound = function () {
 
 /*
 |--------------------------------------------------------------------------
-| Office visit popup (Echo can fire before layout defines showTeamsNotification)
-|--------------------------------------------------------------------------
-*/
-window.__officeVisitNotificationQueue = window.__officeVisitNotificationQueue || [];
-
-function normalizeOfficeVisitEchoPayload(e) {
-    if (!e) return null;
-    if (e.notification) return e.notification;
-    if (e.id !== undefined || e.checkin_id !== undefined) return e;
-    return null;
-}
-
-window.deliverOfficeVisitNotificationPayload = function (payload) {
-    if (!payload) return;
-    if (typeof window.showTeamsNotification === 'function') {
-        window.showTeamsNotification(payload);
-        return;
-    }
-    window.__officeVisitNotificationQueue.push(payload);
-};
-
-window.drainOfficeVisitNotificationQueue = function () {
-    if (typeof window.showTeamsNotification !== 'function') return;
-    const q = window.__officeVisitNotificationQueue;
-    if (!q || !q.length) return;
-    const batch = q.splice(0, q.length);
-    batch.forEach(function (payload) {
-        try {
-            window.showTeamsNotification(payload);
-        } catch (err) {
-            console.warn('Office visit queued notification error:', err);
-        }
-    });
-};
-
-/*
-|--------------------------------------------------------------------------
 | Notification Bell Update (always available - used by Echo and client_portal)
 |--------------------------------------------------------------------------
 */
@@ -166,22 +129,6 @@ function attachCrmEchoUserChannelListeners() {
             console.warn('Notification count update error:', err);
         }
     });
-
-    // Office visit popups: deliverOfficeVisitNotificationPayload queues until showTeamsNotification exists.
-    if (!window.__officeVisitEchoAttached) {
-        userChannel.listen('.OfficeVisitNotificationCreated', function (e) {
-            try {
-                const payload = normalizeOfficeVisitEchoPayload(e);
-                if (payload) {
-                    window.deliverOfficeVisitNotificationPayload(payload);
-                }
-            } catch (err) {
-                console.warn('Office visit notification handler error:', err);
-            }
-        });
-        window.__officeVisitEchoAttached = true;
-        console.log('✅ Office visit notification listener attached (Echo)');
-    }
 }
 
 function whenEchoConnected(callback) {
@@ -256,51 +203,6 @@ if (import.meta.env.VITE_REVERB_APP_KEY) {
 } else {
     window.EchoDisabled = true;
 }
-
-// Poll office-visit notifications as a safety net (Echo can still deliver instantly).
-// showTeamsNotification dedupes by id so this does not double-render when both fire.
-(function pollOfficeVisitNotificationsAll() {
-    const userId = document.querySelector('meta[name="current-user-id"]')?.content;
-    if (!userId) return;
-
-    function poll() {
-        if (document.visibilityState === 'hidden') return;
-        if (typeof window.showTeamsNotification !== 'function') return;
-        fetch('/fetch-office-visit-notifications', {
-            method: 'GET',
-            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            credentials: 'same-origin',
-        })
-            .then((r) => r.json())
-            .then((data) => {
-                const list = data && data.notifications ? data.notifications : [];
-                list.forEach(function (n) {
-                    window.showTeamsNotification(n);
-                });
-            })
-            .catch(() => {});
-    }
-
-    let attempts = 0;
-    const waitForHandler = setInterval(function () {
-        attempts++;
-        if (typeof window.showTeamsNotification === 'function') {
-            clearInterval(waitForHandler);
-            if (typeof window.drainOfficeVisitNotificationQueue === 'function') {
-                window.drainOfficeVisitNotificationQueue();
-            }
-            setTimeout(poll, 3000);
-            setInterval(poll, 10000);
-        }
-        if (attempts >= 300) clearInterval(waitForHandler);
-    }, 200);
-
-    document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'visible') {
-            poll();
-        }
-    });
-})();
 
 // Polling fallback for notification badge (HTML already has the count; Echo updates live).
 (function pollNotificationCount() {
