@@ -228,6 +228,7 @@ return [
         'fa-calendar-alt' => 'calendar',
         'fa-calendar-check' => 'calendar-check',
         'fa-calendar-day' => 'calendar-days',
+        'fa-calendar-days' => 'calendar-days',
         'fa-calendar-week' => 'calendar-range',
         'fa-calendar-plus' => 'calendar-plus',
         'fa-calendar-minus' => 'calendar-minus',
